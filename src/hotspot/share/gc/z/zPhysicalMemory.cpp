@@ -30,7 +30,6 @@
 #include "gc/z/zNUMA.inline.hpp"
 #include "gc/z/zPhysicalMemory.inline.hpp"
 #include "logging/log.hpp"
-#include "runtime/globals.hpp"
 #include "runtime/globals_extension.hpp"
 #include "runtime/init.hpp"
 #include "runtime/os.hpp"

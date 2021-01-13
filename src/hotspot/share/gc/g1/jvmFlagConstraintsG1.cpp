@@ -23,6 +23,7 @@
  */
 
 #include "precompiled.hpp"
+#include "gc/g1/g1_globals.hpp"
 #include "gc/g1/heapRegionBounds.inline.hpp"
 #include "gc/g1/jvmFlagConstraintsG1.hpp"
 #include "runtime/globals_extension.hpp"

@@ -26,6 +26,7 @@
 #include "classfile/classLoaderDataGraph.hpp"
 #include "code/nmethod.hpp"
 #include "gc/shared/suspendibleThreadSet.hpp"
+#include "gc/z/z_globals.hpp"
 #include "gc/z/zBarrier.inline.hpp"
 #include "gc/z/zHeap.inline.hpp"
 #include "gc/z/zLock.inline.hpp"

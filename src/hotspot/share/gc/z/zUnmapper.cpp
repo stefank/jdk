@@ -22,14 +22,13 @@
  */
 
 #include "precompiled.hpp"
-#include "gc/shared/gc_globals.hpp"
+#include "gc/z/z_globals.hpp"
 #include "gc/z/zList.inline.hpp"
 #include "gc/z/zLock.inline.hpp"
 #include "gc/z/zPage.inline.hpp"
 #include "gc/z/zPageAllocator.hpp"
 #include "gc/z/zUnmapper.hpp"
 #include "jfr/jfrEvents.hpp"
-#include "runtime/globals.hpp"
 
 ZUnmapper::ZUnmapper(ZPageAllocator* page_allocator) :
     _page_allocator(page_allocator),

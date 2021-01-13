@@ -27,7 +27,6 @@
 #include "gc/z/zCPU.inline.hpp"
 #include "gc/z/zGlobals.hpp"
 #include "gc/z/zHeuristics.hpp"
-#include "runtime/globals.hpp"
 #include "runtime/os.hpp"
 #include "utilities/globalDefinitions.hpp"
 #include "utilities/powerOfTwo.hpp"

@@ -23,6 +23,7 @@
  */
 
 #include "precompiled.hpp"
+#include "gc/epsilon/epsilon_globals.hpp"
 #include "gc/epsilon/epsilonArguments.hpp"
 #include "gc/epsilon/epsilonHeap.hpp"
 #include "gc/shared/gcArguments.hpp"

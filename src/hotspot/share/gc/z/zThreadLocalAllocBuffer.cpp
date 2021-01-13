@@ -27,7 +27,6 @@
 #include "gc/z/zStackWatermark.hpp"
 #include "gc/z/zThreadLocalAllocBuffer.hpp"
 #include "gc/z/zValue.inline.hpp"
-#include "runtime/globals.hpp"
 #include "runtime/stackWatermarkSet.inline.hpp"
 #include "runtime/thread.hpp"
 

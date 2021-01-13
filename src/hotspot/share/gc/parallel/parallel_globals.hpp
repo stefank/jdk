@@ -25,6 +25,8 @@
 #ifndef SHARE_GC_PARALLEL_PARALLEL_GLOBALS_HPP
 #define SHARE_GC_PARALLEL_PARALLEL_GLOBALS_HPP
 
+#include "runtime/globals_shared.hpp"
+
 #define GC_PARALLEL_FLAGS(develop,                                          \
                           develop_pd,                                       \
                           product,                                          \
@@ -62,5 +64,7 @@
           "Process large arrays in chunks")
 
 // end of GC_PARALLEL_FLAGS
+
+DECLARE_FLAGS(GC_PARALLEL_FLAGS)
 
 #endif // SHARE_GC_PARALLEL_PARALLEL_GLOBALS_HPP

@@ -31,7 +31,6 @@
 #include "gc/z/zThread.inline.hpp"
 #include "gc/z/zUtils.hpp"
 #include "gc/z/zValue.hpp"
-#include "runtime/globals.hpp"
 #include "utilities/align.hpp"
 
 //

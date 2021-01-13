@@ -25,9 +25,9 @@
 #ifndef SHARE_GC_G1_G1COLLECTIONSETCHOOSER_HPP
 #define SHARE_GC_G1_G1COLLECTIONSETCHOOSER_HPP
 
+#include "gc/g1/g1_globals.hpp"
 #include "gc/g1/heapRegion.hpp"
 #include "memory/allocation.hpp"
-#include "runtime/globals.hpp"
 
 class G1CollectionSetCandidates;
 class WorkGang;
