@@ -84,6 +84,7 @@ public:
 //                             point of unwinding, might be above or below
 //                             due to frame resizing)
 class StackWatermark : public CHeapObj<mtInternal> {
+  friend class StackWatermarkTest;
   friend class StackWatermarkFramesIterator;
 protected:
   volatile uint32_t _state;
