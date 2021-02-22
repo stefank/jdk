@@ -158,8 +158,9 @@ class AllocatedObj {
  */
 enum class MEMFLAGS {
   MEMORY_TYPES_DO(MEMORY_TYPE_DECLARE_ENUM)
-  mt_number_of_types   // number of memory types (mtDontTrack
+  mt_number_of_types,  // number of memory types (mtDontTrack
                        // is not included as validate type)
+  dynamic_memory_type  // used by CHeapAllocator to indicate type is dynamic.
 };
 
 #define MEMORY_TYPE_SHORTNAME(type, human_readable) \
