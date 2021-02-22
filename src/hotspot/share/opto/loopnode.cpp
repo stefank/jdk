@@ -25,6 +25,7 @@
 #include "precompiled.hpp"
 #include "ci/ciMethodData.hpp"
 #include "compiler/compileLog.hpp"
+#include "cppstdlib/utility.hpp"
 #include "gc/shared/barrierSet.hpp"
 #include "gc/shared/c2/barrierSetC2.hpp"
 #include "libadt/vectset.hpp"
@@ -1322,7 +1323,7 @@ void PhaseIdealLoop::transform_long_range_checks(int stride_con, const Node_List
     register_new_node(Q_max, entry_control);
 
     if (scale * stride_con < 0) {
-      swap(Q_min, Q_max);
+      std::swap(Q_min, Q_max);
     }
     // Now, mathematically, Q_max > Q_min, and they are close enough so that (Q_max-Q_min) fits in 32 bits.
 

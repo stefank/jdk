@@ -911,7 +911,7 @@ void PhaseCFG::fixup_flow() {
         block->_succs.map(0, tbs1);
         block->_succs.map(1, tbs0);
         // Flip projection for each target
-        swap(proj0, proj1);
+        std::swap(proj0, proj1);
       } else if(bnext != bs1) {
         // Need a double-branch
         // The existing conditional branch need not change.

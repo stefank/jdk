@@ -1107,13 +1107,6 @@ inline int build_int_from_shorts( jushort low, jushort high ) {
   return ((int)((unsigned int)high << 16) | (unsigned int)low);
 }
 
-// swap a & b
-template<class T> static void swap(T& a, T& b) {
-  T tmp = a;
-  a = b;
-  b = tmp;
-}
-
 // array_size_impl is a function that takes a reference to T[N] and
 // returns a reference to char[N].  It is not ODR-used, so not defined.
 template<typename T, size_t N> char (&array_size_impl(T (&)[N]))[N];

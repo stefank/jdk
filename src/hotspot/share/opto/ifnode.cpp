@@ -23,6 +23,7 @@
  */
 
 #include "precompiled.hpp"
+#include "cppstdlib/utility.hpp"
 #include "ci/ciTypeFlow.hpp"
 #include "memory/allocation.inline.hpp"
 #include "memory/resourceArea.hpp"
@@ -956,9 +957,9 @@ bool IfNode::fold_compares_helper(ProjNode* proj, ProjNode* success, ProjNode* f
     //     lo = b+1, hi = a, adjusted_lim = a-b, cond = >=u
     //     lo = b+1, hi = a, adjusted_lim = a-b-1, cond = >u doesn't work because a = b is possible, then b-a-1 = -1
 
-    swap(lo, hi);
-    swap(lo_type, hi_type);
-    swap(lo_test, hi_test);
+    std::swap(lo, hi);
+    std::swap(lo_type, hi_type);
+    std::swap(lo_test, hi_test);
 
     assert((dom_bool->_test.is_less() && proj->_con) ||
            (dom_bool->_test.is_greater() && !proj->_con), "incorrect test");

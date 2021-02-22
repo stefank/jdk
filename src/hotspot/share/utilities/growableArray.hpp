@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -25,6 +25,7 @@
 #ifndef SHARE_UTILITIES_GROWABLEARRAY_HPP
 #define SHARE_UTILITIES_GROWABLEARRAY_HPP
 
+#include "cppstdlib/utility.hpp"
 #include "memory/allocation.hpp"
 #include "memory/iterator.hpp"
 #include "utilities/debug.hpp"
@@ -479,9 +480,9 @@ public:
   }
 
   void swap(GrowableArrayWithAllocator<E, Derived>* other) {
-    ::swap(this->_data, other->_data);
-    ::swap(this->_len, other->_len);
-    ::swap(this->_max, other->_max);
+    std::swap(this->_data, other->_data);
+    std::swap(this->_len, other->_len);
+    std::swap(this->_max, other->_max);
   }
 
   void clear_and_deallocate();

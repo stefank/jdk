@@ -23,6 +23,7 @@
  */
 
 #include "precompiled.hpp"
+#include "cppstdlib/utility.hpp"
 #include "gc/shared/barrierSet.hpp"
 #include "gc/shared/c2/barrierSetC2.hpp"
 #include "memory/allocation.inline.hpp"
@@ -1116,7 +1117,7 @@ const Type* PhiNode::Value(PhaseGVN* phase) const {
           // for the iv from the exit condition.
           if (bt != BoolTest::ne) {
             if (stride_t->hi_as_long() < 0) {          // Down-counter loop
-              swap(lo, hi);
+              std::swap(lo, hi);
               return TypeInteger::make(MIN2(lo->lo_as_long(), hi->lo_as_long()), hi->hi_as_long(), 3, l->bt())->filter_speculative(_type);
             } else if (stride_t->lo_as_long() >= 0) {
               return TypeInteger::make(lo->lo_as_long(), MAX2(lo->hi_as_long(), hi->hi_as_long()), 3, l->bt())->filter_speculative(_type);

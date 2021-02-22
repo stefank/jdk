@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -23,6 +23,7 @@
  */
 
 #include "precompiled.hpp"
+#include "cppstdlib/utility.hpp"
 #include "gc/shared/barrierSet.hpp"
 #include "gc/shared/c2/barrierSetC2.hpp"
 #include "memory/allocation.inline.hpp"
@@ -1012,7 +1013,7 @@ void PhaseIterGVN::shuffle_worklist() {
   if (_worklist.size() < 2) return;
   for (uint i = _worklist.size() - 1; i >= 1; i--) {
     uint j = C->random() % (i + 1);
-    swap(_worklist.adr()[i], _worklist.adr()[j]);
+    std::swap(_worklist.adr()[i], _worklist.adr()[j]);
   }
 }
 
