@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -29,6 +29,7 @@
 #include "gc/g1/g1FullGCScope.hpp"
 #include "gc/g1/g1FullGCTask.hpp"
 #include "gc/g1/heapRegionManager.hpp"
+#include "gc/g1/heapRegionVector.hpp"
 #include "gc/shared/referenceProcessor.hpp"
 
 class G1CollectedHeap;
@@ -40,6 +41,7 @@ protected:
 
 private:
   void compact_region(HeapRegion* hr);
+  void compact_regions(HeapRegionVector& regions);
 
 public:
   G1FullGCCompactTask(G1FullCollector* collector) :

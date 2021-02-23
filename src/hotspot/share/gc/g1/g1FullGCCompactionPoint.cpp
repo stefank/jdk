@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -25,19 +25,20 @@
 #include "precompiled.hpp"
 #include "gc/g1/g1FullGCCompactionPoint.hpp"
 #include "gc/g1/heapRegion.hpp"
+#include "gc/g1/heapRegionVector.hpp"
 #include "oops/oop.inline.hpp"
 #include "utilities/debug.hpp"
 
 G1FullGCCompactionPoint::G1FullGCCompactionPoint() :
     _current_region(NULL),
-    _compaction_top(NULL) {
-  _compaction_regions = new (ResourceObj::C_HEAP, mtGC) GrowableArray<HeapRegion*>(32, mtGC);
-  _compaction_region_iterator = _compaction_regions->begin();
+    _compaction_top(NULL),
+    _compaction_regions(),
+    _compaction_region_index(0)
+{
+  _compaction_regions.reserve(32);
 }
 
-G1FullGCCompactionPoint::~G1FullGCCompactionPoint() {
-  delete _compaction_regions;
-}
+G1FullGCCompactionPoint::~G1FullGCCompactionPoint() {}
 
 void G1FullGCCompactionPoint::update() {
   if (is_initialized()) {
@@ -50,7 +51,7 @@ void G1FullGCCompactionPoint::initialize_values() {
 }
 
 bool G1FullGCCompactionPoint::has_regions() {
-  return !_compaction_regions->is_empty();
+  return !_compaction_regions.empty();
 }
 
 bool G1FullGCCompactionPoint::is_initialized() {
@@ -63,17 +64,23 @@ void G1FullGCCompactionPoint::initialize(HeapRegion* hr) {
 }
 
 HeapRegion* G1FullGCCompactionPoint::current_region() {
-  return *_compaction_region_iterator;
+  assert(_compaction_region_index < _compaction_regions.size(), "precondition");
+  HeapRegion* region = _compaction_regions[_compaction_region_index];
+  assert(region != NULL, "Must return valid region");
+  return region;
 }
 
 HeapRegion* G1FullGCCompactionPoint::next_region() {
-  HeapRegion* next = *(++_compaction_region_iterator);
+  assert(_compaction_region_index < _compaction_regions.size(), "precondition");
+  ++_compaction_region_index;
+  assert(_compaction_region_index < _compaction_regions.size(), "no more regions");
+  HeapRegion* next = _compaction_regions[_compaction_region_index];
   assert(next != NULL, "Must return valid region");
   return next;
 }
 
-GrowableArray<HeapRegion*>* G1FullGCCompactionPoint::regions() {
-  return _compaction_regions;
+HeapRegionVector* G1FullGCCompactionPoint::regions() {
+  return &_compaction_regions;
 }
 
 bool G1FullGCCompactionPoint::object_will_fit(size_t size) {
@@ -111,9 +118,14 @@ void G1FullGCCompactionPoint::forward(oop object, size_t size) {
 }
 
 void G1FullGCCompactionPoint::add(HeapRegion* hr) {
-  _compaction_regions->append(hr);
+  _compaction_regions.push_back(hr);
 }
 
 HeapRegion* G1FullGCCompactionPoint::remove_last() {
-  return _compaction_regions->pop();
+  HeapRegion* result = NULL;
+  if (!_compaction_regions.empty()) {
+    result = _compaction_regions.back();
+    _compaction_regions.pop_back();
+  }
+  return result;
 }

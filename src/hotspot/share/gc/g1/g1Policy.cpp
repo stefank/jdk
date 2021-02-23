@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2001, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -41,13 +41,13 @@
 #include "gc/g1/g1YoungGenSizer.hpp"
 #include "gc/g1/heapRegion.inline.hpp"
 #include "gc/g1/heapRegionRemSet.inline.hpp"
+#include "gc/g1/heapRegionVector.hpp"
 #include "gc/shared/concurrentGCBreakpoints.hpp"
 #include "gc/shared/gcPolicyCounters.hpp"
 #include "logging/log.hpp"
 #include "runtime/java.hpp"
 #include "runtime/mutexLocker.hpp"
 #include "utilities/debug.hpp"
-#include "utilities/growableArray.hpp"
 #include "utilities/pair.hpp"
 
 #include "gc/shared/gcTraceTime.inline.hpp"
@@ -385,11 +385,8 @@ uint G1Policy::calculate_young_list_target_length(size_t rs_length,
 
 double G1Policy::predict_survivor_regions_evac_time() const {
   double survivor_regions_evac_time = 0.0;
-  const GrowableArray<HeapRegion*>* survivor_regions = _g1h->survivor()->regions();
-  for (GrowableArrayIterator<HeapRegion*> it = survivor_regions->begin();
-       it != survivor_regions->end();
-       ++it) {
-    survivor_regions_evac_time += predict_region_total_time_ms(*it, collector_state()->in_young_only_phase());
+  for (HeapRegion* hr : *_g1h->survivor()->regions()) {
+    survivor_regions_evac_time += predict_region_total_time_ms(hr, collector_state()->in_young_only_phase());
   }
   return survivor_regions_evac_time;
 }
@@ -1470,11 +1467,8 @@ void G1Policy::update_survival_estimates_for_next_collection() {
 
   // Survivor regions
   size_t survivor_bytes = 0;
-  const GrowableArray<HeapRegion*>* survivor_regions = _g1h->survivor()->regions();
-  for (GrowableArrayIterator<HeapRegion*> it = survivor_regions->begin();
-       it != survivor_regions->end();
-       ++it) {
-    survivor_bytes += predict_bytes_to_copy(*it);
+  for (HeapRegion* sr : *_g1h->survivor()->regions()) {
+    survivor_bytes += predict_bytes_to_copy(sr);
   }
 
   _predicted_surviving_bytes_from_survivor = survivor_bytes;
@@ -1502,10 +1496,7 @@ void G1Policy::update_survival_estimates_for_next_collection() {
 void G1Policy::transfer_survivors_to_cset(const G1SurvivorRegions* survivors) {
   start_adding_survivor_regions();
 
-  for (GrowableArrayIterator<HeapRegion*> it = survivors->regions()->begin();
-       it != survivors->regions()->end();
-       ++it) {
-    HeapRegion* curr = *it;
+  for (HeapRegion* curr : *survivors->regions()) {
     set_region_survivor(curr);
 
     // The region is a non-empty survivor so let's add it to

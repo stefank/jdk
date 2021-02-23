@@ -34,6 +34,7 @@
 #include "gc/g1/g1FullGCMarkTask.hpp"
 #include "gc/g1/g1FullGCPrepareTask.inline.hpp"
 #include "gc/g1/g1FullGCScope.hpp"
+#include "gc/g1/heapRegionVector.hpp"
 #include "gc/g1/g1OopClosures.hpp"
 #include "gc/g1/g1Policy.hpp"
 #include "gc/g1/g1RegionMarkStatsCache.inline.hpp"
@@ -348,8 +349,7 @@ void G1FullCollector::phase2c_prepare_serial_compaction() {
   // Update the forwarding information for the regions in the serial
   // compaction point.
   G1FullGCCompactionPoint* cp = serial_compaction_point();
-  for (GrowableArrayIterator<HeapRegion*> it = cp->regions()->begin(); it != cp->regions()->end(); ++it) {
-    HeapRegion* current = *it;
+  for (HeapRegion* current : *cp->regions()) {
     if (!cp->is_initialized()) {
       // Initialize the compaction point. Nothing more is needed for the first heap region
       // since it is already prepared for compaction.

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,41 +22,14 @@
  *
  */
 
-#ifndef SHARE_GC_G1_G1SURVIVORREGIONS_HPP
-#define SHARE_GC_G1_G1SURVIVORREGIONS_HPP
+#ifndef SHARE_GC_G1_HEAPREGIONVECTOR_HPP
+#define SHARE_GC_G1_HEAPREGIONVECTOR_HPP
 
-#include "gc/g1/g1RegionsOnNodes.hpp"
-#include "gc/g1/heapRegionVector.hpp"
-#include "runtime/globals.hpp"
+#include "memory/allocation.hpp"
+#include "utilities/cHeapVector.hpp"
 
 class HeapRegion;
 
-class G1SurvivorRegions {
-private:
-  HeapRegionVector _regions;
-  volatile size_t _used_bytes;
-  G1RegionsOnNodes _regions_on_node;
+using HeapRegionVector = CHeapVector<HeapRegion*, mtGC>;
 
-public:
-  G1SurvivorRegions();
-
-  virtual uint add(HeapRegion* hr);
-
-  void convert_to_eden();
-
-  void clear();
-
-  uint length() const;
-  uint regions_on_node(uint node_index) const;
-
-  const HeapRegionVector* regions() const {
-    return &_regions;
-  }
-
-  // Used bytes of all survivor regions.
-  size_t used_bytes() const { return _used_bytes; }
-
-  void add_used_bytes(size_t used_bytes);
-};
-
-#endif // SHARE_GC_G1_G1SURVIVORREGIONS_HPP
+#endif // SHARE_GC_G1_HEAPREGIONVECTOR_HPP

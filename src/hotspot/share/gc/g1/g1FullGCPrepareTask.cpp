@@ -32,6 +32,7 @@
 #include "gc/g1/g1FullGCPrepareTask.inline.hpp"
 #include "gc/g1/g1HotCardCache.hpp"
 #include "gc/g1/heapRegion.inline.hpp"
+#include "gc/g1/heapRegionVector.hpp"
 #include "gc/shared/gcTraceTime.inline.hpp"
 #include "gc/shared/referenceProcessor.hpp"
 #include "logging/log.hpp"
@@ -81,10 +82,8 @@ void G1FullGCPrepareTask::work(uint worker_id) {
     G1FullGCCompactionPoint* compaction_point = collector()->compaction_point(worker_id);
     G1CalculatePointersClosure closure(collector(), compaction_point);
 
-    for (GrowableArrayIterator<HeapRegion*> it = compaction_point->regions()->begin();
-         it != compaction_point->regions()->end();
-         ++it) {
-      closure.do_heap_region(*it);
+    for (HeapRegion* region : *compaction_point->regions()) {
+      closure.do_heap_region(region);
     }
     compaction_point->update();
     // Determine if there are any unused compaction targets. This is only the case if
@@ -92,7 +91,7 @@ void G1FullGCPrepareTask::work(uint worker_id) {
     // - any regions in queue, so no free ones either.
     // - and the current region is not the last one in the list.
     if (compaction_point->has_regions() &&
-        compaction_point->current_region() != compaction_point->regions()->last()) {
+        compaction_point->current_region() != compaction_point->regions()->back()) {
       set_has_free_compaction_targets();
     }
   }

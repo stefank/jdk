@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -29,18 +29,21 @@
 #include "utilities/debug.hpp"
 
 G1SurvivorRegions::G1SurvivorRegions() :
-  _regions(new (ResourceObj::C_HEAP, mtGC) GrowableArray<HeapRegion*>(8, mtGC)),
+  _regions(),
   _used_bytes(0),
-  _regions_on_node() {}
+  _regions_on_node()
+{
+  _regions.reserve(8);
+}
 
 uint G1SurvivorRegions::add(HeapRegion* hr) {
   assert(hr->is_survivor(), "should be flagged as survivor region");
-  _regions->append(hr);
+  _regions.push_back(hr);
   return _regions_on_node.add(hr);
 }
 
 uint G1SurvivorRegions::length() const {
-  return (uint)_regions->length();
+  return (uint)_regions.size();
 }
 
 uint G1SurvivorRegions::regions_on_node(uint node_index) const {
@@ -48,17 +51,14 @@ uint G1SurvivorRegions::regions_on_node(uint node_index) const {
 }
 
 void G1SurvivorRegions::convert_to_eden() {
-  for (GrowableArrayIterator<HeapRegion*> it = _regions->begin();
-       it != _regions->end();
-       ++it) {
-    HeapRegion* hr = *it;
+  for (HeapRegion* hr : _regions) {
     hr->set_eden_pre_gc();
   }
   clear();
 }
 
 void G1SurvivorRegions::clear() {
-  _regions->clear();
+  _regions.clear();
   _used_bytes = 0;
   _regions_on_node.clear();
 }

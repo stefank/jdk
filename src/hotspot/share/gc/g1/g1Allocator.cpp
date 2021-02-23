@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -431,7 +431,7 @@ bool G1ArchiveAllocator::alloc_new_region() {
   _g1h->policy()->remset_tracker()->update_at_allocate(hr);
   _g1h->archive_set_add(hr);
   _g1h->hr_printer()->alloc(hr);
-  _allocated_regions.append(hr);
+  _allocated_regions.push_back(hr);
   _allocation_region = hr;
 
   // Set up _bottom and _max to begin allocating in the lowest
@@ -535,15 +535,16 @@ void G1ArchiveAllocator::complete_archive(GrowableArray<MemRegion>* ranges,
   // Loop through the allocated regions, and create MemRegions summarizing
   // the allocated address range, combining contiguous ranges. Add the
   // MemRegions to the GrowableArray provided by the caller.
-  int index = _allocated_regions.length() - 1;
-  assert(_allocated_regions.at(index) == _allocation_region,
+  assert(!_allocated_regions.empty(), "invariant");
+  int index = checked_cast<int>(_allocated_regions.size() - 1);
+  assert(_allocated_regions[index] == _allocation_region,
          "expected region %u at end of array, found %u",
-         _allocation_region->hrm_index(), _allocated_regions.at(index)->hrm_index());
+         _allocation_region->hrm_index(), _allocated_regions[index]->hrm_index());
   HeapWord* base_address = _allocation_region->bottom();
   HeapWord* top = base_address;
 
   while (index >= 0) {
-    HeapRegion* next = _allocated_regions.at(index);
+    HeapRegion* next = _allocated_regions[index];
     HeapWord* new_base = next->bottom();
     HeapWord* new_top = next->top();
     if (new_base != top) {

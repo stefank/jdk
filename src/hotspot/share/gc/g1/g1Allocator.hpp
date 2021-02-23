@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -27,6 +27,7 @@
 
 #include "gc/g1/g1AllocRegion.hpp"
 #include "gc/g1/g1HeapRegionAttr.hpp"
+#include "gc/g1/heapRegionVector.hpp"
 #include "gc/shared/collectedHeap.hpp"
 #include "gc/shared/plab.hpp"
 
@@ -221,7 +222,7 @@ protected:
   HeapRegion* _allocation_region;
 
   // Regions allocated for the current archive range.
-  GrowableArray<HeapRegion*> _allocated_regions;
+  HeapRegionVector _allocated_regions;
 
   // Current allocation window within the current region.
   HeapWord* _bottom;
@@ -237,9 +238,7 @@ public:
     _open(open),
     _g1h(g1h),
     _allocation_region(NULL),
-    _allocated_regions((ResourceObj::set_allocation_type((address) &_allocated_regions,
-                                                         ResourceObj::C_HEAP),
-                        2), mtGC),
+    _allocated_regions(),
     _bottom(NULL),
     _top(NULL),
     _max(NULL) { }
