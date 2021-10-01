@@ -26,12 +26,36 @@
 
 #include "gc/z/zLock.hpp"
 
+#include "gc/z/zStat.hpp"
 #include "runtime/atomic.hpp"
 #include "runtime/os.inline.hpp"
 #include "runtime/thread.hpp"
 #include "utilities/debug.hpp"
+#include "utilities/globalDefinitions.hpp"
+#include "utilities/ticks.hpp"
+
+class ZLockInstrumentation {
+private:
+  const char* _name;
+  Ticks       _start;
+
+  void report(Ticks start, Ticks end);
+
+public:
+  ZLockInstrumentation(const char* name) :
+      _name(name),
+      _start(Ticks::now()) {}
+
+  ~ZLockInstrumentation() {
+    Ticks end = Ticks::now();
+    if ((end - _start).nanoseconds() > NANOSECS_PER_MILLISEC) {
+      report(_start, end);
+    }
+  }
+};
 
 inline void ZLock::lock() {
+  ZLockInstrumentation x(_name);
   _lock.lock();
 }
 
@@ -43,10 +67,9 @@ inline void ZLock::unlock() {
   _lock.unlock();
 }
 
-inline ZReentrantLock::ZReentrantLock() :
-    _lock(),
-    _owner(NULL),
-    _count(0) {}
+inline const char* ZLock::name() const {
+  return _name;
+}
 
 inline void ZReentrantLock::lock() {
   Thread* const thread = Thread::current();
@@ -79,6 +102,7 @@ inline bool ZReentrantLock::is_owned() const {
 }
 
 inline void ZConditionLock::lock() {
+  ZLockInstrumentation x(_name);
   _lock.lock();
 }
 

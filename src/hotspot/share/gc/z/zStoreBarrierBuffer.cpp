@@ -49,7 +49,7 @@ ZStoreBarrierBuffer::ZStoreBarrierBuffer() :
     _buffer(),
     _last_processed_color(),
     _last_installed_color(),
-    _base_pointer_lock(),
+    _base_pointer_lock("ZStoreBarrierBuffer"),
     _base_pointers(),
     _current(ZBufferStoreBarriers ? _buffer_size_bytes : 0) {
 }

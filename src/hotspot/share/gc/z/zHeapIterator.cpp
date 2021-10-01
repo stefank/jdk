@@ -240,7 +240,7 @@ ZHeapIterator::ZHeapIterator(uint nworkers, bool visit_weaks) :
     _visit_weaks(visit_weaks),
     _timer_disable(),
     _bitmaps(ZAddressOffsetMax),
-    _bitmaps_lock(),
+    _bitmaps_lock("ZHeapIterator"),
     _queues(nworkers),
     _array_queues(nworkers),
     _colored_roots(),

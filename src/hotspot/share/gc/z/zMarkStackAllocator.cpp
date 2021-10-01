@@ -33,7 +33,7 @@
 #include "utilities/debug.hpp"
 
 ZMarkStackSpace::ZMarkStackSpace() :
-    _expand_lock(),
+    _expand_lock("ZMarkStackSpace"),
     _start(0),
     _top(0),
     _end(0) {

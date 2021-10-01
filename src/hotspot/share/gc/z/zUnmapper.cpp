@@ -33,7 +33,7 @@
 
 ZUnmapper::ZUnmapper(ZPageAllocator* page_allocator) :
     _page_allocator(page_allocator),
-    _lock(),
+    _lock("ZUnmapper"),
     _queue(),
     _stop(false) {
   set_name("ZUnmapper");

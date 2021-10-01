@@ -246,7 +246,7 @@ static uint select_active_worker_threads(const ZDriverRequest& request) {
 
 ZDriverMinor::ZDriverMinor() :
     _port(),
-    _lock(),
+    _lock("ZDriverMinor"),
     _active(false),
     _blocked(false),
     _await(false),
@@ -577,7 +577,7 @@ public:
 
 ZDriverMajor::ZDriverMajor(ZDriverMinor* minor) :
     _port(),
-    _lock(),
+    _lock("ZDriverMajor"),
     _active(false),
     _promote_all(false),
     _minor(minor) {

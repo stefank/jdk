@@ -27,7 +27,7 @@
 #include "utilities/debug.hpp"
 
 ZNMethodData::ZNMethodData() :
-    _lock(),
+    _lock("ZNMethodData"),
     _barriers(),
     _immediate_oops(),
     _has_non_immediate_oops(false) {}

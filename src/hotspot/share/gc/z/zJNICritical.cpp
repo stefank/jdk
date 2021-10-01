@@ -52,7 +52,7 @@ ZConditionLock*  ZJNICritical::_lock;
 
 void ZJNICritical::initialize() {
   _count = 0;
-  _lock = new ZConditionLock();
+  _lock = new ZConditionLock("ZJNICritical");
 }
 
 void ZJNICritical::block() {

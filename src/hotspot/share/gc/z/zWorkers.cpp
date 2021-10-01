@@ -42,7 +42,7 @@ public:
       AbstractGangTask("ZWorkersInitializeTask"),
       _nworkers(nworkers),
       _started(0),
-      _lock() {}
+      _lock("ZWorkersInitializeTask") {}
 
   virtual void work(uint /* worker_id */) {
     // Register as worker

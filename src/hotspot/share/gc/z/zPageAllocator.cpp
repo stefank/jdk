@@ -186,7 +186,7 @@ public:
 ZPageAllocator::ZPageAllocator(size_t min_capacity,
                                size_t initial_capacity,
                                size_t max_capacity) :
-    _lock(),
+    _lock("ZPageAllocator"),
     _cache(),
     _virtual(max_capacity),
     _physical(max_capacity),

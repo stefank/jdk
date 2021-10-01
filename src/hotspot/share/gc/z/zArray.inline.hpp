@@ -91,7 +91,7 @@ inline T ZArrayIteratorImpl<T, Parallel>::index_to_elem(size_t index) {
 
 template <typename T>
 ZActivatedArray<T>::ZActivatedArray(bool locked) :
-    _lock(locked ? new (AllocateHeap(sizeof(ZLock), mtGC)) ZLock() : NULL),
+    _lock(locked ? new (AllocateHeap(sizeof(ZLock), mtGC)) ZLock("ZActivatedArray") : NULL),
     _count(0),
     _array() {}
 

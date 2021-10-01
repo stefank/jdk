@@ -78,6 +78,7 @@ ZMemoryManager::Callbacks::Callbacks() :
     _grow_from_back(NULL) {}
 
 ZMemoryManager::ZMemoryManager() :
+    _lock("ZMemoryManager"),
     _freelist(),
     _callbacks() {}
 

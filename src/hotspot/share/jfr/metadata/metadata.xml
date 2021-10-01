@@ -1005,6 +1005,10 @@
     <Field type="ulong" contentType="bytes" name="size" label="Size" />
   </Event>
 
+  <Event name="ZLockContention" category="Java Virtual Machine, GC, Detailed" label="ZGC ZLock Contention" description="Event when lock acquisition is slow" thread="true">
+    <Field type="string" name="name" label="Name" />
+  </Event>
+
   <Event name="ZPageAllocation" category="Java Virtual Machine, GC, Detailed" label="ZGC Page Allocation" description="Allocation of a ZPage" thread="true" stackTrace="true">
      <Field type="ZPageTypeType" name="type" label="Type" />
      <Field type="ulong" contentType="bytes" name="size" label="Size" />

@@ -25,16 +25,22 @@
 #define SHARE_GC_Z_ZLOCK_HPP
 
 #include "memory/allocation.hpp"
+#include "gc/z/zStat.hpp"
 #include "runtime/os.hpp"
 
 class ZLock {
 private:
   os::PlatformMutex _lock;
+  const char* const _name;
 
 public:
+  ZLock(const char* name);
+
   void lock();
   bool try_lock();
   void unlock();
+
+  const char* name() const;
 };
 
 class ZReentrantLock {
@@ -44,7 +50,7 @@ private:
   uint64_t         _count;
 
 public:
-  ZReentrantLock();
+  ZReentrantLock(const char* name);
 
   void lock();
   void unlock();
@@ -55,8 +61,11 @@ public:
 class ZConditionLock : public CHeapObj<mtGC> {
 private:
   os::PlatformMonitor _lock;
+  const char* const   _name;
 
 public:
+  ZConditionLock(const char* name);
+
   void lock();
   bool try_lock();
   void unlock();

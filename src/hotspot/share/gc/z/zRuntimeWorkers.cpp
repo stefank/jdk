@@ -41,7 +41,7 @@ public:
       AbstractGangTask("ZRuntimeWorkersInitializeTask"),
       _nworkers(nworkers),
       _started(0),
-      _lock() {}
+      _lock("ZRuntimeWorkersInitializeTask") {}
 
   virtual void work(uint worker_id) {
     // Wait for all threads to start

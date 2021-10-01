@@ -54,7 +54,7 @@ static const ZStatSubPhase ZSubPhaseConcurrentMinorRelocateRemsetFlipPagePromote
 static const ZStatSubPhase ZSubPhaseConcurrentMinorRelocateRemsetNormalPromoted("Concurrent Minor Relocate Remset NP");
 
 ZRelocateQueue::ZRelocateQueue() :
-    _lock(),
+    _lock("ZRelocateQueue"),
     _queue(),
     _nworkers(0),
     _nsynchronized(0),
@@ -383,7 +383,7 @@ private:
 
 public:
   ZRelocateMediumAllocator(ZGenerationId generation, ZPageAge age) :
-      _lock(),
+      _lock("ZRelocateMediumAllocator"),
       _shared(NULL),
       _in_place(false),
       _in_place_count(0),

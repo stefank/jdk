@@ -119,7 +119,7 @@ ZRelocationSet::ZRelocationSet(ZCollector* collector) :
     _allocator(),
     _forwardings(NULL),
     _nforwardings(0),
-    _promotion_lock(),
+    _promotion_lock("Promotion Lock"),
     _promote_flipped_pages(),
     _promote_relocated_pages() {}
 

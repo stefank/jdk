@@ -75,7 +75,7 @@ inline ZForwarding::ZForwarding(ZPage* page, size_t nentries, bool promote_all) 
     _age_from(page->age()),
     _age_to(compute_age_to(_age_from, promote_all)),
     _claimed(false),
-    _ref_lock(),
+    _ref_lock("ZForwarding"),
     _ref_count(1),
     _ref_abort(false),
     _remset_scanned(false),
