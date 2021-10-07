@@ -219,6 +219,7 @@ Thread::Thread() {
   set_resource_area(new (mtThread)ResourceArea());
   DEBUG_ONLY(_current_resource_mark = NULL;)
   set_handle_area(new (mtThread) HandleArea(NULL));
+  set_handle_head(NULL);
   set_metadata_handles(new (ResourceObj::C_HEAP, mtClass) GrowableArray<Metadata*>(30, mtClass));
   set_active_handles(NULL);
   set_free_handle_block(NULL);
@@ -534,7 +535,9 @@ void Thread::oops_do_no_frames(OopClosure* f, CodeBlobClosure* cf) {
   }
   // Do oop for ThreadShadow
   f->do_oop((oop*)&_pending_exception);
-  handle_area()->oops_do(f);
+  //handle_area()->oops_do(f);
+
+  _handle_head->oops_do(f);
 }
 
 // If the caller is a NamedThread, then remember, in the current scope,

@@ -82,8 +82,10 @@ class JavaCallArguments : public StackObj {
 
   intptr_t    _value_buffer      [_default_size + 1];
   u_char      _value_state_buffer[_default_size + 1];
+  Handle      _handles_buffer[_default_size + 1];
 
   intptr_t*   _value;
+  Handle*     _handles;
   u_char*     _value_state;
   int         _size;
   int         _max_size;
@@ -97,6 +99,7 @@ class JavaCallArguments : public StackObj {
     // Starts at first element to support set_receiver.
     _value       = &_value_buffer[1];
     _value_state = &_value_state_buffer[1];
+    _handles     = &_handles_buffer[1];
 
     _max_size = _default_size;
     _size = 0;
@@ -115,16 +118,31 @@ class JavaCallArguments : public StackObj {
     if (max_size > _default_size) {
       _value = NEW_RESOURCE_ARRAY(intptr_t, max_size + 1);
       _value_state = NEW_RESOURCE_ARRAY(u_char, max_size + 1);
+      _handles = NEW_RESOURCE_ARRAY(Handle, max_size + 1);
 
       // Reserve room for potential receiver in value and state
       _value++;
       _value_state++;
+      _handles++;
 
       _max_size = max_size;
       _size = 0;
       _start_at_zero = false;
     } else {
       initialize();
+    }
+  }
+
+  ~JavaCallArguments() {
+    if (_max_size != _default_size) {
+      // Large sizes uses resource allocated arrays
+      // - need to explicitly destruct them.
+      assert(_start_at_zero || _handles[-1].is_null(), "First handle shouldn't be used");
+
+      int count = (_max_size + _start_at_zero ? 1 : 0);
+      for (int i = 0; i < count; i++) {
+        _handles[i].~Handle();
+      }
     }
   }
 
@@ -149,7 +167,7 @@ class JavaCallArguments : public StackObj {
 
   inline void push_oop(Handle h) {
     _value_state[_size] = value_state_handle;
-    JNITypes::put_obj(h, _value, _size);
+    JNITypes::put_obj(h, _value, _handles, _size);
   }
 
   inline void push_jobject(jobject h) {
@@ -185,7 +203,8 @@ class JavaCallArguments : public StackObj {
     assert(_value_state[0] == value_state_handle,
            "first argument must be an oop");
     assert(_value[0] != 0, "receiver must be not-null");
-    return Handle((oop*)_value[0], false);
+    assert(_handles[0].not_null(), "receiver must be not-null");
+    return _handles[0];
   }
 
   void set_receiver(Handle h) {
@@ -193,11 +212,12 @@ class JavaCallArguments : public StackObj {
     _start_at_zero = true;
     _value_state--;
     _value--;
+    _handles--;
     _size++;
     _value_state[0] = value_state_handle;
 
     int size = 0;
-    JNITypes::put_obj(h, _value, size);
+    JNITypes::put_obj(h, _value, _handles, size);
   }
 
   // Converts all Handles to oops, and returns a reference to parameter vector

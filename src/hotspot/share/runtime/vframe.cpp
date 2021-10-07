@@ -196,7 +196,7 @@ void javaVFrame::print_lock_info_on(outputStream* st, int frame_count) {
       // we are still waiting for notification or timeout. Otherwise if
       // we earlier reported java.lang.Thread.State == "BLOCKED (on object
       // monitor)", then we are actually waiting to re-lock the monitor.
-      StackValueCollection* locs = locals();
+      std::unique_ptr<StackValueCollection> locs = locals();
       if (!locs->is_empty()) {
         StackValue* sv = locs->at(0);
         if (sv->type() == T_OBJECT) {
@@ -308,9 +308,9 @@ Method* interpretedVFrame::method() const {
   return fr().interpreter_frame_method();
 }
 
-static StackValue* create_stack_value_from_oop_map(const InterpreterOopMap& oop_mask,
-                                                   int index,
-                                                   const intptr_t* const addr) {
+static StackValue create_stack_value_from_oop_map(const InterpreterOopMap& oop_mask,
+                                                  int index,
+                                                  const intptr_t* const addr) {
 
   assert(index >= 0 &&
          index < oop_mask.number_of_entries(), "invariant");
@@ -319,10 +319,10 @@ static StackValue* create_stack_value_from_oop_map(const InterpreterOopMap& oop_
   if (oop_mask.is_oop(index)) {
     // reference (oop) "r"
     Handle h(Thread::current(), addr != NULL ? (*(oop*)addr) : (oop)NULL);
-    return new StackValue(h);
+    return StackValue(h);
   }
   // value (integer) "v"
-  return new StackValue(addr != NULL ? *addr : 0);
+  return StackValue(addr != NULL ? *addr : 0);
 }
 
 static bool is_in_expression_stack(const frame& fr, const intptr_t* const addr) {
@@ -350,8 +350,7 @@ static void stack_locals(StackValueCollection* result,
     assert(addr != NULL, "invariant");
     assert(addr >= fr.sp(), "must be inside the frame");
 
-    StackValue* const sv = create_stack_value_from_oop_map(oop_mask, i, addr);
-    assert(sv != NULL, "sanity check");
+    StackValue const sv = create_stack_value_from_oop_map(oop_mask, i, addr);
 
     result->add(sv);
   }
@@ -373,20 +372,18 @@ static void stack_expressions(StackValueCollection* result,
       addr = NULL;
     }
 
-    StackValue* const sv = create_stack_value_from_oop_map(oop_mask,
+    StackValue const sv = create_stack_value_from_oop_map(oop_mask,
                                                            i + max_locals,
                                                            addr);
-    assert(sv != NULL, "sanity check");
-
     result->add(sv);
   }
 }
 
-StackValueCollection* interpretedVFrame::locals() const {
+std::unique_ptr<StackValueCollection> interpretedVFrame::locals() const {
   return stack_data(false);
 }
 
-StackValueCollection* interpretedVFrame::expressions() const {
+std::unique_ptr<StackValueCollection> interpretedVFrame::expressions() const {
   return stack_data(true);
 }
 
@@ -401,7 +398,7 @@ StackValueCollection* interpretedVFrame::expressions() const {
                        (false == locals / true == expression)
  *
  */
-StackValueCollection* interpretedVFrame::stack_data(bool expressions) const {
+std::unique_ptr<StackValueCollection> interpretedVFrame::stack_data(bool expressions) const {
 
   InterpreterOopMap oop_mask;
   method()->mask_for(bci(), &oop_mask);
@@ -417,16 +414,17 @@ StackValueCollection* interpretedVFrame::stack_data(bool expressions) const {
   const int length = expressions ? mask_len - max_locals : max_locals;
   assert(length >= 0, "invariant");
 
-  StackValueCollection* const result = new StackValueCollection(length);
+  //StackValueCollection* const result = new StackValueCollection(length);
+  std::unique_ptr<StackValueCollection> result = std::make_unique<StackValueCollection>(length);
 
   if (0 == length) {
     return result;
   }
 
   if (expressions) {
-    stack_expressions(result, length, max_locals, oop_mask, fr());
+    stack_expressions(result.get(), length, max_locals, oop_mask, fr());
   } else {
-    stack_locals(result, length, oop_mask, fr());
+    stack_locals(result.get(), length, oop_mask, fr());
   }
 
   assert(length == result->size(), "invariant");
@@ -633,7 +631,7 @@ void entryVFrame::print() {
 
 // ------------- javaVFrame --------------
 
-static void print_stack_values(const char* title, StackValueCollection* values) {
+static void print_stack_values(const char* title, std::unique_ptr<StackValueCollection> values) {
   if (values->is_empty()) return;
   tty->print_cr("\t%s:", title);
   values->print();
@@ -719,8 +717,8 @@ bool javaVFrame::structural_compare(javaVFrame* other) {
   if (bci()    != other->bci())    return false;
 
   // Check locals
-  StackValueCollection *locs = locals();
-  StackValueCollection *other_locs = other->locals();
+  std::unique_ptr<StackValueCollection> locs = locals();
+  std::unique_ptr<StackValueCollection> other_locs = other->locals();
   assert(locs->size() == other_locs->size(), "sanity check");
   int i;
   for(i = 0; i < locs->size(); i++) {
@@ -734,8 +732,8 @@ bool javaVFrame::structural_compare(javaVFrame* other) {
   }
 
   // Check expressions
-  StackValueCollection* exprs = expressions();
-  StackValueCollection* other_exprs = other->expressions();
+  std::unique_ptr<StackValueCollection> exprs = expressions();
+  std::unique_ptr<StackValueCollection> other_exprs = other->expressions();
   assert(exprs->size() == other_exprs->size(), "sanity check");
   for(i = 0; i < exprs->size(); i++) {
     if (!exprs->at(i)->equal(other_exprs->at(i)))

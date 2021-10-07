@@ -1261,7 +1261,10 @@ JVM_ENTRY(jobject, JVM_GetStackAccessControlContext(JNIEnv *env, jclass cls))
   if (!UsePrivilegedStack) return NULL;
 
   ResourceMark rm(THREAD);
-  GrowableArray<Handle>* local_array = new GrowableArray<Handle>(12);
+  // The elements of this array are CHeap allocated, instead of Resource allocated.
+  // The reason is that Resource allocated objects are not destructed, and the handles
+  // would leak and be overwritten when ResourceMark goes out-of-scope.
+  GrowableArray<Handle> local_array(12, mtServiceability);
   JvmtiVMObjectAllocEventCollector oam;
 
   // count the protection domains on the execution stack. We collapse
@@ -1288,7 +1291,7 @@ JVM_ENTRY(jobject, JVM_GetStackAccessControlContext(JNIEnv *env, jclass cls))
 
       javaVFrame *priv = vfst.asJavaVFrame();       // executePrivileged
 
-      StackValueCollection* locals = priv->locals();
+      std::unique_ptr<StackValueCollection> locals = priv->locals();
       StackValue* ctx_sv = locals->at(1); // AccessControlContext context
       StackValue* clr_sv = locals->at(2); // Class<?> caller
       assert(!ctx_sv->obj_is_scalar_replaced(), "found scalar-replaced object");
@@ -1303,7 +1306,7 @@ JVM_ENTRY(jobject, JVM_GetStackAccessControlContext(JNIEnv *env, jclass cls))
     }
 
     if ((previous_protection_domain != protection_domain) && (protection_domain != NULL)) {
-      local_array->push(Handle(thread, protection_domain));
+      local_array.push(Handle(thread, protection_domain));
       previous_protection_domain = protection_domain;
     }
 
@@ -1313,7 +1316,7 @@ JVM_ENTRY(jobject, JVM_GetStackAccessControlContext(JNIEnv *env, jclass cls))
 
   // either all the domains on the stack were system domains, or
   // we had a privileged system domain
-  if (local_array->is_empty()) {
+  if (local_array.is_empty()) {
     if (is_privileged && privileged_context.is_null()) return NULL;
 
     oop result = java_security_AccessControlContext::create(objArrayHandle(), is_privileged, privileged_context, CHECK_NULL);
@@ -1321,10 +1324,10 @@ JVM_ENTRY(jobject, JVM_GetStackAccessControlContext(JNIEnv *env, jclass cls))
   }
 
   objArrayOop context = oopFactory::new_objArray(vmClasses::ProtectionDomain_klass(),
-                                                 local_array->length(), CHECK_NULL);
+                                                 local_array.length(), CHECK_NULL);
   objArrayHandle h_context(thread, context);
-  for (int index = 0; index < local_array->length(); index++) {
-    h_context->obj_at_put(index, local_array->at(index)());
+  for (int index = 0; index < local_array.length(); index++) {
+    h_context->obj_at_put(index, local_array.at(index)());
   }
 
   oop result = java_security_AccessControlContext::create(h_context, is_privileged, privileged_context, CHECK_NULL);

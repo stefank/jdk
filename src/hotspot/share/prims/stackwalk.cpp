@@ -295,8 +295,8 @@ void LiveFrameStream::fill_live_stackframe(Handle stackFrame,
     ResourceMark rm(THREAD);
     HandleMark hm(THREAD);
 
-    StackValueCollection* locals = _jvf->locals();
-    StackValueCollection* expressions = _jvf->expressions();
+    std::unique_ptr<StackValueCollection> locals = _jvf->locals();
+    std::unique_ptr<StackValueCollection> expressions = _jvf->expressions();
     GrowableArray<MonitorInfo*>* monitors = _jvf->monitors();
 
     int mode = 0;
@@ -307,11 +307,11 @@ void LiveFrameStream::fill_live_stackframe(Handle stackFrame,
     }
 
     if (!locals->is_empty()) {
-      objArrayHandle locals_h = values_to_object_array(locals, CHECK);
+      objArrayHandle locals_h = values_to_object_array(locals.get(), CHECK);
       java_lang_LiveStackFrameInfo::set_locals(stackFrame(), locals_h());
     }
     if (!expressions->is_empty()) {
-      objArrayHandle expressions_h = values_to_object_array(expressions, CHECK);
+      objArrayHandle expressions_h = values_to_object_array(expressions.get(), CHECK);
       java_lang_LiveStackFrameInfo::set_operands(stackFrame(), expressions_h());
     }
     if (monitors->length() > 0) {

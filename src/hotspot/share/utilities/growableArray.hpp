@@ -474,6 +474,7 @@ public:
   }
 
   void clear_and_deallocate();
+  void clear_and_destruct();
 };
 
 template <typename E, typename Derived>
@@ -501,6 +502,17 @@ void GrowableArrayWithAllocator<E, Derived>::clear_and_deallocate() {
     }
     static_cast<Derived*>(this)->deallocate(this->_data);
     this->_data = NULL;
+  }
+  this->_len = 0;
+  this->_max = 0;
+}
+
+template <typename E, typename Derived>
+void GrowableArrayWithAllocator<E, Derived>::clear_and_destruct() {
+  if (this->_data != NULL) {
+    for (int i = 0; i < this->_max; i++) {
+      this->_data[i].~E();
+    }
   }
   this->_len = 0;
   this->_max = 0;

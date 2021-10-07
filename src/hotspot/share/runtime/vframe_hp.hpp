@@ -36,8 +36,8 @@ class compiledVFrame: public javaVFrame {
   Method*                      method()             const;
   int                          bci()                const;
   bool                         should_reexecute()   const;
-  StackValueCollection*        locals()             const;
-  StackValueCollection*        expressions()        const;
+  std::unique_ptr<StackValueCollection>        locals()             const;
+  std::unique_ptr<StackValueCollection>        expressions()        const;
   GrowableArray<MonitorInfo*>* monitors()           const;
   int                          vframe_id()          const { return _vframe_id; }
   bool                         has_ea_local_in_scope() const;
@@ -94,7 +94,7 @@ class compiledVFrame: public javaVFrame {
 
   //StackValue resolve(ScopeValue* sv) const;
   BasicLock* resolve_monitor_lock(Location location) const;
-  StackValue *create_stack_value(ScopeValue *sv) const;
+  StackValue create_stack_value(ScopeValue *sv) const;
 
  private:
   compiledVFrame(const frame* fr, const RegisterMap* reg_map, JavaThread* thread, ScopeDesc* scope, int vframe_id);

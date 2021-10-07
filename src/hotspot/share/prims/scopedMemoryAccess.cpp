@@ -116,7 +116,7 @@ public:
     for (vframeStream stream(jt); !stream.at_end(); stream.next()) {
       Method* m = stream.method();
       if (m->is_scoped()) {
-        StackValueCollection* locals = stream.asJavaVFrame()->locals();
+        std::unique_ptr<StackValueCollection> locals = stream.asJavaVFrame()->locals();
         for (int i = 0; i < locals->size(); i++) {
           StackValue* var = locals->at(i);
           if (var->type() == T_OBJECT) {

@@ -613,7 +613,7 @@ bool VM_GetOrSetLocal::check_slot_type_no_lvt(javaVFrame* jvf) {
     _result = JVMTI_ERROR_INVALID_SLOT;
     return false;
   }
-  StackValueCollection *locals = _jvf->locals();
+  std::unique_ptr<StackValueCollection> locals = _jvf->locals();
   BasicType slot_type = locals->at(_index)->type();
 
   if (slot_type == T_CONFLICT) {
@@ -712,7 +712,7 @@ void VM_GetOrSetLocal::doit() {
       ((compiledVFrame*)_jvf)->update_local(_type, _index, _value);
       return;
     }
-    StackValueCollection *locals = _jvf->locals();
+    std::unique_ptr<StackValueCollection> locals = _jvf->locals();
     Thread* current_thread = VMThread::vm_thread();
     HandleMark hm(current_thread);
 
@@ -728,14 +728,14 @@ void VM_GetOrSetLocal::doit() {
       }
       default: ShouldNotReachHere();
     }
-    _jvf->set_locals(locals);
+    _jvf->set_locals(locals.get());
   } else {
     if (_jvf->method()->is_native() && _jvf->is_compiled_frame()) {
       assert(getting_receiver(), "Can only get here when getting receiver");
       oop receiver = _jvf->fr().get_native_receiver();
       _value.l = JNIHandles::make_local(_calling_thread, receiver);
     } else {
-      StackValueCollection *locals = _jvf->locals();
+      std::unique_ptr<StackValueCollection> locals = _jvf->locals();
 
       switch (_type) {
         case T_INT:    _value.i = locals->int_at   (_index);   break;

@@ -425,6 +425,9 @@ class Thread: public ThreadShadow {
   HandleArea* handle_area() const                { return _handle_area; }
   void set_handle_area(HandleArea* area)         { _handle_area = area; }
 
+  Handle* handle_head() const                    { return _handle_head; }
+  void set_handle_head(Handle* handle)           { _handle_head = handle; }
+
   GrowableArray<Metadata*>* metadata_handles() const          { return _metadata_handles; }
   void set_metadata_handles(GrowableArray<Metadata*>* handles){ _metadata_handles = handles; }
 
@@ -545,6 +548,7 @@ protected:
 
   // Thread local handle area for allocation of handles within the VM
   HandleArea* _handle_area;
+  Handle*     _handle_head;
   GrowableArray<Metadata*>* _metadata_handles;
 
   // Support for stack overflow handling, get_thread, etc.

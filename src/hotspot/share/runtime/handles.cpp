@@ -30,6 +30,24 @@
 #include "runtime/handles.inline.hpp"
 #include "runtime/thread.inline.hpp"
 
+Handle& Handle::operator=(const Handle& other) {
+  if (this != &other) {
+    // FIXME: Insert at
+    Thread* thread = Thread::current();
+    unlink(thread);
+    _obj = other._obj;
+    if (_obj != NULL) {
+      link(thread);
+    }
+  }
+
+  return *this;
+}
+
+Handle::~Handle() {
+  unlink(Thread::current());
+}
+
 #ifdef ASSERT
 oop* HandleArea::allocate_handle(oop obj) {
   assert(_handle_mark_nesting > 1, "memory leak: allocating handle outside HandleMark");

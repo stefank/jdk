@@ -29,6 +29,8 @@
 #include "utilities/debug.hpp"
 #include "utilities/macros.hpp"
 
+#include <memory>
+
 // Get constants like JVM_T_CHAR and JVM_SIGNATURE_INT, before pulling in <jvm.h>.
 #include "classfile_constants.h"
 

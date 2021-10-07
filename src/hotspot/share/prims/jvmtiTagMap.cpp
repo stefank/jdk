@@ -2784,7 +2784,7 @@ inline bool VM_HeapWalkOperation::collect_stack_roots(JavaThread* java_thread,
 
         if (!(jvf->method()->is_native())) {
           jlocation bci = (jlocation)jvf->bci();
-          StackValueCollection* locals = jvf->locals();
+          std::unique_ptr<StackValueCollection> locals = jvf->locals();
           for (int slot=0; slot<locals->size(); slot++) {
             if (locals->at(slot)->type() == T_OBJECT) {
               oop o = locals->obj_at(slot)();
@@ -2800,7 +2800,7 @@ inline bool VM_HeapWalkOperation::collect_stack_roots(JavaThread* java_thread,
             }
           }
 
-          StackValueCollection* exprs = jvf->expressions();
+          std::unique_ptr<StackValueCollection> exprs = jvf->expressions();
           for (int index=0; index < exprs->size(); index++) {
             if (exprs->at(index)->type() == T_OBJECT) {
               oop o = exprs->obj_at(index)();

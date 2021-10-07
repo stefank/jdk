@@ -64,16 +64,32 @@ class Thread;
 
 class Handle {
  private:
-  oop* _handle;
+  oop     _obj;
+  Handle* _next;
+  Handle* _prev;
+
+  bool is_in_list(Handle* head) const;
+  void link(Thread* thread);
+  void unlink(Thread* thread);
+
+  void verify_links() const;
+  void verify_location();
 
  protected:
-  oop     obj() const                            { return _handle == NULL ? (oop)NULL : *_handle; }
-  oop     non_null_obj() const                   { assert(_handle != NULL, "resolving NULL handle"); return *_handle; }
+  oop     obj() const                            {
+    verify_links();
+    return _obj;
+  }
+  oop     non_null_obj() const                   { assert(_obj != NULL, "resolving NULL handle"); return obj(); }
 
  public:
   // Constructors
-  Handle()                                       { _handle = NULL; }
+  Handle() : _obj(NULL), _next(NULL), _prev(NULL) { verify_location(); }
   inline Handle(Thread* thread, oop obj);
+  Handle(const Handle& other);
+  ~Handle();
+
+  Handle& operator=(const Handle& other);
 
   // General access
   oop     operator () () const                   { return obj(); }
@@ -85,21 +101,22 @@ class Handle {
   bool operator != (const Handle& h) const       { return obj() != h.obj(); }
 
   // Null checks
-  bool    is_null() const                        { return _handle == NULL; }
-  bool    not_null() const                       { return _handle != NULL; }
+  bool    is_null() const                        { return _obj == NULL; }
+  bool    not_null() const                       { return _obj != NULL; }
 
   // Debugging
   void    print()                                { obj()->print(); }
 
-  // Direct interface, use very sparingly.
-  // Used by JavaCalls to quickly convert handles and to create handles static data structures.
-  // Constructor takes a dummy argument to prevent unintentional type conversion in C++.
-  Handle(oop *handle, bool dummy)                { _handle = handle; }
-
   // Raw handle access. Allows easy duplication of Handles. This can be very unsafe
   // since duplicates is only valid as long as original handle is alive.
-  oop* raw_value() const                         { return _handle; }
+  oop* raw_value() const                         { return (oop*)&_obj; }
   static oop raw_resolve(oop *handle)            { return handle == NULL ? (oop)NULL : *handle; }
+
+  void oops_do(OopClosure* cl) {
+    for (Handle* current = this; current != NULL; current = current->_next) {
+      cl->do_oop(&current->_obj);
+    }
+  }
 };
 
 // Specific Handles for different oop types

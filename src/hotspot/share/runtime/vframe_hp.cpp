@@ -49,16 +49,16 @@
 
 // ------------- compiledVFrame --------------
 
-StackValueCollection* compiledVFrame::locals() const {
+std::unique_ptr<StackValueCollection> compiledVFrame::locals() const {
   // Natives has no scope
-  if (scope() == NULL) return new StackValueCollection(0);
+  if (scope() == NULL) return std::make_unique<StackValueCollection>(0);
   GrowableArray<ScopeValue*>*  scv_list = scope()->locals();
-  if (scv_list == NULL) return new StackValueCollection(0);
+  if (scv_list == NULL) return std::make_unique<StackValueCollection>(0);
 
   // scv_list is the list of ScopeValues describing the JVM stack state.
   // There is one scv_list entry for every JVM stack state in use.
   int length = scv_list->length();
-  StackValueCollection* result = new StackValueCollection(length);
+  std::unique_ptr<StackValueCollection> result = std::make_unique<StackValueCollection>(length);
   for (int i = 0; i < length; i++) {
     result->add(create_stack_value(scv_list->at(i)));
   }
@@ -70,7 +70,7 @@ StackValueCollection* compiledVFrame::locals() const {
     // In real life this never happens or is typically a single element search
     for (int i = 0; i < list->length(); i++) {
       if (list->at(i)->matches(this)) {
-        list->at(i)->update_locals(result);
+        list->at(i)->update_locals(result.get());
         break;
       }
     }
@@ -140,7 +140,7 @@ void compiledVFrame::update_deferred_value(BasicType type, int index, jvalue val
 void compiledVFrame::create_deferred_updates_after_object_deoptimization() {
   // locals
   GrowableArray<ScopeValue*>* scopeLocals = scope()->locals();
-  StackValueCollection* lcls = locals();
+  std::unique_ptr<StackValueCollection> lcls = locals();
   if (lcls != NULL) {
     for (int i2 = 0; i2 < lcls->size(); i2++) {
       StackValue* var = lcls->at(i2);
@@ -154,7 +154,7 @@ void compiledVFrame::create_deferred_updates_after_object_deoptimization() {
 
   // expressions
   GrowableArray<ScopeValue*>* scopeExpressions = scope()->expressions();
-  StackValueCollection* exprs = expressions();
+  std::unique_ptr<StackValueCollection> exprs = expressions();
   if (exprs != NULL) {
     for (int i2 = 0; i2 < exprs->size(); i2++) {
       StackValue* var = exprs->at(i2);
@@ -179,16 +179,16 @@ void compiledVFrame::create_deferred_updates_after_object_deoptimization() {
   }
 }
 
-StackValueCollection* compiledVFrame::expressions() const {
+std::unique_ptr<StackValueCollection> compiledVFrame::expressions() const {
   // Natives has no scope
-  if (scope() == NULL) return new StackValueCollection(0);
+  if (scope() == NULL) return std::make_unique<StackValueCollection>(0);
   GrowableArray<ScopeValue*>*  scv_list = scope()->expressions();
-  if (scv_list == NULL) return new StackValueCollection(0);
+  if (scv_list == NULL) return std::make_unique<StackValueCollection>(0);
 
   // scv_list is the list of ScopeValues describing the JVM stack state.
   // There is one scv_list entry for every JVM stack state in use.
   int length = scv_list->length();
-  StackValueCollection* result = new StackValueCollection(length);
+  std::unique_ptr<StackValueCollection> result = std::make_unique<StackValueCollection>(length);
   for (int i = 0; i < length; i++) {
     result->add(create_stack_value(scv_list->at(i)));
   }
@@ -200,7 +200,7 @@ StackValueCollection* compiledVFrame::expressions() const {
     // In real life this never happens or is typically a single element search
     for (int i = 0; i < list->length(); i++) {
       if (list->at(i)->matches(this)) {
-        list->at(i)->update_stack(result);
+        list->at(i)->update_stack(result.get());
         break;
       }
     }
@@ -214,7 +214,7 @@ StackValueCollection* compiledVFrame::expressions() const {
 // class StackValue because it is also used from within deoptimization.cpp for
 // rematerialization and relocking of non-escaping objects.
 
-StackValue *compiledVFrame::create_stack_value(ScopeValue *sv) const {
+StackValue compiledVFrame::create_stack_value(ScopeValue *sv) const {
   return StackValue::create_stack_value(&_fr, register_map(), sv);
 }
 
@@ -250,8 +250,8 @@ GrowableArray<MonitorInfo*>* compiledVFrame::monitors() const {
   for (int index = 0; index < monitors->length(); index++) {
     MonitorValue* mv = monitors->at(index);
     ScopeValue*   ov = mv->owner();
-    StackValue *owner_sv = create_stack_value(ov); // it is an oop
-    if (ov->is_object() && owner_sv->obj_is_scalar_replaced()) { // The owner object was scalar replaced
+    StackValue owner_sv = create_stack_value(ov); // it is an oop
+    if (ov->is_object() && owner_sv.obj_is_scalar_replaced()) { // The owner object was scalar replaced
       assert(mv->eliminated(), "monitor should be eliminated for scalar replaced object");
       // Put klass for scalar replaced object.
       ScopeValue* kv = ((ObjectValue *)ov)->klass();
@@ -261,7 +261,7 @@ GrowableArray<MonitorInfo*>* compiledVFrame::monitors() const {
       result->push(new MonitorInfo(k(), resolve_monitor_lock(mv->basic_lock()),
                                    mv->eliminated(), true));
     } else {
-      result->push(new MonitorInfo(owner_sv->get_obj()(), resolve_monitor_lock(mv->basic_lock()),
+      result->push(new MonitorInfo(owner_sv.get_obj()(), resolve_monitor_lock(mv->basic_lock()),
                                    mv->eliminated(), false));
     }
   }

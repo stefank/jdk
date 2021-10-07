@@ -29,18 +29,19 @@
 #include "runtime/stackValue.hpp"
 #include "utilities/growableArray.hpp"
 
-class StackValueCollection : public ResourceObj {
+class StackValueCollection : public CHeapObj<mtInternal> {
  private:
-  GrowableArray<StackValue*>* _values;
+  GrowableArray<StackValue> _values;
 
  public:
-  StackValueCollection()            { _values = new GrowableArray<StackValue*>(); }
-  StackValueCollection(int length)  { _values = new GrowableArray<StackValue*>(length); }
+  StackValueCollection() : _values(0, mtInternal) {}
+  StackValueCollection(int length) : _values(length, mtInternal) {}
 
-  void add(StackValue *val) const   { _values->push(val); }
-  int  size() const                 { return _values->length(); }
+
+  void add(StackValue val)          { _values.push(val); }
+  int  size() const                 { return _values.length(); }
   bool is_empty() const             { return (size() == 0); }
-  StackValue* at(int i) const       { return _values->at(i); }
+  StackValue* at(int i) const       { return _values.adr_at(i); }
 
   // Get typed locals/expressions
   jint  int_at(int slot) const;
