@@ -537,7 +537,9 @@ void Thread::oops_do_no_frames(OopClosure* f, CodeBlobClosure* cf) {
   f->do_oop((oop*)&_pending_exception);
   //handle_area()->oops_do(f);
 
-  _handle_head->oops_do(f);
+  if (_handle_head != NULL) {
+    _handle_head->oops_do(f);
+  }
 }
 
 // If the caller is a NamedThread, then remember, in the current scope,
