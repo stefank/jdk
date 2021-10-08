@@ -29,6 +29,7 @@
 #include "oops/oop.hpp"
 #include "oops/oopsHierarchy.hpp"
 
+class HandleList;
 class InstanceKlass;
 class Klass;
 class Thread;
@@ -139,6 +140,8 @@ public:
   void oops_do(OopClosure* cl) const;
 
   bool is_in(const Handle* handle) const;
+
+  static HandleList* handle_list_for(const Handle* handle);
 };
 
 // Specific Handles for different oop types

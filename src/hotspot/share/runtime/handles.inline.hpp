@@ -28,7 +28,7 @@
 #include "runtime/handles.hpp"
 
 #include "runtime/thread.hpp"
-#include "memory/resourceArea.hpp"
+#include "memory/resourceArea.inline.hpp"
 #include "oops/metadata.hpp"
 #include "oops/oop.hpp"
 
@@ -48,7 +48,11 @@ inline Handle::Handle(Thread* thread, oop obj) :
 }
 
 inline Handle::Handle(const Handle& other) :
-    Handle(Thread::current(), other._obj) {}
+    Handle(other._obj, NULL, NULL) {
+  if (_obj != NULL) {
+    HandleList::handle_list_for(this)->add(this);
+  }
+}
 
 inline void Handle::unlink() {
   if (_obj == NULL) {
@@ -62,6 +66,25 @@ inline void Handle::unlink() {
 
   _prev = NULL;
   _next = NULL;
+}
+
+inline HandleList* HandleList::handle_list_for(const Handle* handle) {
+  Thread* thread = Thread::current();
+
+  if (thread->is_in_live_stack((address)handle)) {
+    return thread->handle_list();
+  }
+
+  HandleList* resource_handle_list = thread->resource_area()->handle_list_for(handle);
+  if (resource_handle_list != NULL) {
+    // Handle is allocated inside resource area,
+    // return the list of the associated resource mark.
+    return resource_handle_list;
+  }
+
+  fatal("Where is this allocated?");
+
+  return thread->handle_list();
 }
 
 // Inline constructors for Specific Handles for different oop types

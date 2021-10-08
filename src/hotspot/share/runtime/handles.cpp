@@ -24,31 +24,11 @@
 
 #include "precompiled.hpp"
 #include "memory/allocation.inline.hpp"
-#include "memory/resourceArea.inline.hpp"
 #include "oops/constantPool.hpp"
 #include "oops/method.hpp"
 #include "oops/oop.inline.hpp"
 #include "runtime/handles.inline.hpp"
 #include "runtime/thread.inline.hpp"
-
-static HandleList* handle_list_for(const Handle* handle) {
-  Thread* thread = Thread::current();
-
-  if (thread->is_in_live_stack((address)handle)) {
-    return thread->handle_list();
-  }
-
-  HandleList* resource_handle_list = thread->resource_area()->handle_list_for(handle);
-  if (resource_handle_list != NULL) {
-    // Handle is allocated inside resource area,
-    // return the list of the associated resource mark.
-    return resource_handle_list;
-  }
-
-  fatal("Where is this allocated?");
-
-  return thread->handle_list();
-}
 
 #ifdef ASSERT
 void Handle::verify_links() const {
@@ -64,7 +44,7 @@ void Handle::verify_links() const {
   assert(_next != NULL, "invariant");
   assert(_next->_prev == this, "invariant");
 
-  assert(handle_list_for(this)->is_in(this), "invariant");
+  assert(HandleList::handle_list_for(this)->is_in(this), "invariant");
 }
 #endif
 
@@ -80,7 +60,7 @@ Handle& Handle::operator=(const Handle& other) {
     } else {
       if (_obj == NULL) {
         // Not yet linked
-        handle_list_for(this)->add(this);
+        HandleList::handle_list_for(this)->add(this);
       }
     }
 
