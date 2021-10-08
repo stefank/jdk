@@ -184,9 +184,6 @@ public:
     : ResourceMarkImpl(thread, thread->resource_area()) {}
 
   ~ResourceMarkImpl() {
-    // Handles must be cleared before the call to reset_to_mark,
-    // since it scribbles over the memory where the handles are allocated.
-    _handle_list.clear_handles();
     assert(_thread != nullptr, "Show me where!");
     if (_thread != nullptr) {
       _area->set_current_resource_mark(_previous_resource_mark);
@@ -197,6 +194,9 @@ public:
   }
 
   void reset_to_mark() {
+    // Handles must be cleared before the call to rollback_to,
+    // since it scribbles over the memory where the handles are allocated.
+    _handle_list.clear_handles();
     _area->rollback_to(_saved_state);
   }
 
