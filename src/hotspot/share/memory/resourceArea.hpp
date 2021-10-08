@@ -87,29 +87,7 @@ public:
       DEBUG_ONLY(COMMA _nesting(area->_nesting))
     {}
 
-    static bool is_between(const void* mem, const SavedState* from, const SavedState* to) {
-      if (from->_chunk == to->_chunk) {
-        return mem >= from->_hwm && mem < to->_hwm;
-      }
-
-      // More than one chunk
-
-      // Check first
-      if (mem >= from->_hwm && mem < from->_max) {
-        return true;
-      }
-
-      // Check in middle
-      for (Chunk* chunk = from->_chunk; chunk != to->_chunk; chunk = chunk->next()) {
-        // Filled chunks
-        if (chunk->contains((char*)mem)) {
-          return true;
-        }
-      }
-
-      // Check last
-      return mem >= to->_chunk->bottom() && mem < to->_chunk->top();
-    }
+    static bool is_between(const void* mem, const SavedState* from, const SavedState* to);
   };
 
   // Check and adjust debug-only nesting level.

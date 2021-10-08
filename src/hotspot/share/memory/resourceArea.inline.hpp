@@ -41,6 +41,30 @@ inline char* ResourceArea::allocate_bytes(size_t size, AllocFailType alloc_failm
   return (char*)Amalloc(size, alloc_failmode);
 }
 
+inline bool ResourceArea::SavedState::is_between(const void* mem, const SavedState* from, const SavedState* to) {
+  if (from->_chunk == to->_chunk) {
+    return mem >= from->_hwm && mem < to->_hwm;
+  }
+
+  // More than one chunk
+
+  // Check first
+  if (mem >= from->_hwm && mem < from->_max) {
+    return true;
+  }
+
+  // Check in middle
+  for (Chunk* chunk = from->_chunk; chunk != to->_chunk; chunk = chunk->next()) {
+    // Filled chunks
+    if (chunk->contains((char*)mem)) {
+      return true;
+    }
+  }
+
+  // Check last
+  return mem >= to->_chunk->bottom() && mem < to->_chunk->top();
+}
+
 inline ResourceMarkImpl* ResourceArea::resource_mark_for(const void* mem) const {
   if (_current_resource_mark == NULL) {
     return NULL;
