@@ -25,6 +25,7 @@
 #include "precompiled.hpp"
 #include "memory/allocation.inline.hpp"
 #include "memory/resourceArea.inline.hpp"
+#include "prims/jvmtiUtil.hpp"
 #include "runtime/atomic.hpp"
 #include "runtime/thread.inline.hpp"
 #include "services/memTracker.hpp"
@@ -73,6 +74,45 @@ void ResourceArea::verify_has_resource_mark() {
 #endif // ASSERT
 
 //------------------------------ResourceMark-----------------------------------
+
+ResourceMarkImpl::ResourceMarkImpl(Thread* thread, ResourceArea* area) :
+  _area(area),
+  _saved_state(area),
+  _thread(thread),
+  _previous_resource_mark(nullptr),
+  _handle_list()
+{
+  _area->activate_state(_saved_state);
+
+  if (_thread != nullptr) {
+    assert(_thread == Thread::current(), "not the current thread");
+  } else {
+    assert(area == JvmtiUtil::single_threaded_resource_area(), "Show me where!");
+  }
+
+  // FIXME: area could be different from thread->resource_area().
+  // When that happens, the GC will not know about the registered handles
+  // in thie resource mark.
+
+  _previous_resource_mark = area->current_resource_mark();
+  area->set_current_resource_mark(this);
+}
+
+ResourceMarkImpl::ResourceMarkImpl(Thread* thread)
+  : ResourceMarkImpl(thread, thread->resource_area()) {}
+
+ResourceMarkImpl::~ResourceMarkImpl() {
+  if (_thread != nullptr) {
+    assert(_thread == Thread::current(), "not the current thread");
+  } else {
+    assert(_area == JvmtiUtil::single_threaded_resource_area(), "Show me where!");
+  }
+
+  _area->set_current_resource_mark(_previous_resource_mark);
+
+  reset_to_mark();
+  _area->deactivate_state(_saved_state);
+}
 
 void ResourceMarkImpl::oops_do(OopClosure* cl) {
   _handle_list.oops_do(cl);

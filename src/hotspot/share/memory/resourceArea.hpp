@@ -163,35 +163,9 @@ class ResourceMarkImpl {
   NONCOPYABLE(ResourceMarkImpl);
 
 public:
-  ResourceMarkImpl(Thread* thread, ResourceArea* area) :
-    _area(area),
-    _saved_state(area),
-    _thread(thread),
-    _previous_resource_mark(nullptr),
-    _handle_list()
-  {
-    _area->activate_state(_saved_state);
-
-    assert(thread != nullptr, "Show me where!");
-    if (_thread != nullptr) {
-      assert(_thread == Thread::current(), "not the current thread");
-      _previous_resource_mark = area->current_resource_mark();
-      area->set_current_resource_mark(this);
-    }
-  }
-
-  explicit ResourceMarkImpl(Thread* thread)
-    : ResourceMarkImpl(thread, thread->resource_area()) {}
-
-  ~ResourceMarkImpl() {
-    assert(_thread != nullptr, "Show me where!");
-    if (_thread != nullptr) {
-      _area->set_current_resource_mark(_previous_resource_mark);
-    }
-
-    reset_to_mark();
-    _area->deactivate_state(_saved_state);
-  }
+  ResourceMarkImpl(Thread* thread, ResourceArea* area);
+  explicit ResourceMarkImpl(Thread* thread);
+  ~ResourceMarkImpl();
 
   void reset_to_mark() {
     // Handles must be cleared before the call to rollback_to,
@@ -272,6 +246,7 @@ public:
 // class.
 
 class DeoptResourceMark: public CHeapObj<mtInternal> {
+  friend class Deoptimization;
   ResourceMarkImpl _impl;
 
   NONCOPYABLE(DeoptResourceMark);

@@ -670,6 +670,7 @@ void Deoptimization::cleanup_deopt_info(JavaThread *thread,
   // Deallocate any resource creating in this routine and any ResourceObjs allocated
   // inside the vframeArray (StackValueCollections)
 
+  assert(thread->resource_area()->current_resource_mark() == &thread->deopt_mark()->_impl, "Must be top-most mark");
   delete thread->deopt_mark();
   thread->set_deopt_mark(NULL);
   thread->set_deopt_compiled_method(NULL);
