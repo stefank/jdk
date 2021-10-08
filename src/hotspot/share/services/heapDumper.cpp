@@ -2119,7 +2119,7 @@ int VM_HeapDumper::do_thread(JavaThread* java_thread, u4 thread_serial_num) {
         // java frame (interpreted, compiled, ...)
         javaVFrame *jvf = javaVFrame::cast(vf);
         if (!(jvf->method()->is_native())) {
-          std::unique_ptr<StackValueCollection> locals = jvf->locals();
+          StackValueCollection* locals = jvf->locals();
           for (int slot=0; slot<locals->size(); slot++) {
             if (locals->at(slot)->type() == T_OBJECT) {
               oop o = locals->obj_at(slot)();
@@ -2134,7 +2134,7 @@ int VM_HeapDumper::do_thread(JavaThread* java_thread, u4 thread_serial_num) {
               }
             }
           }
-          std::unique_ptr<StackValueCollection> exprs = jvf->expressions();
+          StackValueCollection *exprs = jvf->expressions();
           for(int index = 0; index < exprs->size(); index++) {
             if (exprs->at(index)->type() == T_OBJECT) {
                oop o = exprs->obj_at(index)();

@@ -112,8 +112,8 @@ class javaVFrame: public vframe {
   // JVM state
   virtual Method*                      method()         const = 0;
   virtual int                          bci()            const = 0;
-  virtual std::unique_ptr<StackValueCollection>        locals()         const = 0;
-  virtual std::unique_ptr<StackValueCollection>        expressions()    const = 0;
+  virtual StackValueCollection*        locals()         const = 0;
+  virtual StackValueCollection*        expressions()    const = 0;
   // the order returned by monitors() is from oldest -> youngest#4418568
   virtual GrowableArray<MonitorInfo*>* monitors()       const = 0;
 
@@ -165,8 +165,8 @@ class interpretedVFrame: public javaVFrame {
   // JVM state
   Method*                      method()         const;
   int                          bci()            const;
-  std::unique_ptr<StackValueCollection>        locals()         const;
-  std::unique_ptr<StackValueCollection>        expressions()    const;
+  StackValueCollection*        locals()         const;
+  StackValueCollection*        expressions()    const;
   GrowableArray<MonitorInfo*>* monitors()       const;
 
   void set_locals(StackValueCollection* values) const;
@@ -191,7 +191,7 @@ class interpretedVFrame: public javaVFrame {
  private:
   static const int bcp_offset;
   intptr_t* locals_addr_at(int offset) const;
-  std::unique_ptr<StackValueCollection> stack_data(bool expressions) const;
+  StackValueCollection* stack_data(bool expressions) const;
   // returns where the parameters starts relative to the frame pointer
   int start_of_parameters() const;
 

@@ -118,22 +118,22 @@ void vframeArrayElement::fill_in(compiledVFrame* vf, bool realloc_failures) {
   // could do it in place... Still uses less memory than the
   // old way though
 
-  std::unique_ptr<StackValueCollection> locs = vf->locals();
-  _locals = std::make_unique<StackValueCollection>(locs->size());
+  StackValueCollection *locs = vf->locals();
+  _locals = new StackValueCollection(locs->size());
   for(index = 0; index < locs->size(); index++) {
     StackValue* value = locs->at(index);
     switch(value->type()) {
       case T_OBJECT:
         assert(!value->obj_is_scalar_replaced() || realloc_failures, "object should be reallocated already");
         // preserve object type
-        _locals->add(StackValue(cast_from_oop<intptr_t>((value->get_obj()())), T_OBJECT ));
+        _locals->add( new StackValue(cast_from_oop<intptr_t>((value->get_obj()())), T_OBJECT ));
         break;
       case T_CONFLICT:
         // A dead local.  Will be initialized to null/zero.
-        _locals->add(StackValue());
+        _locals->add( new StackValue());
         break;
       case T_INT:
-        _locals->add(StackValue(value->get_int()));
+        _locals->add( new StackValue(value->get_int()));
         break;
       default:
         ShouldNotReachHere();
@@ -143,24 +143,24 @@ void vframeArrayElement::fill_in(compiledVFrame* vf, bool realloc_failures) {
   // Now the expressions off-stack
   // Same silliness as above
 
-  std::unique_ptr<StackValueCollection> exprs = vf->expressions();
-  _expressions = std::make_unique<StackValueCollection>(exprs->size());
+  StackValueCollection *exprs = vf->expressions();
+  _expressions = new StackValueCollection(exprs->size());
   for(index = 0; index < exprs->size(); index++) {
     StackValue* value = exprs->at(index);
     switch(value->type()) {
       case T_OBJECT:
         assert(!value->obj_is_scalar_replaced() || realloc_failures, "object should be reallocated already");
         // preserve object type
-        _expressions->add(StackValue(cast_from_oop<intptr_t>((value->get_obj()())), T_OBJECT ));
+        _expressions->add( new StackValue(cast_from_oop<intptr_t>((value->get_obj()())), T_OBJECT ));
         break;
       case T_CONFLICT:
         // A dead stack element.  Will be initialized to null/zero.
         // This can occur when the compiler emits a state in which stack
         // elements are known to be dead (because of an imminent exception).
-        _expressions->add(StackValue());
+        _expressions->add( new StackValue());
         break;
       case T_INT:
-        _expressions->add(StackValue(value->get_int()));
+        _expressions->add( new StackValue(value->get_int()));
         break;
       default:
         ShouldNotReachHere();
@@ -468,8 +468,8 @@ void vframeArrayElement::unpack_on_stack(int caller_actual_parameters,
   // a dangling pointer in the vframeArray we leave around for debug
   // purposes
 
-  _locals.reset(nullptr);
-  _expressions.reset(nullptr);
+  _locals = _expressions = NULL;
+
 }
 
 int vframeArrayElement::on_stack_size(int callee_parameters,
@@ -511,12 +511,6 @@ vframeArray* vframeArray::allocate(JavaThread* thread, int frame_size, GrowableA
   return result;
 }
 
-vframeArray::~vframeArray() {
-  for(int i = 0; i < _frames; i++) {
-    _elements[i].~vframeArrayElement();
-  }
-}
-
 void vframeArray::fill_in(JavaThread* thread,
                           int frame_size,
                           GrowableArray<compiledVFrame*>* chunk,
@@ -526,7 +520,6 @@ void vframeArray::fill_in(JavaThread* thread,
 
   _frame_size = frame_size;
   for(int i = 0; i < chunk->length(); i++) {
-    new (&_elements[i]) vframeArrayElement();
     element(i)->fill_in(chunk->at(i), realloc_failures);
   }
 

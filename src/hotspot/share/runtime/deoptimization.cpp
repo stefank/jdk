@@ -435,7 +435,7 @@ Deoptimization::UnrollBlock* Deoptimization::fetch_unroll_info_helper(JavaThread
     GrowableArray<ScopeValue*>* expressions = trap_scope->expressions();
     guarantee(expressions != NULL && expressions->length() > 0, "must have exception to throw");
     ScopeValue* topOfStack = expressions->top();
-    exceptionObject = StackValue::create_stack_value(&deoptee, &map, topOfStack).get_obj();
+    exceptionObject = StackValue::create_stack_value(&deoptee, &map, topOfStack)->get_obj();
     guarantee(exceptionObject() != NULL, "exception oop can not be null");
   }
 
@@ -1034,14 +1034,14 @@ oop Deoptimization::get_cached_box(AutoBoxObjectValue* bv, frame* fr, RegisterMa
    Klass* k = java_lang_Class::as_Klass(bv->klass()->as_ConstantOopReadValue()->value()());
    BasicType box_type = vmClasses::box_klass_type(k);
    if (box_type != T_OBJECT) {
-     StackValue value = StackValue::create_stack_value(fr, reg_map, bv->field_at(box_type == T_LONG ? 1 : 0));
+     StackValue* value = StackValue::create_stack_value(fr, reg_map, bv->field_at(box_type == T_LONG ? 1 : 0));
      switch(box_type) {
-       case T_INT:     return IntegerBoxCache::singleton(THREAD)->lookup_raw(value.get_int());
-       case T_CHAR:    return CharacterBoxCache::singleton(THREAD)->lookup_raw(value.get_int());
-       case T_SHORT:   return ShortBoxCache::singleton(THREAD)->lookup_raw(value.get_int());
-       case T_BYTE:    return ByteBoxCache::singleton(THREAD)->lookup_raw(value.get_int());
-       case T_BOOLEAN: return BooleanBoxCache::singleton(THREAD)->lookup_raw(value.get_int());
-       case T_LONG:    return LongBoxCache::singleton(THREAD)->lookup_raw(value.get_int());
+       case T_INT:     return IntegerBoxCache::singleton(THREAD)->lookup_raw(value->get_int());
+       case T_CHAR:    return CharacterBoxCache::singleton(THREAD)->lookup_raw(value->get_int());
+       case T_SHORT:   return ShortBoxCache::singleton(THREAD)->lookup_raw(value->get_int());
+       case T_BYTE:    return ByteBoxCache::singleton(THREAD)->lookup_raw(value->get_int());
+       case T_BOOLEAN: return BooleanBoxCache::singleton(THREAD)->lookup_raw(value->get_int());
+       case T_LONG:    return LongBoxCache::singleton(THREAD)->lookup_raw(value->get_int());
        default:;
      }
    }
@@ -1180,16 +1180,16 @@ void Deoptimization::reassign_type_array_elements(frame* fr, RegisterMap* reg_ma
   intptr_t val;
 
   for (int i = 0; i < sv->field_size(); i++) {
-    StackValue value = StackValue::create_stack_value(fr, reg_map, sv->field_at(i));
+    StackValue* value = StackValue::create_stack_value(fr, reg_map, sv->field_at(i));
     switch(type) {
     case T_LONG: case T_DOUBLE: {
-      assert(value.type() == T_INT, "Agreement.");
-      StackValue low =
+      assert(value->type() == T_INT, "Agreement.");
+      StackValue* low =
         StackValue::create_stack_value(fr, reg_map, sv->field_at(++i));
 #ifdef _LP64
-      jlong res = (jlong)low.get_int();
+      jlong res = (jlong)low->get_int();
 #else
-      jlong res = jlong_from((jint)value.get_int(), (jint)low.get_int());
+      jlong res = jlong_from((jint)value->get_int(), (jint)low->get_int());
 #endif
       obj->long_at_put(index, res);
       break;
@@ -1197,7 +1197,7 @@ void Deoptimization::reassign_type_array_elements(frame* fr, RegisterMap* reg_ma
 
     // Have to cast to INT (32 bits) pointer to avoid little/big-endian problem.
     case T_INT: case T_FLOAT: { // 4 bytes.
-      assert(value.type() == T_INT, "Agreement.");
+      assert(value->type() == T_INT, "Agreement.");
       bool big_value = false;
       if (i + 1 < sv->field_size() && type == T_INT) {
         if (sv->field_at(i)->is_location()) {
@@ -1214,37 +1214,37 @@ void Deoptimization::reassign_type_array_elements(frame* fr, RegisterMap* reg_ma
       }
 
       if (big_value) {
-        StackValue low = StackValue::create_stack_value(fr, reg_map, sv->field_at(++i));
+        StackValue* low = StackValue::create_stack_value(fr, reg_map, sv->field_at(++i));
   #ifdef _LP64
-        jlong res = (jlong)low.get_int();
+        jlong res = (jlong)low->get_int();
   #else
-        jlong res = jlong_from((jint)value.get_int(), (jint)low.get_int());
+        jlong res = jlong_from((jint)value->get_int(), (jint)low->get_int());
   #endif
         obj->int_at_put(index, (jint)*((jint*)&res));
         obj->int_at_put(++index, (jint)*(((jint*)&res) + 1));
       } else {
-        val = value.get_int();
+        val = value->get_int();
         obj->int_at_put(index, (jint)*((jint*)&val));
       }
       break;
     }
 
     case T_SHORT:
-      assert(value.type() == T_INT, "Agreement.");
-      val = value.get_int();
+      assert(value->type() == T_INT, "Agreement.");
+      val = value->get_int();
       obj->short_at_put(index, (jshort)*((jint*)&val));
       break;
 
     case T_CHAR:
-      assert(value.type() == T_INT, "Agreement.");
-      val = value.get_int();
+      assert(value->type() == T_INT, "Agreement.");
+      val = value->get_int();
       obj->char_at_put(index, (jchar)*((jint*)&val));
       break;
 
     case T_BYTE: {
-      assert(value.type() == T_INT, "Agreement.");
+      assert(value->type() == T_INT, "Agreement.");
       // The value we get is erased as a regular int. We will need to find its actual byte count 'by hand'.
-      val = value.get_int();
+      val = value->get_int();
 #if INCLUDE_JVMCI
       int byte_count = count_number_of_bytes_for_entry(sv, i);
       byte_array_put(obj, val, index, byte_count);
@@ -1260,8 +1260,8 @@ void Deoptimization::reassign_type_array_elements(frame* fr, RegisterMap* reg_ma
     }
 
     case T_BOOLEAN: {
-      assert(value.type() == T_INT, "Agreement.");
-      val = value.get_int();
+      assert(value->type() == T_INT, "Agreement.");
+      val = value->get_int();
       obj->bool_at_put(index, (jboolean)*((jint*)&val));
       break;
     }
@@ -1276,9 +1276,9 @@ void Deoptimization::reassign_type_array_elements(frame* fr, RegisterMap* reg_ma
 // restore fields of an eliminated object array
 void Deoptimization::reassign_object_array_elements(frame* fr, RegisterMap* reg_map, ObjectValue* sv, objArrayOop obj) {
   for (int i = 0; i < sv->field_size(); i++) {
-    StackValue value = StackValue::create_stack_value(fr, reg_map, sv->field_at(i));
-    assert(value.type() == T_OBJECT, "object element expected");
-    obj->obj_at_put(i, value.get_obj()());
+    StackValue* value = StackValue::create_stack_value(fr, reg_map, sv->field_at(i));
+    assert(value->type() == T_OBJECT, "object element expected");
+    obj->obj_at_put(i, value->get_obj()());
   }
 }
 
@@ -1317,18 +1317,18 @@ static int reassign_fields_by_klass(InstanceKlass* klass, frame* fr, RegisterMap
   for (int i = 0; i < fields->length(); i++) {
     intptr_t val;
     ScopeValue* scope_field = sv->field_at(svIndex);
-    StackValue value = StackValue::create_stack_value(fr, reg_map, scope_field);
+    StackValue* value = StackValue::create_stack_value(fr, reg_map, scope_field);
     int offset = fields->at(i)._offset;
     BasicType type = fields->at(i)._type;
     switch (type) {
       case T_OBJECT: case T_ARRAY:
-        assert(value.type() == T_OBJECT, "Agreement.");
-        obj->obj_field_put(offset, value.get_obj()());
+        assert(value->type() == T_OBJECT, "Agreement.");
+        obj->obj_field_put(offset, value->get_obj()());
         break;
 
       // Have to cast to INT (32 bits) pointer to avoid little/big-endian problem.
       case T_INT: case T_FLOAT: { // 4 bytes.
-        assert(value.type() == T_INT, "Agreement.");
+        assert(value->type() == T_INT, "Agreement.");
         bool big_value = false;
         if (i+1 < fields->length() && fields->at(i+1)._type == T_INT) {
           if (scope_field->is_location()) {
@@ -1350,7 +1350,7 @@ static int reassign_fields_by_klass(InstanceKlass* klass, frame* fr, RegisterMap
           assert(i < fields->length(), "second T_INT field needed");
           assert(fields->at(i)._type == T_INT, "T_INT field needed");
         } else {
-          val = value.get_int();
+          val = value->get_int();
           obj->int_field_put(offset, (jint)*((jint*)&val));
           break;
         }
@@ -1358,38 +1358,38 @@ static int reassign_fields_by_klass(InstanceKlass* klass, frame* fr, RegisterMap
         /* no break */
 
       case T_LONG: case T_DOUBLE: {
-        assert(value.type() == T_INT, "Agreement.");
-        StackValue low = StackValue::create_stack_value(fr, reg_map, sv->field_at(++svIndex));
+        assert(value->type() == T_INT, "Agreement.");
+        StackValue* low = StackValue::create_stack_value(fr, reg_map, sv->field_at(++svIndex));
 #ifdef _LP64
-        jlong res = (jlong)low.get_int();
+        jlong res = (jlong)low->get_int();
 #else
-        jlong res = jlong_from((jint)value.get_int(), (jint)low.get_int());
+        jlong res = jlong_from((jint)value->get_int(), (jint)low->get_int());
 #endif
         obj->long_field_put(offset, res);
         break;
       }
 
       case T_SHORT:
-        assert(value.type() == T_INT, "Agreement.");
-        val = value.get_int();
+        assert(value->type() == T_INT, "Agreement.");
+        val = value->get_int();
         obj->short_field_put(offset, (jshort)*((jint*)&val));
         break;
 
       case T_CHAR:
-        assert(value.type() == T_INT, "Agreement.");
-        val = value.get_int();
+        assert(value->type() == T_INT, "Agreement.");
+        val = value->get_int();
         obj->char_field_put(offset, (jchar)*((jint*)&val));
         break;
 
       case T_BYTE:
-        assert(value.type() == T_INT, "Agreement.");
-        val = value.get_int();
+        assert(value->type() == T_INT, "Agreement.");
+        val = value->get_int();
         obj->byte_field_put(offset, (jbyte)*((jint*)&val));
         break;
 
       case T_BOOLEAN:
-        assert(value.type() == T_INT, "Agreement.");
-        val = value.get_int();
+        assert(value->type() == T_INT, "Agreement.");
+        val = value->get_int();
         obj->bool_field_put(offset, (jboolean)*((jint*)&val));
         break;
 

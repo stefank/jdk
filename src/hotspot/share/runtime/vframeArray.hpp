@@ -58,8 +58,8 @@ class vframeArrayElement {
     bool _reexecute;                                             // whether we should reexecute this bytecode
     Method*    _method;                                          // the method for this vframe
     MonitorChunk* _monitors;                                     // active monitors for this vframe
-    std::unique_ptr<StackValueCollection> _locals;
-    std::unique_ptr<StackValueCollection> _expressions;
+    StackValueCollection* _locals;
+    StackValueCollection* _expressions;
 #ifdef ASSERT
     bool _removed_monitors;
 #endif
@@ -79,9 +79,9 @@ class vframeArrayElement {
 
   void free_monitors(JavaThread* jt);
 
-  StackValueCollection* locals(void) const             { return _locals.get(); }
+  StackValueCollection* locals(void) const             { return _locals; }
 
-  StackValueCollection* expressions(void) const        { return _expressions.get(); }
+  StackValueCollection* expressions(void) const        { return _expressions; }
 
   void fill_in(compiledVFrame* vf, bool realloc_failures);
 
@@ -162,7 +162,6 @@ class vframeArray: public CHeapObj<mtCompiler> {
   void set_location_valid(int i, bool valid) { _valid[i] = valid; }
 
  public:
-  ~vframeArray();
 
 
   // Tells whether index is within bounds.

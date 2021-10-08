@@ -1281,7 +1281,7 @@ C2V_VMENTRY_NULL(jobject, iterateFrames, (JNIEnv* env, jobject compilerToVM, job
           vf = vfst.asJavaVFrame();
         }
 
-        std::unique_ptr<StackValueCollection> locals;
+        StackValueCollection* locals = NULL;
         typeArrayHandle localIsVirtual_h;
         if (vf->is_compiled_frame()) {
           // compiled method frame
@@ -1541,7 +1541,7 @@ C2V_VMENTRY(void, materializeVirtualObjects, (JNIEnv* env, jobject, jobject _hs_
     compiledVFrame* cvf = virtualFrames->at(frame_index);
 
     GrowableArray<ScopeValue*>* scopeLocals = cvf->scope()->locals();
-    std::unique_ptr<StackValueCollection> locals = cvf->locals();
+    StackValueCollection* locals = cvf->locals();
     if (locals != NULL) {
       for (int i2 = 0; i2 < locals->size(); i2++) {
         StackValue* var = locals->at(i2);
@@ -1554,7 +1554,7 @@ C2V_VMENTRY(void, materializeVirtualObjects, (JNIEnv* env, jobject, jobject _hs_
     }
 
     GrowableArray<ScopeValue*>* scopeExpressions = cvf->scope()->expressions();
-    std::unique_ptr<StackValueCollection> expressions = cvf->expressions();
+    StackValueCollection* expressions = cvf->expressions();
     if (expressions != NULL) {
       for (int i2 = 0; i2 < expressions->size(); i2++) {
         StackValue* var = expressions->at(i2);
@@ -1579,7 +1579,7 @@ C2V_VMENTRY(void, materializeVirtualObjects, (JNIEnv* env, jobject, jobject _hs_
   JVMCIENV->set_HotSpotStackFrameReference_localIsVirtual(hs_frame, NULL);
   // update the locals array
   JVMCIObjectArray array = JVMCIENV->get_HotSpotStackFrameReference_locals(hs_frame);
-  std::unique_ptr<StackValueCollection> locals = virtualFrames->at(last_frame_number)->locals();
+  StackValueCollection* locals = virtualFrames->at(last_frame_number)->locals();
   for (int i = 0; i < locals->size(); i++) {
     StackValue* var = locals->at(i);
     if (var->type() == T_OBJECT) {

@@ -31,7 +31,6 @@
 #include "runtime/os.hpp"
 #include "runtime/perfData.hpp"
 #include "runtime/timer.hpp"
-#include "utilities/globalDefinitions.hpp"
 
 class OopClosure;
 class ThreadSnapshot;

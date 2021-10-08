@@ -36,7 +36,7 @@
 #include "gc/shenandoah/shenandoahBarrierSet.inline.hpp"
 #endif
 
-StackValue StackValue::create_stack_value(const frame* fr, const RegisterMap* reg_map, ScopeValue* sv) {
+StackValue* StackValue::create_stack_value(const frame* fr, const RegisterMap* reg_map, ScopeValue* sv) {
   if (sv->is_location()) {
     // Stack or register value
     Location loc = ((LocationValue *)sv)->location();
@@ -71,7 +71,7 @@ StackValue StackValue::create_stack_value(const frame* fr, const RegisterMap* re
       union { intptr_t p; jfloat jf; } value;
       value.p = (intptr_t) CONST64(0xDEADDEAFDEADDEAF);
       value.jf = (jfloat) *(jdouble*) value_addr;
-      return StackValue(value.p); // 64-bit high half is stack junk
+      return new StackValue(value.p); // 64-bit high half is stack junk
     }
     case Location::int_in_long: { // Holds an int in a long register?
       // The callee has no clue whether the register holds an int,
@@ -82,15 +82,15 @@ StackValue StackValue::create_stack_value(const frame* fr, const RegisterMap* re
       union { intptr_t p; jint ji;} value;
       value.p = (intptr_t) CONST64(0xDEADDEAFDEADDEAF);
       value.ji = (jint) *(jlong*) value_addr;
-      return StackValue(value.p); // 64-bit high half is stack junk
+      return new StackValue(value.p); // 64-bit high half is stack junk
     }
 #ifdef _LP64
     case Location::dbl:
       // Double value in an aligned adjacent pair
-      return StackValue(*(intptr_t*)value_addr);
+      return new StackValue(*(intptr_t*)value_addr);
     case Location::lng:
       // Long   value in an aligned adjacent pair
-      return StackValue(*(intptr_t*)value_addr);
+      return new StackValue(*(intptr_t*)value_addr);
     case Location::narrowoop: {
       union { intptr_t p; narrowOop noop;} value;
       value.p = (intptr_t) CONST64(0xDEADDEAFDEADDEAF);
@@ -116,7 +116,7 @@ StackValue StackValue::create_stack_value(const frame* fr, const RegisterMap* re
       }
 #endif
       Handle h(Thread::current(), val); // Wrap a handle around the oop
-      return StackValue(h);
+      return new StackValue(h);
     }
 #endif
     case Location::oop: {
@@ -138,7 +138,7 @@ StackValue StackValue::create_stack_value(const frame* fr, const RegisterMap* re
 #endif
       assert(oopDesc::is_oop_or_null(val, false), "bad oop found");
       Handle h(Thread::current(), val); // Wrap a handle around the oop
-      return StackValue(h);
+      return new StackValue(h);
     }
     case Location::addr: {
       loc.print_on(tty);
@@ -149,10 +149,10 @@ StackValue StackValue::create_stack_value(const frame* fr, const RegisterMap* re
       union { intptr_t p; jint ji;} value;
       value.p = (intptr_t) CONST64(0xDEADDEAFDEADDEAF);
       value.ji = *(jint*)value_addr;
-      return StackValue(value.p);
+      return new StackValue(value.p);
     }
     case Location::invalid: {
-      return StackValue();
+      return new StackValue();
     }
     case Location::vector: {
       loc.print_on(tty);
@@ -168,34 +168,34 @@ StackValue StackValue::create_stack_value(const frame* fr, const RegisterMap* re
     union { intptr_t p; jint ji;} value;
     value.p = (intptr_t) CONST64(0xDEADDEAFDEADDEAF);
     value.ji = (jint)((ConstantIntValue*)sv)->value();
-    return StackValue(value.p);
+    return new StackValue(value.p);
   } else if (sv->is_constant_oop()) {
     // constant oop
-    return StackValue(sv->as_ConstantOopReadValue()->value());
+    return new StackValue(sv->as_ConstantOopReadValue()->value());
 #ifdef _LP64
   } else if (sv->is_constant_double()) {
     // Constant double in a single stack slot
     union { intptr_t p; double d; } value;
     value.p = (intptr_t) CONST64(0xDEADDEAFDEADDEAF);
     value.d = ((ConstantDoubleValue *)sv)->value();
-    return StackValue(value.p);
+    return new StackValue(value.p);
   } else if (sv->is_constant_long()) {
     // Constant long in a single stack slot
     union { intptr_t p; jlong jl; } value;
     value.p = (intptr_t) CONST64(0xDEADDEAFDEADDEAF);
     value.jl = ((ConstantLongValue *)sv)->value();
-    return StackValue(value.p);
+    return new StackValue(value.p);
 #endif
   } else if (sv->is_object()) { // Scalar replaced object in compiled frame
     Handle ov = ((ObjectValue *)sv)->value();
-    return StackValue(ov, (ov.is_null()) ? 1 : 0);
+    return new StackValue(ov, (ov.is_null()) ? 1 : 0);
   } else if (sv->is_marker()) {
     // Should never need to directly construct a marker.
     ShouldNotReachHere();
   }
   // Unknown ScopeValue type
   ShouldNotReachHere();
-  return StackValue((intptr_t) 0);   // dummy
+  return new StackValue((intptr_t) 0);   // dummy
 }
 
 
