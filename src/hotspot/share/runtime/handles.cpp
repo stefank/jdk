@@ -48,6 +48,13 @@ void Handle::verify_links() const {
 }
 #endif
 
+Handle::Handle(const Handle& other) :
+    Handle(other._obj, NULL, NULL) {
+  if (_obj != NULL) {
+    HandleList::handle_list_for(this)->add(this);
+  }
+}
+
 Handle::~Handle() {
   unlink();
 }
@@ -168,6 +175,26 @@ bool HandleList::is_empty() const {
   return empty;
 }
 
+HandleList* HandleList::handle_list_for(const Handle* handle) {
+  Thread* thread = Thread::current();
+
+  if (thread->is_in_live_stack((address)handle)) {
+    return thread->handle_list();
+  }
+
+  HandleList* resource_handle_list = thread->resource_area()->handle_list_for(handle);
+  if (resource_handle_list != NULL) {
+    // Handle is allocated inside resource area,
+    // return the list of the associated resource mark.
+    return resource_handle_list;
+  }
+
+  fatal("Where is this allocated?");
+
+  return thread->handle_list();
+}
+
+#ifdef ASSERT
 void HandleList::verify_linked(const Handle* handle) const {
   assert(handle->_next->_prev == handle, "invariant");
   assert(handle->_prev->_next == handle, "invariant");
@@ -176,6 +203,7 @@ void HandleList::verify_linked(const Handle* handle) const {
 void HandleList::verify_head() const {
   verify_linked(&_head);
 }
+#endif
 
 #ifdef ASSERT
 oop* HandleArea::allocate_handle(oop obj) {

@@ -426,7 +426,6 @@ class Thread: public ThreadShadow {
   void set_handle_area(HandleArea* area)         { _handle_area = area; }
 
   HandleList* handle_list()                      { return &_handle_list; }
-  void add_handle(Handle* handle)                { _handle_list.add(handle); }
 
   GrowableArray<Metadata*>* metadata_handles() const          { return _metadata_handles; }
   void set_metadata_handles(GrowableArray<Metadata*>* handles){ _metadata_handles = handles; }

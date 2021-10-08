@@ -65,41 +65,4 @@ inline bool ResourceArea::SavedState::is_between(const void* mem, const SavedSta
   return mem >= to->_chunk->bottom() && mem < to->_chunk->top();
 }
 
-inline ResourceMarkImpl* ResourceArea::resource_mark_for(const void* mem) const {
-  if (_current_resource_mark == NULL) {
-    return NULL;
-  }
-
-  ResourceMarkImpl* rm = _current_resource_mark;
-
-  SavedState initial(this);
-  const SavedState* current = &initial;
-  const SavedState* prev = rm->saved_state();
-
-  while (true) {
-    if (SavedState::is_between(mem, prev, current)) {
-      return rm;
-    }
-
-    rm = rm->previous_resource_mark();
-    if (rm == NULL) {
-      // Done
-      return NULL;
-    }
-
-    current = prev;
-    prev = rm->saved_state();
-  }
-}
-
-inline HandleList* ResourceArea::handle_list_for(const Handle* handle) const {
-  ResourceMarkImpl* rm = resource_mark_for(handle);
-  if (rm == NULL) {
-    assert(!contains(handle), "Should have found a resource mark");
-    return NULL;
-  }
-
-  return rm->handle_list();
-}
-
 #endif // SHARE_MEMORY_RESOURCEAREA_INLINE_HPP

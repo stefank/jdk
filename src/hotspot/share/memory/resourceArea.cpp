@@ -49,6 +49,43 @@ void ResourceArea::set_current_resource_mark(ResourceMarkImpl* resource_mark) {
   _current_resource_mark = resource_mark;
 }
 
+ResourceMarkImpl* ResourceArea::resource_mark_for(const void* mem) const {
+  if (_current_resource_mark == NULL) {
+    return NULL;
+  }
+
+  ResourceMarkImpl* rm = _current_resource_mark;
+
+  SavedState initial(this);
+  const SavedState* current = &initial;
+  const SavedState* prev = rm->saved_state();
+
+  while (true) {
+    if (SavedState::is_between(mem, prev, current)) {
+      return rm;
+    }
+
+    rm = rm->previous_resource_mark();
+    if (rm == NULL) {
+      // Done
+      return NULL;
+    }
+
+    current = prev;
+    prev = rm->saved_state();
+  }
+}
+
+HandleList* ResourceArea::handle_list_for(const Handle* handle) const {
+  ResourceMarkImpl* rm = resource_mark_for(handle);
+  if (rm == NULL) {
+    assert(!contains(handle), "Should have found a resource mark");
+    return NULL;
+  }
+
+  return rm->handle_list();
+}
+
 void ResourceArea::oops_do(OopClosure* cl) {
   for (ResourceMarkImpl* current = _current_resource_mark; current != NULL; current = current->previous_resource_mark()) {
     current->oops_do(cl);

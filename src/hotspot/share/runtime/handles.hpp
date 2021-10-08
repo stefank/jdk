@@ -86,6 +86,7 @@ class Handle {
   Handle() : Handle(NULL, NULL, NULL) {}
   Handle(Thread* thread, oop obj);
   Handle(const Handle& other);
+
   ~Handle();
 
   Handle& operator=(const Handle& other);
@@ -117,8 +118,8 @@ private:
 
   bool is_empty() const;
 
-  void verify_linked(const Handle* handle) const;
-  void verify_head() const;
+  void verify_linked(const Handle* handle) const NOT_DEBUG_RETURN;
+  void verify_head() const NOT_DEBUG_RETURN;
 
   void link(Handle* handle);
   void clear();
