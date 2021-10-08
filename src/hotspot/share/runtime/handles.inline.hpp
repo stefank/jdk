@@ -35,92 +35,33 @@
 // these inline functions are in a separate file to break an include cycle
 // between Thread and Handle
 
-inline void Handle::verify_location() {
-  assert(!Thread::current()->resource_area()->contains(this), "Handle allocated in resource area");
-}
-
 inline Handle::Handle(Thread* thread, oop obj) :
     _obj(obj),
     _next(NULL),
     _prev(NULL) {
   assert(thread == Thread::current(), "sanity check");
-  verify_location();
+  assert(!thread->resource_area()->contains(this), "unexpected to find this in a resource area");
 
   if (_obj != NULL) {
-    link(thread);
+    thread->add_handle(this);
   }
 }
 
 inline Handle::Handle(const Handle& other) :
     Handle(Thread::current(), other._obj) {}
 
-inline bool Handle::is_in_list(Handle* head) const {
-  for (Handle* current = head; current != NULL; current = current->_next) {
-    if (current == this) {
-      return true;
-    }
-  }
-
-  return false;
-}
-
-inline void Handle::link(Thread* thread) {
-  Handle* head = thread->handle_head();
-  _next = head;
-  _prev = NULL;
-  if (head != NULL) {
-    head->_prev = this;
-  }
-  thread->set_handle_head(this);
-
-  verify_links();
-}
-
-inline void Handle::unlink(Thread* thread) {
+inline void Handle::unlink() {
   if (_obj == NULL) {
-    assert(_next == NULL, "Invariant");
-    assert(_prev == NULL, "Invariant");
+    assert(_next == NULL, "invariant");
+    assert(_prev == NULL, "invariant");
     return;
   }
 
-  if (thread->handle_head() == this) {
-    thread->set_handle_head(_next);
-  }
-
-  if (_prev != NULL) {
-    assert(_prev->_next == this, "Invariant");
-    _prev->_next = _next;
-  }
-  if (_next != NULL) {
-    assert(_next->_prev == this, "Invariant");
-    _next->_prev = _prev;
-  }
+  _prev->_next = _next;
+  _next->_prev = _prev;
 
   _prev = NULL;
   _next = NULL;
-}
-
-inline void Handle::verify_links() const {
-#ifdef ASSERT
-  Handle* head = Thread::current()->handle_head();
-  if (_obj == NULL) {
-    assert(_next == NULL, "Invariant");
-    assert(_prev == NULL, "Invariant");
-  } else {
-    if (head == this) {
-      assert(_prev == NULL, "Invariant");
-    } else {
-      assert(_prev != NULL, "Invariant");
-      assert(_prev->_next == this, "Invariant");
-    }
-
-    if (_next != NULL) {
-      assert(_next->_prev == this, "Invariant");
-    }
-
-    assert(is_in_list(head), "Invariant");
-  }
-#endif
 }
 
 // Inline constructors for Specific Handles for different oop types

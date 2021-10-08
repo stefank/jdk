@@ -461,7 +461,7 @@ inline oop resolve_indirect_oop(intptr_t value, uint state) {
   case JavaCallArguments::value_state_handle:
   {
     oop* ptr = reinterpret_cast<oop*>(value);
-    return Handle::raw_resolve(ptr);
+    return ptr == NULL ? (oop)NULL : *ptr;
   }
 
   case JavaCallArguments::value_state_jobject:

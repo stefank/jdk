@@ -28,6 +28,8 @@
 #include "memory/allocation.hpp"
 #include "runtime/thread.hpp"
 
+class ResourceMarkImpl;
+
 // The resource area holds temporary data structures in the VM.
 // The actual allocation areas are thread local. Typical usage:
 //
@@ -44,6 +46,8 @@
 class ResourceArea: public Arena {
   friend class VMStructs;
 
+  ResourceMarkImpl* _current_resource_mark;
+
 #ifdef ASSERT
   int _nesting;                 // current # of nested ResourceMarks
   void verify_has_resource_mark();
@@ -51,10 +55,10 @@ class ResourceArea: public Arena {
 
 public:
   ResourceArea(MEMFLAGS flags = mtThread) :
-    Arena(flags) DEBUG_ONLY(COMMA _nesting(0)) {}
+    Arena(flags), _current_resource_mark(NULL) DEBUG_ONLY(COMMA _nesting(0)) {}
 
   ResourceArea(size_t init_size, MEMFLAGS flags = mtThread) :
-    Arena(flags, init_size) DEBUG_ONLY(COMMA _nesting(0)) {}
+    Arena(flags, init_size), _current_resource_mark(NULL) DEBUG_ONLY(COMMA _nesting(0)) {}
 
   char* allocate_bytes(size_t size, AllocFailType alloc_failmode = AllocFailStrategy::EXIT_OOM);
 
@@ -75,13 +79,37 @@ public:
     DEBUG_ONLY(int _nesting;)
 
   public:
-    SavedState(ResourceArea* area) :
+    SavedState(const ResourceArea* area) :
       _chunk(area->_chunk),
       _hwm(area->_hwm),
       _max(area->_max),
       _size_in_bytes(area->_size_in_bytes)
       DEBUG_ONLY(COMMA _nesting(area->_nesting))
     {}
+
+    static bool is_between(const void* mem, const SavedState* from, const SavedState* to) {
+      if (from->_chunk == to->_chunk) {
+        return mem >= from->_hwm && mem < to->_hwm;
+      }
+
+      // More than one chunk
+
+      // Check first
+      if (mem >= from->_hwm && mem < from->_max) {
+        return true;
+      }
+
+      // Check in middle
+      for (Chunk* chunk = from->_chunk; chunk != to->_chunk; chunk = chunk->next()) {
+        // Filled chunks
+        if (chunk->contains((char*)mem)) {
+          return true;
+        }
+      }
+
+      // Check last
+      return mem >= to->_chunk->bottom() && mem < to->_chunk->top();
+    }
   };
 
   // Check and adjust debug-only nesting level.
@@ -101,7 +129,7 @@ public:
 
   // Roll back the allocation state to the indicated state values.
   // The state must be the current state for this thread.
-  void rollback_to(const SavedState& state) {
+  void rollback_to(SavedState& state) {
     assert(_nesting > state._nesting, "rollback to inactive mark");
     assert((_nesting - state._nesting) == 1, "rollback across another mark");
 
@@ -129,6 +157,15 @@ public:
       memset(state._hwm, badResourceValue, state._max - state._hwm);
     }
   }
+
+  ResourceMarkImpl* current_resource_mark();
+  void set_current_resource_mark(ResourceMarkImpl* resource_mark);
+
+  ResourceMarkImpl* resource_mark_for(const void* mem) const;
+  HandleList* handle_list_for(const Handle* handle) const;
+
+  // Visit all oops in Handles inside resource allocated objects.
+  void oops_do(OopClosure* cl);
 };
 
 
@@ -141,74 +178,89 @@ class ResourceMarkImpl {
   ResourceArea* _area;          // Resource area to stack allocate
   ResourceArea::SavedState _saved_state;
 
+  Thread* _thread;
+  ResourceMarkImpl* _previous_resource_mark;
+  HandleList _handle_list;
+
   NONCOPYABLE(ResourceMarkImpl);
 
 public:
-  explicit ResourceMarkImpl(ResourceArea* area) :
+  ResourceMarkImpl(Thread* thread, ResourceArea* area) :
     _area(area),
-    _saved_state(area)
+    _saved_state(area),
+    _thread(thread),
+    _previous_resource_mark(nullptr),
+    _handle_list()
   {
     _area->activate_state(_saved_state);
+
+    assert(thread != nullptr, "Show me where!");
+    if (_thread != nullptr) {
+      assert(_thread == Thread::current(), "not the current thread");
+      _previous_resource_mark = area->current_resource_mark();
+      area->set_current_resource_mark(this);
+    }
   }
 
   explicit ResourceMarkImpl(Thread* thread)
-    : ResourceMarkImpl(thread->resource_area()) {}
+    : ResourceMarkImpl(thread, thread->resource_area()) {}
 
   ~ResourceMarkImpl() {
+    // Handles must be cleared before the call to reset_to_mark,
+    // since it scribbles over the memory where the handles are allocated.
+    _handle_list.clear_handles();
+    assert(_thread != nullptr, "Show me where!");
+    if (_thread != nullptr) {
+      _area->set_current_resource_mark(_previous_resource_mark);
+    }
+
     reset_to_mark();
     _area->deactivate_state(_saved_state);
   }
 
-  void reset_to_mark() const {
+  void reset_to_mark() {
     _area->rollback_to(_saved_state);
   }
+
+  ResourceMarkImpl* previous_resource_mark() {
+    return _previous_resource_mark;
+  }
+
+  const ResourceArea::SavedState* saved_state() const {
+    return &_saved_state;
+  }
+
+  HandleList* handle_list() {
+    return &_handle_list;
+  }
+
+  void oops_do(OopClosure* cl);
 };
 
 class ResourceMark: public StackObj {
-  const ResourceMarkImpl _impl;
-#ifdef ASSERT
-  Thread* _thread;
-  ResourceMark* _previous_resource_mark;
-#endif // ASSERT
+  ResourceMarkImpl _impl;
 
   NONCOPYABLE(ResourceMark);
 
   // Helper providing common constructor implementation.
-#ifndef ASSERT
-  ResourceMark(ResourceArea* area, Thread* thread) : _impl(area) {}
-#else
-  ResourceMark(ResourceArea* area, Thread* thread) :
-    _impl(area),
-    _thread(thread),
-    _previous_resource_mark(nullptr)
-  {
-    if (_thread != nullptr) {
-      assert(_thread == Thread::current(), "not the current thread");
-      _previous_resource_mark = _thread->current_resource_mark();
-      _thread->set_current_resource_mark(this);
-    }
-  }
-#endif // ASSERT
+  ResourceMark(Thread* thread, ResourceArea* area) :
+    _impl(thread, area) {}
 
 public:
 
   ResourceMark() : ResourceMark(Thread::current()) {}
 
   explicit ResourceMark(Thread* thread)
-    : ResourceMark(thread->resource_area(), thread) {}
+    : ResourceMark(thread, thread->resource_area()) {}
 
   explicit ResourceMark(ResourceArea* area)
-    : ResourceMark(area, DEBUG_ONLY(Thread::current_or_null()) NOT_DEBUG(nullptr)) {}
-
-#ifdef ASSERT
-  ~ResourceMark() {
-    if (_thread != nullptr) {
-      _thread->set_current_resource_mark(_previous_resource_mark);
-    }
-  }
-#endif // ASSERT
+    : ResourceMark(Thread::current_or_null(), area) {}
 
   void reset_to_mark() { _impl.reset_to_mark(); }
+
+  const ResourceArea::SavedState* saved_state() const {
+    return _impl.saved_state();
+  }
 };
 
 //------------------------------DeoptResourceMark-----------------------------------
@@ -242,7 +294,7 @@ public:
 // class.
 
 class DeoptResourceMark: public CHeapObj<mtInternal> {
-  const ResourceMarkImpl _impl;
+  ResourceMarkImpl _impl;
 
   NONCOPYABLE(DeoptResourceMark);
 

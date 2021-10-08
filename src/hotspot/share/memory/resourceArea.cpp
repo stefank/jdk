@@ -40,6 +40,20 @@ void ResourceArea::bias_to(MEMFLAGS new_flags) {
   }
 }
 
+ResourceMarkImpl* ResourceArea::current_resource_mark() {
+  return _current_resource_mark;
+}
+
+void ResourceArea::set_current_resource_mark(ResourceMarkImpl* resource_mark) {
+  _current_resource_mark = resource_mark;
+}
+
+void ResourceArea::oops_do(OopClosure* cl) {
+  for (ResourceMarkImpl* current = _current_resource_mark; current != NULL; current = current->previous_resource_mark()) {
+    current->oops_do(cl);
+  }
+}
+
 #ifdef ASSERT
 
 void ResourceArea::verify_has_resource_mark() {
@@ -59,6 +73,11 @@ void ResourceArea::verify_has_resource_mark() {
 #endif // ASSERT
 
 //------------------------------ResourceMark-----------------------------------
+
+void ResourceMarkImpl::oops_do(OopClosure* cl) {
+  _handle_list.oops_do(cl);
+}
+
 // The following routines are declared in allocation.hpp and used everywhere:
 
 // Allocation in thread-local resource area

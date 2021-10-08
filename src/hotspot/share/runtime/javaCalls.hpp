@@ -120,6 +120,10 @@ class JavaCallArguments : public StackObj {
       _value_state = NEW_RESOURCE_ARRAY(u_char, max_size + 1);
       _handles = NEW_RESOURCE_ARRAY(Handle, max_size + 1);
 
+      for (int i = 0; i < max_size + 1; i++) {
+        new (&_handles[i]) Handle();
+      }
+
       // Reserve room for potential receiver in value and state
       _value++;
       _value_state++;
@@ -139,9 +143,11 @@ class JavaCallArguments : public StackObj {
       // - need to explicitly destruct them.
       assert(_start_at_zero || _handles[-1].is_null(), "First handle shouldn't be used");
 
-      int count = (_max_size + _start_at_zero ? 1 : 0);
-      for (int i = 0; i < count; i++) {
-        _handles[i].~Handle();
+      // Point to the start of the allocated array
+      Handle* allocated_handles = &_handles[_start_at_zero ? 0 : -1];
+
+      for (int i = 0; i < _max_size + 1; i++) {
+        allocated_handles[i].~Handle();
       }
     }
   }

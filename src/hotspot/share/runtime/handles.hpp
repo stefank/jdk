@@ -36,21 +36,17 @@ class Thread;
 //------------------------------------------------------------------------------------------------------------------------
 // In order to preserve oops during garbage collection, they should be
 // allocated and passed around via Handles within the VM. A handle is
-// simply an extra indirection allocated in a thread local handle area.
-//
-// A handle is a value object, so it can be passed around as a value, can
-// be used as a parameter w/o using &-passing, and can be returned as a
-// return value.
+// simply an extra indirection.
 //
 // oop parameters and return types should be Handles whenever feasible.
 //
 // Handles are declared in a straight-forward manner, e.g.
 //
 //   oop obj = ...;
-//   Handle h2(thread, obj);      // allocate a new handle in thread
-//   Handle h3;                   // declare handle only, no allocation occurs
+//   Handle h2(thread, obj);      // create a new handle and link it into the thread
+//   Handle h3;                   // declare handle only, no linking occurs
 //   ...
-//   h3 = h1;                     // make h3 refer to same indirection as h1
+//   h3 = h1;                     // make h3 refer to same oop as h1, link h3 into the thread
 //   oop obj2 = h2();             // get handle value
 //   h1->print();                 // invoking operation on oop
 //
@@ -63,29 +59,31 @@ class Thread;
 // used operators for ease of use.
 
 class Handle {
+  friend class HandleList;
+
  private:
   oop     _obj;
+
+  // Active handles are linked in lists that belong to the thread.
+  // The list is double linked to enable fast unlinking.
   Handle* _next;
   Handle* _prev;
 
-  bool is_in_list(Handle* head) const;
-  void link(Thread* thread);
-  void unlink(Thread* thread);
+  void unlink();
 
-  void verify_links() const;
-  void verify_location();
+  void verify_links() const NOT_DEBUG_RETURN;
 
  protected:
-  oop     obj() const                            {
-    verify_links();
-    return _obj;
-  }
+  oop     obj() const                            { verify_links(); return _obj; }
   oop     non_null_obj() const                   { assert(_obj != NULL, "resolving NULL handle"); return obj(); }
+
+  Handle(oop obj, Handle* next, Handle* prev) :
+      _obj(obj), _next(next), _prev(prev) {}
 
  public:
   // Constructors
-  Handle() : _obj(NULL), _next(NULL), _prev(NULL) { verify_location(); }
-  inline Handle(Thread* thread, oop obj);
+  Handle() : Handle(NULL, NULL, NULL) {}
+  Handle(Thread* thread, oop obj);
   Handle(const Handle& other);
   ~Handle();
 
@@ -110,13 +108,37 @@ class Handle {
   // Raw handle access. Allows easy duplication of Handles. This can be very unsafe
   // since duplicates is only valid as long as original handle is alive.
   oop* raw_value() const                         { return (oop*)&_obj; }
-  static oop raw_resolve(oop *handle)            { return handle == NULL ? (oop)NULL : *handle; }
+};
 
-  void oops_do(OopClosure* cl) {
-    for (Handle* current = this; current != NULL; current = current->_next) {
-      cl->do_oop(&current->_obj);
-    }
-  }
+class HandleList {
+private:
+  Handle _head;
+
+  bool is_empty() const;
+
+  void verify_linked(const Handle* handle) const;
+  void verify_head() const;
+
+  void link(Handle* handle);
+  void clear();
+
+public:
+  HandleList();
+  HandleList(const HandleList&) = delete;
+  HandleList(HandleList&& other);
+
+  HandleList& operator=(const HandleList&) = delete;
+  HandleList& operator=(HandleList&& other);
+
+  ~HandleList();
+
+  void add(Handle* handle);
+
+  void clear_handles();
+
+  void oops_do(OopClosure* cl) const;
+
+  bool is_in(const Handle* handle) const;
 };
 
 // Specific Handles for different oop types

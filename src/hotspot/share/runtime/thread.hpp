@@ -84,7 +84,7 @@ class ResourceArea;
 
 class OopStorage;
 
-DEBUG_ONLY(class ResourceMark;)
+class ResourceMarkImpl;
 
 class WorkerThread;
 
@@ -425,8 +425,8 @@ class Thread: public ThreadShadow {
   HandleArea* handle_area() const                { return _handle_area; }
   void set_handle_area(HandleArea* area)         { _handle_area = area; }
 
-  Handle* handle_head() const                    { return _handle_head; }
-  void set_handle_head(Handle* handle)           { _handle_head = handle; }
+  HandleList* handle_list()                      { return &_handle_list; }
+  void add_handle(Handle* handle)                { _handle_list.add(handle); }
 
   GrowableArray<Metadata*>* metadata_handles() const          { return _metadata_handles; }
   void set_metadata_handles(GrowableArray<Metadata*>* handles){ _metadata_handles = handles; }
@@ -544,11 +544,10 @@ protected:
   // Thread local resource area for temporary allocation within the VM
   ResourceArea* _resource_area;
 
-  DEBUG_ONLY(ResourceMark* _current_resource_mark;)
-
   // Thread local handle area for allocation of handles within the VM
   HandleArea* _handle_area;
-  Handle*     _handle_head;
+  HandleList  _handle_list;
+
   GrowableArray<Metadata*>* _metadata_handles;
 
   // Support for stack overflow handling, get_thread, etc.
@@ -594,12 +593,9 @@ protected:
   Mutex* owned_locks() const                     { return _owned_locks;          }
   bool owns_locks() const                        { return owned_locks() != NULL; }
 
-  // Deadlock detection
-  ResourceMark* current_resource_mark()          { return _current_resource_mark; }
-  void set_current_resource_mark(ResourceMark* rm) { _current_resource_mark = rm; }
 #endif // ASSERT
 
- private:
+private:
   volatile int _jvmti_env_iteration_count;
 
  public:
