@@ -40,6 +40,7 @@ inline Handle::Handle(Thread* thread, oop obj) :
     _next(NULL),
     _prev(NULL) {
   assert(thread == Thread::current(), "sanity check");
+  assert(thread->is_in_live_stack((address)this), "expected to be in stack");
   assert(!thread->resource_area()->contains(this), "unexpected to find this in a resource area");
 
   if (_obj != NULL) {
