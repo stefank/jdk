@@ -25,6 +25,7 @@
 #ifndef SHARE_MEMORY_RESOURCEAREA_INLINE_HPP
 #define SHARE_MEMORY_RESOURCEAREA_INLINE_HPP
 
+#include "memory/guardedMemory.hpp"
 #include "memory/resourceArea.hpp"
 
 #include "services/memTracker.hpp"
@@ -41,28 +42,69 @@ inline char* ResourceArea::allocate_bytes(size_t size, AllocFailType alloc_failm
   return (char*)Amalloc(size, alloc_failmode);
 }
 
-inline bool ResourceArea::SavedState::is_between(const void* mem, const SavedState* from, const SavedState* to) {
+template <typename Function>
+inline bool ResourceArea::SavedState::visit_all_regions(const SavedState* from, const SavedState* to, Function function) {
   if (from->_chunk == to->_chunk) {
-    return mem >= from->_hwm && mem < to->_hwm;
+    return function(from->_hwm, to->_hwm);
   }
 
   // More than one chunk
 
   // Check first
-  if (mem >= from->_hwm && mem < from->_max) {
+  if (function(from->_hwm, from->_max)) {
     return true;
   }
 
   // Check in middle
   for (Chunk* chunk = from->_chunk; chunk != to->_chunk; chunk = chunk->next()) {
     // Filled chunks
-    if (chunk->contains((char*)mem)) {
+    if (function(chunk->bottom(), chunk->top())) {
       return true;
     }
   }
 
   // Check last
-  return mem >= to->_chunk->bottom() && mem < to->_chunk->top();
+  if (function(to->_chunk->bottom(), to->_chunk->top())) {
+    return true;
+  }
+
+  return false;
+}
+
+inline bool ResourceArea::SavedState::is_between_use_malloc_only(const void* mem, const SavedState* from, const SavedState* to) {
+  // All objects are allocated in malloced memory. The resource area only contains pointers to the malloced objects.
+  // Iterate over all pointers, and check if mem is within the allocated objects.
+
+  auto contains = [&](char** addr) {
+    char* obj = *addr;
+
+    // Objects are preceded with a GuardHeader block describing the allocation.
+    GuardedMemory gm(obj);
+    size_t size = gm.get_user_size();
+
+    return mem >= obj && mem < obj + size;
+  };
+
+  auto check_each = [&](const char* from, const char* to) {
+    for (char** addr = (char**) from; addr < (char**)to; addr++) {
+      if (contains(addr)) {
+        return true;
+      }
+    }
+    return false;
+  };
+
+  return visit_all_regions(from, to, check_each);
+}
+
+inline bool ResourceArea::SavedState::is_between(const void* mem, const SavedState* from, const SavedState* to) {
+  if (UseMallocOnly) {
+    return is_between_use_malloc_only(mem, from, to);
+  }
+
+  return visit_all_regions(from, to, [&](const char* from, const char* to) {
+    return mem >= from && mem < to;
+  });
 }
 
 #endif // SHARE_MEMORY_RESOURCEAREA_INLINE_HPP

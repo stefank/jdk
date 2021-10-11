@@ -87,6 +87,9 @@ public:
       DEBUG_ONLY(COMMA _nesting(area->_nesting))
     {}
 
+    template <typename Function>
+    static bool visit_all_regions(const SavedState* from, const SavedState* to, Function function);
+    static bool is_between_use_malloc_only(const void* mem, const SavedState* from, const SavedState* to);
     static bool is_between(const void* mem, const SavedState* from, const SavedState* to);
   };
 
