@@ -1684,16 +1684,21 @@ void JavaThread::handle_special_runtime_exit_condition(bool check_asyncs) {
 }
 
 class InstallAsyncExceptionClosure : public HandshakeClosure {
-  Handle _throwable; // The Throwable thrown at the target Thread
+  OopHandle _throwable; // The Throwable thrown at the target Thread
 public:
-  InstallAsyncExceptionClosure(Handle throwable) : HandshakeClosure("InstallAsyncException"), _throwable(throwable) {}
+  InstallAsyncExceptionClosure(Handle throwable) :
+      HandshakeClosure("InstallAsyncException"),
+      _throwable(OopHandle(Universe::vm_global(), throwable())) {}
+  ~InstallAsyncExceptionClosure() {
+    _throwable.release(Universe::vm_global());
+  }
 
   void do_thread(Thread* thr) {
     JavaThread* target = JavaThread::cast(thr);
     // Note that this now allows multiple ThreadDeath exceptions to be
     // thrown at a thread.
     // The target thread has run and has not exited yet.
-    target->send_thread_stop(_throwable());
+    target->send_thread_stop(_throwable.resolve());
   }
 };
 
