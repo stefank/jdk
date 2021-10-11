@@ -165,7 +165,8 @@ void HandleList::clear_handles() {
 void HandleList::oops_do(OopClosure* cl) const {
   verify_head();
   for (Handle* current = _head._next; current != &_head; current = current->_next) {
-    cl->do_oop(&current->_obj);
+    // Cast to workaround CheckUnhandledOops
+    cl->do_oop((oop*)&current->_obj);
   }
 }
 

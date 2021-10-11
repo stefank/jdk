@@ -63,12 +63,13 @@ class Handle {
   friend class HandleList;
 
  private:
-  oop     _obj;
+  // Use oopDesc* instead of oop to navigate around CheckUnhandledOops.
+  oopDesc* _obj;
 
   // Active handles are linked in lists that belong to the thread.
   // The list is double linked to enable fast unlinking.
-  Handle* _next;
-  Handle* _prev;
+  Handle*  _next;
+  Handle*  _prev;
 
   void unlink();
 
