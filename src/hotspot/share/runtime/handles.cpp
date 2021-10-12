@@ -48,10 +48,19 @@ void Handle::verify_links() const {
 }
 #endif
 
+static void add_to_appropriate_list(Handle* handle) {
+  HandleList* list = HandleList::handle_list_for(handle);
+  list->add(handle);
+  assert(list->is_in(handle), "Must contain");
+
+  HandleList* list_reread = HandleList::handle_list_for(handle);
+  assert(list == list_reread, "Wrong list");
+}
+
 Handle::Handle(const Handle& other) :
     Handle(other._obj, NULL, NULL) {
   if (_obj != NULL) {
-    HandleList::handle_list_for(this)->add(this);
+    add_to_appropriate_list(this);
   }
 }
 
@@ -67,7 +76,7 @@ Handle& Handle::operator=(const Handle& other) {
     } else {
       if (_obj == NULL) {
         // Not yet linked
-        HandleList::handle_list_for(this)->add(this);
+        add_to_appropriate_list(this);
       }
     }
 
@@ -128,6 +137,7 @@ void HandleList::link(Handle* handle) {
   _head._next = handle;
 
   handle->_next->_prev = handle;
+  verify_linked(handle);
   verify_head();
 }
 
@@ -146,6 +156,7 @@ bool HandleList::is_in(const Handle* handle) const {
 }
 
 void HandleList::clear() {
+  verify_head();
   _head._next = &_head;
   _head._prev = &_head;
   assert(is_empty(), "must be empty");
@@ -165,6 +176,7 @@ void HandleList::clear_handles() {
 void HandleList::oops_do(OopClosure* cl) const {
   verify_head();
   for (Handle* current = _head._next; current != &_head; current = current->_next) {
+    verify_linked(current);
     // Cast to workaround CheckUnhandledOops
     cl->do_oop((oop*)&current->_obj);
   }
@@ -197,6 +209,9 @@ HandleList* HandleList::handle_list_for(const Handle* handle) {
 
 #ifdef ASSERT
 void HandleList::verify_linked(const Handle* handle) const {
+  assert(handle != NULL, "should not verify null handle");
+  assert(handle->_next != NULL, "next should not be null");
+  assert(handle->_prev != NULL, "prev should not be null");
   assert(handle->_next->_prev == handle, "invariant");
   assert(handle->_prev->_next == handle, "invariant");
 }
