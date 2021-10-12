@@ -951,6 +951,7 @@ static jclass jvm_lookup_define_class(jclass lookup, const char *name,
   const char* source = is_nestmate ? host_class->external_name() : "__JVM_LookupDefineClass__";
   ClassFileStream st((u1*)buf, len, source, ClassFileStream::verify);
 
+  Handle mirror;
   InstanceKlass* ik = NULL;
   if (!is_hidden) {
     ClassLoadInfo cl_info(protection_domain);
@@ -958,6 +959,8 @@ static jclass jvm_lookup_define_class(jclass lookup, const char *name,
                                                class_loader,
                                                cl_info,
                                                CHECK_NULL);
+
+    mirror = Handle(THREAD, ik->java_mirror());
 
     if (log_is_enabled(Debug, class, resolve)) {
       trace_class_resolution(ik);
@@ -980,6 +983,10 @@ static jclass jvm_lookup_define_class(jclass lookup, const char *name,
     // it alive afterwards.
     ik->class_loader_data()->dec_keep_alive();
 
+    // A GC here will unload the klass since there are no active handle to the mirror.
+    // Universe::heap()->collect(GCCause::_java_lang_system_gc);
+    mirror = Handle(THREAD, ik->java_mirror());
+
     if (is_nestmate && log_is_enabled(Debug, class, nestmates)) {
       ModuleEntry* module = ik->module();
       const char * module_name = module->is_named() ? module->name()->as_C_string() : UNNAMED_MODULE;
@@ -999,7 +1006,7 @@ static jclass jvm_lookup_define_class(jclass lookup, const char *name,
     ik->link_class(CHECK_NULL);
   }
 
-  return (jclass) JNIHandles::make_local(THREAD, ik->java_mirror());
+  return (jclass) JNIHandles::make_local(THREAD, mirror());
 }
 
 JVM_ENTRY(jclass, JVM_DefineClass(JNIEnv *env, const char *name, jobject loader, const jbyte *buf, jsize len, jobject pd))
