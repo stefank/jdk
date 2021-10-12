@@ -128,10 +128,10 @@ private:
 public:
   HandleList();
   HandleList(const HandleList&) = delete;
-  HandleList(HandleList&& other);
+  HandleList(HandleList&& other) = delete;
 
   HandleList& operator=(const HandleList&) = delete;
-  HandleList& operator=(HandleList&& other);
+  HandleList& operator=(HandleList&& other) = delete;
 
   ~HandleList();
 

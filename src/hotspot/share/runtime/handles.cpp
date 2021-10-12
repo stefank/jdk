@@ -90,37 +90,6 @@ HandleList::HandleList() : _head(NULL, &_head, &_head) {
   assert(is_empty(), "must be empty");
 }
 
-HandleList::HandleList(HandleList&& other) :
-    HandleList() {
-  *this = std::move(other);
-  verify_head();
-}
-
-HandleList& HandleList::operator=(HandleList&& other) {
-  assert(is_empty(), "invariant");
-  other.verify_head();
-
-  if (!other.is_empty()) {
-    // Move nodes
-    Handle* next = other._head._next;
-    Handle* prev = other._head._prev;
-
-    _head._next = next;
-    _head._prev = prev;
-
-    next->_prev = &_head;
-    prev->_next = &_head;
-
-    other._head._next = &other._head;
-    other._head._prev = &other._head;
-    assert(other.is_empty(), "must be empty");
-
-    verify_head();
-  }
-
-  return *this;
-}
-
 HandleList::~HandleList() {
   verify_head();
   // Prepare for destruction of _head
