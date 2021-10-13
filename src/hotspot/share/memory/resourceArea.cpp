@@ -27,6 +27,7 @@
 #include "memory/resourceArea.inline.hpp"
 #include "prims/jvmtiUtil.hpp"
 #include "runtime/atomic.hpp"
+#include "runtime/interfaceSupport.inline.hpp"
 #include "runtime/thread.inline.hpp"
 #include "services/memTracker.hpp"
 
@@ -83,11 +84,14 @@ HandleList* ResourceArea::handle_list_for(const Handle* handle) const {
     return NULL;
   }
 
+  assert(rm->is_linked(), "Must be linked to create handles");
+
   return rm->handle_list();
 }
 
 void ResourceArea::oops_do(OopClosure* cl) {
   for (ResourceMarkImpl* current = _current_resource_mark; current != NULL; current = current->previous_resource_mark()) {
+    assert(current->_area == this, "Must be the same resource area");
     current->oops_do(cl);
   }
 }
@@ -112,6 +116,49 @@ void ResourceArea::verify_has_resource_mark() {
 
 //------------------------------ResourceMark-----------------------------------
 
+class ThreadInVMForResourceMark : public ThreadStateTransition {
+  const JavaThreadState _original_state;
+ public:
+  ThreadInVMForResourceMark(JavaThread* thread) : ThreadStateTransition(thread),
+      _original_state(thread->thread_state()) {
+
+    if (_original_state == _thread_in_native) {
+      if (thread->has_last_Java_frame()) {
+        thread->frame_anchor()->make_walkable(thread);
+      }
+
+      ThreadStateTransition::transition_from_native(thread, _thread_in_vm);
+    }
+  }
+
+  ~ThreadInVMForResourceMark() {
+    if (_original_state == _thread_in_native) {
+      transition_from_vm(_thread, _original_state);
+    }
+  }
+};
+
+void ResourceMarkImpl::link(Thread* thread) {
+  if (!thread->is_Java_thread()) {
+    _previous_resource_mark = _area->current_resource_mark();
+    _area->set_current_resource_mark(this);
+  } else {
+    ThreadInVMForResourceMark tivmfh(JavaThread::cast(thread));
+    _previous_resource_mark = _area->current_resource_mark();
+    _area->set_current_resource_mark(this);
+  }
+
+}
+
+void ResourceMarkImpl::unlink(Thread* thread) {
+  if (!_thread->is_Java_thread()) {
+    _area->set_current_resource_mark(_previous_resource_mark);
+  } else {
+    ThreadInVMForResourceMark tivmfh(JavaThread::cast(_thread));
+    _area->set_current_resource_mark(_previous_resource_mark);
+  }
+}
+
 ResourceMarkImpl::ResourceMarkImpl(Thread* thread, ResourceArea* area) :
   _area(area),
   _saved_state(area),
@@ -129,10 +176,11 @@ ResourceMarkImpl::ResourceMarkImpl(Thread* thread, ResourceArea* area) :
 
   // FIXME: area could be different from thread->resource_area().
   // When that happens, the GC will not know about the registered handles
-  // in thie resource mark.
+  // in this resource mark.
 
-  _previous_resource_mark = area->current_resource_mark();
-  area->set_current_resource_mark(this);
+  if (thread != nullptr && thread->resource_area() == area) {
+    link(thread);
+  }
 }
 
 ResourceMarkImpl::ResourceMarkImpl(Thread* thread)
@@ -145,7 +193,18 @@ ResourceMarkImpl::~ResourceMarkImpl() {
     assert(_area == JvmtiUtil::single_threaded_resource_area(), "Show me where!");
   }
 
-  _area->set_current_resource_mark(_previous_resource_mark);
+  if (_thread != nullptr) {
+    if (_thread->resource_area() == _area) {
+      for (ResourceMarkImpl* current = this; current != NULL; current = current->_previous_resource_mark) {
+        current->_handle_list.verify_head_deep();
+      }
+
+      unlink(_thread);
+    } else {
+      assert(_previous_resource_mark == NULL, "Must be alone");
+      assert(_handle_list.is_empty(), "Must be empty");
+    }
+  }
 
   reset_to_mark();
   _area->deactivate_state(_saved_state);

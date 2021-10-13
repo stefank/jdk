@@ -31,6 +31,27 @@
 #include "runtime/thread.inline.hpp"
 
 #ifdef ASSERT
+void Handle::verify_linked_links() const {
+  assert(_prev != NULL, "invariant");
+  assert(_prev->_next == this, "invariant");
+
+  assert(_next != NULL, "invariant");
+  assert(_next->_prev == this, "invariant");
+
+  if (_obj != NULL) {
+    // The null check is for when the HandleList::_head is verified
+    assert(HandleList::handle_list_for(this)->is_in(this), "invariant");
+  }
+
+  for (Handle* current = _next; current != this; current = current->_next) {
+    assert(current->_obj != NULL || (current->_next->_prev == current && current->_prev->_next == current), "Must not be null");
+  }
+
+  for (Handle* current = _prev; current != this; current = current->_prev) {
+    assert(current->_obj != NULL || (current->_next->_prev == current && current->_prev->_next == current), "Must not be null");
+  }
+}
+
 void Handle::verify_links() const {
   if (_obj == NULL) {
     assert(_next == NULL, "invariant");
@@ -38,21 +59,7 @@ void Handle::verify_links() const {
     return;
   }
 
-  assert(_prev != NULL, "invariant");
-  assert(_prev->_next == this, "invariant");
-
-  assert(_next != NULL, "invariant");
-  assert(_next->_prev == this, "invariant");
-
-  assert(HandleList::handle_list_for(this)->is_in(this), "invariant");
-
-  for (Handle* current = _next; current != this; current = current->_next) {
-    assert(_obj != NULL, "Must not be null");
-  }
-
-  for (Handle* current = _prev; current != this; current = current->_prev) {
-    assert(_obj != NULL, "Must not be null");
-  }
+  verify_linked_links();
 }
 #endif
 
@@ -114,11 +121,13 @@ void HandleList::link(Handle* handle) {
   _head._next = handle;
 
   handle->_next->_prev = handle;
-  verify_linked(handle);
+  verify_linked_deep(handle);
   verify_head();
 }
 
 void HandleList::add(Handle* handle) {
+  guarantee(!Thread::current()->is_Java_thread() || JavaThread::current()->thread_state() != _thread_in_native, "unexpected state: %d", JavaThread::current()->thread_state());
+
   link(handle);
 }
 
@@ -144,7 +153,7 @@ void HandleList::clear_handles() {
   verify_head();
 #ifdef ASSERT
   for (Handle* current = _head._next; current != &_head; current = current->_next) {
-    current->_obj = NULL;
+    current->_obj = (oopDesc*)(uintptr_t)0x43214321;
   }
 #endif
   clear();
@@ -193,8 +202,17 @@ void HandleList::verify_linked(const Handle* handle) const {
   assert(handle->_prev->_next == handle, "invariant");
 }
 
+void HandleList::verify_linked_deep(const Handle* handle) const {
+  verify_linked(handle);
+  handle->verify_linked_links();
+}
+
 void HandleList::verify_head() const {
   verify_linked(&_head);
+}
+
+void HandleList::verify_head_deep() const {
+  verify_linked_deep(&_head);
 }
 #endif
 

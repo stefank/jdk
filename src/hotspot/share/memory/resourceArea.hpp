@@ -156,6 +156,7 @@ public:
 
 // Shared part of implementation for ResourceMark and DeoptResourceMark.
 class ResourceMarkImpl {
+  friend class ResourceArea;
   ResourceArea* _area;          // Resource area to stack allocate
   ResourceArea::SavedState _saved_state;
 
@@ -164,6 +165,9 @@ class ResourceMarkImpl {
   HandleList _handle_list;
 
   NONCOPYABLE(ResourceMarkImpl);
+
+  void link(Thread* thread);
+  void unlink(Thread* thread);
 
 public:
   ResourceMarkImpl(Thread* thread, ResourceArea* area);
@@ -183,6 +187,10 @@ public:
 
   const ResourceArea::SavedState* saved_state() const {
     return &_saved_state;
+  }
+
+  bool is_linked() const {
+    return _previous_resource_mark != NULL || _area->current_resource_mark() == this;
   }
 
   HandleList* handle_list() {

@@ -74,6 +74,7 @@ class Handle {
   void unlink();
 
   void verify_links() const NOT_DEBUG_RETURN;
+  void verify_linked_links() const NOT_DEBUG_RETURN;
 
  protected:
   oop     obj() const                            { verify_links(); return _obj; }
@@ -117,11 +118,6 @@ class HandleList {
 private:
   Handle _head;
 
-  bool is_empty() const;
-
-  void verify_linked(const Handle* handle) const NOT_DEBUG_RETURN;
-  void verify_head() const NOT_DEBUG_RETURN;
-
   void link(Handle* handle);
   void clear();
 
@@ -142,8 +138,14 @@ public:
   void oops_do(OopClosure* cl) const;
 
   bool is_in(const Handle* handle) const;
+  bool is_empty() const;
 
   static HandleList* handle_list_for(const Handle* handle);
+
+  void verify_linked(const Handle* handle) const NOT_DEBUG_RETURN;
+  void verify_linked_deep(const Handle* handle) const NOT_DEBUG_RETURN;
+   void verify_head() const NOT_DEBUG_RETURN;
+  void verify_head_deep() const NOT_DEBUG_RETURN;
 };
 
 // Specific Handles for different oop types
