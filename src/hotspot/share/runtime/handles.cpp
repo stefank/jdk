@@ -45,6 +45,14 @@ void Handle::verify_links() const {
   assert(_next->_prev == this, "invariant");
 
   assert(HandleList::handle_list_for(this)->is_in(this), "invariant");
+
+  for (Handle* current = _next; current != this; current = current->_next) {
+    assert(_obj != NULL, "Must not be null");
+  }
+
+  for (Handle* current = _prev; current != this; current = current->_prev) {
+    assert(_obj != NULL, "Must not be null");
+  }
 }
 #endif
 
