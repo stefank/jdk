@@ -236,7 +236,7 @@ class OrderedPair {
     }
   }
 
-  bool operator==(const OrderedPair &rhs) {
+  bool operator==(const OrderedPair &rhs) const {
     return _p1 == rhs._p1 && _p2 == rhs._p2;
   }
   void print() { tty->print("  (%d, %d)", _p1->_idx, _p2->_idx); }

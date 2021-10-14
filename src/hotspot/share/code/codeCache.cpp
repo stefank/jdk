@@ -140,9 +140,9 @@ class CodeBlob_sizes {
 };
 
 // Iterate over all CodeHeaps
-#define FOR_ALL_HEAPS(heap) for (GrowableArrayIterator<CodeHeap*> heap = _heaps->begin(); heap != _heaps->end(); ++heap)
-#define FOR_ALL_NMETHOD_HEAPS(heap) for (GrowableArrayIterator<CodeHeap*> heap = _nmethod_heaps->begin(); heap != _nmethod_heaps->end(); ++heap)
-#define FOR_ALL_ALLOCABLE_HEAPS(heap) for (GrowableArrayIterator<CodeHeap*> heap = _allocable_heaps->begin(); heap != _allocable_heaps->end(); ++heap)
+#define FOR_ALL_HEAPS(heap) CodeHeap** heap; for (auto it = begin(*_heaps); it != end(*_heaps) && (heap = &(*it)); ++it)
+#define FOR_ALL_NMETHOD_HEAPS(heap) CodeHeap** heap; for (auto it = begin(*_nmethod_heaps); it != end(*_nmethod_heaps) && (heap = &(*it)); ++it)
+#define FOR_ALL_ALLOCABLE_HEAPS(heap) CodeHeap** heap; for (auto it = begin(*_allocable_heaps); it != end(*_allocable_heaps) && (heap = &(*it)); ++it)
 
 // Iterate over all CodeBlobs (cb) on the given CodeHeap
 #define FOR_ALL_BLOBS(cb, heap) for (CodeBlob* cb = first_blob(heap); cb != NULL; cb = next_blob(heap, cb))
@@ -153,10 +153,10 @@ int CodeCache::_number_of_nmethods_with_dependencies = 0;
 ExceptionCache* volatile CodeCache::_exception_cache_purge_list = NULL;
 
 // Initialize arrays of CodeHeap subsets
-GrowableArray<CodeHeap*>* CodeCache::_heaps = new(ResourceObj::C_HEAP, mtCode) GrowableArray<CodeHeap*> (CodeBlobType::All, mtCode);
-GrowableArray<CodeHeap*>* CodeCache::_compiled_heaps = new(ResourceObj::C_HEAP, mtCode) GrowableArray<CodeHeap*> (CodeBlobType::All, mtCode);
-GrowableArray<CodeHeap*>* CodeCache::_nmethod_heaps = new(ResourceObj::C_HEAP, mtCode) GrowableArray<CodeHeap*> (CodeBlobType::All, mtCode);
-GrowableArray<CodeHeap*>* CodeCache::_allocable_heaps = new(ResourceObj::C_HEAP, mtCode) GrowableArray<CodeHeap*> (CodeBlobType::All, mtCode);
+GrowableArray<CodeHeap*>* CodeCache::_heaps = std::move(new(ResourceObj::C_HEAP, mtCode) GrowableArray<CodeHeap*> (CodeBlobType::All, mtCode));
+GrowableArray<CodeHeap*>* CodeCache::_compiled_heaps = std::move(new(ResourceObj::C_HEAP, mtCode) GrowableArray<CodeHeap*> (CodeBlobType::All, mtCode));
+GrowableArray<CodeHeap*>* CodeCache::_nmethod_heaps = std::move(new(ResourceObj::C_HEAP, mtCode) GrowableArray<CodeHeap*> (CodeBlobType::All, mtCode));
+GrowableArray<CodeHeap*>* CodeCache::_allocable_heaps = std::move(new(ResourceObj::C_HEAP, mtCode) GrowableArray<CodeHeap*> (CodeBlobType::All, mtCode));
 
 void CodeCache::check_heap_sizes(size_t non_nmethod_size, size_t profiled_size, size_t non_profiled_size, size_t cache_size, bool all_set) {
   size_t total_size = non_nmethod_size + profiled_size + non_profiled_size;

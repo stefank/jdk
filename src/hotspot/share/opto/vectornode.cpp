@@ -1237,7 +1237,7 @@ Node* VectorNode::degenerate_vector_rotate(Node* src, Node* cnt, bool is_rotate_
 
   // Swap the computed left and right shift counts.
   if (is_rotate_left) {
-    swap(shiftRCnt,shiftLCnt);
+    swap_(shiftRCnt,shiftLCnt);
   }
 
   if (!is_binary_vector_op) {

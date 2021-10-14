@@ -310,7 +310,7 @@ class nmethod : public CompiledMethod {
           ImplicitExceptionTable* nul_chk_table,
           AbstractCompiler* compiler,
           int comp_level,
-          const GrowableArrayView<RuntimeStub*>& native_invokers
+          const GrowableArray<RuntimeStub*>& native_invokers
 #if INCLUDE_JVMCI
           , char* speculations,
           int speculations_len,
@@ -359,7 +359,7 @@ class nmethod : public CompiledMethod {
                               ImplicitExceptionTable* nul_chk_table,
                               AbstractCompiler* compiler,
                               int comp_level,
-                              const GrowableArrayView<RuntimeStub*>& native_invokers = GrowableArrayView<RuntimeStub*>::EMPTY
+                              const GrowableArray<RuntimeStub*>& native_invokers = GrowableArray<RuntimeStub*>()
 #if INCLUDE_JVMCI
                               , char* speculations = NULL,
                               int speculations_len = 0,

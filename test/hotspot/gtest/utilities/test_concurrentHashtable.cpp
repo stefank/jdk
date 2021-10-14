@@ -49,7 +49,7 @@ struct Pointer : public AllStatic {
   }
 };
 
-struct Allocator {
+struct MyAllocator {
   struct TableElement{
     TableElement * volatile _next;
     uintptr_t _value;
@@ -59,7 +59,7 @@ struct Allocator {
   TableElement* elements;
   uint cur_index;
 
-  Allocator() : cur_index(0) {
+  MyAllocator() : cur_index(0) {
     elements = (TableElement*)::malloc(nelements * sizeof(TableElement));
   }
 
@@ -73,7 +73,7 @@ struct Allocator {
     cur_index = 0;
   }
 
-  ~Allocator() {
+  ~MyAllocator() {
     ::free(elements);
   }
 };
@@ -85,12 +85,12 @@ struct Config : public AllStatic {
     return (uintx)value;
   }
   static void* allocate_node(void* context, size_t size, const Value& value) {
-    Allocator* mm = (Allocator*)context;
+    MyAllocator* mm = (MyAllocator*)context;
     return mm->allocate_node();
   }
 
   static void free_node(void* context, void* memory, const Value& value) {
-    Allocator* mm = (Allocator*)context;
+    MyAllocator* mm = (MyAllocator*)context;
     mm->free_node(memory);
   }
 };
@@ -289,7 +289,7 @@ static void cht_reset_shrink(Thread* thr) {
   uintptr_t val3 = 3;
   SimpleTestLookup stl1(val1), stl2(val2), stl3(val3);
 
-  Allocator mem_allocator;
+  MyAllocator mem_allocator;
   const uint initial_log_table_size = 4;
   CustomTestTable* cht = new CustomTestTable(&mem_allocator);
 

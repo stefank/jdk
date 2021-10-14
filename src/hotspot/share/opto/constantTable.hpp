@@ -66,7 +66,7 @@ public:
       _v._metadata = metadata;
     }
 
-    bool operator==(const Constant& other);
+    bool operator==(const Constant& other) const;
 
     BasicType type()      const    { return _type; }
 

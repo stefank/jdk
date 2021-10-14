@@ -1095,7 +1095,7 @@ inline int build_int_from_shorts( jushort low, jushort high ) {
 }
 
 // swap a & b
-template<class T> static void swap(T& a, T& b) {
+template<class T> static void swap_(T& a, T& b) {
   T tmp = a;
   a = b;
   b = tmp;

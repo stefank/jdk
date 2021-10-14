@@ -99,7 +99,7 @@ public:
       return _hash;
     }
 
-    bool operator==(const CompactHashtableWriter::Entry& other) {
+    bool operator==(const CompactHashtableWriter::Entry& other) const {
       return (_value == other._value && _hash == other._hash);
     }
   }; // class CompactHashtableWriter::Entry

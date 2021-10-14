@@ -116,7 +116,7 @@ protected:
 
     // Iterate
     int counter = 0;
-    for (GrowableArrayIterator<int> i = a->begin(); i != a->end(); ++i) {
+    for (auto i = a->begin(); i != a->end(); ++i) {
       ASSERT_EQ(*i, counter++);
     }
 

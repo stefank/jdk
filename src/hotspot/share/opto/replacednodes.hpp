@@ -53,7 +53,7 @@ class ReplacedNodes {
     Node* initial() const  { return _initial; }
     Node* improved() const { return _improved; }
 
-    bool operator==(const ReplacedNode& other) {
+    bool operator==(const ReplacedNode& other) const {
       return _initial == other._initial && _improved == other._improved;
     }
   };

@@ -487,7 +487,7 @@
                                                                                                                                      \
   nonstatic_field(GrowableArrayBase,           _len,                                          int)                                   \
   nonstatic_field(GrowableArrayBase,           _max,                                          int)                                   \
-  nonstatic_field(GrowableArray<int>,          _data,                                         int*)                                  \
+  /*nonstatic_field(GrowableArray<int>,          _data,                                         int*)     */                         \
                                                                                                                                      \
   /********************************/                                                                                                 \
   /* CodeCache (NOTE: incomplete) */                                                                                                 \

@@ -386,7 +386,7 @@ private:
     int         _size;
 
     // Used by GrowableArray::find()
-    bool operator == (const XMMRegisterData& other) {
+    bool operator == (const XMMRegisterData& other) const {
       return _reg == other._reg;
     }
   };

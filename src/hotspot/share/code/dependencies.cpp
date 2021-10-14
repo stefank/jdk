@@ -674,7 +674,7 @@ void Dependencies::write_dependency_to(CompileLog* log,
   ResourceMark rm;
   ciEnv* env = ciEnv::current();
   GrowableArray<ciBaseObject*>* ciargs = new GrowableArray<ciBaseObject*>(args->length());
-  for (GrowableArrayIterator<DepArgument> it = args->begin(); it != args->end(); ++it) {
+  for (auto it = args->begin(); it != args->end(); ++it) {
     DepArgument arg = *it;
     if (arg.is_oop()) {
       ciargs->push(env->get_object(arg.oop_value()));
@@ -696,7 +696,7 @@ void Dependencies::write_dependency_to(CompileLog* log,
   }
   ResourceMark rm;
   GrowableArray<int>* argids = new GrowableArray<int>(args->length());
-  for (GrowableArrayIterator<ciBaseObject*> it = args->begin(); it != args->end(); ++it) {
+  for (auto it = args->begin(); it != args->end(); ++it) {
     ciBaseObject* obj = *it;
     if (obj->is_object()) {
       argids->push(log->identify(obj->as_object()));

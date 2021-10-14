@@ -276,7 +276,7 @@ int ArchiveBuilder::compare_symbols_by_address(Symbol** a, Symbol** b) {
   if (a[0] < b[0]) {
     return -1;
   } else {
-    assert(a[0] > b[0], "Duplicated symbol %s unexpected", (*a)->as_C_string());
+    assert(a[0] > b[0] || a == b, "Duplicated symbol %s unexpected", (*a)->as_C_string());
     return 1;
   }
 }

@@ -415,7 +415,9 @@ class ResourceObj ALLOCATION_SUPER_CLASS_SPEC {
 protected:
   ResourceObj(); // default constructor
   ResourceObj(const ResourceObj& r); // default copy constructor
+  ResourceObj(ResourceObj&& r) = delete;
   ResourceObj& operator=(const ResourceObj& r); // default copy assignment
+  ResourceObj& operator=(ResourceObj&& r) = delete;
   ~ResourceObj();
 #endif // ASSERT
 

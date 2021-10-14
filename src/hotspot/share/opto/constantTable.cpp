@@ -32,7 +32,7 @@
 
 //=============================================================================
 // Two Constant's are equal when the type and the value are equal.
-bool ConstantTable::Constant::operator==(const Constant& other) {
+bool ConstantTable::Constant::operator==(const Constant& other) const {
   if (type()          != other.type()         )  return false;
   if (can_be_reused() != other.can_be_reused())  return false;
   // For floating point values we compare the bit pattern.

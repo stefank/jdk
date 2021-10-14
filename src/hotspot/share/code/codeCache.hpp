@@ -308,8 +308,8 @@ template <class T, class Filter> class CodeBlobIterator : public StackObj {
 
  private:
   CodeBlob* _code_blob;   // Current CodeBlob
-  GrowableArrayIterator<CodeHeap*> _heap;
-  GrowableArrayIterator<CodeHeap*> _end;
+  GrowableArray<CodeHeap*>::const_iterator _heap;
+  GrowableArray<CodeHeap*>::const_iterator _end;
   bool _only_alive;
   bool _only_not_unloading;
 
