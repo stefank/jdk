@@ -78,21 +78,15 @@
   GTEST_TEST_(test_fixture, name ## _vm, test_fixture,              \
               ::testing::internal::GetTypeId<test_fixture>())
 
+extern void gtest_destroy_other_vm_jvm();
+
 #define TEST_OTHER_VM(category, name)                               \
   static void test_  ## category ## _ ## name ## _();               \
                                                                     \
   static void child_ ## category ## _ ## name ## _() {              \
     ::testing::GTEST_FLAG(throw_on_failure) = true;                 \
     test_ ## category ## _ ## name ## _();                          \
-    JavaVM* jvm[1];                                                 \
-    jsize nVMs = 0;                                                 \
-    JNI_GetCreatedJavaVMs(&jvm[0], 1, &nVMs);                       \
-    if (nVMs == 1) {                                                \
-      int ret = jvm[0]->DestroyJavaVM();                            \
-      if (ret != 0) {                                               \
-        fprintf(stderr, "Warning: DestroyJavaVM error %d\n", ret);  \
-      }                                                             \
-    }                                                               \
+    gtest_destroy_other_vm_jvm();                                   \
     fprintf(stderr, "OKIDOKI");                                     \
     exit(0);                                                        \
   }                                                                 \

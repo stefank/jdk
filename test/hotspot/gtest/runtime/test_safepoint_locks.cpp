@@ -51,7 +51,6 @@ TEST_VM_ASSERT_MSG(SafepointLockAssertTest, nosafepoint_locks,
 TEST_VM_ASSERT_MSG(SafepointLockAssertTest, possible_safepoint_lock,
     ".* Possible safepoint reached by thread that does not allow it") {
   JavaThread* thread = JavaThread::current();
-  ThreadInVMfromNative in_native(thread);
   MutexLocker ml(new Mutex(Mutex::nosafepoint, "SpecialTest_lock", Mutex::_safepoint_check_never),
                    Mutex::_no_safepoint_check_flag);
   thread->print_thread_state_on(tty);

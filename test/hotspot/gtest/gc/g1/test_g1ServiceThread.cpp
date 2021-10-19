@@ -50,7 +50,6 @@ public:
 };
 
 static void stop_service_thread(G1ServiceThread* thread) {
-  ThreadInVMfromNative tvn(JavaThread::current());
   thread->stop();
 }
 

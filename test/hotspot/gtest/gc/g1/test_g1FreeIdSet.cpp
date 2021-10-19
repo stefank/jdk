@@ -142,13 +142,10 @@ TEST_VM(G1FreeIdSetTest, stress) {
 
   JavaThread* this_thread = JavaThread::current();
   tty->print_cr("Stressing G1FreeIdSet for %u ms", milliseconds_to_run);
-  {
-    ThreadInVMfromNative invm(this_thread);
-    this_thread->sleep(milliseconds_to_run);
-  }
+  this_thread->sleep(milliseconds_to_run);
+
   Atomic::release_store(&continue_running, false);
   for (uint i = 0; i < nthreads; ++i) {
-    ThreadInVMfromNative invm(this_thread);
     post.wait_with_safepoint_check(this_thread);
   }
   tty->print_cr("total allocations: " SIZE_FORMAT, total_allocations);

@@ -222,18 +222,14 @@ static void run_test(BufferNode::Allocator* allocator, CompletedList* cbl) {
 
   JavaThread* this_thread = JavaThread::current();
   tty->print_cr("Stressing allocator for %u ms", milliseconds_to_run);
-  {
-    ThreadInVMfromNative invm(this_thread);
-    this_thread->sleep(milliseconds_to_run);
-  }
+  this_thread->sleep(milliseconds_to_run);
+
   Atomic::release_store(&allocator_running, false);
   for (uint i = 0; i < nthreads; ++i) {
-    ThreadInVMfromNative invm(this_thread);
     post.wait_with_safepoint_check(this_thread);
   }
   Atomic::release_store(&processor_running, false);
   for (uint i = 0; i < nthreads; ++i) {
-    ThreadInVMfromNative invm(this_thread);
     post.wait_with_safepoint_check(this_thread);
   }
   ASSERT_TRUE(BufferNode::TestSupport::try_transfer_pending(allocator));

@@ -173,13 +173,13 @@ public:
 // Test overflow handling in Threads::change_thread_claim_token().
 TEST_VM(ThreadsTest, claim_overflow) {
   Threads::Test::VM_TestClaimOverflow op;
-  ThreadInVMfromNative invm(JavaThread::current());
   VMThread::execute(&op);
 }
 
 TEST_VM(ThreadsTest, fast_jni_in_vm) {
   JavaThread* current = JavaThread::current();
   JNIEnv* env = current->jni_environment();
+  ThreadToNativeFromVM ttnfvm(JavaThread::current());
   MACOS_AARCH64_ONLY(ThreadWXEnable wx(WXWrite, current));
 
   // DirectByteBuffer is an easy way to trigger GetIntField,

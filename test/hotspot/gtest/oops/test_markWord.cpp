@@ -76,7 +76,6 @@ class LockerThread : public JavaTestThread {
 
 TEST_VM(markWord, printing) {
   JavaThread* THREAD = JavaThread::current();
-  ThreadInVMfromNative invm(THREAD);
   ResourceMark rm(THREAD);
 
   oop obj = vmClasses::Byte_klass()->allocate_instance(THREAD);

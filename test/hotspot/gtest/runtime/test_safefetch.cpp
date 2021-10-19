@@ -67,6 +67,5 @@ public:
 
 TEST_VM(os, safefetch_negative_at_safepoint) {
   VM_TestSafeFetchAtSafePoint op;
-  ThreadInVMfromNative invm(JavaThread::current());
   VMThread::execute(&op);
 }

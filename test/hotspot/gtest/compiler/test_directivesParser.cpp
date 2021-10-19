@@ -44,16 +44,12 @@ class DirectivesParserTest : public ::testing::Test{
   }
 
   void test_negative(const char* text) {
-    JavaThread* THREAD = JavaThread::current();
-    ThreadInVMfromNative ThreadInVMfromNative(THREAD);
     DirectivesParser cd(text, &stream, false);
     cd.clean_tmp();
     EXPECT_FALSE(cd.valid()) << "text: " << std::endl << text << std::endl << stream.as_string();
   }
 
   void test_positive(const char* text) {
-    JavaThread* THREAD = JavaThread::current();
-    ThreadInVMfromNative ThreadInVMfromNative(THREAD);
     DirectivesParser cd(text, &stream, false);
     cd.clean_tmp();
     EXPECT_TRUE(cd.valid()) << "text: " << std::endl << text << std::endl << stream.as_string();

@@ -30,9 +30,6 @@
 TEST_VM(SymbolTable, temp_new_symbol) {
   // Assert messages assume these symbols are unique, and the refcounts start at
   // one, but code does not rely on this.
-  JavaThread* THREAD = JavaThread::current();
-  // the thread should be in vm to use locks
-  ThreadInVMfromNative ThreadInVMfromNative(THREAD);
 
   Symbol* abc = SymbolTable::new_symbol("abc");
   int abccount = abc->refcount();

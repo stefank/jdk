@@ -43,7 +43,6 @@ TEST_VM_F(GCTraceTimeTest, full) {
   EXPECT_TRUE(gc_start_debug.is_enabled());
 
   {
-    ThreadInVMfromNative tvn(JavaThread::current());
     MutexLocker lock(Heap_lock); // Needed to read heap usage
     GCTraceTime(Debug, gc) timer("Test GC", NULL, GCCause::_allocation_failure, true);
   }
@@ -66,7 +65,6 @@ TEST_VM_F(GCTraceTimeTest, full_multitag) {
   EXPECT_TRUE(gc_start_debug.is_enabled());
 
   {
-    ThreadInVMfromNative tvn(JavaThread::current());
     MutexLocker lock(Heap_lock); // Needed to read heap usage
     GCTraceTime(Debug, gc, ref) timer("Test GC", NULL, GCCause::_allocation_failure, true);
   }
@@ -118,7 +116,6 @@ TEST_VM_F(GCTraceTimeTest, no_cause) {
   EXPECT_TRUE(gc_start_debug.is_enabled());
 
   {
-    ThreadInVMfromNative tvn(JavaThread::current());
     MutexLocker lock(Heap_lock); // Needed to read heap usage
     GCTraceTime(Debug, gc) timer("Test GC", NULL, GCCause::_no_gc, true);
   }

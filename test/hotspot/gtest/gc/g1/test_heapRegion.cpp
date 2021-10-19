@@ -131,6 +131,5 @@ TEST_VM(HeapRegion, apply_to_marked_object) {
   // modifies a region behind the back of a possibly using allocation
   // or running GC.
   VM_HeapRegionApplyToMarkedObjectsTest op;
-  ThreadInVMfromNative invm(JavaThread::current());
   VMThread::execute(&op);
 }

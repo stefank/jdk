@@ -156,7 +156,6 @@ public:
 Tickspan OopStorageParIterPerf::run_task(Task* task, uint nthreads) {
   tty->print_cr("Running test with %u threads", nthreads);
   VM_ParStateTime op(workers(), task, nthreads);
-  ThreadInVMfromNative invm(JavaThread::current());
   Ticks start_time = Ticks::now();
   VMThread::execute(&op);
   return Ticks::now() - start_time;

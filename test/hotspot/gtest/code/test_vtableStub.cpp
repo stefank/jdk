@@ -30,9 +30,6 @@
 #ifndef ZERO
 
 TEST_VM(code, vtableStubs) {
-  // Should be in VM to use locks
-  ThreadInVMfromNative ThreadInVMfromNative(JavaThread::current());
-
   VtableStubs::find_vtable_stub(0); // min vtable index
   for (int i = 0; i < 15; i++) {
     VtableStubs::find_vtable_stub((1 << i) - 1);
@@ -42,9 +39,6 @@ TEST_VM(code, vtableStubs) {
 }
 
 TEST_VM(code, itableStubs) {
-  // Should be in VM to use locks
-  ThreadInVMfromNative ThreadInVMfromNative(JavaThread::current());
-
   VtableStubs::find_itable_stub(0); // min itable index
   for (int i = 0; i < 15; i++) {
     VtableStubs::find_itable_stub((1 << i) - 1);

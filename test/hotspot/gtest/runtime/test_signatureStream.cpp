@@ -32,8 +32,6 @@
 TEST_VM(SignatureStream, check_refcount) {
 
   JavaThread* THREAD = JavaThread::current();
-  // the thread should be in vm to use locks
-  ThreadInVMfromNative ThreadInVMfromNative(THREAD);
   // SignatureStream::as_symbol will allocate on the resource area
   ResourceMark rm(THREAD);
 

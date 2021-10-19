@@ -38,6 +38,7 @@
 #include "jni.h"
 #include "unittest.hpp"
 
+#include "runtime/interfaceSupport.inline.hpp"
 #include "runtime/thread.inline.hpp"
 
 // Default value for -new-thread option: true on AIX because we run into
@@ -128,12 +129,29 @@ class JVMInitializerListener : public ::testing::EmptyTestEventListener {
     }
   }
 
-  void destroy_jvm() {
+  virtual void OnTestProgramEnd(const ::testing::UnitTest& unit_test) {
     if (_jvm != NULL) {
       int ret = _jvm->DestroyJavaVM();
       if (ret != 0) {
         fprintf(stderr, "Warning: DestroyJavaVM error %d\n", ret);
       }
+    }
+  }
+};
+
+class TestVMTestListener : public ::testing::EmptyTestEventListener {
+ public:
+  virtual void OnTestStart(const ::testing::TestInfo& test_info) {
+    const char* name = test_info.name();
+    if (is_same_vm_test(name)) {
+      ThreadStateTransition::transition_from_native(JavaThread::current(), _thread_in_vm);
+    }
+  }
+
+  virtual void OnTestEnd(const ::testing::TestInfo& test_info) {
+    const char* name = test_info.name();
+    if (is_same_vm_test(name)) {
+      ThreadStateTransition::transition_from_vm(JavaThread::current(), _thread_in_native  );
     }
   }
 };
@@ -211,6 +229,32 @@ static char** remove_test_runner_arguments(int* argcp, char **argv) {
   return new_argv;
 }
 
+static void create_other_vm_jvm(int argc, char **argv, bool disable_error_handling) {
+  JavaVM* jvm = NULL;
+  // both vmassert and other vm tests require inited jvm
+  // but only vmassert tests disable hs_err and core file generation
+  int ret;
+  if ((ret = init_jvm(argc, argv, disable_error_handling, &jvm)) != 0) {
+    fprintf(stderr, "ERROR: JNI_CreateJavaVM failed: %d\n", ret);
+    abort();
+  }
+  ThreadStateTransition::transition_from_native(JavaThread::current(), _thread_in_vm);
+}
+
+// Called by TEST_OTHER_VM macro
+void gtest_destroy_other_vm_jvm() {
+  JavaVM* jvm[1];
+  jsize nVMs = 0;
+  JNI_GetCreatedJavaVMs(&jvm[0], 1, &nVMs);
+  if (nVMs == 1) {
+    ThreadStateTransition::transition_from_vm(JavaThread::current(), _thread_in_native);
+    int ret = jvm[0]->DestroyJavaVM();
+    if (ret != 0) {
+      fprintf(stderr, "Warning: DestroyJavaVM error %d\n", ret);
+    }
+  }
+}
+
 // This is generally run once for a set of tests. But if that set includes a vm_assert or
 // other_vm test, then a new process is forked, and runUnitTestsInner is called, passing
 // just that test as the one to be executed.
@@ -272,18 +316,11 @@ static void runUnitTestsInner(int argc, char** argv) {
   JVMInitializerListener* jvm_listener = NULL;
 
   if (is_vmassert_test || is_othervm_test) {
-    JavaVM* jvm = NULL;
-    // both vmassert and other vm tests require inited jvm
-    // but only vmassert tests disable hs_err and core file generation
-    int ret;
-    if ((ret = init_jvm(argc, argv, is_vmassert_test, &jvm)) != 0) {
-      fprintf(stderr, "ERROR: JNI_CreateJavaVM failed: %d\n", ret);
-      abort();
-    }
+    create_other_vm_jvm(argc, argv, is_vmassert_test);
   } else {
     ::testing::TestEventListeners& listeners = ::testing::UnitTest::GetInstance()->listeners();
-    jvm_listener = new JVMInitializerListener(argc, argv);
-    listeners.Append(jvm_listener);
+    listeners.Append(new JVMInitializerListener(argc, argv));
+    listeners.Append(new TestVMTestListener());
   }
 
   int result = RUN_ALL_TESTS();
@@ -295,10 +332,6 @@ static void runUnitTestsInner(int argc, char** argv) {
   if (result != 0) {
     fprintf(stderr, "ERROR: RUN_ALL_TESTS() failed. Error %d\n", result);
     exit(2);
-  }
-
-  if (jvm_listener != NULL) {
-    jvm_listener->destroy_jvm();
   }
 }
 

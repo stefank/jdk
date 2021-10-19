@@ -133,11 +133,8 @@ TEST_VM(TestSingleWriterSynchronizer, stress) {
   writer->doit();
 
   tty->print_cr("Stressing synchronizer for %u ms", milliseconds_to_run);
-  JavaThread* cur = JavaThread::current();
-  {
-    ThreadInVMfromNative invm(cur);
-    cur->sleep(milliseconds_to_run);
-  }
+  JavaThread::current()->sleep(milliseconds_to_run);
+
   continue_running = 0;
   for (uint i = 0; i < nreaders + 1; ++i) {
     post.wait();
