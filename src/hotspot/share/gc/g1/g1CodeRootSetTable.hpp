@@ -58,7 +58,7 @@ class G1CodeRootSetTable : public Hashtable<nmethod*, mtGC> {
   int entry_size() const { return BasicHashtable<mtGC>::entry_size(); }
 
   void copy_to(G1CodeRootSetTable* new_table);
-  void nmethods_do(CodeBlobClosure* blk);
+  void nmethods_do(NMethodClosure* blk);
 
   template<typename CB>
   int remove_if(CB& should_remove);

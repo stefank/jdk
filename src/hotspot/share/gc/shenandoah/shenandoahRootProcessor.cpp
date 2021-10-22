@@ -62,7 +62,7 @@ ShenandoahThreadRoots::ShenandoahThreadRoots(ShenandoahPhaseTimings::Phase phase
   Threads::change_thread_claim_token();
 }
 
-void ShenandoahThreadRoots::oops_do(OopClosure* oops_cl, CodeBlobClosure* code_cl, uint worker_id) {
+void ShenandoahThreadRoots::oops_do(OopClosure* oops_cl, NMethodClosure* code_cl, uint worker_id) {
   ShenandoahWorkerTimingsTracker timer(_phase, ShenandoahPhaseTimings::ThreadRoots, worker_id);
   ResourceMark rm;
   Threads::possibly_parallel_oops_do(_is_par, oops_cl, code_cl);
@@ -82,7 +82,7 @@ ShenandoahCodeCacheRoots::ShenandoahCodeCacheRoots(ShenandoahPhaseTimings::Phase
   nmethod::oops_do_marking_prologue();
 }
 
-void ShenandoahCodeCacheRoots::code_blobs_do(CodeBlobClosure* blob_cl, uint worker_id) {
+void ShenandoahCodeCacheRoots::code_blobs_do(NMethodClosure* blob_cl, uint worker_id) {
   ShenandoahWorkerTimingsTracker timer(_phase, ShenandoahPhaseTimings::CodeCacheRoots, worker_id);
   _coderoots_iterator.possibly_parallel_blobs_do(blob_cl);
 }
@@ -108,11 +108,11 @@ ShenandoahRootScanner::~ShenandoahRootScanner() {
 }
 
 void ShenandoahRootScanner::roots_do(uint worker_id, OopClosure* oops) {
-  MarkingCodeBlobClosure blobs_cl(oops, !CodeBlobToOopClosure::FixRelocations);
+  ClaimingNMethodToOopClosure blobs_cl(oops);
   roots_do(worker_id, oops, &blobs_cl);
 }
 
-void ShenandoahRootScanner::roots_do(uint worker_id, OopClosure* oops, CodeBlobClosure* code, ThreadClosure *tc) {
+void ShenandoahRootScanner::roots_do(uint worker_id, OopClosure* oops, NMethodClosure* code, ThreadClosure *tc) {
   assert(ShenandoahSafepoint::is_at_shenandoah_safepoint(), "Must be at a safepoint");
 
   ShenandoahParallelOopsDoThreadClosure tc_cl(oops, code, tc);
@@ -186,7 +186,7 @@ void ShenandoahConcurrentRootScanner::roots_do(OopClosure* oops, uint worker_id)
 
     {
       ShenandoahWorkerTimingsTracker timer(_phase, ShenandoahPhaseTimings::CodeCacheRoots, worker_id);
-      CodeBlobToOopClosure blobs(oops, !CodeBlobToOopClosure::FixRelocations);
+      NMethodToOopClosure blobs(oops);
       _codecache_snapshot->parallel_blobs_do(&blobs);
     }
   }
@@ -230,11 +230,11 @@ ShenandoahRootAdjuster::ShenandoahRootAdjuster(uint n_workers, ShenandoahPhaseTi
 }
 
 void ShenandoahRootAdjuster::roots_do(uint worker_id, OopClosure* oops) {
-  CodeBlobToOopClosure code_blob_cl(oops, CodeBlobToOopClosure::FixRelocations);
+  UpdatingNMethodToOopClosure code_blob_cl(oops);
   ShenandoahCodeBlobAndDisarmClosure blobs_and_disarm_Cl(oops);
-  CodeBlobToOopClosure* adjust_code_closure = (ClassUnloading && ShenandoahNMethodBarrier) ?
-                                              static_cast<CodeBlobToOopClosure*>(&blobs_and_disarm_Cl) :
-                                              static_cast<CodeBlobToOopClosure*>(&code_blob_cl);
+  NMethodClosure* adjust_code_closure = (ClassUnloading && ShenandoahNMethodBarrier) ?
+                                         static_cast<NMethodClosure*>(&blobs_and_disarm_Cl) :
+                                         static_cast<NMethodClosure*>(&code_blob_cl);
   CLDToOopClosure adjust_cld_closure(oops, ClassLoaderData::_claim_strong);
   AlwaysTrueClosure always_true;
 
@@ -261,7 +261,7 @@ ShenandoahHeapIterationRootScanner::ShenandoahHeapIterationRootScanner() :
    assert(Thread::current()->is_VM_thread(), "Only by VM thread");
    // Must use _claim_none to avoid interfering with concurrent CLDG iteration
    CLDToOopClosure clds(oops, ClassLoaderData::_claim_none);
-   MarkingCodeBlobClosure code(oops, !CodeBlobToOopClosure::FixRelocations);
+   ClaimingNMethodToOopClosure code(oops);
    ShenandoahParallelOopsDoThreadClosure tc_cl(oops, &code, NULL);
    AlwaysTrueClosure always_true;
 

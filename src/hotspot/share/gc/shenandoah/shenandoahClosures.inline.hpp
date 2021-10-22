@@ -221,17 +221,14 @@ void ShenandoahCleanUpdateWeakOopsClosure<CONCURRENT, IsAlive, KeepAlive>::do_oo
 }
 
 ShenandoahCodeBlobAndDisarmClosure::ShenandoahCodeBlobAndDisarmClosure(OopClosure* cl) :
-  CodeBlobToOopClosure(cl, true /* fix_relocations */),
+  UpdatingNMethodToOopClosure(cl),
    _bs(BarrierSet::barrier_set()->barrier_set_nmethod()) {
 }
 
-void ShenandoahCodeBlobAndDisarmClosure::do_code_blob(CodeBlob* cb) {
-  nmethod* const nm = cb->as_nmethod_or_null();
-  if (nm != NULL && nm->oops_do_try_claim()) {
-    assert(!ShenandoahNMethod::gc_data(nm)->is_unregistered(), "Should not be here");
-    CodeBlobToOopClosure::do_code_blob(cb);
-    _bs->disarm(nm);
-  }
+void ShenandoahCodeBlobAndDisarmClosure::do_nmethod(nmethod* nm) {
+  assert(!ShenandoahNMethod::gc_data(nm)->is_unregistered(), "Should not be here");
+  UpdatingNMethodToOopClosure::do_nmethod(nm);
+  _bs->disarm(nm);
 }
 
 #ifdef ASSERT

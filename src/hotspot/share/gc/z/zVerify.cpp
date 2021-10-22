@@ -186,16 +186,6 @@ public:
   }
 };
 
-class ZVerifyCodeBlobClosure : public CodeBlobToOopClosure {
-public:
-  ZVerifyCodeBlobClosure(ZVerifyRootClosure* cl) :
-      CodeBlobToOopClosure(cl, false /* fix_relocations */) {}
-
-  virtual void do_code_blob(CodeBlob* cb) {
-    CodeBlobToOopClosure::do_code_blob(cb);
-  }
-};
-
 class ZVerifyStack : public OopClosure {
 private:
   ZVerifyRootClosure* const _cl;
@@ -256,12 +246,12 @@ public:
   }
 
   void verify_frames() {
-    ZVerifyCodeBlobClosure cb_cl(_cl);
+    NMethodToOopClosure nm_cl(_cl);
     for (StackFrameStream frames(_jt, true /* update */, false /* process_frames */);
          !frames.is_done();
          frames.next()) {
       frame& frame = *frames.current();
-      frame.oops_do(this, &cb_cl, frames.register_map(), DerivedPointerIterationMode::_ignore);
+      frame.oops_do(this, &nm_cl, frames.register_map(), DerivedPointerIterationMode::_ignore);
       prepare_next_frame(frame);
     }
   }

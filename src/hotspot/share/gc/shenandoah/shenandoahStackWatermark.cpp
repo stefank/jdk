@@ -38,12 +38,9 @@ uint32_t ShenandoahStackWatermark::_epoch_id = 1;
 ShenandoahOnStackCodeBlobClosure::ShenandoahOnStackCodeBlobClosure() :
     _bs_nm(BarrierSet::barrier_set()->barrier_set_nmethod()) {}
 
-void ShenandoahOnStackCodeBlobClosure::do_code_blob(CodeBlob* cb) {
-  nmethod* const nm = cb->as_nmethod_or_null();
-  if (nm != NULL) {
-    const bool result = _bs_nm->nmethod_entry_barrier(nm);
-    assert(result, "NMethod on-stack must be alive");
-  }
+void ShenandoahOnStackCodeBlobClosure::do_nmethod(nmethod* nm) {
+  const bool result = _bs_nm->nmethod_entry_barrier(nm);
+  assert(result, "NMethod on-stack must be alive");
 }
 
 ThreadLocalAllocStats& ShenandoahStackWatermark::stats() {

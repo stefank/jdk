@@ -30,7 +30,7 @@ class WhiteBox;
 #include "code/codeCache.hpp"
 #include "utilities/ticks.hpp"
 
-class CodeBlobClosure;
+class NMethodClosure;
 
 // An NmethodSweeper is an incremental cleaner for:
 //    - cleanup inline caches
@@ -68,7 +68,7 @@ class NMethodSweeper : public AllStatic {
   };
   static long      _traversals;                   // Stack scan count, also sweep ID.
   static long      _total_nof_code_cache_sweeps;  // Total number of full sweeps of the code cache
-  static CompiledMethodIterator _current;         // Current compiled method
+  static NMethodIterator _current;                // Current compiled method
   static int       _seen;                         // Nof. nmethod we have currently processed in current pass of CodeCache
   static size_t    _sweep_threshold_bytes;        // The threshold for when to invoke sweeps
 
@@ -111,7 +111,7 @@ class NMethodSweeper : public AllStatic {
   static void record_sweep(CompiledMethod* nm, int line);
 #endif
 
-  static CodeBlobClosure* prepare_mark_active_nmethods();
+  static NMethodClosure* prepare_mark_active_nmethods();
   static void sweeper_loop();
   static bool should_start_aggressive_sweep(int code_blob_type);
   static void force_sweep();

@@ -31,7 +31,7 @@
 class G1ConcurrentMark;
 class nmethod;
 
-class G1CodeBlobClosure : public CodeBlobClosure {
+class G1CodeBlobClosure : public NMethodClosure {
   // Gather nmethod remembered set entries.
   class HeapRegionGatheringOopClosure : public OopClosure {
     G1CollectedHeap* _g1h;
@@ -78,7 +78,7 @@ public:
   void do_evacuation_and_fixup(nmethod* nm);
   void do_marking(nmethod* nm);
 
-  void do_code_blob(CodeBlob* cb);
+  void do_nmethod(nmethod* nm);
 };
 
 #endif // SHARE_GC_G1_G1CODEBLOBCLOSURE_HPP

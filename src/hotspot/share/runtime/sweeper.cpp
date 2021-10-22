@@ -106,7 +106,7 @@ void NMethodSweeper::init_sweeper_log() {
 #define SWEEP(nm)
 #endif
 
-CompiledMethodIterator NMethodSweeper::_current(CompiledMethodIterator::all_blobs); // Current compiled method
+NMethodIterator NMethodSweeper::_current(NMethodIterator::all_blobs); // Current compiled method
 long     NMethodSweeper::_traversals                   = 0;    // Stack scan count, also sweep ID.
 long     NMethodSweeper::_total_nof_code_cache_sweeps  = 0;    // Total number of full sweeps of the code cache
 int      NMethodSweeper::_seen                         = 0;    // Nof. nmethod we have currently processed in current pass of CodeCache
@@ -127,11 +127,9 @@ Tickspan NMethodSweeper::_total_time_this_sweep;               // Total time thi
 Tickspan NMethodSweeper::_peak_sweep_time;                     // Peak time for a full sweep
 Tickspan NMethodSweeper::_peak_sweep_fraction_time;            // Peak time sweeping one fraction
 
-class MarkActivationClosure: public CodeBlobClosure {
+class MarkActivationClosure: public NMethodClosure {
 public:
-  virtual void do_code_blob(CodeBlob* cb) {
-    assert(cb->is_nmethod(), "CodeBlob should be nmethod");
-    nmethod* nm = (nmethod*)cb;
+  virtual void do_nmethod(nmethod* nm) {
     nm->set_hotness_counter(NMethodSweeper::hotness_counter_reset_val());
     // If we see an activation belonging to a non_entrant nmethod, we mark it.
     if (nm->is_not_entrant()) {
@@ -153,9 +151,9 @@ bool NMethodSweeper::wait_for_stack_scanning() {
 
 class NMethodMarkingClosure : public HandshakeClosure {
 private:
-  CodeBlobClosure* _cl;
+  NMethodClosure* _cl;
 public:
-  NMethodMarkingClosure(CodeBlobClosure* cl) : HandshakeClosure("NMethodMarking"), _cl(cl) {}
+  NMethodMarkingClosure(NMethodClosure* cl) : HandshakeClosure("NMethodMarking"), _cl(cl) {}
   void do_thread(Thread* thread) {
     if (thread->is_Java_thread() && ! thread->is_Code_cache_sweeper_thread()) {
       JavaThread::cast(thread)->nmethods_do(_cl);
@@ -163,7 +161,7 @@ public:
   }
 };
 
-CodeBlobClosure* NMethodSweeper::prepare_mark_active_nmethods() {
+NMethodClosure* NMethodSweeper::prepare_mark_active_nmethods() {
 #ifdef ASSERT
   assert(Thread::current()->is_Code_cache_sweeper_thread(), "must be executed under CodeCache_lock and in sweeper thread");
   assert_lock_strong(CodeCache_lock);
@@ -180,7 +178,7 @@ CodeBlobClosure* NMethodSweeper::prepare_mark_active_nmethods() {
   assert(wait_for_stack_scanning(), "should only happen between sweeper cycles");
 
   _seen = 0;
-  _current = CompiledMethodIterator(CompiledMethodIterator::all_blobs);
+  _current = NMethodIterator(NMethodIterator::all_blobs);
   // Initialize to first nmethod
   _current.next();
   _traversals += 1;
@@ -199,7 +197,7 @@ CodeBlobClosure* NMethodSweeper::prepare_mark_active_nmethods() {
 void NMethodSweeper::do_stack_scanning() {
   assert(!CodeCache_lock->owned_by_self(), "just checking");
   if (wait_for_stack_scanning()) {
-    CodeBlobClosure* code_cl;
+    NMethodClosure* code_cl;
     {
       MutexLocker ccl(CodeCache_lock, Mutex::_no_safepoint_check_flag);
       code_cl = prepare_mark_active_nmethods();

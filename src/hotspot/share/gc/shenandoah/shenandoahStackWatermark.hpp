@@ -38,11 +38,11 @@
 class frame;
 class JavaThread;
 
-class ShenandoahOnStackCodeBlobClosure : public CodeBlobClosure {
+class ShenandoahOnStackCodeBlobClosure : public NMethodClosure {
 private:
   BarrierSetNMethod* _bs_nm;
 
-  void do_code_blob(CodeBlob* cb);
+  void do_nmethod(nmethod* cb);
 public:
   ShenandoahOnStackCodeBlobClosure();
 };

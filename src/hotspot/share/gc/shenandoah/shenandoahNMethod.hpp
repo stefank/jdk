@@ -126,7 +126,7 @@ public:
   ShenandoahNMethodTableSnapshot(ShenandoahNMethodTable* table);
   ~ShenandoahNMethodTableSnapshot();
 
-  void parallel_blobs_do(CodeBlobClosure *f);
+  void parallel_blobs_do(NMethodClosure *f);
   void concurrent_nmethods_do(NMethodClosure* cl);
 };
 

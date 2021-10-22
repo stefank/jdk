@@ -44,30 +44,23 @@ void VoidClosure::do_void() {
   ShouldNotCallThis();
 }
 
-void CodeBlobToOopClosure::do_nmethod(nmethod* nm) {
+void NMethodToOopClosure::do_nmethod(nmethod* nm) {
   nm->oops_do(_cl);
-  if (_fix_relocations) {
-    nm->fix_oop_relocations();
+}
+
+void UpdatingNMethodToOopClosure::do_nmethod(nmethod* nm) {
+  NMethodToOopClosure::do_nmethod(nm);
+  nm->fix_oop_relocations();
+}
+
+void ClaimingNMethodToOopClosure::do_nmethod(nmethod* nm) {
+  if (nm->oops_do_try_claim()) {
+    NMethodToOopClosure::do_nmethod(nm);
   }
 }
 
-void CodeBlobToOopClosure::do_code_blob(CodeBlob* cb) {
-  nmethod* nm = cb->as_nmethod_or_null();
-  if (nm != NULL) {
-    do_nmethod(nm);
-  }
-}
-
-void MarkingCodeBlobClosure::do_code_blob(CodeBlob* cb) {
-  nmethod* nm = cb->as_nmethod_or_null();
-  if (nm != NULL && nm->oops_do_try_claim()) {
-    do_nmethod(nm);
-  }
-}
-
-void CodeBlobToNMethodClosure::do_code_blob(CodeBlob* cb) {
-  nmethod* nm = cb->as_nmethod_or_null();
-  if (nm != NULL) {
-    _nm_cl->do_nmethod(nm);
+void ClaimingUpdatingNMethodToOopClosure::do_nmethod(nmethod* nm) {
+  if (nm->oops_do_try_claim()) {
+    UpdatingNMethodToOopClosure::do_nmethod(nm);
   }
 }

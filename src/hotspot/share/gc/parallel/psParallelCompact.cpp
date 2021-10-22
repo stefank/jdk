@@ -1954,7 +1954,7 @@ public:
     ParCompactionManager* cm = ParCompactionManager::gc_thread_compaction_manager(_worker_id);
 
     PCMarkAndPushClosure mark_and_push_closure(cm);
-    MarkingCodeBlobClosure mark_and_push_in_blobs(&mark_and_push_closure, !CodeBlobToOopClosure::FixRelocations);
+    ClaimingNMethodToOopClosure mark_and_push_in_blobs(&mark_and_push_closure);
 
     thread->oops_do(&mark_and_push_closure, &mark_and_push_in_blobs);
 
@@ -1980,7 +1980,7 @@ static void mark_from_roots_work(ParallelRootType::Value root_type, uint worker_
 
     case ParallelRootType::code_cache:
       // Do not treat nmethods as strong roots for mark/sweep, since we can unload them.
-      //ScavengableNMethods::scavengable_nmethods_do(CodeBlobToOopClosure(&mark_and_push_closure));
+      //ScavengableNMethods::scavengable_nmethods_do(NMethodOopClosure(&mark_and_push_closure));
       break;
 
     case ParallelRootType::sentinel:
@@ -2197,8 +2197,8 @@ public:
       _weak_proc_task.work(worker_id, &always_alive, &adjust);
     }
     if (_sub_tasks.try_claim_task(PSAdjustSubTask_code_cache)) {
-      CodeBlobToOopClosure adjust_code(&adjust, CodeBlobToOopClosure::FixRelocations);
-      CodeCache::blobs_do(&adjust_code);
+      UpdatingNMethodToOopClosure adjust_code(&adjust);
+      CodeCache::alive_nmethods_do(&adjust_code);
     }
     if (_sub_tasks.try_claim_task(PSAdjustSubTask_old_ref_process)) {
       PSParallelCompact::ref_processor()->weak_oops_do(&adjust);

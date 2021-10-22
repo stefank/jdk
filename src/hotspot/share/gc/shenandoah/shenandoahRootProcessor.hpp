@@ -92,7 +92,7 @@ public:
   ShenandoahThreadRoots(ShenandoahPhaseTimings::Phase phase, bool is_par);
   ~ShenandoahThreadRoots();
 
-  void oops_do(OopClosure* oops_cl, CodeBlobClosure* code_cl, uint worker_id);
+  void oops_do(OopClosure* oops_cl, NMethodClosure* code_cl, uint worker_id);
   void threads_do(ThreadClosure* tc, uint worker_id);
 };
 
@@ -104,7 +104,7 @@ public:
   ShenandoahCodeCacheRoots(ShenandoahPhaseTimings::Phase phase);
   ~ShenandoahCodeCacheRoots();
 
-  void code_blobs_do(CodeBlobClosure* blob_cl, uint worker_id);
+  void code_blobs_do(NMethodClosure* blob_cl, uint worker_id);
 };
 
 template <bool CONCURRENT, bool SINGLE_THREADED>
@@ -156,7 +156,7 @@ public:
   void roots_do(uint worker_id, OopClosure* cl);
 
 private:
-  void roots_do(uint worker_id, OopClosure* oops, CodeBlobClosure* code, ThreadClosure* tc = NULL);
+  void roots_do(uint worker_id, OopClosure* oops, NMethodClosure* code, ThreadClosure* tc = NULL);
 };
 
 // STW root scanner

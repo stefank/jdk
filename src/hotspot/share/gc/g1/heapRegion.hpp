@@ -574,7 +574,7 @@ public:
 
   // Applies blk->do_code_blob() to each of the entries in
   // the strong code roots list for this region
-  void strong_code_roots_do(CodeBlobClosure* blk) const;
+  void strong_code_roots_do(NMethodClosure* blk) const;
 
   uint node_index() const { return _node_index; }
   void set_node_index(uint node_index) { _node_index = node_index; }

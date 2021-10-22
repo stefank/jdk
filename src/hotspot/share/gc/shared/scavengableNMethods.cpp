@@ -141,7 +141,7 @@ bool ScavengableNMethods::has_scavengable_oops(nmethod* nm) {
 }
 
 // Walk the list of methods which might contain oops to the java heap.
-void ScavengableNMethods::nmethods_do_and_prune(CodeBlobToOopClosure* cl) {
+void ScavengableNMethods::nmethods_do_and_prune(NMethodClosure* cl) {
   assert_locked_or_safepoint(CodeCache_lock);
 
   debug_only(mark_on_list_nmethods());
@@ -156,7 +156,7 @@ void ScavengableNMethods::nmethods_do_and_prune(CodeBlobToOopClosure* cl) {
     assert(data.on_list(), "else shouldn't be on this list");
 
     if (cl != NULL) {
-      cl->do_code_blob(cur);
+      cl->do_nmethod(cur);
     }
 
     nmethod* const next = data.next();
@@ -179,12 +179,12 @@ void ScavengableNMethods::prune_nmethods() {
 }
 
 // Walk the list of methods which might contain oops to the java heap.
-void ScavengableNMethods::nmethods_do(CodeBlobToOopClosure* cl) {
+void ScavengableNMethods::nmethods_do(NMethodClosure* cl) {
   nmethods_do_and_prune(cl);
 }
 
 #ifndef PRODUCT
-void ScavengableNMethods::asserted_non_scavengable_nmethods_do(CodeBlobClosure* cl) {
+void ScavengableNMethods::asserted_non_scavengable_nmethods_do(NMethodClosure* cl) {
   // While we are here, verify the integrity of the list.
   mark_on_list_nmethods();
   for (nmethod* cur = _head; cur != NULL; cur = gc_data(cur).next()) {
@@ -227,7 +227,7 @@ void ScavengableNMethods::mark_on_list_nmethods() {
 
 // If the closure is given, run it on the unlisted nmethods.
 // Also make sure that the effects of mark_on_list_nmethods is gone.
-void ScavengableNMethods::verify_unlisted_nmethods(CodeBlobClosure* cl) {
+void ScavengableNMethods::verify_unlisted_nmethods(NMethodClosure* cl) {
   NMethodIterator iter(NMethodIterator::only_alive);
   while(iter.next()) {
     nmethod* nm = iter.method();
@@ -235,7 +235,7 @@ void ScavengableNMethods::verify_unlisted_nmethods(CodeBlobClosure* cl) {
     verify_nmethod(nm);
 
     if (cl != NULL && !gc_data(nm).on_list()) {
-      cl->do_code_blob(nm);
+      cl->do_nmethod(nm);
     }
   }
 }

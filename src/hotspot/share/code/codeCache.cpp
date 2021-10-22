@@ -676,6 +676,14 @@ void CodeCache::nmethods_do(void f(nmethod* nm)) {
   }
 }
 
+void CodeCache::alive_nmethods_do(NMethodClosure* cl) {
+  assert_locked_or_safepoint(CodeCache_lock);
+  NMethodIterator iter(NMethodIterator::only_alive);
+  while(iter.next()) {
+    cl->do_nmethod(iter.method());
+  }
+}
+
 void CodeCache::metadata_do(MetadataClosure* f) {
   assert_locked_or_safepoint(CodeCache_lock);
   NMethodIterator iter(NMethodIterator::only_alive_and_not_unloading);

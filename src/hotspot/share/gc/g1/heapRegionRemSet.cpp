@@ -120,7 +120,7 @@ void HeapRegionRemSet::remove_strong_code_root(nmethod* nm) {
   guarantee(!_code_roots.contains(nm), "duplicate entry found");
 }
 
-void HeapRegionRemSet::strong_code_roots_do(CodeBlobClosure* blk) const {
+void HeapRegionRemSet::strong_code_roots_do(NMethodClosure* blk) const {
   _code_roots.nmethods_do(blk);
 }
 

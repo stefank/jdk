@@ -112,10 +112,10 @@ void G1CodeRootSetTable::copy_to(G1CodeRootSetTable* new_table) {
   }
 }
 
-void G1CodeRootSetTable::nmethods_do(CodeBlobClosure* blk) {
+void G1CodeRootSetTable::nmethods_do(NMethodClosure* blk) {
   for (int index = 0; index < table_size(); ++index) {
     for (Entry* e = bucket(index); e != NULL; e = e->next()) {
-      blk->do_code_blob(e->literal());
+      blk->do_nmethod(e->literal());
     }
   }
 }
@@ -241,7 +241,7 @@ size_t G1CodeRootSet::mem_size() {
   return sizeof(*this) + (_table != NULL ? _table->mem_size() : 0);
 }
 
-void G1CodeRootSet::nmethods_do(CodeBlobClosure* blk) const {
+void G1CodeRootSet::nmethods_do(NMethodClosure* blk) const {
   if (_table != NULL) {
     _table->nmethods_do(blk);
   }
@@ -271,14 +271,14 @@ class CleanCallback : public StackObj {
   };
 
   PointsIntoHRDetectionClosure _detector;
-  CodeBlobToOopClosure _blobs;
+  NMethodToOopClosure _blobs;
 
  public:
-  CleanCallback(HeapRegion* hr) : _detector(hr), _blobs(&_detector, !CodeBlobToOopClosure::FixRelocations) {}
+  CleanCallback(HeapRegion* hr) : _detector(hr), _blobs(&_detector) {}
 
   bool operator() (nmethod* nm) {
     _detector._points_into = false;
-    _blobs.do_code_blob(nm);
+    _blobs.do_nmethod(nm);
     return !_detector._points_into;
   }
 };

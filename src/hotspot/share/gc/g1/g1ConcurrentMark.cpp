@@ -1668,14 +1668,14 @@ public:
 class G1RemarkThreadsClosure : public ThreadClosure {
   G1SATBMarkQueueSet& _qset;
   G1CMOopClosure _cm_cl;
-  MarkingCodeBlobClosure _code_cl;
+  ClaimingNMethodToOopClosure _code_cl;
   uintx _claim_token;
 
  public:
   G1RemarkThreadsClosure(G1CollectedHeap* g1h, G1CMTask* task) :
     _qset(G1BarrierSet::satb_mark_queue_set()),
     _cm_cl(g1h, task),
-    _code_cl(&_cm_cl, !CodeBlobToOopClosure::FixRelocations),
+    _code_cl(&_cm_cl),
     _claim_token(Threads::thread_claim_token()) {}
 
   void do_thread(Thread* thread) {

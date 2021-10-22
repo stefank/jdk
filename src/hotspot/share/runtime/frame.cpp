@@ -898,7 +898,7 @@ void frame::oops_interpreted_arguments_do(Symbol* signature, bool has_receiver, 
   finder.oops_do();
 }
 
-void frame::oops_code_blob_do(OopClosure* f, CodeBlobClosure* cf, const RegisterMap* reg_map,
+void frame::oops_code_blob_do(OopClosure* f, NMethodClosure* cf, const RegisterMap* reg_map,
                               DerivedPointerIterationMode derived_mode) const {
   assert(_cb != NULL, "sanity check");
   if (_cb->oop_maps() != NULL) {
@@ -915,8 +915,9 @@ void frame::oops_code_blob_do(OopClosure* f, CodeBlobClosure* cf, const Register
   // prevent them from being collected. However, this visit should be
   // restricted to certain phases of the collection only. The
   // closure decides how it wants nmethods to be traced.
-  if (cf != NULL)
-    cf->do_code_blob(_cb);
+  if (cf != NULL &&_cb->is_nmethod()) {
+    cf->do_nmethod(_cb->as_nmethod());
+  }
 }
 
 class CompiledArgumentOopFinder: public SignatureIterator {
@@ -1039,12 +1040,12 @@ void frame::oops_entry_do(OopClosure* f, const RegisterMap* map) const {
   entry_frame_call_wrapper()->oops_do(f);
 }
 
-void frame::oops_do(OopClosure* f, CodeBlobClosure* cf, const RegisterMap* map,
+void frame::oops_do(OopClosure* f, NMethodClosure* cf, const RegisterMap* map,
                     DerivedPointerIterationMode derived_mode) const {
   oops_do_internal(f, cf, map, true, derived_mode);
 }
 
-void frame::oops_do(OopClosure* f, CodeBlobClosure* cf, const RegisterMap* map) const {
+void frame::oops_do(OopClosure* f, NMethodClosure* cf, const RegisterMap* map) const {
 #if COMPILER2_OR_JVMCI
   oops_do_internal(f, cf, map, true, DerivedPointerTable::is_active() ?
                                      DerivedPointerIterationMode::_with_table :
@@ -1054,7 +1055,7 @@ void frame::oops_do(OopClosure* f, CodeBlobClosure* cf, const RegisterMap* map) 
 #endif
 }
 
-void frame::oops_do_internal(OopClosure* f, CodeBlobClosure* cf, const RegisterMap* map,
+void frame::oops_do_internal(OopClosure* f, NMethodClosure* cf, const RegisterMap* map,
                              bool use_interpreter_oop_map_cache, DerivedPointerIterationMode derived_mode) const {
 #ifndef PRODUCT
   // simulate GC crash here to dump java thread in error report
@@ -1076,9 +1077,9 @@ void frame::oops_do_internal(OopClosure* f, CodeBlobClosure* cf, const RegisterM
   }
 }
 
-void frame::nmethods_do(CodeBlobClosure* cf) const {
+void frame::nmethods_do(NMethodClosure* cf) const {
   if (_cb != NULL && _cb->is_nmethod()) {
-    cf->do_code_blob(_cb);
+    cf->do_nmethod(_cb->as_nmethod());
   }
 }
 

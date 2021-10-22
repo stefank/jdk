@@ -106,7 +106,7 @@ void G1FullGCAdjustTask::work(uint worker_id) {
   _weak_proc_task.work(worker_id, &always_alive, &_adjust);
 
   CLDToOopClosure adjust_cld(&_adjust, ClassLoaderData::_claim_strong);
-  CodeBlobToOopClosure adjust_code(&_adjust, CodeBlobToOopClosure::FixRelocations);
+  UpdatingNMethodToOopClosure adjust_code(&_adjust);
   _root_processor.process_all_roots(&_adjust, &adjust_cld, &adjust_code);
 
   // Now adjust pointers region by region

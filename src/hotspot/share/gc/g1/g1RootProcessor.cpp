@@ -81,9 +81,10 @@ void G1RootProcessor::evacuate_roots(G1ParScanThreadState* pss, uint worker_id) 
 class StrongRootsClosures : public G1RootClosures {
   OopClosure* _roots;
   CLDClosure* _clds;
-  CodeBlobClosure* _blobs;
+  NMethodClosure* _blobs;
+
 public:
-  StrongRootsClosures(OopClosure* roots, CLDClosure* clds, CodeBlobClosure* blobs) :
+  StrongRootsClosures(OopClosure* roots, CLDClosure* clds, NMethodClosure* blobs) :
       _roots(roots), _clds(clds), _blobs(blobs) {}
 
   OopClosure* weak_oops()   { return NULL; }
@@ -92,12 +93,12 @@ public:
   CLDClosure* weak_clds()        { return NULL; }
   CLDClosure* strong_clds()      { return _clds; }
 
-  CodeBlobClosure* strong_codeblobs() { return _blobs; }
+  NMethodClosure* strong_codeblobs() { return _blobs; }
 };
 
 void G1RootProcessor::process_strong_roots(OopClosure* oops,
                                            CLDClosure* clds,
-                                           CodeBlobClosure* blobs) {
+                                           NMethodClosure* blobs) {
   StrongRootsClosures closures(oops, clds, blobs);
 
   process_java_roots(&closures, NULL, 0);
@@ -128,12 +129,12 @@ public:
 
   // We don't want to visit code blobs more than once, so we return NULL for the
   // strong case and walk the entire code cache as a separate step.
-  CodeBlobClosure* strong_codeblobs() { return NULL; }
+  NMethodClosure* strong_codeblobs() { return NULL; }
 };
 
 void G1RootProcessor::process_all_roots(OopClosure* oops,
                                         CLDClosure* clds,
-                                        CodeBlobClosure* blobs) {
+                                        NMethodClosure* blobs) {
   AllRootsClosures closures(oops, clds);
 
   process_java_roots(&closures, NULL, 0);
@@ -205,11 +206,11 @@ void G1RootProcessor::process_vm_roots(G1RootClosures* closures,
   }
 }
 
-void G1RootProcessor::process_code_cache_roots(CodeBlobClosure* code_closure,
+void G1RootProcessor::process_code_cache_roots(NMethodClosure* code_closure,
                                                G1GCPhaseTimes* phase_times,
                                                uint worker_id) {
   if (_process_strong_tasks.try_claim_task(G1RP_PS_CodeCache_oops_do)) {
-    CodeCache::blobs_do(code_closure);
+    CodeCache::alive_nmethods_do(code_closure);
   }
 }
 

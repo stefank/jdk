@@ -136,8 +136,8 @@ class CodeCacheSweeperThread : public JavaThread {
   bool is_Code_cache_sweeper_thread() const { return true; }
 
   // Prevent GC from unloading _scanned_compiled_method
-  void oops_do_no_frames(OopClosure* f, CodeBlobClosure* cf);
-  void nmethods_do(CodeBlobClosure* cf);
+  void oops_do_no_frames(OopClosure* f, NMethodClosure* cf);
+  void nmethods_do(NMethodClosure* cf);
 };
 
 

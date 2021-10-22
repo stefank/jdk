@@ -4328,26 +4328,21 @@ void G1CollectedHeap::purge_code_root_memory() {
   G1CodeRootSet::purge();
 }
 
-class RebuildStrongCodeRootClosure: public CodeBlobClosure {
+class RebuildStrongCodeRootClosure: public NMethodClosure {
   G1CollectedHeap* _g1h;
 
 public:
   RebuildStrongCodeRootClosure(G1CollectedHeap* g1h) :
     _g1h(g1h) {}
 
-  void do_code_blob(CodeBlob* cb) {
-    nmethod* nm = (cb != NULL) ? cb->as_nmethod_or_null() : NULL;
-    if (nm == NULL) {
-      return;
-    }
-
+  void do_nmethod(nmethod* nm) {
     _g1h->register_nmethod(nm);
   }
 };
 
 void G1CollectedHeap::rebuild_strong_code_roots() {
   RebuildStrongCodeRootClosure blob_cl(this);
-  CodeCache::blobs_do(&blob_cl);
+  CodeCache::alive_nmethods_do(&blob_cl);
 }
 
 void G1CollectedHeap::initialize_serviceability() {

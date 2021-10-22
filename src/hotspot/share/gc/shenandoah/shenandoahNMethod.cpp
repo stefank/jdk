@@ -486,7 +486,7 @@ ShenandoahNMethodTableSnapshot::~ShenandoahNMethodTableSnapshot() {
   _list->release();
 }
 
-void ShenandoahNMethodTableSnapshot::parallel_blobs_do(CodeBlobClosure *f) {
+void ShenandoahNMethodTableSnapshot::parallel_blobs_do(NMethodClosure *f) {
   size_t stride = 256; // educated guess
 
   ShenandoahNMethod** const list = _list->list();
@@ -508,7 +508,7 @@ void ShenandoahNMethodTableSnapshot::parallel_blobs_do(CodeBlobClosure *f) {
       // A nmethod can become a zombie before it is unregistered.
       if (nmr->nm()->is_alive()) {
         nmr->assert_correct();
-        f->do_code_blob(nmr->nm());
+        f->do_nmethod(nmr->nm());
       }
     }
   }

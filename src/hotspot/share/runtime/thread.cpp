@@ -528,7 +528,7 @@ bool Thread::claim_par_threads_do(uintx claim_token) {
   return false;
 }
 
-void Thread::oops_do_no_frames(OopClosure* f, CodeBlobClosure* cf) {
+void Thread::oops_do_no_frames(OopClosure* f, NMethodClosure* cf) {
   if (active_handles() != NULL) {
     active_handles()->oops_do(f);
   }
@@ -561,7 +561,7 @@ public:
   }
 };
 
-void Thread::oops_do(OopClosure* f, CodeBlobClosure* cf) {
+void Thread::oops_do(OopClosure* f, NMethodClosure* cf) {
   // Record JavaThread to GC thread
   RememberProcessedThread rpt(this);
   oops_do_no_frames(f, cf);
@@ -1940,7 +1940,7 @@ void JavaThread::verify_frame_info() {
 }
 #endif
 
-void JavaThread::oops_do_no_frames(OopClosure* f, CodeBlobClosure* cf) {
+void JavaThread::oops_do_no_frames(OopClosure* f, NMethodClosure* cf) {
   // Verify that the deferred card marks have been flushed.
   assert(deferred_card_mark().is_empty(), "Should be empty during GC");
 
@@ -1980,7 +1980,7 @@ void JavaThread::oops_do_no_frames(OopClosure* f, CodeBlobClosure* cf) {
   }
 }
 
-void JavaThread::oops_do_frames(OopClosure* f, CodeBlobClosure* cf) {
+void JavaThread::oops_do_frames(OopClosure* f, NMethodClosure* cf) {
   if (!has_last_Java_frame()) {
     return;
   }
@@ -1999,7 +1999,7 @@ void JavaThread::verify_states_for_handshake() {
 }
 #endif
 
-void JavaThread::nmethods_do(CodeBlobClosure* cf) {
+void JavaThread::nmethods_do(NMethodClosure* cf) {
   DEBUG_ONLY(verify_frame_info();)
 
   if (has_last_Java_frame()) {
@@ -3543,7 +3543,7 @@ void Threads::remove(JavaThread* p, bool is_daemon) {
 // uses the Threads_lock to guarantee this property. It also makes sure that
 // all threads gets blocked when exiting or starting).
 
-void Threads::oops_do(OopClosure* f, CodeBlobClosure* cf) {
+void Threads::oops_do(OopClosure* f, NMethodClosure* cf) {
   ALL_JAVA_THREADS(p) {
     p->oops_do(f, cf);
   }
@@ -3589,15 +3589,15 @@ void Threads::assert_all_threads_claimed() {
 class ParallelOopsDoThreadClosure : public ThreadClosure {
 private:
   OopClosure* _f;
-  CodeBlobClosure* _cf;
+  NMethodClosure* _cf;
 public:
-  ParallelOopsDoThreadClosure(OopClosure* f, CodeBlobClosure* cf) : _f(f), _cf(cf) {}
+  ParallelOopsDoThreadClosure(OopClosure* f, NMethodClosure* cf) : _f(f), _cf(cf) {}
   void do_thread(Thread* t) {
     t->oops_do(_f, _cf);
   }
 };
 
-void Threads::possibly_parallel_oops_do(bool is_par, OopClosure* f, CodeBlobClosure* cf) {
+void Threads::possibly_parallel_oops_do(bool is_par, OopClosure* f, NMethodClosure* cf) {
   ParallelOopsDoThreadClosure tc(f, cf);
   possibly_parallel_threads_do(is_par, &tc);
 }

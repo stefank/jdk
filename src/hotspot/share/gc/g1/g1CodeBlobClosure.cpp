@@ -98,12 +98,7 @@ public:
   }
 };
 
-void G1CodeBlobClosure::do_code_blob(CodeBlob* cb) {
-  nmethod* nm = cb->as_nmethod_or_null();
-  if (nm == NULL) {
-    return;
-  }
-
+void G1CodeBlobClosure::do_nmethod(nmethod* nm) {
   G1NmethodProcessor cl(this);
 
   if (_strong) {

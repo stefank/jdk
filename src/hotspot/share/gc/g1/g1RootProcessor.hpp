@@ -68,7 +68,7 @@ class G1RootProcessor : public StackObj {
                         G1GCPhaseTimes* phase_times,
                         uint worker_id);
 
-  void process_code_cache_roots(CodeBlobClosure* code_closure,
+  void process_code_cache_roots(NMethodClosure* code_closure,
                                 G1GCPhaseTimes* phase_times,
                                 uint worker_id);
 
@@ -83,12 +83,12 @@ public:
   // Apply oops, clds and blobs to all strongly reachable roots in the system
   void process_strong_roots(OopClosure* oops,
                             CLDClosure* clds,
-                            CodeBlobClosure* blobs);
+                            NMethodClosure* blobs);
 
   // Apply oops, clds and blobs to strongly and weakly reachable roots in the system
   void process_all_roots(OopClosure* oops,
                          CLDClosure* clds,
-                         CodeBlobClosure* blobs);
+                         NMethodClosure* blobs);
 
   // Number of worker threads used by the root processor.
   uint n_workers() const;

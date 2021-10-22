@@ -344,7 +344,7 @@ public:
                      OopClosure* strong_roots,
                      CLDClosure* strong_cld_closure,
                      CLDClosure* weak_cld_closure,
-                     CodeBlobToOopClosure* code_roots);
+                     NMethodClosure* code_roots);
 
   virtual void gc_prologue(bool full);
   virtual void gc_epilogue(bool full);

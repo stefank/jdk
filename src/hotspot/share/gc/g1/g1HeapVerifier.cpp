@@ -137,19 +137,16 @@ public:
   bool failures() { return _failures; }
 };
 
-class G1VerifyCodeRootBlobClosure: public CodeBlobClosure {
+class G1VerifyCodeRootBlobClosure: public NMethodClosure {
   G1VerifyCodeRootOopClosure* _oop_cl;
 
 public:
   G1VerifyCodeRootBlobClosure(G1VerifyCodeRootOopClosure* oop_cl):
     _oop_cl(oop_cl) {}
 
-  void do_code_blob(CodeBlob* cb) {
-    nmethod* nm = cb->as_nmethod_or_null();
-    if (nm != NULL) {
-      _oop_cl->set_nmethod(nm);
-      nm->oops_do(_oop_cl);
-    }
+  void do_nmethod(nmethod* nm) {
+    _oop_cl->set_nmethod(nm);
+    nm->oops_do(_oop_cl);
   }
 };
 

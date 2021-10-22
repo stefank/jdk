@@ -326,7 +326,7 @@ void HeapRegion::remove_strong_code_root(nmethod* nm) {
   hrrs->remove_strong_code_root(nm);
 }
 
-void HeapRegion::strong_code_roots_do(CodeBlobClosure* blk) const {
+void HeapRegion::strong_code_roots_do(NMethodClosure* blk) const {
   HeapRegionRemSet* hrrs = rem_set();
   hrrs->strong_code_roots_do(blk);
 }
@@ -369,33 +369,30 @@ public:
   bool has_oops_in_region() { return _has_oops_in_region; }
 };
 
-class VerifyStrongCodeRootCodeBlobClosure: public CodeBlobClosure {
+class VerifyStrongCodeRootCodeBlobClosure: public NMethodClosure {
   const HeapRegion* _hr;
   bool _failures;
 public:
   VerifyStrongCodeRootCodeBlobClosure(const HeapRegion* hr) :
     _hr(hr), _failures(false) {}
 
-  void do_code_blob(CodeBlob* cb) {
-    nmethod* nm = (cb == NULL) ? NULL : cb->as_compiled_method()->as_nmethod_or_null();
-    if (nm != NULL) {
-      // Verify that the nemthod is live
-      if (!nm->is_alive()) {
-        log_error(gc, verify)("region [" PTR_FORMAT "," PTR_FORMAT "] has dead nmethod " PTR_FORMAT " in its strong code roots",
-                              p2i(_hr->bottom()), p2i(_hr->end()), p2i(nm));
+  void do_nmethod(nmethod* nm) {
+    // Verify that the nemthod is live
+    if (!nm->is_alive()) {
+      log_error(gc, verify)("region [" PTR_FORMAT "," PTR_FORMAT "] has dead nmethod " PTR_FORMAT " in its strong code roots",
+          p2i(_hr->bottom()), p2i(_hr->end()), p2i(nm));
+      _failures = true;
+    } else {
+      VerifyStrongCodeRootOopClosure oop_cl(_hr);
+      nm->oops_do(&oop_cl);
+      if (!oop_cl.has_oops_in_region()) {
+        log_error(gc, verify)("region [" PTR_FORMAT "," PTR_FORMAT "] has nmethod " PTR_FORMAT " in its strong code roots with no pointers into region",
+            p2i(_hr->bottom()), p2i(_hr->end()), p2i(nm));
         _failures = true;
-      } else {
-        VerifyStrongCodeRootOopClosure oop_cl(_hr);
-        nm->oops_do(&oop_cl);
-        if (!oop_cl.has_oops_in_region()) {
-          log_error(gc, verify)("region [" PTR_FORMAT "," PTR_FORMAT "] has nmethod " PTR_FORMAT " in its strong code roots with no pointers into region",
-                                p2i(_hr->bottom()), p2i(_hr->end()), p2i(nm));
-          _failures = true;
-        } else if (oop_cl.failures()) {
-          log_error(gc, verify)("region [" PTR_FORMAT "," PTR_FORMAT "] has other failures for nmethod " PTR_FORMAT,
-                                p2i(_hr->bottom()), p2i(_hr->end()), p2i(nm));
-          _failures = true;
-        }
+      } else if (oop_cl.failures()) {
+        log_error(gc, verify)("region [" PTR_FORMAT "," PTR_FORMAT "] has other failures for nmethod " PTR_FORMAT,
+            p2i(_hr->bottom()), p2i(_hr->end()), p2i(nm));
+        _failures = true;
       }
     }
   }

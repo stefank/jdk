@@ -73,23 +73,27 @@ void CodeCacheSweeperThread::thread_entry(JavaThread* thread, TRAPS) {
   NMethodSweeper::sweeper_loop();
 }
 
-void CodeCacheSweeperThread::oops_do_no_frames(OopClosure* f, CodeBlobClosure* cf) {
+void CodeCacheSweeperThread::oops_do_no_frames(OopClosure* f, NMethodClosure* cf) {
   JavaThread::oops_do_no_frames(f, cf);
   if (_scanned_compiled_method != NULL && cf != NULL) {
     // Safepoints can occur when the sweeper is scanning an nmethod so
     // process it here to make sure it isn't unloaded in the middle of
     // a scan.
-    cf->do_code_blob(_scanned_compiled_method);
+    if (_scanned_compiled_method->is_nmethod()) {
+      cf->do_nmethod(_scanned_compiled_method->as_nmethod());
+    }
   }
 }
 
-void CodeCacheSweeperThread::nmethods_do(CodeBlobClosure* cf) {
+void CodeCacheSweeperThread::nmethods_do(NMethodClosure* cf) {
   JavaThread::nmethods_do(cf);
   if (_scanned_compiled_method != NULL && cf != NULL) {
     // Safepoints can occur when the sweeper is scanning an nmethod so
     // process it here to make sure it isn't unloaded in the middle of
     // a scan.
-    cf->do_code_blob(_scanned_compiled_method);
+    if (_scanned_compiled_method->is_nmethod()) {
+      cf->do_nmethod(_scanned_compiled_method->as_nmethod());
+    }
   }
 }
 

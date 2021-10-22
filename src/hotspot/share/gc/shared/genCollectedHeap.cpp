@@ -753,14 +753,14 @@ void GenCollectedHeap::process_roots(ScanningOption so,
                                      OopClosure* strong_roots,
                                      CLDClosure* strong_cld_closure,
                                      CLDClosure* weak_cld_closure,
-                                     CodeBlobToOopClosure* code_roots) {
+                                     NMethodClosure* code_roots) {
   // General roots.
   assert(code_roots != NULL, "code root closure should always be set");
 
   ClassLoaderDataGraph::roots_cld_do(strong_cld_closure, weak_cld_closure);
 
   // Only process code roots from thread stacks if we aren't visiting the entire CodeCache anyway
-  CodeBlobToOopClosure* roots_from_code_p = (so & SO_AllCodeCache) ? NULL : code_roots;
+  NMethodClosure* roots_from_code_p = (so & SO_AllCodeCache) ? NULL : code_roots;
 
   Threads::oops_do(strong_roots, roots_from_code_p);
 
@@ -777,11 +777,11 @@ void GenCollectedHeap::process_roots(ScanningOption so,
 
     // CMSCollector uses this to do intermediate-strength collections.
     // We scan the entire code cache, since CodeCache::do_unloading is not called.
-    CodeCache::blobs_do(code_roots);
+    CodeCache::alive_nmethods_do(code_roots);
   }
   // Verify that the code cache contents are not subject to
   // movement by a scavenging collection.
-  DEBUG_ONLY(CodeBlobToOopClosure assert_code_is_non_scavengable(&assert_is_non_scavengable_closure, !CodeBlobToOopClosure::FixRelocations));
+  DEBUG_ONLY(NMethodToOopClosure assert_code_is_non_scavengable(&assert_is_non_scavengable_closure));
   DEBUG_ONLY(ScavengableNMethods::asserted_non_scavengable_nmethods_do(&assert_code_is_non_scavengable));
 }
 
@@ -790,10 +790,15 @@ void GenCollectedHeap::full_process_roots(bool is_adjust_phase,
                                           bool only_strong_roots,
                                           OopClosure* root_closure,
                                           CLDClosure* cld_closure) {
-  MarkingCodeBlobClosure mark_code_closure(root_closure, is_adjust_phase);
+  ClaimingUpdatingNMethodToOopClosure updating_code_cl(root_closure);
+  ClaimingNMethodToOopClosure code_cl(root_closure);
+  NMethodClosure* code_closure = is_adjust_phase
+      ? static_cast<NMethodClosure*>(&updating_code_cl)
+      : static_cast<NMethodClosure*>(&code_cl);
+
   CLDClosure* weak_cld_closure = only_strong_roots ? NULL : cld_closure;
 
-  process_roots(so, root_closure, cld_closure, weak_cld_closure, &mark_code_closure);
+  process_roots(so, root_closure, cld_closure, weak_cld_closure, code_closure);
 }
 
 void GenCollectedHeap::gen_process_weak_roots(OopClosure* root_closure) {

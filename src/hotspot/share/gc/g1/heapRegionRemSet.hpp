@@ -147,7 +147,7 @@ public:
 
   // Applies blk->do_code_blob() to each of the entries in
   // the strong code roots list
-  void strong_code_roots_do(CodeBlobClosure* blk) const;
+  void strong_code_roots_do(NMethodClosure* blk) const;
 
   void clean_strong_code_roots(HeapRegion* hr);
 

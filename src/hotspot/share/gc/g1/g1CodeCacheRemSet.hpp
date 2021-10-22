@@ -65,7 +65,7 @@ class G1CodeRootSet {
 
   void clear();
 
-  void nmethods_do(CodeBlobClosure* blk) const;
+  void nmethods_do(NMethodClosure* blk) const;
 
   // Remove all nmethods which no longer contain pointers into our "owner" region
   void clean(HeapRegion* owner);

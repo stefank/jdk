@@ -366,7 +366,7 @@ ShenandoahCodeRootsIterator::~ShenandoahCodeRootsIterator() {
   CodeCache_lock->unlock();
 }
 
-void ShenandoahCodeRootsIterator::possibly_parallel_blobs_do(CodeBlobClosure *f) {
+void ShenandoahCodeRootsIterator::possibly_parallel_blobs_do(NMethodClosure *f) {
   assert(SafepointSynchronize::is_at_safepoint(), "Must be at safepoint");
   assert(_table_snapshot != NULL, "Sanity");
   _table_snapshot->parallel_blobs_do(f);

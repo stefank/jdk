@@ -30,7 +30,6 @@
 
 class BoolObjectClosure;
 class CodeBlobClosure;
-class CodeBlobToOopClosure;
 class nmethod;
 
 class ScavengableNMethods : public AllStatic {
@@ -51,18 +50,18 @@ public:
 
   // Apply closure to every scavengable nmethod.
   // Remove nmethods that no longer have scavengable oops.
-  static void nmethods_do(CodeBlobToOopClosure* cl);
+  static void nmethods_do(NMethodClosure* cl);
 
-  static void asserted_non_scavengable_nmethods_do(CodeBlobClosure* cl) PRODUCT_RETURN;
+  static void asserted_non_scavengable_nmethods_do(NMethodClosure* cl) PRODUCT_RETURN;
 
 private:
-  static void nmethods_do_and_prune(CodeBlobToOopClosure* cl);
+  static void nmethods_do_and_prune(NMethodClosure* cl);
   static void unlist_nmethod(nmethod* nm, nmethod* prev);
 
   static bool has_scavengable_oops(nmethod* nm);
 
   static void mark_on_list_nmethods() PRODUCT_RETURN;
-  static void verify_unlisted_nmethods(CodeBlobClosure* cl) PRODUCT_RETURN;
+  static void verify_unlisted_nmethods(NMethodClosure* cl) PRODUCT_RETURN;
 };
 
 #endif // SHARE_GC_SHARED_SCAVENGABLENMETHODS_HPP
