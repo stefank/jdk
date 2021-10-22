@@ -34,6 +34,7 @@
 #include "gc/z/zLock.inline.hpp"
 #include "gc/z/zNMethod.hpp"
 #include "gc/z/zStat.hpp"
+#include "gc/z/zTracer.inline.hpp"
 #include "gc/z/zUncoloredRoot.inline.hpp"
 #include "gc/z/zUnload.hpp"
 #include "memory/metaspaceUtils.hpp"
@@ -76,6 +77,7 @@ public:
   virtual bool is_unloading(CompiledMethod* method) const {
     nmethod* const nm = method->as_nmethod();
     ZReentrantLock* const lock = ZNMethod::lock_for_nmethod(nm);
+    ZTraceThreadEvent event("ZNMethod ZIsUnloadingBehaviour");
     ZLocker<ZReentrantLock> locker(lock);
     if (!ZNMethod::is_armed(nm)) {
       // Disarmed nmethods are alive

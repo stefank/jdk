@@ -47,6 +47,7 @@
 #include "gc/z/zTask.hpp"
 #include "gc/z/zThread.inline.hpp"
 #include "gc/z/zThreadLocalAllocBuffer.hpp"
+#include "gc/z/zTracer.inline.hpp"
 #include "gc/z/zUncoloredRoot.inline.hpp"
 #include "gc/z/zUtils.inline.hpp"
 #include "gc/z/zWorkers.hpp"
@@ -643,6 +644,7 @@ public:
       _bs_nm(static_cast<ZBarrierSetNMethod*>(BarrierSet::barrier_set()->barrier_set_nmethod())) {}
 
   virtual void do_nmethod(nmethod* nm) {
+    ZTraceThreadEvent event("ZNMethod ZMarkNMethodClosure");
     ZLocker<ZReentrantLock> locker(ZNMethod::lock_for_nmethod(nm));
     if (!nm->is_alive()) {
       return;
@@ -673,6 +675,7 @@ public:
       _bs_nm(static_cast<ZBarrierSetNMethod*>(BarrierSet::barrier_set()->barrier_set_nmethod())) {}
 
   virtual void do_nmethod(nmethod* nm) {
+    ZTraceThreadEvent event("ZNMethod ZMarkYoungNMethodClosure");
     ZLocker<ZReentrantLock> locker(ZNMethod::lock_for_nmethod(nm));
     if (!nm->is_alive() || nm->is_unloading()) {
       return;

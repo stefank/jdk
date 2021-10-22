@@ -24,6 +24,7 @@
 #include "precompiled.hpp"
 #include "gc/z/zLock.inline.hpp"
 #include "gc/z/zNMethodData.hpp"
+#include "gc/z/zTracer.inline.hpp"
 #include "utilities/debug.hpp"
 
 ZNMethodData::ZNMethodData() :
@@ -54,6 +55,7 @@ bool ZNMethodData::has_non_immediate_oops() const {
 void ZNMethodData::swap(ZArray<ZNMethodDataBarrier>* barriers,
                         ZArray<oop*>* immediate_oops,
                         bool has_non_immediate_oops) {
+  ZTraceThreadEvent event("ZNMethod swap");
   ZLocker<ZReentrantLock> locker(&_lock);
   _barriers.swap(barriers);
   _immediate_oops.swap(immediate_oops);

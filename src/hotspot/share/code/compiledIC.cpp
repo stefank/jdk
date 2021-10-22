@@ -29,6 +29,7 @@
 #include "code/icBuffer.hpp"
 #include "code/nmethod.hpp"
 #include "code/vtableStubs.hpp"
+#include "gc/z/zTracer.inline.hpp"
 #include "interpreter/interpreter.hpp"
 #include "interpreter/linkResolver.hpp"
 #include "memory/metadataFactory.hpp"
@@ -51,7 +52,8 @@
 // either the CompiledIC_lock must be set or we must be at a safe point.
 
 CompiledICLocker::CompiledICLocker(CompiledMethod* method)
-  : _method(method),
+  : _event("ZNMethod CompiledICLocker"),
+    _method(method),
     _behaviour(CompiledICProtectionBehaviour::current()),
     _locked(_behaviour->lock(_method)) {
 }

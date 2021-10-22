@@ -40,6 +40,7 @@
 #include "gc/z/zRootsIterator.hpp"
 #include "gc/z/zStat.hpp"
 #include "gc/z/zTask.hpp"
+#include "gc/z/zTracer.inline.hpp"
 #include "gc/z/zUncoloredRoot.inline.hpp"
 #include "gc/z/zVerify.hpp"
 #include "gc/z/zWorkers.hpp"
@@ -644,6 +645,7 @@ public:
       _bs_nm(static_cast<ZBarrierSetNMethod*>(BarrierSet::barrier_set()->barrier_set_nmethod())) {}
 
   virtual void do_nmethod(nmethod* nm) {
+    ZTraceThreadEvent event("ZNMethod ZRemapNMethodClosure");
     ZLocker<ZReentrantLock> locker(ZNMethod::lock_for_nmethod(nm));
     if (!nm->is_alive()) {
       return;

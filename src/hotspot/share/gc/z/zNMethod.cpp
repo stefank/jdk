@@ -41,6 +41,7 @@
 #include "gc/z/zNMethodData.hpp"
 #include "gc/z/zNMethodTable.hpp"
 #include "gc/z/zTask.hpp"
+#include "gc/z/zTracer.inline.hpp"
 #include "gc/z/zUncoloredRoot.inline.hpp"
 #include "gc/z/zWorkers.hpp"
 #include "logging/log.hpp"
@@ -174,6 +175,7 @@ void ZNMethod::register_nmethod(nmethod* nm) {
   // Create and attach gc data
   attach_gc_data(nm);
 
+  ZTraceThreadEvent event("ZNMethod register_nmethod");
   ZLocker<ZReentrantLock> locker(lock_for_nmethod(nm));
 
   log_register(nm);
@@ -233,6 +235,7 @@ void ZNMethod::nmethod_patch_barriers(nmethod* nm) {
 }
 
 void ZNMethod::nmethod_oops_do(nmethod* nm, OopClosure* cl) {
+  ZTraceThreadEvent event("ZNMethod nmethod_oops_do");
   ZLocker<ZReentrantLock> locker(lock_for_nmethod(nm));
   if (!nm->is_alive()) {
     return;
@@ -304,6 +307,7 @@ oop ZNMethod::load_oop(oop* p, DecoratorSet decorators) {
 
   bool keep_alive = (decorators & ON_PHANTOM_OOP_REF) != 0 &&
                     (decorators & AS_NO_KEEPALIVE) == 0;
+  ZTraceThreadEvent event("ZNMethod load_oop");
   ZLocker<ZReentrantLock> locker(ZNMethod::lock_for_nmethod(nm));
 
   // Make a local root
@@ -361,11 +365,13 @@ public:
     }
 
     if (nm->is_unloading()) {
+      ZTraceThreadEvent event("ZNMethod ZNMethodUnlinkClosure (unloading)");
       ZLocker<ZReentrantLock> locker(ZNMethod::lock_for_nmethod(nm));
       unlink(nm);
       return;
     }
 
+    ZTraceThreadEvent event("ZNMethod ZNMethodUnlinkClosure");
     ZLocker<ZReentrantLock> locker(ZNMethod::lock_for_nmethod(nm));
 
     if (ZNMethod::is_armed(nm)) {

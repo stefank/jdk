@@ -26,6 +26,7 @@
 #define SHARE_CODE_COMPILEDIC_HPP
 
 #include "code/nativeInst.hpp"
+#include "gc/z/zTracer.hpp"
 #include "interpreter/linkResolver.hpp"
 #include "oops/compiledICHolder.hpp"
 #include "runtime/safepointVerifiers.hpp"
@@ -65,6 +66,8 @@ class CompiledMethod;
 class ICStub;
 
 class CompiledICLocker: public StackObj {
+  ZTraceThreadEvent _event;
+
   CompiledMethod* _method;
   CompiledICProtectionBehaviour* _behaviour;
   bool _locked;

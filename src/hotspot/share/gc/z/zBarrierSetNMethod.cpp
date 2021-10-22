@@ -32,11 +32,13 @@
 #include "gc/z/zNMethod.hpp"
 #include "gc/z/zResurrection.inline.hpp"
 #include "gc/z/zThreadLocalData.hpp"
+#include "gc/z/zTracer.inline.hpp"
 #include "gc/z/zUncoloredRoot.inline.hpp"
 #include "logging/log.hpp"
 #include "runtime/threadWXSetters.inline.hpp"
 
 bool ZBarrierSetNMethod::nmethod_entry_barrier(nmethod* nm) {
+  ZTraceThreadEvent event("ZNMethod entry barrier");
   ZLocker<ZReentrantLock> locker(ZNMethod::lock_for_nmethod(nm));
   log_trace(nmethod, barrier)("Entered critical zone for %p", nm);
 
