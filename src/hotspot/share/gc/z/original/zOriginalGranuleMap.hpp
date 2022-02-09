@@ -27,11 +27,13 @@
 #include "gc/z/original/zOriginalArray.hpp"
 #include "memory/allocation.hpp"
 
+class VMStructs;
+
 namespace ZOriginal {
 
 template <typename T>
 class ZGranuleMap {
-  friend class VMStructs;
+  friend class ::VMStructs;
   template <typename> friend class ZGranuleMapIterator;
 
 private:

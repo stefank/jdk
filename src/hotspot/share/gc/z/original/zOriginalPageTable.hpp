@@ -27,12 +27,14 @@
 #include "gc/z/original/zOriginalGranuleMap.hpp"
 #include "memory/allocation.hpp"
 
+class VMStructs;
+
 namespace ZOriginal {
 
 class ZPage;
 
 class ZPageTable {
-  friend class VMStructs;
+  friend class ::VMStructs;
   friend class ZPageTableIterator;
 
 private:

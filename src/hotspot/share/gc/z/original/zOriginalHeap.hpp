@@ -40,6 +40,7 @@
 #include "gc/z/original/zOriginalWorkers.hpp"
 
 class ThreadClosure;
+class VMStructs;
 
 namespace ZOriginal {
 
@@ -47,7 +48,7 @@ class ZPage;
 class ZRelocationSetSelector;
 
 class ZHeap {
-  friend class VMStructs;
+  friend class ::VMStructs;
 
 private:
   static ZHeap*       _heap;

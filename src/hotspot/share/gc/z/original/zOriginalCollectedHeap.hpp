@@ -32,6 +32,8 @@
 #include "gc/z/original/zOriginalRuntimeWorkers.hpp"
 #include "memory/metaspace.hpp"
 
+class VMStructs;
+
 namespace ZOriginal {
 
 class ZDirector;
@@ -39,7 +41,7 @@ class ZDriver;
 class ZStat;
 
 class ZCollectedHeap : public CollectedHeap {
-  friend class VMStructs;
+  friend class ::VMStructs;
 
 private:
   SoftRefPolicy     _soft_ref_policy;

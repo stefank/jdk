@@ -26,12 +26,14 @@
 
 #include "gc/z/original/zOriginalGranuleMap.hpp"
 
+class VMStructs;
+
 namespace ZOriginal {
 
 class ZForwarding;
 
 class ZForwardingTable {
-  friend class VMStructs;
+  friend class ::VMStructs;
 
 private:
   ZGranuleMap<ZForwarding*> _map;

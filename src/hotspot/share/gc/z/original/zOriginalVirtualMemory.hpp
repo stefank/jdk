@@ -26,10 +26,12 @@
 
 #include "gc/z/original/zOriginalMemory.hpp"
 
+class VMStructs;
+
 namespace ZOriginal {
 
 class ZVirtualMemory {
-  friend class VMStructs;
+  friend class ::VMStructs;
 
 private:
   uintptr_t _start;

@@ -30,6 +30,7 @@
 #include "gc/z/original/zOriginalVirtualMemory.hpp"
 
 class ObjectClosure;
+class VMStructs;
 
 namespace ZOriginal {
 
@@ -39,7 +40,7 @@ class ZPage;
 typedef size_t ZForwardingCursor;
 
 class ZForwarding {
-  friend class VMStructs;
+  friend class ::VMStructs;
   friend class ZForwardingTest;
 
 private:

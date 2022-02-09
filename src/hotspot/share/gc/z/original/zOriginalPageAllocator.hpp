@@ -34,6 +34,7 @@
 #include "gc/z/original/zOriginalVirtualMemory.hpp"
 
 class ThreadClosure;
+class VMStructs;
 
 namespace ZOriginal {
 
@@ -44,7 +45,7 @@ class ZUncommitter;
 class ZUnmapper;
 
 class ZPageAllocator {
-  friend class VMStructs;
+  friend class ::VMStructs;
   friend class ZUnmapper;
   friend class ZUncommitter;
 

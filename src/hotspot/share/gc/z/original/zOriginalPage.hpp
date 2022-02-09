@@ -30,10 +30,12 @@
 #include "gc/z/original/zOriginalVirtualMemory.hpp"
 #include "memory/allocation.hpp"
 
+class VMStructs;
+
 namespace ZOriginal {
 
 class ZPage : public CHeapObj<mtGC> {
-  friend class VMStructs;
+  friend class ::VMStructs;
   friend class ZList<ZPage>;
 
 private:

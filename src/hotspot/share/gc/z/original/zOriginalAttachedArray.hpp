@@ -26,11 +26,13 @@
 
 #include "utilities/globalDefinitions.hpp"
 
+class VMStructs;
+
 namespace ZOriginal {
 
 template <typename ObjectT, typename ArrayT>
 class ZAttachedArray {
-  friend class VMStructs;
+  friend class ::VMStructs;
 
 private:
   const size_t _length;

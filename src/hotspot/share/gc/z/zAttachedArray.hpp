@@ -26,6 +26,8 @@
 
 #include "utilities/globalDefinitions.hpp"
 
+class VMStructs;
+
 template <typename ObjectT, typename ArrayT>
 class ZAttachedArray {
   friend class VMStructs;

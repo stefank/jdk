@@ -29,6 +29,8 @@
 #include "metaprogramming/primitiveConversions.hpp"
 #include <type_traits>
 
+class VMStructs;
+
 namespace ZOriginal {
 
 //
@@ -50,7 +52,7 @@ namespace ZOriginal {
 
 class ZForwardingEntry {
   friend struct PrimitiveConversions::Translate<ZForwardingEntry>;
-  friend class VMStructs;
+  friend class ::VMStructs;
 
 private:
   typedef ZBitField<uint64_t, bool,   0,   1> field_populated;
