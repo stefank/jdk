@@ -54,6 +54,7 @@
 #endif
 #if INCLUDE_ZGC
 #include "gc/z/zThreadLocalData.hpp"
+#include "gc/shared/gc_globals.hpp"
 #endif
 
 // Declaration and definition of StubGenerator (no .hpp file).
@@ -2522,7 +2523,7 @@ class StubGenerator: public StubCodeGenerator {
                                           const char *name, bool dest_uninitialized = false) {
 #if COMPILER2_OR_JVMCI
     // TODO: Vectorize avx4 arraycopy for ZGC
-    if (!(UseZGC && ZGenerational && is_oop) && VM_Version::supports_avx512vlbw() && VM_Version::supports_bmi2() && MaxVectorSize  >= 32) {
+    if (ZGC_ONLY(!(UseZGC && ZGenerational && is_oop) &&) VM_Version::supports_avx512vlbw() && VM_Version::supports_bmi2() && MaxVectorSize  >= 32) {
        return generate_disjoint_copy_avx3_masked(entry, "jlong_disjoint_arraycopy_avx3", 3,
                                                  aligned, is_oop, dest_uninitialized);
     }
@@ -2635,7 +2636,7 @@ class StubGenerator: public StubCodeGenerator {
                                           const char *name, bool dest_uninitialized = false) {
 #if COMPILER2_OR_JVMCI
     // TODO: Enable this avx3 optimization with ZGC
-    if (!(UseZGC && ZGenerational && is_oop) && VM_Version::supports_avx512vlbw() && VM_Version::supports_bmi2() && MaxVectorSize  >= 32) {
+    if (ZGC_ONLY(!(UseZGC && ZGenerational && is_oop) &&) VM_Version::supports_avx512vlbw() && VM_Version::supports_bmi2() && MaxVectorSize  >= 32) {
        return generate_conjoint_copy_avx3_masked(entry, "jlong_conjoint_arraycopy_avx3", 3,
                                                  nooverlap_target, aligned, is_oop, dest_uninitialized);
     }
@@ -2895,7 +2896,7 @@ class StubGenerator: public StubCodeGenerator {
     __ align(OptoLoopAlignment);
 
     __ BIND(L_store_element);
-    if (UseZGC && ZGenerational) {
+    if (UseZGC ZGC_ONLY(&& ZGenerational)) {
       __ store_heap_oop(to_element_addr, rax_oop, r10, r11, noreg, IN_HEAP | (dest_uninitialized ? IS_DEST_UNINITIALIZED : 0));  // store the oop
     } else {
       __ store_heap_oop(to_element_addr, rax_oop, noreg, noreg, noreg, IN_HEAP | AS_RAW);  // store the oop
