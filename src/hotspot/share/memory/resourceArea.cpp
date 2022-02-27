@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -24,7 +24,7 @@
 
 #include "precompiled.hpp"
 #include "memory/allocation.inline.hpp"
-#include "memory/resourceArea.inline.hpp"
+#include "memory/resourceArea.hpp"
 #include "runtime/atomic.hpp"
 #include "runtime/thread.inline.hpp"
 #include "services/memTracker.hpp"
@@ -57,7 +57,60 @@ void ResourceArea::verify_has_resource_mark() {
   }
 }
 
+char* ResourceArea::allocate_bytes(size_t size, AllocFailType alloc_failmode) {
+  verify_has_resource_mark();
+  if (UseMallocOnly) {
+    // use malloc, but save pointer in res. area for later freeing
+    char** save = (char**)internal_amalloc(sizeof(char*));
+    return (*save = (char*)os::malloc(size, mtThread, CURRENT_PC));
+  }
+  return allocate_bytes_impl(size, alloc_failmode);
+}
+
 #endif // ASSERT
+
+ResourceArea* SafeResourceMark::_nothreads_resource_area = nullptr;
+const ResourceMarkState* SafeResourceMark::_nothreads_current_state = nullptr;
+
+Thread* SafeResourceMark::current_thread_or_null() {
+  if (Threads::number_of_threads() == 0) {
+    return nullptr;
+  } else {
+    return Thread::current();
+  }
+}
+
+ResourceArea* SafeResourceMark::resource_area(Thread* thread) {
+  if (thread != nullptr) {
+    return thread->resource_area();
+  } else {
+    ResourceArea* ra = _nothreads_resource_area;
+    if (ra == nullptr) {
+      // Lazily create the early resource area.
+      // Use a size which is not a standard since pools may not exist yet either.
+      ra = new (mtInternal) ResourceArea(Chunk::non_pool_size);
+      _nothreads_resource_area = ra;
+    }
+    return ra;
+  }
+}
+
+const ResourceMarkState* SafeResourceMark::current_state(Thread* thread) {
+  if (thread != nullptr) {
+    return thread->current_resource_mark_state();
+  } else {
+    return _nothreads_current_state;
+  }
+}
+
+void SafeResourceMark::set_current_state(Thread* thread,
+                                         const ResourceMarkState* state) {
+  if (thread != nullptr) {
+    thread->set_current_resource_mark_state(state);
+  } else {
+    _nothreads_current_state = state;
+  }
+}
 
 //------------------------------ResourceMark-----------------------------------
 // The following routines are declared in allocation.hpp and used everywhere:

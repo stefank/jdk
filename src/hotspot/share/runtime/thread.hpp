@@ -87,7 +87,7 @@ class ResourceArea;
 
 class OopStorage;
 
-DEBUG_ONLY(class ResourceMark;)
+class ResourceMarkState;
 
 class WorkerThread;
 
@@ -533,8 +533,8 @@ protected:
 
   // Thread local resource area for temporary allocation within the VM
   ResourceArea* _resource_area;
-
-  DEBUG_ONLY(ResourceMark* _current_resource_mark;)
+  // Head of chain of resource marks for this thread's resource area.
+  const ResourceMarkState* _current_resource_mark_state;
 
   // Thread local handle area for allocation of handles within the VM
   HandleArea* _handle_area;
@@ -583,10 +583,14 @@ protected:
   Mutex* owned_locks() const                     { return _owned_locks;          }
   bool owns_locks() const                        { return owned_locks() != NULL; }
 
-  // Deadlock detection
-  ResourceMark* current_resource_mark()          { return _current_resource_mark; }
-  void set_current_resource_mark(ResourceMark* rm) { _current_resource_mark = rm; }
 #endif // ASSERT
+
+  const ResourceMarkState* current_resource_mark_state() const {
+    return _current_resource_mark_state;
+  }
+  void set_current_resource_mark_state(const ResourceMarkState* rms) {
+    _current_resource_mark_state = rms;
+  }
 
  private:
   volatile int _jvmti_env_iteration_count;

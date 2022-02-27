@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1999, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1999, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -26,7 +26,6 @@
 #define SHARE_PRIMS_JVMTIUTIL_HPP
 
 #include "jvmtifiles/jvmti.h"
-#include "memory/resourceArea.hpp"
 #include "prims/jvmtiEventController.hpp"
 
 ///////////////////////////////////////////////////////////////
@@ -38,14 +37,10 @@
 
 class JvmtiUtil : AllStatic {
 
-  static ResourceArea* _single_threaded_resource_area;
-
   static const char* _error_names[];
   static const bool  _event_threaded[];
 
 public:
-
-  static ResourceArea* single_threaded_resource_area();
 
   static const char* error_name(int num)    { return _error_names[num]; }    // To Do: add range checking
 
@@ -61,35 +56,6 @@ public:
     ShouldNotReachHere();
     return false;
   }
-};
-
-
-///////////////////////////////////////////////////////////////
-//
-// class SafeResourceMark
-//
-// ResourceMarks that work before threads exist
-//
-
-class SafeResourceMark : public ResourceMark {
-
-  ResourceArea* safe_resource_area() {
-    Thread* thread;
-
-    if (Threads::number_of_threads() == 0) {
-      return JvmtiUtil::single_threaded_resource_area();
-    }
-    thread = Thread::current_or_null();
-    if (thread == NULL) {
-      return JvmtiUtil::single_threaded_resource_area();
-    }
-    return thread->resource_area();
-  }
-
- public:
-
-  SafeResourceMark() : ResourceMark(safe_resource_area()) {}
-
 };
 
 #endif // SHARE_PRIMS_JVMTIUTIL_HPP

@@ -1564,7 +1564,7 @@ void PhaseCFG::global_code_motion() {
   // is key to enabling this feature.
   PhaseChaitin regalloc(C->unique(), *this, _matcher, true);
   ResourceArea live_arena(mtCompiler);      // Arena for liveness
-  ResourceMark rm_live(&live_arena);
+  ResourceAreaMark rm_live(&live_arena);
   PhaseLive live(*this, regalloc._lrg_map.names(), &live_arena, true);
   PhaseIFG ifg(&live_arena);
   if (OptoRegScheduling && block_size_threshold_ok) {

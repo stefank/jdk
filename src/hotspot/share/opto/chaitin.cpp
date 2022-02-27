@@ -350,7 +350,7 @@ void PhaseChaitin::Register_Allocate() {
 
   ResourceArea split_arena(mtCompiler);     // Arena for Split local resources
   ResourceArea live_arena(mtCompiler);      // Arena for liveness & IFG info
-  ResourceMark rm(&live_arena);
+  ResourceAreaMark rm(&live_arena);
 
   // Need live-ness for the IFG; need the IFG for coalescing.  If the
   // liveness is JUST for coalescing, then I can get some mileage by renaming

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -49,6 +49,10 @@ class ResourceArea: public Arena {
   void verify_has_resource_mark();
 #endif // ASSERT
 
+  char* allocate_bytes_impl(size_t size, AllocFailType alloc_failmode) {
+    return (char*)Amalloc(size, alloc_failmode);
+  }
+
 public:
   ResourceArea(MEMFLAGS flags = mtThread) :
     Arena(flags) DEBUG_ONLY(COMMA _nesting(0)) {}
@@ -56,7 +60,9 @@ public:
   ResourceArea(size_t init_size, MEMFLAGS flags = mtThread) :
     Arena(flags, init_size) DEBUG_ONLY(COMMA _nesting(0)) {}
 
-  char* allocate_bytes(size_t size, AllocFailType alloc_failmode = AllocFailStrategy::EXIT_OOM);
+  char* allocate_bytes(size_t size,
+                       AllocFailType alloc_failmode = AllocFailStrategy::EXIT_OOM)
+    NOT_DEBUG({ return allocate_bytes_impl(size, alloc_failmode); });
 
   // Bias this resource area to specific memory type
   // (by default, ResourceArea is tagged as mtThread, per-thread general purpose storage)
@@ -136,80 +142,131 @@ public:
 // A resource mark releases all resources allocated after it was constructed
 // when the destructor is called.  Typically used as a local variable.
 
-// Shared part of implementation for ResourceMark and DeoptResourceMark.
-class ResourceMarkImpl {
-  ResourceArea* _area;          // Resource area to stack allocate
-  ResourceArea::SavedState _saved_state;
+// Shared implementation for resource marks.
+class ResourceMarkState {
+  ResourceArea* const _area;    // Resource area to stack allocate
+  const ResourceArea::SavedState _saved_state;
+  const ResourceMarkState* const _previous;
 
-  NONCOPYABLE(ResourceMarkImpl);
+  NONCOPYABLE(ResourceMarkState);
 
 public:
-  explicit ResourceMarkImpl(ResourceArea* area) :
+  explicit ResourceMarkState(ResourceArea* area,
+                             const ResourceMarkState* previous = nullptr) :
     _area(area),
-    _saved_state(area)
+    _saved_state(area),
+    _previous(previous)
   {
     _area->activate_state(_saved_state);
   }
 
-  explicit ResourceMarkImpl(Thread* thread)
-    : ResourceMarkImpl(thread->resource_area()) {}
-
-  ~ResourceMarkImpl() {
+  ~ResourceMarkState() {
     reset_to_mark();
     _area->deactivate_state(_saved_state);
   }
 
+  ResourceArea* area() const { return _area; }
+  const ResourceMarkState* previous() const { return _previous; }
+
   void reset_to_mark() const {
     _area->rollback_to(_saved_state);
   }
+
+  // Get the current resource mark state for the current context.  Normally
+  // the context is the current Thread.  Prior to the initialization of
+  // Thread support this returns the current pre-threading resource mark
+  // state.
+  static inline const ResourceMarkState* current();
 };
 
+// Provides stack-discipline management of a ResourceArea other than the one
+// provided by the current Thread.
+class ResourceAreaMark: public StackObj {
+  const ResourceMarkState _state;
+
+  NONCOPYABLE(ResourceAreaMark);
+
+public:
+  ResourceAreaMark(ResourceArea* area) : _state(area) {}
+
+  void reset_to_mark() { _state.reset_to_mark(); }
+};
+
+// Shared implementation for resource marks that manage the ResourceArea
+// provided by the current Thread.
+class ResourceMarkForThread {
+  Thread* const _thread;
+  const ResourceMarkState _state;
+
+  NONCOPYABLE(ResourceMarkForThread);
+
+public:
+  ResourceMarkForThread(Thread* thread) :
+    _thread(thread),
+    _state(thread->resource_area(), thread->current_resource_mark_state())
+  {
+    assert(thread == Thread::current(), "not the current thread");
+    thread->set_current_resource_mark_state(&_state);
+  }
+
+  ~ResourceMarkForThread() {
+    _thread->set_current_resource_mark_state(_state.previous());
+  }
+};
+
+// Provides stack-discipline management of the ResourceArea provided by the
+// current Thread.
 class ResourceMark: public StackObj {
-  const ResourceMarkImpl _impl;
-#ifdef ASSERT
-  Thread* _thread;
-  ResourceMark* _previous_resource_mark;
-#endif // ASSERT
+  const ResourceMarkForThread _impl;
 
   NONCOPYABLE(ResourceMark);
 
-  // Helper providing common constructor implementation.
-#ifndef ASSERT
-  ResourceMark(ResourceArea* area, Thread* thread) : _impl(area) {}
-#else
-  ResourceMark(ResourceArea* area, Thread* thread) :
-    _impl(area),
-    _thread(thread),
-    _previous_resource_mark(nullptr)
-  {
-    if (_thread != nullptr) {
-      assert(_thread == Thread::current(), "not the current thread");
-      _previous_resource_mark = _thread->current_resource_mark();
-      _thread->set_current_resource_mark(this);
-    }
-  }
-#endif // ASSERT
-
 public:
-
   ResourceMark() : ResourceMark(Thread::current()) {}
+  explicit ResourceMark(Thread* thread) : _impl(thread) {}
+};
 
-  explicit ResourceMark(Thread* thread)
-    : ResourceMark(thread->resource_area(), thread) {}
+// ResourceMarks that work before HotSpot threads exist.
+class SafeResourceMark : StackObj {
+  Thread* const _thread;
+  const ResourceMarkState _state;
 
-  explicit ResourceMark(ResourceArea* area)
-    : ResourceMark(area, DEBUG_ONLY(Thread::current_or_null()) NOT_DEBUG(nullptr)) {}
+  static ResourceArea* _nothreads_resource_area;
+  static const ResourceMarkState* _nothreads_current_state;
 
-#ifdef ASSERT
-  ~ResourceMark() {
-    if (_thread != nullptr) {
-      _thread->set_current_resource_mark(_previous_resource_mark);
+  static Thread* current_thread_or_null();
+  static ResourceArea* resource_area(Thread* thread);
+  static const ResourceMarkState* current_state(Thread* thread);
+  static void set_current_state(Thread* thread, const ResourceMarkState* state);
+
+  SafeResourceMark(Thread* thread) :
+    _thread(thread),
+    _state(resource_area(thread), current_state(thread))
+  {
+    set_current_state(thread, &_state);
+  }
+
+ public:
+  SafeResourceMark() : SafeResourceMark(current_thread_or_null()) {}
+
+  ~SafeResourceMark() {
+    set_current_state(_thread, _state.previous());
+  }
+
+  static const ResourceMarkState* current_state() {
+    Thread* thread = Thread::current_or_null();
+    if (thread != nullptr) {
+      return thread->current_resource_mark_state();
+    } else {
+      assert(Threads::number_of_threads() == 0, "no current thread");
+      return _nothreads_current_state;
     }
   }
-#endif // ASSERT
-
-  void reset_to_mark() { _impl.reset_to_mark(); }
 };
+
+const ResourceMarkState* ResourceMarkState::current() {
+  return SafeResourceMark::current_state();
+}
 
 //------------------------------DeoptResourceMark-----------------------------------
 // A deopt resource mark releases all resources allocated after it was constructed
@@ -242,14 +299,12 @@ public:
 // class.
 
 class DeoptResourceMark: public CHeapObj<mtInternal> {
-  const ResourceMarkImpl _impl;
+  const ResourceMarkForThread _impl;
 
   NONCOPYABLE(DeoptResourceMark);
 
 public:
   explicit DeoptResourceMark(Thread* thread) : _impl(thread) {}
-
-  void reset_to_mark() { _impl.reset_to_mark(); }
 };
 
 #endif // SHARE_MEMORY_RESOURCEAREA_HPP

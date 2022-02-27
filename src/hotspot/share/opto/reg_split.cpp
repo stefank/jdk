@@ -25,7 +25,7 @@
 #include "precompiled.hpp"
 #include "libadt/vectset.hpp"
 #include "memory/allocation.inline.hpp"
-#include "memory/resourceArea.inline.hpp"
+#include "memory/resourceArea.hpp"
 #include "opto/addnode.hpp"
 #include "opto/c2compiler.hpp"
 #include "opto/callnode.hpp"
@@ -497,7 +497,7 @@ uint PhaseChaitin::Split(uint maxlrg, ResourceArea* split_arena) {
   Compile::TracePhase tp("regAllocSplit", &timers[_t_regAllocSplit]);
 
   // Free thread local resources used by this method on exit.
-  ResourceMark rm(split_arena);
+  ResourceAreaMark rm(split_arena);
 
   uint                 bidx, pidx, slidx, insidx, inpidx, twoidx;
   uint                 non_phi = 1, spill_cnt = 0;

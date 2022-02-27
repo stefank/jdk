@@ -1489,7 +1489,7 @@ MachNode *Matcher::match_tree( const Node *n ) {
   // Set the mark for all locally allocated State objects.
   // When this call returns, the _states_arena arena will be reset
   // freeing all State objects.
-  ResourceMark rm( &_states_arena );
+  ResourceAreaMark rm( &_states_arena );
 
   LabelRootDepth = 0;
 
