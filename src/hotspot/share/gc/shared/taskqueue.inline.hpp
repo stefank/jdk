@@ -27,6 +27,7 @@
 
 #include "gc/shared/taskqueue.hpp"
 
+#include "cppstdlib/memory.hpp"
 #include "logging/log.hpp"
 #include "logging/logStream.hpp"
 #include "memory/allocation.inline.hpp"
@@ -42,9 +43,7 @@ template <class T, MEMFLAGS F>
 inline GenericTaskQueueSet<T, F>::GenericTaskQueueSet(uint n) : _n(n) {
   typedef T* GenericTaskQueuePtr;
   _queues = NEW_C_HEAP_ARRAY(GenericTaskQueuePtr, n, F);
-  for (uint i = 0; i < n; i++) {
-    _queues[i] = NULL;
-  }
+  std::uninitialized_fill_n(_queues, n, nullptr);
 }
 
 template <class T, MEMFLAGS F>
