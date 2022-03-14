@@ -34,6 +34,8 @@
 #include "classfile/systemDictionary.hpp"
 #include "gc/shared/collectedHeap.inline.hpp"
 #include "jfr/jfrEvents.hpp"
+#include "logging/log.hpp"
+#include "logging/logStream.hpp"
 #include "memory/iterator.inline.hpp"
 #include "memory/oopFactory.hpp"
 #include "oops/instanceKlass.hpp"
