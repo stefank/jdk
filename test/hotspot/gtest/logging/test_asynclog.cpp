@@ -103,7 +103,7 @@ LOG_LEVEL_LIST
 
 TEST_VM(AsyncLogBufferTest, fifo) {
   LinkedListDeque<int, mtLogging> fifo;
-  LinkedListImpl<int, ResourceObj::C_HEAP, mtLogging> result;
+  LinkedListImpl<int, AnyObj::C_HEAP, mtLogging> result;
 
   fifo.push_back(1);
   EXPECT_EQ((size_t)1, fifo.size());

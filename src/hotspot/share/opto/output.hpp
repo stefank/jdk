@@ -74,7 +74,7 @@ public:
 
 class C2SafepointPollStubTable {
 private:
-  struct C2SafepointPollStub: public ResourceObj {
+  struct C2SafepointPollStub: public ArenaObj {
     uintptr_t _safepoint_offset;
     Label     _stub_label;
     Label     _trampoline_label;

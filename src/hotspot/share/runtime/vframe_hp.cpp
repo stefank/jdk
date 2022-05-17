@@ -65,7 +65,7 @@ StackValueCollection* compiledVFrame::locals() const {
 
   // Replace the original values with any stores that have been
   // performed through compiledVFrame::update_locals.
-  GrowableArray<jvmtiDeferredLocalVariableSet*>* list = JvmtiDeferredUpdates::deferred_locals(thread());
+  GrowableArrayView<jvmtiDeferredLocalVariableSet*>* list = JvmtiDeferredUpdates::deferred_locals(thread());
   if (list != NULL ) {
     // In real life this never happens or is typically a single element search
     for (int i = 0; i < list->length(); i++) {
@@ -195,7 +195,7 @@ StackValueCollection* compiledVFrame::expressions() const {
 
   // Replace the original values with any stores that have been
   // performed through compiledVFrame::update_stack.
-  GrowableArray<jvmtiDeferredLocalVariableSet*>* list = JvmtiDeferredUpdates::deferred_locals(thread());
+  GrowableArrayView<jvmtiDeferredLocalVariableSet*>* list = JvmtiDeferredUpdates::deferred_locals(thread());
   if (list != NULL ) {
     // In real life this never happens or is typically a single element search
     for (int i = 0; i < list->length(); i++) {
@@ -268,7 +268,7 @@ GrowableArray<MonitorInfo*>* compiledVFrame::monitors() const {
 
   // Replace the original values with any stores that have been
   // performed through compiledVFrame::update_monitors.
-  GrowableArray<jvmtiDeferredLocalVariableSet*>* list = JvmtiDeferredUpdates::deferred_locals(thread());
+  GrowableArrayView<jvmtiDeferredLocalVariableSet*>* list = JvmtiDeferredUpdates::deferred_locals(thread());
   if (list != NULL ) {
     // In real life this never happens or is typically a single element search
     for (int i = 0; i < list->length(); i++) {
@@ -397,7 +397,7 @@ jvmtiDeferredLocalVariableSet::jvmtiDeferredLocalVariableSet(Method* method, int
   _id = id;
   _vframe_id = vframe_id;
   // Alway will need at least one, must be on C heap
-  _locals = new(ResourceObj::C_HEAP, mtCompiler) GrowableArray<jvmtiDeferredLocalVariable*> (1, mtCompiler);
+  _locals = new (mtCompiler) GrowableArray<jvmtiDeferredLocalVariable*> (1, mtCompiler);
   _objects_are_deoptimized = false;
 }
 

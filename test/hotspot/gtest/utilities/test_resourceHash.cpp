@@ -84,7 +84,7 @@ class SmallResourceHashtableTest : public CommonResourceHashtableTest {
   unsigned (*HASH) (K const&) = primitive_hash<K>,
   bool (*EQUALS)(K const&, K const&) = primitive_equals<K>,
   unsigned SIZE = 256,
-  ResourceObj::allocation_type ALLOC_TYPE = ResourceObj::RESOURCE_AREA
+  AnyObj::allocation_type ALLOC_TYPE = AnyObj::RESOURCE_AREA
   >
   class Runner : public AllStatic {
    public:
@@ -186,27 +186,27 @@ TEST_VM_F(SmallResourceHashtableTest, identity_hash_shifted) {
 }
 
 TEST_VM_F(SmallResourceHashtableTest, primitive_hash_no_rm) {
-  Runner<primitive_hash<K>, primitive_equals<K>, 512, ResourceObj::C_HEAP>::test(0x1);
+  Runner<primitive_hash<K>, primitive_equals<K>, 512, AnyObj::C_HEAP>::test(0x1);
 }
 
 TEST_VM_F(SmallResourceHashtableTest, primitive_hash_no_rm_shifted) {
-  Runner<primitive_hash<K>, primitive_equals<K>, 512, ResourceObj::C_HEAP>::test(0x10);
+  Runner<primitive_hash<K>, primitive_equals<K>, 512, AnyObj::C_HEAP>::test(0x10);
 }
 
 TEST_VM_F(SmallResourceHashtableTest, bad_hash_no_rm) {
-  Runner<bad_hash, primitive_equals<K>, 512, ResourceObj::C_HEAP>::test(0x1);
+  Runner<bad_hash, primitive_equals<K>, 512, AnyObj::C_HEAP>::test(0x1);
 }
 
 TEST_VM_F(SmallResourceHashtableTest, bad_hash_no_rm_shifted) {
-  Runner<bad_hash, primitive_equals<K>, 512, ResourceObj::C_HEAP>::test(0x10);
+  Runner<bad_hash, primitive_equals<K>, 512, AnyObj::C_HEAP>::test(0x10);
 }
 
 TEST_VM_F(SmallResourceHashtableTest, identity_hash_no_rm) {
-  Runner<identity_hash, primitive_equals<K>, 1, ResourceObj::C_HEAP>::test(0x1);
+  Runner<identity_hash, primitive_equals<K>, 1, AnyObj::C_HEAP>::test(0x1);
 }
 
 TEST_VM_F(SmallResourceHashtableTest, identity_hash_no_rm_shifted) {
-  Runner<identity_hash, primitive_equals<K>, 1, ResourceObj::C_HEAP>::test(0x10);
+  Runner<identity_hash, primitive_equals<K>, 1, AnyObj::C_HEAP>::test(0x10);
 }
 
 class GenericResourceHashtableTest : public CommonResourceHashtableTest {
@@ -216,7 +216,7 @@ class GenericResourceHashtableTest : public CommonResourceHashtableTest {
   unsigned (*HASH) (K const&) = primitive_hash<K>,
   bool (*EQUALS)(K const&, K const&) = primitive_equals<K>,
   unsigned SIZE = 256,
-  ResourceObj::allocation_type ALLOC_TYPE = ResourceObj::RESOURCE_AREA
+  AnyObj::allocation_type ALLOC_TYPE = AnyObj::RESOURCE_AREA
   >
   class Runner : public AllStatic {
    public:
@@ -277,13 +277,13 @@ TEST_VM_F(GenericResourceHashtableTest, identity_hash) {
 }
 
 TEST_VM_F(GenericResourceHashtableTest, primitive_hash_no_rm) {
-  Runner<primitive_hash<K>, primitive_equals<K>, 512, ResourceObj::C_HEAP>::test();
+  Runner<primitive_hash<K>, primitive_equals<K>, 512, AnyObj::C_HEAP>::test();
 }
 
 TEST_VM_F(GenericResourceHashtableTest, bad_hash_no_rm) {
-  Runner<bad_hash, primitive_equals<K>, 512, ResourceObj::C_HEAP>::test();
+  Runner<bad_hash, primitive_equals<K>, 512, AnyObj::C_HEAP>::test();
 }
 
 TEST_VM_F(GenericResourceHashtableTest, identity_hash_no_rm) {
-  Runner<identity_hash, primitive_equals<K>, 1, ResourceObj::C_HEAP>::test(512);
+  Runner<identity_hash, primitive_equals<K>, 1, AnyObj::C_HEAP>::test(512);
 }

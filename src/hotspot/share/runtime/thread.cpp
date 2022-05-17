@@ -219,7 +219,7 @@ Thread::Thread() {
   set_resource_area(new (mtThread)ResourceArea());
   DEBUG_ONLY(_current_resource_mark = NULL;)
   set_handle_area(new (mtThread) HandleArea(NULL));
-  set_metadata_handles(new (ResourceObj::C_HEAP, mtClass) GrowableArray<Metadata*>(30, mtClass));
+  set_metadata_handles(new (mtClass) GrowableArray<Metadata*>(30, mtClass));
   set_last_handle_mark(NULL);
   DEBUG_ONLY(_missed_ic_stub_refill_verifier = NULL);
 
@@ -1955,7 +1955,7 @@ void JavaThread::oops_do_no_frames(OopClosure* f, CodeBlobClosure* cf) {
   assert(vframe_array_head() == NULL, "deopt in progress at a safepoint!");
   // If we have deferred set_locals there might be oops waiting to be
   // written
-  GrowableArray<jvmtiDeferredLocalVariableSet*>* list = JvmtiDeferredUpdates::deferred_locals(this);
+  GrowableArrayView<jvmtiDeferredLocalVariableSet*>* list = JvmtiDeferredUpdates::deferred_locals(this);
   if (list != NULL) {
     for (int i = 0; i < list->length(); i++) {
       list->at(i)->oops_do(f);

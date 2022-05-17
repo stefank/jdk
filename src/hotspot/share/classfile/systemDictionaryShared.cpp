@@ -200,7 +200,7 @@ DumpTimeClassInfo* SystemDictionaryShared::find_or_allocate_info_for(InstanceKla
 DumpTimeClassInfo* SystemDictionaryShared::find_or_allocate_info_for_locked(InstanceKlass* k) {
   assert_lock_strong(DumpTimeTable_lock);
   if (_dumptime_table == NULL) {
-    _dumptime_table = new (ResourceObj::C_HEAP, mtClass) DumpTimeSharedClassTable;
+    _dumptime_table = new (mtClass) DumpTimeSharedClassTable;
   }
   return _dumptime_table->find_or_allocate_info_for(k, _dump_in_progress);
 }
@@ -440,7 +440,7 @@ InstanceKlass* SystemDictionaryShared::find_or_load_shared_class(
 class UnregisteredClassesTable : public ResourceHashtable<
   Symbol*, InstanceKlass*,
   15889, // prime number
-  ResourceObj::C_HEAP> {};
+  AnyObj::C_HEAP> {};
 
 static UnregisteredClassesTable* _unregistered_classes_table = NULL;
 
@@ -453,7 +453,7 @@ bool SystemDictionaryShared::add_unregistered_class(Thread* current, InstanceKla
   MutexLocker ml(current, UnregisteredClassesTable_lock);
   Symbol* name = klass->name();
   if (_unregistered_classes_table == NULL) {
-    _unregistered_classes_table = new (ResourceObj::C_HEAP, mtClass)UnregisteredClassesTable();
+    _unregistered_classes_table = new (mtClass)UnregisteredClassesTable();
   }
   bool created;
   InstanceKlass** v = _unregistered_classes_table->put_if_absent(name, klass, &created);
@@ -805,7 +805,7 @@ void SystemDictionaryShared::add_to_dump_time_lambda_proxy_class_dictionary(Lamb
   assert_lock_strong(DumpTimeTable_lock);
   if (_dumptime_lambda_proxy_class_dictionary == NULL) {
     _dumptime_lambda_proxy_class_dictionary =
-      new (ResourceObj::C_HEAP, mtClass) DumpTimeLambdaProxyClassDictionary;
+      new (mtClass) DumpTimeLambdaProxyClassDictionary;
   }
   DumpTimeLambdaProxyClassInfo* lambda_info = _dumptime_lambda_proxy_class_dictionary->get(key);
   if (lambda_info == NULL) {
@@ -1601,7 +1601,7 @@ void SystemDictionaryShared::clone_dumptime_tables() {
   assert_lock_strong(DumpTimeTable_lock);
   if (_dumptime_table != NULL) {
     assert(_cloned_dumptime_table == NULL, "_cloned_dumptime_table must be cleaned");
-    _cloned_dumptime_table = new (ResourceObj::C_HEAP, mtClass) DumpTimeSharedClassTable;
+    _cloned_dumptime_table = new (mtClass) DumpTimeSharedClassTable;
     CloneDumpTimeClassTable copy_classes(_dumptime_table, _cloned_dumptime_table);
     _dumptime_table->iterate(&copy_classes);
     _cloned_dumptime_table->update_counts();
@@ -1610,7 +1610,7 @@ void SystemDictionaryShared::clone_dumptime_tables() {
     assert(_cloned_dumptime_lambda_proxy_class_dictionary == NULL,
            "_cloned_dumptime_lambda_proxy_class_dictionary must be cleaned");
     _cloned_dumptime_lambda_proxy_class_dictionary =
-                                          new (ResourceObj::C_HEAP, mtClass) DumpTimeLambdaProxyClassDictionary;
+                                          new (mtClass) DumpTimeLambdaProxyClassDictionary;
     CloneDumpTimeLambdaProxyClassTable copy_proxy_classes(_dumptime_lambda_proxy_class_dictionary,
                                                           _cloned_dumptime_lambda_proxy_class_dictionary);
     _dumptime_lambda_proxy_class_dictionary->iterate(&copy_proxy_classes);

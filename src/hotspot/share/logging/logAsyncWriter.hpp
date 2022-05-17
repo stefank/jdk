@@ -33,7 +33,7 @@
 #include "utilities/linkedlist.hpp"
 
 template <typename E, MEMFLAGS F>
-class LinkedListDeque : private LinkedListImpl<E, ResourceObj::C_HEAP, F> {
+class LinkedListDeque : private LinkedListImpl<E, AnyObj::C_HEAP, F> {
  private:
   LinkedListNode<E>* _tail;
   size_t _size;
@@ -114,7 +114,7 @@ typedef LinkedListDeque<AsyncLogMessage, mtLogging> AsyncLogBuffer;
 typedef ResourceHashtable<LogFileStreamOutput*,
                           uint32_t,
                           17, /*table_size*/
-                          ResourceObj::C_HEAP,
+                          AnyObj::C_HEAP,
                           mtLogging> AsyncLogMap;
 
 //

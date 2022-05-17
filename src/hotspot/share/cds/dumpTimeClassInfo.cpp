@@ -49,8 +49,8 @@ DumpTimeClassInfo DumpTimeClassInfo::clone() {
   clone._enum_klass_static_fields = NULL;
   int clone_num_verifier_constraints = num_verifier_constraints();
   if (clone_num_verifier_constraints > 0) {
-    clone._verifier_constraints = new (ResourceObj::C_HEAP, mtClass) GrowableArray<DTVerifierConstraint>(clone_num_verifier_constraints, mtClass);
-    clone._verifier_constraint_flags = new (ResourceObj::C_HEAP, mtClass) GrowableArray<char>(clone_num_verifier_constraints, mtClass);
+    clone._verifier_constraints = new (mtClass) GrowableArray<DTVerifierConstraint>(clone_num_verifier_constraints, mtClass);
+    clone._verifier_constraint_flags = new (mtClass) GrowableArray<char>(clone_num_verifier_constraints, mtClass);
     for (int i = 0; i < clone_num_verifier_constraints; i++) {
       clone._verifier_constraints->append(_verifier_constraints->at(i));
       clone._verifier_constraint_flags->append(_verifier_constraint_flags->at(i));
@@ -58,7 +58,7 @@ DumpTimeClassInfo DumpTimeClassInfo::clone() {
   }
   int clone_num_loader_constraints = num_loader_constraints();
   if (clone_num_loader_constraints > 0) {
-    clone._loader_constraints = new (ResourceObj::C_HEAP, mtClass) GrowableArray<DTLoaderConstraint>(clone_num_loader_constraints, mtClass);
+    clone._loader_constraints = new (mtClass) GrowableArray<DTLoaderConstraint>(clone_num_loader_constraints, mtClass);
     for (int i = 0; i < clone_num_loader_constraints; i++) {
       clone._loader_constraints->append(_loader_constraints->at(i));
     }
@@ -76,10 +76,10 @@ size_t DumpTimeClassInfo::runtime_info_bytesize() const {
 void DumpTimeClassInfo::add_verification_constraint(InstanceKlass* k, Symbol* name,
          Symbol* from_name, bool from_field_is_protected, bool from_is_array, bool from_is_object) {
   if (_verifier_constraints == NULL) {
-    _verifier_constraints = new (ResourceObj::C_HEAP, mtClass) GrowableArray<DTVerifierConstraint>(4, mtClass);
+    _verifier_constraints = new (mtClass) GrowableArray<DTVerifierConstraint>(4, mtClass);
   }
   if (_verifier_constraint_flags == NULL) {
-    _verifier_constraint_flags = new (ResourceObj::C_HEAP, mtClass) GrowableArray<char>(4, mtClass);
+    _verifier_constraint_flags = new (mtClass) GrowableArray<char>(4, mtClass);
   }
   GrowableArray<DTVerifierConstraint>* vc_array = _verifier_constraints;
   for (int i = 0; i < vc_array->length(); i++) {
@@ -122,7 +122,7 @@ void DumpTimeClassInfo::record_linking_constraint(Symbol* name, Handle loader1, 
   assert(loader1 != loader2, "sanity");
   LogTarget(Info, class, loader, constraints) log;
   if (_loader_constraints == NULL) {
-    _loader_constraints = new (ResourceObj::C_HEAP, mtClass) GrowableArray<DTLoaderConstraint>(4, mtClass);
+    _loader_constraints = new (mtClass) GrowableArray<DTLoaderConstraint>(4, mtClass);
   }
   char lt1 = get_loader_type_by(loader1());
   char lt2 = get_loader_type_by(loader2());
@@ -155,7 +155,7 @@ void DumpTimeClassInfo::record_linking_constraint(Symbol* name, Handle loader1, 
 
 void DumpTimeClassInfo::add_enum_klass_static_field(int archived_heap_root_index) {
   if (_enum_klass_static_fields == NULL) {
-    _enum_klass_static_fields = new (ResourceObj::C_HEAP, mtClass) GrowableArray<int>(20, mtClass);
+    _enum_klass_static_fields = new (mtClass) GrowableArray<int>(20, mtClass);
   }
   _enum_klass_static_fields->append(archived_heap_root_index);
 }

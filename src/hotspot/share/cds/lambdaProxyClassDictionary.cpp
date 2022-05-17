@@ -32,7 +32,7 @@ DumpTimeLambdaProxyClassInfo DumpTimeLambdaProxyClassInfo::clone() {
   res._proxy_klasses = NULL;
   if (_proxy_klasses != NULL && _proxy_klasses->length() > 0) {
     int num_proxy_klasses = _proxy_klasses->length();
-    res._proxy_klasses = new (ResourceObj::C_HEAP, mtClassShared) GrowableArray<InstanceKlass*>(num_proxy_klasses, mtClassShared);
+    res._proxy_klasses = new (mtClassShared) GrowableArray<InstanceKlass*>(num_proxy_klasses, mtClassShared);
     for (int i = 0; i < num_proxy_klasses; i++) {
       res._proxy_klasses->append(_proxy_klasses->at(i));
     }

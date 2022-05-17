@@ -446,7 +446,7 @@ class ClassFieldMap: public CHeapObj<mtInternal> {
 };
 
 ClassFieldMap::ClassFieldMap() {
-  _fields = new (ResourceObj::C_HEAP, mtServiceability)
+  _fields = new (mtServiceability)
     GrowableArray<ClassFieldDescriptor*>(initial_field_count, mtServiceability);
 }
 
@@ -581,7 +581,7 @@ bool ClassFieldMapCacheMark::_is_active;
 // record that the given InstanceKlass is caching a field map
 void JvmtiCachedClassFieldMap::add_to_class_list(InstanceKlass* ik) {
   if (_class_list == NULL) {
-    _class_list = new (ResourceObj::C_HEAP, mtServiceability)
+    _class_list = new (mtServiceability)
       GrowableArray<InstanceKlass*>(initial_class_count, mtServiceability);
   }
   _class_list->push(ik);
@@ -1237,8 +1237,8 @@ class TagObjectCollector : public JvmtiTagMapEntryClosure {
     _tags((jlong*)tags),
     _tag_count(tag_count),
     _some_dead_found(false),
-    _object_results(new (ResourceObj::C_HEAP, mtServiceability) GrowableArray<jobject>(1, mtServiceability)),
-    _tag_results(new (ResourceObj::C_HEAP, mtServiceability) GrowableArray<uint64_t>(1, mtServiceability)) { }
+    _object_results(new (mtServiceability) GrowableArray<jobject>(1, mtServiceability)),
+    _tag_results(new (mtServiceability) GrowableArray<uint64_t>(1, mtServiceability)) { }
 
   ~TagObjectCollector() {
     delete _object_results;
@@ -1394,8 +1394,8 @@ void ObjectMarker::init() {
   Universe::heap()->ensure_parsability(false);  // no need to retire TLABs
 
   // create stacks for interesting headers
-  _saved_mark_stack = new (ResourceObj::C_HEAP, mtServiceability) GrowableArray<markWord>(4000, mtServiceability);
-  _saved_oop_stack = new (ResourceObj::C_HEAP, mtServiceability) GrowableArray<oop>(4000, mtServiceability);
+  _saved_mark_stack = new (mtServiceability) GrowableArray<markWord>(4000, mtServiceability);
+  _saved_oop_stack = new (mtServiceability) GrowableArray<oop>(4000, mtServiceability);
 }
 
 // Object marking is done so restore object headers
@@ -2373,7 +2373,7 @@ class VM_HeapWalkOperation: public VM_Operation {
   bool _reporting_string_values;
 
   GrowableArray<oop>* create_visit_stack() {
-    return new (ResourceObj::C_HEAP, mtServiceability) GrowableArray<oop>(initial_visit_stack_size, mtServiceability);
+    return new (mtServiceability) GrowableArray<oop>(initial_visit_stack_size, mtServiceability);
   }
 
   // accessors

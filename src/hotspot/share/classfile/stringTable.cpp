@@ -621,7 +621,7 @@ class VerifyCompStrings : StackObj {
   }
 
   ResizeableResourceHashtable<oop, bool,
-                              ResourceObj::C_HEAP, mtInternal,
+                              AnyObj::C_HEAP, mtInternal,
                               string_hash, string_equals> _table;
  public:
   size_t _errors;
