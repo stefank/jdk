@@ -25,7 +25,6 @@
 #include "precompiled.hpp"
 #include "gc/shared/gcTimer.hpp"
 #include "gc/shared/gc_globals.hpp"
-#include "utilities/growableArray.hpp"
 
 // the "time" parameter for most functions
 // has a default value set by Ticks::now()
@@ -108,30 +107,29 @@ GCPhase::PhaseType TimePartitions::current_phase_type() const {
   assert(level > 0, "No active phase");
 
   int index = _active_phases.phase_index(level - 1);
-  GCPhase phase = _phases->at(index);
+  const GCPhase& phase = phase_at(index);
   GCPhase::PhaseType type = phase.type();
   return type;
 }
 
-TimePartitions::TimePartitions() {
-  _phases = new (ResourceObj::C_HEAP, mtGC) GrowableArray<GCPhase>(INITIAL_CAPACITY, mtGC);
+TimePartitions::TimePartitions() :
+    _phases(),
+    _active_phases(),
+    _sum_of_pauses(),
+    _longest_pause() {
+  _phases.reserve(INITIAL_CAPACITY);
   clear();
 }
 
-TimePartitions::~TimePartitions() {
-  delete _phases;
-  _phases = NULL;
-}
-
 void TimePartitions::clear() {
-  _phases->clear();
+  _phases.clear();
   _active_phases.clear();
   _sum_of_pauses = Tickspan();
   _longest_pause = Tickspan();
 }
 
 void TimePartitions::report_gc_phase_start(const char* name, const Ticks& time, GCPhase::PhaseType type) {
-  assert(UseZGC || _phases->length() <= 1000, "Too many recorded phases? (count: %d)", _phases->length());
+  assert(UseZGC || _phases.size() <= 1000u, "Too many recorded phases? (count: %zu)", _phases.size());
 
   int level = _active_phases.count();
 
@@ -141,7 +139,9 @@ void TimePartitions::report_gc_phase_start(const char* name, const Ticks& time, 
   phase.set_name(name);
   phase.set_start(time);
 
-  int index = _phases->append(phase);
+  _phases.push_back(phase);
+
+  int index = num_phases() - 1;
 
   _active_phases.push(index);
 }
@@ -163,9 +163,9 @@ void TimePartitions::report_gc_phase_start_sub_phase(const char* name, const Tic
   report_gc_phase_start(name, time, type);
 }
 
-void TimePartitions::update_statistics(GCPhase* phase) {
-  if ((phase->type() == GCPhase::PausePhaseType) && (phase->level() == 0)) {
-    const Tickspan pause = phase->end() - phase->start();
+void TimePartitions::update_statistics(const GCPhase& phase) {
+  if ((phase.type() == GCPhase::PausePhaseType) && (phase.level() == 0)) {
+    const Tickspan pause = phase.end() - phase.start();
     _sum_of_pauses += pause;
     _longest_pause = MAX2(pause, _longest_pause);
   }
@@ -173,20 +173,24 @@ void TimePartitions::update_statistics(GCPhase* phase) {
 
 void TimePartitions::report_gc_phase_end(const Ticks& time) {
   int phase_index = _active_phases.pop();
-  GCPhase* phase = _phases->adr_at(phase_index);
-  phase->set_end(time);
+  GCPhase& phase = phase_at(phase_index);
+  phase.set_end(time);
   update_statistics(phase);
 }
 
 int TimePartitions::num_phases() const {
-  return _phases->length();
+  return checked_cast<int>(_phases.size());
 }
 
-GCPhase* TimePartitions::phase_at(int index) const {
-  assert(index >= 0, "Out of bounds");
-  assert(index < _phases->length(), "Out of bounds");
+const GCPhase& TimePartitions::phase_at(int index) const {
+  return const_cast<TimePartitions*>(this)->phase_at(index);
+}
 
-  return _phases->adr_at(index);
+GCPhase& TimePartitions::phase_at(int index) {
+  assert(index >= 0, "Out of bounds");
+  assert(index < checked_cast<int>(_phases.size()), "Out of bounds");
+
+  return _phases[index];
 }
 
 bool TimePartitions::has_active_phases() {
@@ -197,7 +201,7 @@ bool TimePartitionPhasesIterator::has_next() {
   return _next < _time_partitions->num_phases();
 }
 
-GCPhase* TimePartitionPhasesIterator::next() {
+GCPhase& TimePartitionPhasesIterator::next() {
   assert(has_next(), "Must have phases left");
   return _time_partitions->phase_at(_next++);
 }

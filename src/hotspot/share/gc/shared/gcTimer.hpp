@@ -26,6 +26,7 @@
 #define SHARE_GC_SHARED_GCTIMER_HPP
 
 #include "memory/allocation.hpp"
+#include "utilities/cHeapVector.hpp"
 #include "utilities/macros.hpp"
 #include "utilities/ticks.hpp"
 
@@ -33,11 +34,9 @@ class ConcurrentPhase;
 class GCPhase;
 class PausePhase;
 
-template <class E> class GrowableArray;
-
 class PhaseVisitor {
  public:
-  virtual void visit(GCPhase* phase) = 0;
+  virtual void visit(const GCPhase& phase) = 0;
 };
 
 class GCPhase {
@@ -70,8 +69,8 @@ class GCPhase {
   PhaseType type() const { return _type; }
   void set_type(PhaseType type) { _type = type; }
 
-  void accept(PhaseVisitor* visitor) {
-    visitor->visit(this);
+  void accept(PhaseVisitor* visitor) const {
+    visitor->visit(*this);
   }
 };
 
@@ -99,7 +98,7 @@ class TimePartitions {
 
   static const int INITIAL_CAPACITY = 10;
 
-  GrowableArray<GCPhase>* _phases;
+  CHeapVector<GCPhase, mtGC> _phases;
   PhasesStack _active_phases;
 
   Tickspan _sum_of_pauses;
@@ -111,7 +110,6 @@ class TimePartitions {
 
  public:
   TimePartitions();
-  ~TimePartitions();
   void clear();
 
   void report_gc_phase_start_top_level(const char* name, const Ticks& time, GCPhase::PhaseType type);
@@ -119,7 +117,8 @@ class TimePartitions {
   void report_gc_phase_end(const Ticks& time);
 
   int num_phases() const;
-  GCPhase* phase_at(int index) const;
+  const GCPhase& phase_at(int index) const;
+  GCPhase& phase_at(int index);
 
   const Tickspan sum_of_pauses() const { return _sum_of_pauses; }
   const Tickspan longest_pause() const { return _longest_pause; }
@@ -127,7 +126,7 @@ class TimePartitions {
   bool has_active_phases();
 
  private:
-  void update_statistics(GCPhase* phase);
+  void update_statistics(const GCPhase& phase);
 };
 
 class PhasesIterator {
@@ -171,15 +170,15 @@ class ConcurrentGCTimer : public GCTimer {
   void register_gc_concurrent_end(const Ticks& time = Ticks::now());
 };
 
-class TimePartitionPhasesIterator {
+class TimePartitionPhasesIterator final {
   TimePartitions* _time_partitions;
   int _next;
 
  public:
   TimePartitionPhasesIterator(TimePartitions* time_partitions) : _time_partitions(time_partitions), _next(0) { }
 
-  virtual bool has_next();
-  virtual GCPhase* next();
+  bool has_next();
+  GCPhase& next();
 };
 
 #endif // SHARE_GC_SHARED_GCTIMER_HPP

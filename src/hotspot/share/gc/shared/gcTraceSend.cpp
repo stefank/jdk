@@ -287,10 +287,10 @@ void GCTracer::send_meta_space_summary_event(GCWhen::Type when, const MetaspaceS
 }
 
 class PhaseSender : public PhaseVisitor {
-  void visit_pause(GCPhase* phase) {
-    assert(phase->level() < PhasesStack::PHASE_LEVELS, "Need more event types for PausePhase");
+  void visit_pause(const GCPhase& phase) {
+    assert(phase.level() < PhasesStack::PHASE_LEVELS, "Need more event types for PausePhase");
 
-    switch (phase->level()) {
+    switch (phase.level()) {
       case 0: send_phase<EventGCPhasePause>(phase); break;
       case 1: send_phase<EventGCPhasePauseLevel1>(phase); break;
       case 2: send_phase<EventGCPhasePauseLevel2>(phase); break;
@@ -300,10 +300,10 @@ class PhaseSender : public PhaseVisitor {
     }
   }
 
-  void visit_concurrent(GCPhase* phase) {
-    assert(phase->level() < 2, "There is only two levels for ConcurrentPhase");
+  void visit_concurrent(const GCPhase& phase) {
+    assert(phase.level() < 2, "There is only two levels for ConcurrentPhase");
 
-    switch (phase->level()) {
+    switch (phase.level()) {
       case 0: send_phase<EventGCPhaseConcurrent>(phase); break;
       case 1: send_phase<EventGCPhaseConcurrentLevel1>(phase); break;
       default: /* Ignore sending this phase */ break;
@@ -312,22 +312,22 @@ class PhaseSender : public PhaseVisitor {
 
  public:
   template<typename T>
-  void send_phase(GCPhase* phase) {
+  void send_phase(const GCPhase& phase) {
     T event(UNTIMED);
     if (event.should_commit()) {
       event.set_gcId(GCId::current());
-      event.set_name(phase->name());
-      event.set_starttime(phase->start());
-      event.set_endtime(phase->end());
+      event.set_name(phase.name());
+      event.set_starttime(phase.start());
+      event.set_endtime(phase.end());
       event.commit();
     }
   }
 
-  void visit(GCPhase* phase) {
-    if (phase->type() == GCPhase::PausePhaseType) {
+  void visit(const GCPhase& phase) {
+    if (phase.type() == GCPhase::PausePhaseType) {
       visit_pause(phase);
     } else {
-      assert(phase->type() == GCPhase::ConcurrentPhaseType, "Should be ConcurrentPhaseType");
+      assert(phase.type() == GCPhase::ConcurrentPhaseType, "Should be ConcurrentPhaseType");
       visit_concurrent(phase);
     }
   }
@@ -338,8 +338,8 @@ void GCTracer::send_phase_events(TimePartitions* time_partitions) const {
 
   TimePartitionPhasesIterator iter(time_partitions);
   while (iter.has_next()) {
-    GCPhase* phase = iter.next();
-    phase->accept(&phase_reporter);
+    const GCPhase& phase = iter.next();
+    phase.accept(&phase_reporter);
   }
 }
 

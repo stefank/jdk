@@ -116,11 +116,11 @@ TEST(ConcurrentGCTimer, concurrent) {
 class TimePartitionsTest {
  public:
 
-  static void validate_gc_phase(GCPhase* phase, int level, const char* name, const jlong& start, const jlong& end) {
-    EXPECT_EQ(level, phase->level());
-    EXPECT_STREQ(name, phase->name());
-    EXPECT_EQ(start, phase->start().value());
-    EXPECT_EQ(end, phase->end().value());
+  static void validate_gc_phase(const GCPhase& phase, int level, const char* name, const jlong& start, const jlong& end) {
+    EXPECT_EQ(level, phase.level());
+    EXPECT_STREQ(name, phase.name());
+    EXPECT_EQ(start, phase.start().value());
+    EXPECT_EQ(end, phase.end().value());
   }
 
   static void validate_pauses(const TimePartitions& time_partitions, const Tickspan& expected_sum_of_pauses, const Tickspan& expected_longest_pause) {
