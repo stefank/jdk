@@ -41,20 +41,27 @@
 #include "opto/rootnode.hpp"
 #include "opto/runtime.hpp"
 #include "opto/type.hpp"
+#include "utilities/arenaVector.hpp"
 #include "utilities/growableArray.hpp"
 #include "utilities/macros.hpp"
 
 class ZBarrierSetC2State : public ResourceObj {
 private:
-  GrowableArray<ZLoadBarrierStubC2*>* _stubs;
-  Node_Array                          _live;
+  ArenaVector<ZLoadBarrierStubC2*> _stubs;
+  Node_Array                       _live;
 
 public:
   ZBarrierSetC2State(Arena* arena) :
-    _stubs(new (arena) GrowableArray<ZLoadBarrierStubC2*>(arena, 8,  0, NULL)),
-    _live(arena) {}
+      _stubs(ArenaAllocator<ZLoadBarrierStubC2>(arena)),
+      _live(arena) {
+    _stubs.reserve(8);
+  }
 
-  GrowableArray<ZLoadBarrierStubC2*>* stubs() {
+  const ArenaVector<ZLoadBarrierStubC2*>& stubs() const {
+    return _stubs;
+  }
+
+  ArenaVector<ZLoadBarrierStubC2*>& stubs() {
     return _stubs;
   }
 
@@ -87,7 +94,7 @@ static ZBarrierSetC2State* barrier_set_state() {
 ZLoadBarrierStubC2* ZLoadBarrierStubC2::create(const MachNode* node, Address ref_addr, Register ref, Register tmp, uint8_t barrier_data) {
   ZLoadBarrierStubC2* const stub = new (Compile::current()->comp_arena()) ZLoadBarrierStubC2(node, ref_addr, ref, tmp, barrier_data);
   if (!Compile::current()->output()->in_scratch_emit_size()) {
-    barrier_set_state()->stubs()->append(stub);
+    barrier_set_state()->stubs().push_back(stub);
   }
 
   return stub;
@@ -163,16 +170,14 @@ void ZBarrierSetC2::late_barrier_analysis() const {
 
 void ZBarrierSetC2::emit_stubs(CodeBuffer& cb) const {
   MacroAssembler masm(&cb);
-  GrowableArray<ZLoadBarrierStubC2*>* const stubs = barrier_set_state()->stubs();
-
-  for (int i = 0; i < stubs->length(); i++) {
+  for (ZLoadBarrierStubC2* stub : barrier_set_state()->stubs()) {
     // Make sure there is enough space in the code buffer
     if (cb.insts()->maybe_expand_to_ensure_remaining(PhaseOutput::MAX_inst_size) && cb.blob() == NULL) {
       ciEnv::current()->record_failure("CodeCache is full");
       return;
     }
 
-    ZBarrierSet::assembler()->generate_c2_load_barrier_stub(&masm, stubs->at(i));
+    ZBarrierSet::assembler()->generate_c2_load_barrier_stub(&masm, stub);
   }
 
   masm.flush();
@@ -181,13 +186,12 @@ void ZBarrierSetC2::emit_stubs(CodeBuffer& cb) const {
 int ZBarrierSetC2::estimate_stub_size() const {
   Compile* const C = Compile::current();
   BufferBlob* const blob = C->output()->scratch_buffer_blob();
-  GrowableArray<ZLoadBarrierStubC2*>* const stubs = barrier_set_state()->stubs();
   int size = 0;
 
-  for (int i = 0; i < stubs->length(); i++) {
+  for (ZLoadBarrierStubC2* stub : barrier_set_state()->stubs()) {
     CodeBuffer cb(blob->content_begin(), (address)C->output()->scratch_locs_memory() - blob->content_begin());
     MacroAssembler masm(&cb);
-    ZBarrierSet::assembler()->generate_c2_load_barrier_stub(&masm, stubs->at(i));
+    ZBarrierSet::assembler()->generate_c2_load_barrier_stub(&masm, stub);
     size += cb.insts_size();
   }
 
