@@ -66,6 +66,7 @@ public:
 
   int nsegments() const;
   const ZPhysicalMemorySegment& segment(int index) const;
+  const ZArray<ZPhysicalMemorySegment>& segments() const;
 
   void add_segments(const ZPhysicalMemory& pmem);
   void remove_segments();

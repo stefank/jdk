@@ -122,7 +122,7 @@ public:
 
   ZPage* alloc_page(uint8_t type, size_t size, ZAllocationFlags flags);
   void free_page(ZPage* page, bool reclaimed);
-  void free_pages(const ZArray<ZPage*>* pages, bool reclaimed);
+  void free_pages(const ZArray<ZPage*>& pages, bool reclaimed);
 
   void enable_deferred_delete() const;
   void disable_deferred_delete() const;

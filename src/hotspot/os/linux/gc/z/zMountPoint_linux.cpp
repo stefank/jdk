@@ -84,7 +84,7 @@ void ZMountPoint::get_mountpoints(const char* filesystem, ZArray<char*>* mountpo
   while (getline(&line, &length, fd) != -1) {
     char* const mountpoint = get_mountpoint(line, filesystem);
     if (mountpoint != NULL) {
-      mountpoints->append(mountpoint);
+      mountpoints->push_back(mountpoint);
     }
   }
 
@@ -93,7 +93,7 @@ void ZMountPoint::get_mountpoints(const char* filesystem, ZArray<char*>* mountpo
 }
 
 void ZMountPoint::free_mountpoints(ZArray<char*>* mountpoints) const {
-  ZArrayIterator<char*> iter(mountpoints);
+  ZArrayIterator<char*> iter(*mountpoints);
   for (char* mountpoint; iter.next(&mountpoint);) {
     free(mountpoint);
   }
@@ -104,7 +104,7 @@ char* ZMountPoint::find_preferred_mountpoint(const char* filesystem,
                                               ZArray<char*>* mountpoints,
                                               const char** preferred_mountpoints) const {
   // Find preferred mount point
-  ZArrayIterator<char*> iter1(mountpoints);
+  ZArrayIterator<char*> iter1(*mountpoints);
   for (char* mountpoint; iter1.next(&mountpoint);) {
     for (const char** preferred = preferred_mountpoints; *preferred != NULL; preferred++) {
       if (!strcmp(mountpoint, *preferred)) {
@@ -116,7 +116,7 @@ char* ZMountPoint::find_preferred_mountpoint(const char* filesystem,
 
   // Preferred mount point not found
   log_error_p(gc)("More than one %s filesystem found:", filesystem);
-  ZArrayIterator<char*> iter2(mountpoints);
+  ZArrayIterator<char*> iter2(*mountpoints);
   for (char* mountpoint; iter2.next(&mountpoint);) {
     log_error_p(gc)("  %s", mountpoint);
   }
@@ -130,10 +130,10 @@ char* ZMountPoint::find_mountpoint(const char* filesystem, const char** preferre
 
   get_mountpoints(filesystem, &mountpoints);
 
-  if (mountpoints.length() == 0) {
+  if (mountpoints.size() == 0) {
     // No mount point found
     log_error_p(gc)("Failed to find an accessible %s filesystem", filesystem);
-  } else if (mountpoints.length() == 1) {
+  } else if (mountpoints.size() == 1) {
     // One mount point found
     path = strdup(mountpoints.at(0));
   } else {

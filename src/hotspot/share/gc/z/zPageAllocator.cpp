@@ -743,7 +743,7 @@ void ZPageAllocator::free_page(ZPage* page, bool reclaimed) {
   satisfy_stalled();
 }
 
-void ZPageAllocator::free_pages(const ZArray<ZPage*>* pages, bool reclaimed) {
+void ZPageAllocator::free_pages(const ZArray<ZPage*>& pages, bool reclaimed) {
   ZLocker<ZLock> locker(&_lock);
 
   // Free pages

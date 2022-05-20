@@ -62,10 +62,10 @@ public:
       ZTask("ZRelocationSetInstallTask"),
       _allocator(allocator),
       _forwardings(NULL),
-      _nforwardings(selector->small()->length() + selector->medium()->length()),
+      _nforwardings(selector->small().size() + selector->medium().size()),
       _small_iter(selector->small()),
       _medium_iter(selector->medium()),
-      _small_next(selector->medium()->length()),
+      _small_next(selector->medium().size()),
       _medium_next(0) {
 
     // Reset the allocator to have room for the relocation

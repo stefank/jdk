@@ -89,7 +89,7 @@ public:
   void register_empty_page(ZPage* page);
   void select();
 
-  const ZArray<ZPage*>* selected() const;
+  const ZArray<ZPage*>& selected() const;
   size_t forwarding_entries() const;
 
   const ZRelocationSetSelectorGroupStats& stats() const;
@@ -112,14 +112,14 @@ public:
   void register_live_page(ZPage* page);
   void register_empty_page(ZPage* page);
 
-  bool should_free_empty_pages(int bulk) const;
-  const ZArray<ZPage*>* empty_pages() const;
+  bool should_free_empty_pages(uint bulk) const;
+  const ZArray<ZPage*>& empty_pages() const;
   void clear_empty_pages();
 
   void select();
 
-  const ZArray<ZPage*>* small() const;
-  const ZArray<ZPage*>* medium() const;
+  const ZArray<ZPage*>& small() const;
+  const ZArray<ZPage*>& medium() const;
   size_t forwarding_entries() const;
 
   ZRelocationSetSelectorStats stats() const;

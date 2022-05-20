@@ -197,7 +197,7 @@ void ZHeap::free_page(ZPage* page, bool reclaimed) {
   _page_allocator.free_page(page, reclaimed);
 }
 
-void ZHeap::free_pages(const ZArray<ZPage*>* pages, bool reclaimed) {
+void ZHeap::free_pages(const ZArray<ZPage*>& pages, bool reclaimed) {
   // Remove page table entries
   ZArrayIterator<ZPage*> iter(pages);
   for (ZPage* page; iter.next(&page);) {
@@ -337,7 +337,7 @@ void ZHeap::process_non_strong_references() {
   _reference_processor.enqueue_references();
 }
 
-void ZHeap::free_empty_pages(ZRelocationSetSelector* selector, int bulk) {
+void ZHeap::free_empty_pages(ZRelocationSetSelector* selector, uint bulk) {
   // Freeing empty pages in bulk is an optimization to avoid grabbing
   // the page allocator lock, and trying to satisfy stalled allocations
   // too frequently.

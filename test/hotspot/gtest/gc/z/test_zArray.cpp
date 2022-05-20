@@ -30,36 +30,32 @@ TEST(ZArray, sanity) {
 
   // Add elements
   for (int i = 0; i < 10; i++) {
-    a.append(i);
+    a.push_back(i);
   }
 
   ZArray<int> b;
 
-  b.swap(&a);
+  b.swap(a);
 
   // Check size
-  ASSERT_EQ(a.length(), 0);
-  ASSERT_EQ(a.max_length(), 0);
-  ASSERT_EQ(a.is_empty(), true);
+  ASSERT_EQ(a.size(), 0u);
+  ASSERT_EQ(a.capacity(), 0u);
 
-  ASSERT_EQ(b.length(), 10);
-  ASSERT_GE(b.max_length(), 10);
-  ASSERT_EQ(b.is_empty(), false);
+  ASSERT_EQ(b.size(), 10u);
+  ASSERT_GE(b.capacity(), 10u);
 
   // Clear elements
   a.clear();
 
   // Check that b is unaffected
-  ASSERT_EQ(b.length(), 10);
-  ASSERT_GE(b.max_length(), 10);
-  ASSERT_EQ(b.is_empty(), false);
+  ASSERT_EQ(b.size(), 10u);
+  ASSERT_GE(b.capacity(), 10u);
 
-  a.append(1);
+  a.push_back(1);
 
   // Check that b is unaffected
-  ASSERT_EQ(b.length(), 10);
-  ASSERT_GE(b.max_length(), 10);
-  ASSERT_EQ(b.is_empty(), false);
+  ASSERT_EQ(b.size(), 10u);
+  ASSERT_GE(b.capacity(), 10u);
 }
 
 TEST(ZArray, iterator) {
@@ -67,12 +63,12 @@ TEST(ZArray, iterator) {
 
   // Add elements
   for (int i = 0; i < 10; i++) {
-    a.append(i);
+    a.push_back(i);
   }
 
   // Iterate
   int count = 0;
-  ZArrayIterator<int> iter(&a);
+  ZArrayIterator<int> iter(a);
   for (int value; iter.next(&value);) {
     ASSERT_EQ(a.at(count), count);
     count++;

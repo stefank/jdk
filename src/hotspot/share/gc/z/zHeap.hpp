@@ -65,7 +65,7 @@ private:
   void flip_to_marked();
   void flip_to_remapped();
 
-  void free_empty_pages(ZRelocationSetSelector* selector, int bulk);
+  void free_empty_pages(ZRelocationSetSelector* selector, uint bulk);
 
   void out_of_memory();
 
@@ -108,7 +108,7 @@ public:
   ZPage* alloc_page(uint8_t type, size_t size, ZAllocationFlags flags);
   void undo_alloc_page(ZPage* page);
   void free_page(ZPage* page, bool reclaimed);
-  void free_pages(const ZArray<ZPage*>* pages, bool reclaimed);
+  void free_pages(const ZArray<ZPage*>& pages, bool reclaimed);
 
   // Object allocation
   uintptr_t alloc_tlab(size_t size);

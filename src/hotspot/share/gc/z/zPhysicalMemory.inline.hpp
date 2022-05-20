@@ -60,15 +60,19 @@ inline void ZPhysicalMemorySegment::set_committed(bool committed) {
 }
 
 inline bool ZPhysicalMemory::is_null() const {
-  return _segments.length() == 0;
+  return _segments.size() == 0;
 }
 
 inline int ZPhysicalMemory::nsegments() const {
-  return _segments.length();
+  return checked_cast<int>(_segments.size());
 }
 
 inline const ZPhysicalMemorySegment& ZPhysicalMemory::segment(int index) const {
   return _segments.at(index);
+}
+
+inline const ZArray<ZPhysicalMemorySegment>& ZPhysicalMemory::segments() const {
+  return _segments;
 }
 
 #endif // SHARE_GC_Z_ZPHYSICALMEMORY_INLINE_HPP

@@ -89,6 +89,6 @@ inline void ZGranuleMap<T>::release_put(uintptr_t offset, T value) {
 
 template <typename T>
 inline ZGranuleMapIterator<T>::ZGranuleMapIterator(const ZGranuleMap<T>* granule_map) :
-    ZArrayIteratorImpl<T, false /* Parallel */>(granule_map->_map, granule_map->_size) {}
+    ZCArrayIteratorImpl<T, false /* Parallel */>(granule_map->_map, granule_map->_size) {}
 
 #endif // SHARE_GC_Z_ZGRANULEMAP_INLINE_HPP

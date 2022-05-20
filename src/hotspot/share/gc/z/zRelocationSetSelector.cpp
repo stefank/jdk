@@ -74,7 +74,7 @@ void ZRelocationSetSelectorGroup::semi_sort() {
   int partitions[npartitions] = { /* zero initialize */ };
 
   // Calculate partition slots
-  ZArrayIterator<ZPage*> iter1(&_live_pages);
+  ZArrayIterator<ZPage*> iter1(_live_pages);
   for (ZPage* page; iter1.next(&page);) {
     const size_t index = page->live_bytes() >> partition_size_shift;
     partitions[index]++;
@@ -89,26 +89,26 @@ void ZRelocationSetSelectorGroup::semi_sort() {
   }
 
   // Allocate destination array
-  const int npages = _live_pages.length();
-  ZArray<ZPage*> sorted_live_pages(npages, npages, NULL);
+  const size_t npages = _live_pages.size();
+  ZArray<ZPage*> sorted_live_pages{npages, NULL};
 
   // Sort pages into partitions
-  ZArrayIterator<ZPage*> iter2(&_live_pages);
+  ZArrayIterator<ZPage*> iter2(_live_pages);
   for (ZPage* page; iter2.next(&page);) {
     const size_t index = page->live_bytes() >> partition_size_shift;
     const int finger = partitions[index]++;
     assert(sorted_live_pages.at(finger) == NULL, "Invalid finger");
-    sorted_live_pages.at_put(finger, page);
+    sorted_live_pages[finger] = page;
   }
 
-  _live_pages.swap(&sorted_live_pages);
+  _live_pages.swap(sorted_live_pages);
 }
 
 void ZRelocationSetSelectorGroup::select_inner() {
   // Calculate the number of pages to relocate by successively including pages in
   // a candidate relocation set and calculate the maximum space requirement for
   // their live objects.
-  const int npages = _live_pages.length();
+  const int npages = checked_cast<int>(_live_pages.size());
   int selected_from = 0;
   int selected_to = 0;
   size_t selected_live_bytes = 0;
@@ -120,7 +120,7 @@ void ZRelocationSetSelectorGroup::select_inner() {
 
   for (int from = 1; from <= npages; from++) {
     // Add page to the candidate relocation set
-    ZPage* const page = _live_pages.at(from - 1);
+    ZPage* const page = _live_pages[from - 1];
     from_live_bytes += page->live_bytes();
     from_forwarding_entries += ZForwarding::nentries(page);
 
@@ -151,7 +151,7 @@ void ZRelocationSetSelectorGroup::select_inner() {
   }
 
   // Finalize selection
-  _live_pages.trunc_to(selected_from);
+  _live_pages.resize(selected_from);
   _forwarding_entries = selected_forwarding_entries;
 
   // Update statistics

@@ -48,7 +48,7 @@ public:
 };
 
 template <bool Parallel>
-class ZRelocationSetIteratorImpl : public ZArrayIteratorImpl<ZForwarding*, Parallel> {
+class ZRelocationSetIteratorImpl : public ZCArrayIteratorImpl<ZForwarding*, Parallel> {
 public:
   ZRelocationSetIteratorImpl(ZRelocationSet* relocation_set);
 };

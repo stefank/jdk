@@ -68,7 +68,7 @@ inline void ZRelocationSetSelectorGroup::register_live_page(ZPage* page) {
   const size_t garbage = size - live;
 
   if (garbage > _fragmentation_limit) {
-    _live_pages.append(page);
+    _live_pages.push_back(page);
   }
 
   _stats._npages++;
@@ -84,8 +84,8 @@ inline void ZRelocationSetSelectorGroup::register_empty_page(ZPage* page) {
   _stats._empty += size;
 }
 
-inline const ZArray<ZPage*>* ZRelocationSetSelectorGroup::selected() const {
-  return &_live_pages;
+inline const ZArray<ZPage*>& ZRelocationSetSelectorGroup::selected() const {
+  return _live_pages;
 }
 
 inline size_t ZRelocationSetSelectorGroup::forwarding_entries() const {
@@ -119,15 +119,15 @@ inline void ZRelocationSetSelector::register_empty_page(ZPage* page) {
     _large.register_empty_page(page);
   }
 
-  _empty_pages.append(page);
+  _empty_pages.push_back(page);
 }
 
-inline bool ZRelocationSetSelector::should_free_empty_pages(int bulk) const {
-  return _empty_pages.length() >= bulk && _empty_pages.is_nonempty();
+inline bool ZRelocationSetSelector::should_free_empty_pages(uint bulk) const {
+  return _empty_pages.size() >= bulk && _empty_pages.size() != 0;
 }
 
-inline const ZArray<ZPage*>* ZRelocationSetSelector::empty_pages() const {
-  return &_empty_pages;
+inline const ZArray<ZPage*>& ZRelocationSetSelector::empty_pages() const {
+  return _empty_pages;
 }
 
 inline void ZRelocationSetSelector::clear_empty_pages() {
@@ -146,11 +146,11 @@ inline size_t ZRelocationSetSelector::relocate() const {
   return _small.stats().relocate() + _medium.stats().relocate() + _large.stats().relocate();
 }
 
-inline const ZArray<ZPage*>* ZRelocationSetSelector::small() const {
+inline const ZArray<ZPage*>& ZRelocationSetSelector::small() const {
   return _small.selected();
 }
 
-inline const ZArray<ZPage*>* ZRelocationSetSelector::medium() const {
+inline const ZArray<ZPage*>& ZRelocationSetSelector::medium() const {
   return _medium.selected();
 }
 
