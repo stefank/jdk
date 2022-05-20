@@ -43,10 +43,11 @@
 #include "oops/typeArrayOop.inline.hpp"
 #include "oops/weakHandle.inline.hpp"
 #include "runtime/mutexLocker.hpp"
+#include "utilities/cHeapVector.hpp"
 #include "utilities/debug.hpp"
 #include "utilities/globalDefinitions.hpp"
-#include "utilities/growableArray.hpp"
 #include "utilities/macros.hpp"
+#include "utilities/resourceAreaVector.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 // StringDedup::Table::Bucket
@@ -86,45 +87,57 @@
 // more space efficient.
 
 class StringDedup::Table::Bucket {
-  GrowableArrayCHeap<uint, mtStringDedup> _hashes;
-  GrowableArrayCHeap<TableValue, mtStringDedup> _values;
+  CHeapVector<uint, mtStringDedup> _hashes;
+  CHeapVector<TableValue, mtStringDedup> _values;
 
   void adjust_capacity(int new_capacity);
   void expand_if_full();
 
 public:
   // precondition: reserve == 0 or is the result of needed_capacity.
-  Bucket(int reserve = 0);
+  Bucket(size_t reserve = 0);
 
   ~Bucket() {
-    while (!_values.is_empty()) {
-      _values.pop().release(_table_storage);
+    while (_values.size() != 0) {
+      _values.back().release(_table_storage);
+      _values.pop_back();
     }
   }
 
-  static int needed_capacity(int size);
+  static size_t needed_capacity(size_t size);
 
-  const GrowableArrayView<uint>& hashes() const { return _hashes; }
-  const GrowableArrayView<TableValue>& values() const { return _values; }
+  const CHeapVector<uint, mtStringDedup>& hashes() const { return _hashes; }
+  const CHeapVector<TableValue, mtStringDedup>& values() const { return _values; }
 
-  bool is_empty() const { return _hashes.length() == 0; }
-  int length() const { return _hashes.length(); }
+  bool is_empty() const { return _hashes.size() == 0; }
+  size_t length() const { return _hashes.size(); }
 
   void add(uint hash_code, TableValue value) {
     expand_if_full();
-    _hashes.push(hash_code);
-    _values.push(value);
+    _hashes.push_back(hash_code);
+    _values.push_back(value);
   }
 
-  void delete_at(int index) {
-    _values.at(index).release(_table_storage);
-    _hashes.delete_at(index);
-    _values.delete_at(index);
+  void delete_at(size_t index) {
+    _values[index].release(_table_storage);
+
+    auto delete_at_f = [] (auto& vector, size_t index) {
+      assert(index < vector.size(), "illegal index");
+      size_t new_size = vector.size() - 1;
+      if (index < new_size) {
+        // Replace removed element with last one.
+        vector[index] = vector[new_size];
+      }
+      vector.resize(new_size);
+    };
+
+    delete_at_f(_hashes, index);
+    delete_at_f(_values, index);
   }
 
   void pop_norelease() {
-    _hashes.pop();
-    _values.pop();
+    _hashes.pop_back();
+    _values.pop_back();
   }
 
   void shrink();
@@ -134,46 +147,60 @@ public:
   void verify(size_t bucket_index, size_t bucket_count) const;
 };
 
-StringDedup::Table::Bucket::Bucket(int reserve) :
-  _hashes(reserve), _values(reserve)
+StringDedup::Table::Bucket::Bucket(size_t reserve) :
+  _hashes(), _values()
 {
   assert(reserve == needed_capacity(reserve),
-         "reserve %d not computed properly", reserve);
+         "reserve %zu not computed properly", reserve);
+  _hashes.reserve(reserve);
+  _values.reserve(reserve);
 }
 
 // Choose the least power of 2 or half way between two powers of 2,
 // such that number of entries <= target.
-int StringDedup::Table::Bucket::needed_capacity(int needed) {
-  if (needed == 0) return 0;
-  int high = round_up_power_of_2(needed);
-  int low = high - high/4;
+size_t StringDedup::Table::Bucket::needed_capacity(size_t needed) {
+  if (needed == 0) {
+    return 0;
+  }
+
+  size_t high = round_up_power_of_2(needed);
+  size_t low = high - high/4;
   return (needed <= low) ? low : high;
 }
 
 void StringDedup::Table::Bucket::adjust_capacity(int new_capacity) {
-  GrowableArrayCHeap<uint, mtStringDedup> new_hashes{new_capacity};
-  GrowableArrayCHeap<TableValue, mtStringDedup> new_values{new_capacity};
-  while (!_hashes.is_empty()) {
-    new_hashes.push(_hashes.pop());
-    new_values.push(_values.pop());
+  CHeapVector<uint, mtStringDedup> new_hashes;
+  CHeapVector<TableValue, mtStringDedup> new_values;
+
+  new_hashes.reserve(new_capacity);
+  new_values.reserve(new_capacity);
+
+  while (_hashes.size() != 0) {
+    new_hashes.push_back(_hashes.back());
+    _hashes.pop_back();
+
+    new_values.push_back(_values.back());
+    _values.pop_back();
   }
-  _hashes.swap(&new_hashes);
-  _values.swap(&new_values);
+  _hashes.swap(new_hashes);
+  _values.swap(new_values);
 }
 
 void StringDedup::Table::Bucket::expand_if_full() {
-  if (_hashes.length() == _hashes.max_length()) {
-    adjust_capacity(needed_capacity(_hashes.max_length() + 1));
+  if (_hashes.size() == _hashes.capacity()) {
+    adjust_capacity(needed_capacity(_hashes.capacity() + 1));
   }
 }
 
 void StringDedup::Table::Bucket::shrink() {
-  if (_hashes.is_empty()) {
-    _hashes.clear_and_deallocate();
-    _values.clear_and_deallocate();
+  if (_hashes.size() == 0) {
+    _hashes.clear();
+    _hashes.shrink_to_fit();
+    _values.clear();
+    _values.shrink_to_fit();
   } else {
-    int target = needed_capacity(_hashes.length());
-    if (target < _hashes.max_length()) {
+    size_t target = needed_capacity(_hashes.size());
+    if (target < _hashes.capacity()) {
       adjust_capacity(target);
     }
   }
@@ -197,10 +224,10 @@ StringDedup::Table::Bucket::find(typeArrayOop obj, uint hash_code) const {
 
 void StringDedup::Table::Bucket::verify(size_t bucket_index,
                                         size_t bucket_count) const {
-  int entry_count = _hashes.length();
-  guarantee(entry_count == _values.length(),
-            "hash/value length mismatch: %zu: %d, %d",
-            bucket_index, entry_count, _values.length());
+  size_t entry_count = _hashes.size();
+  guarantee(entry_count == _values.size(),
+            "hash/value length mismatch: %zu: %zu, %zu",
+            bucket_index, entry_count, _values.size());
   for (uint hash_code : _hashes) {
     size_t hash_index = hash_code % bucket_count;
     guarantee(bucket_index == hash_index,
@@ -352,8 +379,8 @@ bool StringDedup::Table::Resizer::step() {
       ++_bucket_index;
       return true;              // Continue transferring with next bucket.
     } else {
-      uint hash_code = bucket.hashes().last();
-      TableValue tv = bucket.values().last();
+      uint hash_code = bucket.hashes().back();
+      TableValue tv = bucket.values().back();
       bucket.pop_norelease();
       if (tv.peek() != nullptr) {
         Table::add(tv, hash_code);
@@ -386,7 +413,7 @@ void StringDedup::Table::Resizer::verify() const {
 
 class StringDedup::Table::Cleaner final : public CleanupState {
   size_t _bucket_index;
-  int _entry_index;
+  size_t _entry_index;
 
 public:
   Cleaner() : _bucket_index(0), _entry_index(0) {
@@ -417,15 +444,15 @@ bool StringDedup::Table::Cleaner::step() {
     return false;               // All buckets processed, so done.
   }
   Bucket& bucket = Table::_buckets[_bucket_index];
-  const GrowableArrayView<TableValue>& values = bucket.values();
-  assert(_entry_index <= values.length(), "invariant");
-  if (_entry_index == values.length()) {
+  const CHeapVector<TableValue, mtStringDedup>& values = bucket.values();
+  assert(_entry_index <= values.size(), "invariant");
+  if (_entry_index == values.size()) {
     // End of current bucket.  Shrink the bucket if oversized for current
     // usage, and continue at the start of the next bucket.
     bucket.shrink();
     ++_bucket_index;
     _entry_index = 0;
-  } else if (values.at(_entry_index).peek() == nullptr) {
+  } else if (values[_entry_index].peek() == nullptr) {
     // Current entry is dead.  Remove and continue at same index.
     bucket.delete_at(_entry_index);
     --Table::_number_of_entries;
@@ -467,8 +494,7 @@ StringDedup::Table::Bucket*
 StringDedup::Table::make_buckets(size_t number_of_buckets, size_t reserve) {
   Bucket* buckets = NEW_C_HEAP_ARRAY(Bucket, number_of_buckets, mtStringDedup);
   for (size_t i = 0; i < number_of_buckets; ++i) {
-    // Cast because GrowableArray uses int for sizes and such.
-    ::new (&buckets[i]) Bucket(static_cast<int>(reserve));
+    ::new (&buckets[i]) Bucket(reserve);
   }
   return buckets;
 }
@@ -767,17 +793,21 @@ void StringDedup::Table::log_statistics() {
   LogStreamHandle(Trace, stringdedup) log;
   if (log.is_enabled()) {
     ResourceMark rm;
-    GrowableArray<size_t> counts;
+    ResourceAreaVector<size_t> counts;
     for (size_t i = 0; i < _number_of_buckets; ++i) {
-      int length = _buckets[i].length();
-      size_t count = counts.at_grow(length);
-      counts.at_put(length, count + 1);
+      size_t length = _buckets[i].length();
+
+      if (length >= counts.size()) {
+        counts.resize(length + 1);
+      }
+
+      counts[length]++;
     }
     log.print_cr("Table bucket distribution:");
-    for (int i = 0; i < counts.length(); ++i) {
+    for (size_t i = 0; i < counts.size(); ++i) {
       size_t count = counts.at(i);
       if (count != 0) {
-        log.print_cr("  %4d: %zu", i, count);
+        log.print_cr("  %4zu: %zu", i, count);
       }
     }
   }
