@@ -40,19 +40,19 @@ const char* G1AbstractSubTask::name() const {
   return g1h->phase_times()->phase_name(_tag);
 }
 
-bool G1BatchedTask::try_claim_serial_task(int& task) {
-  task = Atomic::fetch_and_add(&_num_serial_tasks_done, 1);
-  return task < _serial_tasks.length();
+bool G1BatchedTask::try_claim_serial_task(size_t& task) {
+  task = Atomic::fetch_and_add(&_num_serial_tasks_done, 1u);
+  return task < _serial_tasks.size();
 }
 
 void G1BatchedTask::add_serial_task(G1AbstractSubTask* task) {
   assert(task != nullptr, "must be");
-  _serial_tasks.push(task);
+  _serial_tasks.push_back(task);
 }
 
 void G1BatchedTask::add_parallel_task(G1AbstractSubTask* task) {
   assert(task != nullptr, "must be");
-  _parallel_tasks.push(task);
+  _parallel_tasks.push_back(task);
 }
 
 G1BatchedTask::G1BatchedTask(const char* name, G1GCPhaseTimes* phase_times) :
@@ -84,9 +84,9 @@ void G1BatchedTask::set_max_workers(uint max_workers) {
 }
 
 void G1BatchedTask::work(uint worker_id) {
-  int t = 0;
+  size_t t = 0;
   while (try_claim_serial_task(t)) {
-    G1AbstractSubTask* task = _serial_tasks.at(t);
+    G1AbstractSubTask* task = _serial_tasks[t];
     G1GCParPhaseTimesTracker x(_phase_times, task->tag(), worker_id);
     task->do_work(worker_id);
   }
@@ -97,8 +97,8 @@ void G1BatchedTask::work(uint worker_id) {
 }
 
 G1BatchedTask::~G1BatchedTask() {
-  assert(Atomic::load(&_num_serial_tasks_done) >= _serial_tasks.length(),
-         "Only %d tasks of %d claimed", Atomic::load(&_num_serial_tasks_done), _serial_tasks.length());
+  assert(Atomic::load(&_num_serial_tasks_done) >= _serial_tasks.size(),
+         "Only %zu tasks of %zu claimed", Atomic::load(&_num_serial_tasks_done), _serial_tasks.size());
 
   for (G1AbstractSubTask* task : _parallel_tasks) {
     delete task;

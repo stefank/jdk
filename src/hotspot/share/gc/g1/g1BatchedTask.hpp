@@ -28,9 +28,7 @@
 #include "gc/g1/g1GCPhaseTimes.hpp"
 #include "gc/shared/workerThread.hpp"
 #include "memory/allocation.hpp"
-
-template <typename E, MEMFLAGS F>
-class GrowableArrayCHeap;
+#include "utilities/cHeapVector.hpp"
 
 // G1AbstractSubTask represents a task to be performed either within a
 // G1BatchedTask running on a single worker ("serially") or multiple workers
@@ -120,15 +118,15 @@ public:
 // 5) ~T()
 //
 class G1BatchedTask : public WorkerTask {
-  volatile int _num_serial_tasks_done;
+  volatile size_t _num_serial_tasks_done;
   G1GCPhaseTimes* _phase_times;
 
-  bool try_claim_serial_task(int& task);
+  bool try_claim_serial_task(size_t& task);
 
   NONCOPYABLE(G1BatchedTask);
 
-  GrowableArrayCHeap<G1AbstractSubTask*, mtGC> _serial_tasks;
-  GrowableArrayCHeap<G1AbstractSubTask*, mtGC> _parallel_tasks;
+  CHeapVector<G1AbstractSubTask*, mtGC> _serial_tasks;
+  CHeapVector<G1AbstractSubTask*, mtGC> _parallel_tasks;
 
 protected:
   void add_serial_task(G1AbstractSubTask* task);
