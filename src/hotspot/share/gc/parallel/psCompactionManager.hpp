@@ -30,6 +30,7 @@
 #include "gc/shared/taskqueue.hpp"
 #include "gc/shared/taskTerminator.hpp"
 #include "memory/allocation.hpp"
+#include "utilities/cHeapVector.hpp"
 #include "utilities/stack.hpp"
 
 class MutableSpace;
@@ -79,7 +80,7 @@ class ParCompactionManager : public CHeapObj<mtGC> {
 
   // Contains currently free shadow regions. We use it in
   // a LIFO fashion for better data locality and utilization.
-  static GrowableArray<size_t>* _shadow_region_array;
+  static CHeapVector<size_t, mtGC>* _shadow_region_array;
 
   // Provides mutual exclusive access of _shadow_region_array.
   // See pop/push_shadow_region_mt_safe() below

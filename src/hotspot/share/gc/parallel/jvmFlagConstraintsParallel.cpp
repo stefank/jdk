@@ -29,8 +29,8 @@
 #include "utilities/globalDefinitions.hpp"
 
 JVMFlag::Error ParallelGCThreadsConstraintFuncParallel(uint value, bool verbose) {
-  // Parallel GC passes ParallelGCThreads when creating GrowableArray as 'int' type parameter.
-  // So can't exceed with "max_jint"
+  // Old rationale: Parallel GC passes ParallelGCThreads when creating
+  // GrowableArray as 'int' type parameter. So can't exceed with "max_jint"
 
   if (UseParallelGC && (value > (uint)max_jint)) {
     JVMFlag::printError(verbose,

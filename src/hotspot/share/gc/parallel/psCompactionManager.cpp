@@ -31,6 +31,7 @@
 #include "gc/parallel/psParallelCompact.inline.hpp"
 #include "gc/shared/taskqueue.inline.hpp"
 #include "logging/log.hpp"
+#include "memory/allocation.hpp"
 #include "memory/iterator.inline.hpp"
 #include "oops/access.inline.hpp"
 #include "oops/compressedOops.inline.hpp"
@@ -46,10 +47,10 @@ ParCompactionManager::OopTaskQueueSet*      ParCompactionManager::_oop_task_queu
 ParCompactionManager::ObjArrayTaskQueueSet* ParCompactionManager::_objarray_task_queues = NULL;
 ParCompactionManager::RegionTaskQueueSet*   ParCompactionManager::_region_task_queues = NULL;
 
-ObjectStartArray*    ParCompactionManager::_start_array = NULL;
-ParMarkBitMap*       ParCompactionManager::_mark_bitmap = NULL;
-GrowableArray<size_t >* ParCompactionManager::_shadow_region_array = NULL;
-Monitor*                ParCompactionManager::_shadow_region_monitor = NULL;
+ObjectStartArray*          ParCompactionManager::_start_array = NULL;
+ParMarkBitMap*             ParCompactionManager::_mark_bitmap = NULL;
+CHeapVector<size_t, mtGC>* ParCompactionManager::_shadow_region_array = NULL;
+Monitor*                   ParCompactionManager::_shadow_region_monitor = NULL;
 
 ParCompactionManager::ParCompactionManager() {
 
@@ -87,7 +88,8 @@ void ParCompactionManager::initialize(ParMarkBitMap* mbm) {
   assert(ParallelScavengeHeap::heap()->workers().max_workers() != 0,
     "Not initialized?");
 
-  _shadow_region_array = new (ResourceObj::C_HEAP, mtGC) GrowableArray<size_t >(10, mtGC);
+  _shadow_region_array = NewCHeapObject<CHeapVector<size_t, mtGC>, mtGC>();
+  _shadow_region_array->reserve(10);
 
   _shadow_region_monitor = new Monitor(Mutex::nosafepoint, "CompactionManager_lock");
 }
@@ -168,8 +170,10 @@ void ParCompactionManager::drain_region_stacks() {
 size_t ParCompactionManager::pop_shadow_region_mt_safe(PSParallelCompact::RegionData* region_ptr) {
   MonitorLocker ml(_shadow_region_monitor, Mutex::_no_safepoint_check_flag);
   while (true) {
-    if (!_shadow_region_array->is_empty()) {
-      return _shadow_region_array->pop();
+    if (_shadow_region_array->size() != 0) {
+      size_t res = _shadow_region_array->back();
+      _shadow_region_array->pop_back();
+      return res;
     }
     // Check if the corresponding heap region is available now.
     // If so, we don't need to get a shadow region anymore, and
@@ -183,12 +187,12 @@ size_t ParCompactionManager::pop_shadow_region_mt_safe(PSParallelCompact::Region
 
 void ParCompactionManager::push_shadow_region_mt_safe(size_t shadow_region) {
   MonitorLocker ml(_shadow_region_monitor, Mutex::_no_safepoint_check_flag);
-  _shadow_region_array->push(shadow_region);
+  _shadow_region_array->push_back(shadow_region);
   ml.notify();
 }
 
 void ParCompactionManager::push_shadow_region(size_t shadow_region) {
-  _shadow_region_array->push(shadow_region);
+  _shadow_region_array->push_back(shadow_region);
 }
 
 void ParCompactionManager::remove_all_shadow_regions() {
