@@ -28,6 +28,7 @@
 #include "gc/parallel/mutableSpace.hpp"
 #include "gc/shared/gcUtil.hpp"
 #include "runtime/globals.hpp"
+#include "utilities/cHeapVector.hpp"
 #include "utilities/growableArray.hpp"
 #include "utilities/macros.hpp"
 
@@ -143,7 +144,7 @@ class MutableNUMASpace : public MutableSpace {
     void scan_pages(size_t page_size, size_t page_count);
   };
 
-  GrowableArray<LGRPSpace*>* _lgrp_spaces;
+  CHeapVector<LGRPSpace*, mtGC> _lgrp_spaces;
   size_t _page_size;
   unsigned _adaptation_cycles, _samples_count;
 
@@ -170,11 +171,11 @@ class MutableNUMASpace : public MutableSpace {
   // Free pages in a given region.
   void free_region(MemRegion mr);
   // Get current chunk size.
-  size_t current_chunk_size(int i);
+  size_t current_chunk_size(size_t i);
   // Get default chunk size (equally divide the space).
   size_t default_chunk_size();
   // Adapt the chunk size to follow the allocation rate.
-  size_t adaptive_chunk_size(int i, size_t limit);
+  size_t adaptive_chunk_size(size_t i, size_t limit);
   // Scan and free invalid pages.
   void scan_pages(size_t page_count);
   // Return the bottom_region and the top_region. Align them to page_size() boundary.
@@ -192,8 +193,11 @@ class MutableNUMASpace : public MutableSpace {
   void merge_regions(MemRegion new_region, MemRegion* intersection,
                      MemRegion *invalid_region);
 
+  LGRPSpace* find(int lgrp_id) const;
+
  public:
-  GrowableArray<LGRPSpace*>* lgrp_spaces() const     { return _lgrp_spaces;       }
+  CHeapVector<LGRPSpace*, mtGC>& lgrp_spaces() { return _lgrp_spaces; }
+  const CHeapVector<LGRPSpace*, mtGC>& lgrp_spaces() const { return _lgrp_spaces; }
   MutableNUMASpace(size_t alignment);
   virtual ~MutableNUMASpace();
   // Space initialization.
