@@ -91,8 +91,8 @@ public:
 
   virtual bool uses_stack_watermark_barrier() const;
 
-  virtual GrowableArray<GCMemoryManager*> memory_managers();
-  virtual GrowableArray<MemoryPool*> memory_pools();
+  virtual ResourceAreaVector<GCMemoryManager*> memory_managers();
+  virtual ResourceAreaVector<MemoryPool*> memory_pools();
 
   virtual void object_iterate(ObjectClosure* cl);
   virtual ParallelObjectIteratorImpl* parallel_object_iterator(uint nworkers);

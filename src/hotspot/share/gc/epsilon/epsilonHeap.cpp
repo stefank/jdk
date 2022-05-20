@@ -83,16 +83,12 @@ void EpsilonHeap::initialize_serviceability() {
   _memory_manager.add_pool(_pool);
 }
 
-GrowableArray<GCMemoryManager*> EpsilonHeap::memory_managers() {
-  GrowableArray<GCMemoryManager*> memory_managers(1);
-  memory_managers.append(&_memory_manager);
-  return memory_managers;
+ResourceAreaVector<GCMemoryManager*> EpsilonHeap::memory_managers() {
+  return ResourceAreaVector<GCMemoryManager*>{ &_memory_manager };
 }
 
-GrowableArray<MemoryPool*> EpsilonHeap::memory_pools() {
-  GrowableArray<MemoryPool*> memory_pools(1);
-  memory_pools.append(_pool);
-  return memory_pools;
+ResourceAreaVector<MemoryPool*> EpsilonHeap::memory_pools() {
+  return ResourceAreaVector<MemoryPool*>{ _pool };
 }
 
 size_t EpsilonHeap::unsafe_max_tlab_alloc(Thread* thr) const {

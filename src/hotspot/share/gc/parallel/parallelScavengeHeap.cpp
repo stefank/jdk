@@ -846,17 +846,15 @@ void ParallelScavengeHeap::prune_scavengable_nmethods() {
   ScavengableNMethods::prune_nmethods();
 }
 
-GrowableArray<GCMemoryManager*> ParallelScavengeHeap::memory_managers() {
-  GrowableArray<GCMemoryManager*> memory_managers(2);
-  memory_managers.append(_young_manager);
-  memory_managers.append(_old_manager);
-  return memory_managers;
+ResourceAreaVector<GCMemoryManager*> ParallelScavengeHeap::memory_managers() {
+  return ResourceAreaVector<GCMemoryManager*>{
+      _young_manager,
+      _old_manager};
 }
 
-GrowableArray<MemoryPool*> ParallelScavengeHeap::memory_pools() {
-  GrowableArray<MemoryPool*> memory_pools(3);
-  memory_pools.append(_eden_pool);
-  memory_pools.append(_survivor_pool);
-  memory_pools.append(_old_pool);
-  return memory_pools;
+ResourceAreaVector<MemoryPool*> ParallelScavengeHeap::memory_pools() {
+  return ResourceAreaVector<MemoryPool*>{
+      _eden_pool,
+      _survivor_pool,
+      _old_pool};
 }

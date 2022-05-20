@@ -3439,11 +3439,11 @@ MemoryUsage G1CollectedHeap::memory_usage() {
   return _monitoring_support->memory_usage();
 }
 
-GrowableArray<GCMemoryManager*> G1CollectedHeap::memory_managers() {
+ResourceAreaVector<GCMemoryManager*> G1CollectedHeap::memory_managers() {
   return _monitoring_support->memory_managers();
 }
 
-GrowableArray<MemoryPool*> G1CollectedHeap::memory_pools() {
+ResourceAreaVector<MemoryPool*> G1CollectedHeap::memory_pools() {
   return _monitoring_support->memory_pools();
 }
 

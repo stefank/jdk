@@ -422,8 +422,8 @@ public:
   GCMemoryManager* stw_memory_manager()             { return &_stw_memory_manager;   }
   SoftRefPolicy* soft_ref_policy()                  { return &_soft_ref_policy;      }
 
-  GrowableArray<GCMemoryManager*> memory_managers();
-  GrowableArray<MemoryPool*> memory_pools();
+  ResourceAreaVector<GCMemoryManager*> memory_managers();
+  ResourceAreaVector<MemoryPool*> memory_pools();
   MemoryUsage memory_usage();
   GCTracer* tracer();
   ConcurrentGCTimer* gc_timer() const;

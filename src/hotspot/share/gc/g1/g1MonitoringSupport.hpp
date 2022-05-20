@@ -30,6 +30,7 @@
 #include "services/memoryManager.hpp"
 #include "services/memoryService.hpp"
 #include "runtime/mutex.hpp"
+#include "utilities/resourceAreaVector.hpp"
 
 class CollectorCounters;
 class G1CollectedHeap;
@@ -186,8 +187,8 @@ public:
   void initialize_serviceability();
 
   MemoryUsage memory_usage();
-  GrowableArray<GCMemoryManager*> memory_managers();
-  GrowableArray<MemoryPool*> memory_pools();
+  ResourceAreaVector<GCMemoryManager*> memory_managers();
+  ResourceAreaVector<MemoryPool*> memory_pools();
 
   // Unfortunately, the jstat tool assumes that no space has 0
   // capacity. In our case, given that each space is logical, it's

@@ -30,7 +30,7 @@
 #include "memory/allocation.hpp"
 #include "runtime/handles.hpp"
 #include "services/memoryUsage.hpp"
-#include "utilities/growableArray.hpp"
+#include "utilities/cHeapVector.hpp"
 
 // Forward declaration
 class MemoryPool;
@@ -49,15 +49,15 @@ private:
     init_code_heap_pools_size = 9
   };
 
-  static GrowableArray<MemoryPool*>*    _pools_list;
-  static GrowableArray<MemoryManager*>* _managers_list;
+  static CHeapVector<MemoryPool*, mtServiceability>*    _pools_list;
+  static CHeapVector<MemoryManager*, mtServiceability>* _managers_list;
 
   // memory manager and code heap pools for the CodeCache
-  static MemoryManager*                 _code_cache_manager;
-  static GrowableArray<MemoryPool*>*    _code_heap_pools;
+  static MemoryManager*                                 _code_cache_manager;
+  static CHeapVector<MemoryPool*, mtServiceability>*    _code_heap_pools;
 
-  static MemoryPool*                    _metaspace_pool;
-  static MemoryPool*                    _compressed_class_pool;
+  static MemoryPool*                                    _metaspace_pool;
+  static MemoryPool*                                    _compressed_class_pool;
 
 public:
   static void set_universe_heap(CollectedHeap* heap);
@@ -68,25 +68,26 @@ public:
   static MemoryManager* get_memory_manager(instanceHandle mgr);
 
   static const int num_memory_pools() {
-    return _pools_list->length();
+    return checked_cast<int>(_pools_list->size());
   }
+
   static const int num_memory_managers() {
-    return _managers_list->length();
+    return checked_cast<int>(_managers_list->size());
   }
 
   static MemoryPool* get_memory_pool(int index) {
-    return _pools_list->at(index);
+    return (*_pools_list)[index];
   }
 
   static MemoryManager* get_memory_manager(int index) {
-    return _managers_list->at(index);
+    return (*_managers_list)[index];
   }
 
   static void track_memory_usage();
   static void track_code_cache_memory_usage() {
     // Track memory pool usage of all CodeCache memory pools
-    for (int i = 0; i < _code_heap_pools->length(); ++i) {
-      track_memory_pool_usage(_code_heap_pools->at(i));
+    for (MemoryPool* pool : *_code_heap_pools) {
+      track_memory_pool_usage(pool);
     }
   }
   static void track_metaspace_memory_usage() {

@@ -76,19 +76,17 @@ void SerialHeap::initialize_serviceability() {
 
 }
 
-GrowableArray<GCMemoryManager*> SerialHeap::memory_managers() {
-  GrowableArray<GCMemoryManager*> memory_managers(2);
-  memory_managers.append(_young_manager);
-  memory_managers.append(_old_manager);
-  return memory_managers;
+ResourceAreaVector<GCMemoryManager*> SerialHeap::memory_managers() {
+  return ResourceAreaVector<GCMemoryManager*>{
+      _young_manager,
+      _old_manager};
 }
 
-GrowableArray<MemoryPool*> SerialHeap::memory_pools() {
-  GrowableArray<MemoryPool*> memory_pools(3);
-  memory_pools.append(_eden_pool);
-  memory_pools.append(_survivor_pool);
-  memory_pools.append(_old_pool);
-  return memory_pools;
+ResourceAreaVector<MemoryPool*> SerialHeap::memory_pools() {
+  return ResourceAreaVector<MemoryPool*>{
+      _eden_pool,
+      _survivor_pool,
+      _old_pool};
 }
 
 void SerialHeap::young_process_roots(OopIterateClosure* root_closure,

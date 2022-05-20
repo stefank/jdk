@@ -76,8 +76,8 @@ public:
     return "Serial";
   }
 
-  virtual GrowableArray<GCMemoryManager*> memory_managers();
-  virtual GrowableArray<MemoryPool*> memory_pools();
+  virtual ResourceAreaVector<GCMemoryManager*> memory_managers();
+  virtual ResourceAreaVector<MemoryPool*> memory_pools();
 
   DefNewGeneration* young_gen() const {
     assert(_young_gen->kind() == Generation::DefNew, "Wrong generation type");

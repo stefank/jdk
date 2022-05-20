@@ -136,8 +136,8 @@ class ParallelScavengeHeap : public CollectedHeap {
 
   virtual SoftRefPolicy* soft_ref_policy() { return &_soft_ref_policy; }
 
-  virtual GrowableArray<GCMemoryManager*> memory_managers();
-  virtual GrowableArray<MemoryPool*> memory_pools();
+  virtual ResourceAreaVector<GCMemoryManager*> memory_managers();
+  virtual ResourceAreaVector<MemoryPool*> memory_pools();
 
   static PSYoungGen* young_gen() { return _young_gen; }
   static PSOldGen* old_gen()     { return _old_gen; }

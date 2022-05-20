@@ -37,7 +37,7 @@
 #include "services/memoryUsage.hpp"
 #include "utilities/debug.hpp"
 #include "utilities/formatBuffer.hpp"
-#include "utilities/growableArray.hpp"
+#include "utilities/resourceAreaVector.hpp"
 
 // A "CollectedHeap" is an implementation of a java heap for HotSpot.  This
 // is an abstract class: there may be many different kinds of heaps.  This
@@ -396,8 +396,8 @@ class CollectedHeap : public CHeapObj<mtGC> {
   virtual SoftRefPolicy* soft_ref_policy() = 0;
 
   virtual MemoryUsage memory_usage();
-  virtual GrowableArray<GCMemoryManager*> memory_managers() = 0;
-  virtual GrowableArray<MemoryPool*> memory_pools() = 0;
+  virtual ResourceAreaVector<GCMemoryManager*> memory_managers() = 0;
+  virtual ResourceAreaVector<MemoryPool*> memory_pools() = 0;
 
   // Iterate over all objects, calling "cl.do_object" on each.
   virtual void object_iterate(ObjectClosure* cl) = 0;

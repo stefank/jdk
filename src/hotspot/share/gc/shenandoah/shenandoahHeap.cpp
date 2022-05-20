@@ -2244,17 +2244,15 @@ void ShenandoahHeap::initialize_serviceability() {
   _stw_memory_manager.add_pool(_memory_pool);
 }
 
-GrowableArray<GCMemoryManager*> ShenandoahHeap::memory_managers() {
-  GrowableArray<GCMemoryManager*> memory_managers(2);
-  memory_managers.append(&_cycle_memory_manager);
-  memory_managers.append(&_stw_memory_manager);
-  return memory_managers;
+ResourceAreaVector<GCMemoryManager*> ShenandoahHeap::memory_managers() {
+  return ResourceAreaVector<GCMemoryManager*>{
+      &_cycle_memory_manager,
+      &_stw_memory_manager};
 }
 
-GrowableArray<MemoryPool*> ShenandoahHeap::memory_pools() {
-  GrowableArray<MemoryPool*> memory_pools(1);
-  memory_pools.append(_memory_pool);
-  return memory_pools;
+ResourceAreaVector<MemoryPool*> ShenandoahHeap::memory_pools() {
+  return ResourceAreaVector<MemoryPool*>{
+      _memory_pool};
 }
 
 MemoryUsage ShenandoahHeap::memory_usage() {

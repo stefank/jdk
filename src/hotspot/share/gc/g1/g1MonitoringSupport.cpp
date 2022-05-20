@@ -208,19 +208,17 @@ MemoryUsage G1MonitoringSupport::memory_usage() {
   return MemoryUsage(InitialHeapSize, _overall_used, _overall_committed, _g1h->max_capacity());
 }
 
-GrowableArray<GCMemoryManager*> G1MonitoringSupport::memory_managers() {
-  GrowableArray<GCMemoryManager*> memory_managers(2);
-  memory_managers.append(&_incremental_memory_manager);
-  memory_managers.append(&_full_gc_memory_manager);
-  return memory_managers;
+ResourceAreaVector<GCMemoryManager*> G1MonitoringSupport::memory_managers() {
+  return ResourceAreaVector<GCMemoryManager*>{
+      &_incremental_memory_manager,
+      &_full_gc_memory_manager};
 }
 
-GrowableArray<MemoryPool*> G1MonitoringSupport::memory_pools() {
-  GrowableArray<MemoryPool*> memory_pools(3);
-  memory_pools.append(_eden_space_pool);
-  memory_pools.append(_survivor_space_pool);
-  memory_pools.append(_old_gen_pool);
-  return memory_pools;
+ResourceAreaVector<MemoryPool*> G1MonitoringSupport::memory_pools() {
+  return ResourceAreaVector<MemoryPool*>{
+      _eden_space_pool,
+      _survivor_space_pool,
+      _old_gen_pool};
 }
 
 void G1MonitoringSupport::recalculate_sizes() {

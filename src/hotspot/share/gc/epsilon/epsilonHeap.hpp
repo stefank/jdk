@@ -71,8 +71,8 @@ public:
   virtual void post_initialize();
   virtual void initialize_serviceability();
 
-  virtual GrowableArray<GCMemoryManager*> memory_managers();
-  virtual GrowableArray<MemoryPool*> memory_pools();
+  virtual ResourceAreaVector<GCMemoryManager*> memory_managers();
+  virtual ResourceAreaVector<MemoryPool*> memory_pools();
 
   virtual size_t max_capacity() const { return _virtual_space.reserved_size();  }
   virtual size_t capacity()     const { return _virtual_space.committed_size(); }

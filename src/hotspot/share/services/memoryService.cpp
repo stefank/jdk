@@ -26,6 +26,7 @@
 #include "classfile/vmSymbols.hpp"
 #include "gc/shared/collectedHeap.hpp"
 #include "logging/logConfiguration.hpp"
+#include "memory/allocation.hpp"
 #include "memory/heap.hpp"
 #include "memory/memRegion.hpp"
 #include "memory/resourceArea.hpp"
@@ -42,14 +43,18 @@
 #include "utilities/growableArray.hpp"
 #include "utilities/macros.hpp"
 
-GrowableArray<MemoryPool*>* MemoryService::_pools_list =
-  new (ResourceObj::C_HEAP, mtServiceability) GrowableArray<MemoryPool*>(init_pools_list_size, mtServiceability);
-GrowableArray<MemoryManager*>* MemoryService::_managers_list =
-  new (ResourceObj::C_HEAP, mtServiceability) GrowableArray<MemoryManager*>(init_managers_list_size, mtServiceability);
+template <typename T>
+static CHeapVector<T, mtServiceability>* new_c_heap_vector_reserved(size_t size) {
+  auto vector = NewCHeapObject<CHeapVector<T, mtServiceability>, mtServiceability>();
+  vector->reserve(size);
+  return vector;
+}
+
+CHeapVector<MemoryPool*, mtServiceability>* MemoryService::_pools_list       = new_c_heap_vector_reserved<MemoryPool*>(init_pools_list_size);
+CHeapVector<MemoryManager*, mtServiceability>* MemoryService::_managers_list = new_c_heap_vector_reserved<MemoryManager*>(init_managers_list_size);
 
 MemoryManager*   MemoryService::_code_cache_manager    = NULL;
-GrowableArray<MemoryPool*>* MemoryService::_code_heap_pools =
-    new (ResourceObj::C_HEAP, mtServiceability) GrowableArray<MemoryPool*>(init_code_heap_pools_size, mtServiceability);
+CHeapVector<MemoryPool*, mtServiceability>* MemoryService::_code_heap_pools  = new_c_heap_vector_reserved<MemoryPool*>(init_code_heap_pools_size);
 MemoryPool*      MemoryService::_metaspace_pool        = NULL;
 MemoryPool*      MemoryService::_compressed_class_pool = NULL;
 
@@ -69,23 +74,21 @@ void GcThreadCountClosure::do_thread(Thread* thread) {
 void MemoryService::set_universe_heap(CollectedHeap* heap) {
   ResourceMark rm; // For internal allocations in GrowableArray.
 
-  GrowableArray<MemoryPool*> gc_mem_pools = heap->memory_pools();
-  _pools_list->appendAll(&gc_mem_pools);
+  const ResourceAreaVector<MemoryPool*>& gc_mem_pools = heap->memory_pools();
+  _pools_list->insert(_pools_list->end(), gc_mem_pools.begin(), gc_mem_pools.end());
 
   // set the GC thread count
   GcThreadCountClosure gctcc;
   heap->gc_threads_do(&gctcc);
   int count = gctcc.count();
 
-  GrowableArray<GCMemoryManager*> gc_memory_managers = heap->memory_managers();
-  for (int i = 0; i < gc_memory_managers.length(); i++) {
-    GCMemoryManager* gc_manager = gc_memory_managers.at(i);
-
+  const ResourceAreaVector<GCMemoryManager*>& gc_memory_managers = heap->memory_managers();
+  for (GCMemoryManager* gc_manager : gc_memory_managers) {
     if (count > 0) {
       gc_manager->set_num_gc_threads(count);
     }
     gc_manager->initialize_gc_stat_info();
-    _managers_list->append(gc_manager);
+    _managers_list->push_back(gc_manager);
   }
 }
 
@@ -94,13 +97,13 @@ void MemoryService::add_code_heap_memory_pool(CodeHeap* heap, const char* name) 
   MemoryPool* code_heap_pool = new CodeHeapPool(heap, name, true /* support_usage_threshold */);
 
   // Append to lists
-  _code_heap_pools->append(code_heap_pool);
-  _pools_list->append(code_heap_pool);
+  _code_heap_pools->push_back(code_heap_pool);
+  _pools_list->push_back(code_heap_pool);
 
   if (_code_cache_manager == NULL) {
     // Create CodeCache memory manager
     _code_cache_manager = MemoryManager::get_code_cache_memory_manager();
-    _managers_list->append(_code_cache_manager);
+    _managers_list->push_back(_code_cache_manager);
   }
 
   _code_cache_manager->add_pool(code_heap_pool);
@@ -111,20 +114,19 @@ void MemoryService::add_metaspace_memory_pools() {
 
   _metaspace_pool = new MetaspacePool();
   mgr->add_pool(_metaspace_pool);
-  _pools_list->append(_metaspace_pool);
+  _pools_list->push_back(_metaspace_pool);
 
   if (UseCompressedClassPointers) {
     _compressed_class_pool = new CompressedKlassSpacePool();
     mgr->add_pool(_compressed_class_pool);
-    _pools_list->append(_compressed_class_pool);
+    _pools_list->push_back(_compressed_class_pool);
   }
 
-  _managers_list->append(mgr);
+  _managers_list->push_back(mgr);
 }
 
 MemoryManager* MemoryService::get_memory_manager(instanceHandle mh) {
-  for (int i = 0; i < _managers_list->length(); i++) {
-    MemoryManager* mgr = _managers_list->at(i);
+  for (MemoryManager* mgr : *_managers_list) {
     if (mgr->is_manager(mh)) {
       return mgr;
     }
@@ -133,8 +135,7 @@ MemoryManager* MemoryService::get_memory_manager(instanceHandle mh) {
 }
 
 MemoryPool* MemoryService::get_memory_pool(instanceHandle ph) {
-  for (int i = 0; i < _pools_list->length(); i++) {
-    MemoryPool* pool = _pools_list->at(i);
+  for (MemoryPool* pool : *_pools_list) {
     if (pool->is_pool(ph)) {
       return pool;
     }
@@ -144,8 +145,7 @@ MemoryPool* MemoryService::get_memory_pool(instanceHandle ph) {
 
 void MemoryService::track_memory_usage() {
   // Track the peak memory usage
-  for (int i = 0; i < _pools_list->length(); i++) {
-    MemoryPool* pool = _pools_list->at(i);
+  for (MemoryPool* pool : *_pools_list) {
     pool->record_peak_memory_usage();
   }
 
@@ -171,8 +171,7 @@ void MemoryService::gc_begin(GCMemoryManager* manager, bool recordGCBeginTime,
 
   // Track the peak memory usage when GC begins
   if (recordPeakUsage) {
-    for (int i = 0; i < _pools_list->length(); i++) {
-      MemoryPool* pool = _pools_list->at(i);
+    for (MemoryPool* pool : *_pools_list) {
       pool->record_peak_memory_usage();
     }
   }

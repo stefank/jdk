@@ -932,8 +932,8 @@ public:
 
   void initialize_serviceability() override;
   MemoryUsage memory_usage() override;
-  GrowableArray<GCMemoryManager*> memory_managers() override;
-  GrowableArray<MemoryPool*> memory_pools() override;
+  ResourceAreaVector<GCMemoryManager*> memory_managers() override;
+  ResourceAreaVector<MemoryPool*> memory_pools() override;
 
   void fill_with_dummy_object(HeapWord* start, HeapWord* end, bool zap) override;
 

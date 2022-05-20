@@ -209,17 +209,15 @@ bool ZCollectedHeap::uses_stack_watermark_barrier() const {
   return true;
 }
 
-GrowableArray<GCMemoryManager*> ZCollectedHeap::memory_managers() {
-  GrowableArray<GCMemoryManager*> memory_managers(2);
-  memory_managers.append(_heap.serviceability_cycle_memory_manager());
-  memory_managers.append(_heap.serviceability_pause_memory_manager());
-  return memory_managers;
+ResourceAreaVector<GCMemoryManager*> ZCollectedHeap::memory_managers() {
+  return ResourceAreaVector<GCMemoryManager*>{
+      _heap.serviceability_cycle_memory_manager(),
+      _heap.serviceability_pause_memory_manager()};
 }
 
-GrowableArray<MemoryPool*> ZCollectedHeap::memory_pools() {
-  GrowableArray<MemoryPool*> memory_pools(1);
-  memory_pools.append(_heap.serviceability_memory_pool());
-  return memory_pools;
+ResourceAreaVector<MemoryPool*> ZCollectedHeap::memory_pools() {
+  return ResourceAreaVector<MemoryPool*>{
+      _heap.serviceability_memory_pool()};
 }
 
 void ZCollectedHeap::object_iterate(ObjectClosure* cl) {
