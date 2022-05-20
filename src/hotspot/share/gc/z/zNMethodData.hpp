@@ -29,9 +29,9 @@
 #include "memory/allocation.hpp"
 #include "oops/oopsHierarchy.hpp"
 #include "utilities/globalDefinitions.hpp"
+#include "utilities/resourceAreaVector.hpp"
 
 class nmethod;
-template <typename T> class GrowableArray;
 
 class ZNMethodDataOops {
 private:
@@ -40,10 +40,10 @@ private:
   const AttachedArray _immediates;
   const bool          _has_non_immediates;
 
-  ZNMethodDataOops(const GrowableArray<oop*>& immediates, bool has_non_immediates);
+  ZNMethodDataOops(const ResourceAreaVector<oop*>& immediates, bool has_non_immediates);
 
 public:
-  static ZNMethodDataOops* create(const GrowableArray<oop*>& immediates, bool has_non_immediates);
+  static ZNMethodDataOops* create(const ResourceAreaVector<oop*>& immediates, bool has_non_immediates);
   static void destroy(ZNMethodDataOops* oops);
 
   size_t immediates_count() const;

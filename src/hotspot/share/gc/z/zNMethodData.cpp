@@ -31,20 +31,20 @@
 #include "utilities/debug.hpp"
 #include "utilities/growableArray.hpp"
 
-ZNMethodDataOops* ZNMethodDataOops::create(const GrowableArray<oop*>& immediates, bool has_non_immediates) {
-  return ::new (AttachedArray::alloc(immediates.length())) ZNMethodDataOops(immediates, has_non_immediates);
+ZNMethodDataOops* ZNMethodDataOops::create(const ResourceAreaVector<oop*>& immediates, bool has_non_immediates) {
+  return ::new (AttachedArray::alloc(immediates.size())) ZNMethodDataOops(immediates, has_non_immediates);
 }
 
 void ZNMethodDataOops::destroy(ZNMethodDataOops* oops) {
   AttachedArray::free(oops);
 }
 
-ZNMethodDataOops::ZNMethodDataOops(const GrowableArray<oop*>& immediates, bool has_non_immediates) :
-    _immediates(immediates.length()),
+ZNMethodDataOops::ZNMethodDataOops(const ResourceAreaVector<oop*>& immediates, bool has_non_immediates) :
+    _immediates(immediates.size()),
     _has_non_immediates(has_non_immediates) {
   // Save all immediate oops
   for (size_t i = 0; i < immediates_count(); i++) {
-    immediates_begin()[i] = immediates.at(int(i));
+    immediates_begin()[i] = immediates[i];
   }
 }
 

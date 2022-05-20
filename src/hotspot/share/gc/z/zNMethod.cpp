@@ -44,6 +44,7 @@
 #include "oops/oop.inline.hpp"
 #include "runtime/atomic.hpp"
 #include "utilities/debug.hpp"
+#include "utilities/resourceAreaVector.hpp"
 
 static ZNMethodData* gc_data(const nmethod* nm) {
   return nm->gc_data<ZNMethodData>();
@@ -54,7 +55,7 @@ static void set_gc_data(nmethod* nm, ZNMethodData* data) {
 }
 
 void ZNMethod::attach_gc_data(nmethod* nm) {
-  GrowableArray<oop*> immediate_oops;
+  ResourceAreaVector<oop*> immediate_oops;
   bool non_immediate_oops = false;
 
   // Find all oop relocations
@@ -77,7 +78,7 @@ void ZNMethod::attach_gc_data(nmethod* nm) {
       // Non-NULL immediate oop found. NULL oops can safely be
       // ignored since the method will be re-registered if they
       // are later patched to be non-NULL.
-      immediate_oops.push(r->oop_addr());
+      immediate_oops.push_back(r->oop_addr());
     }
   }
 
