@@ -534,7 +534,7 @@ void G1ArchiveAllocator::complete_archive(GrowableArray<MemRegion>* ranges,
 
   // Loop through the allocated regions, and create MemRegions summarizing
   // the allocated address range, combining contiguous ranges. Add the
-  // MemRegions to the GrowableArray provided by the caller.
+  // MemRegions to the HeapRegionVector provided by the caller.
   assert(!_allocated_regions.empty(), "invariant");
   int index = checked_cast<int>(_allocated_regions.size() - 1);
   assert(_allocated_regions[index] == _allocation_region,
