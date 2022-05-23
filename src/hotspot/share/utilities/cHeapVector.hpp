@@ -32,4 +32,4 @@
 template<typename T, MEMFLAGS memflags>
 using CHeapVector = std::vector<T, CHeapAllocator<T, memflags>>;
 
-#endif // SHARE_UTILITIES_CHEAPSTRING_HPP
+#endif // SHARE_UTILITIES_CHEAPVECTOR_HPP
