@@ -480,8 +480,8 @@ void HeapShared::run_full_gc_in_vm_thread() {
   }
 }
 
-void HeapShared::archive_objects(GrowableArray<MemRegion>* closed_regions,
-                                 GrowableArray<MemRegion>* open_regions) {
+void HeapShared::archive_objects(CHeapVector<MemRegion, mtClassShared>* closed_regions,
+                                 CHeapVector<MemRegion, mtClassShared>* open_regions) {
 
   G1HeapVerifier::verify_ready_for_archiving();
 
@@ -508,7 +508,7 @@ void HeapShared::archive_objects(GrowableArray<MemRegion>* closed_regions,
   G1HeapVerifier::verify_archive_regions();
 }
 
-void HeapShared::copy_closed_objects(GrowableArray<MemRegion>* closed_regions) {
+void HeapShared::copy_closed_objects(CHeapVector<MemRegion, mtClassShared>* closed_regions) {
   assert(HeapShared::can_write(), "must be");
 
   G1CollectedHeap::heap()->begin_archive_alloc_range();
@@ -521,11 +521,11 @@ void HeapShared::copy_closed_objects(GrowableArray<MemRegion>* closed_regions) {
                            true /* is_closed_archive */,
                            false /* is_full_module_graph */);
 
-  G1CollectedHeap::heap()->end_archive_alloc_range(closed_regions,
+  G1CollectedHeap::heap()->end_archive_alloc_range(*closed_regions,
                                                    os::vm_allocation_granularity());
 }
 
-void HeapShared::copy_open_objects(GrowableArray<MemRegion>* open_regions) {
+void HeapShared::copy_open_objects(CHeapVector<MemRegion, mtClassShared>* open_regions) {
   assert(HeapShared::can_write(), "must be");
 
   G1CollectedHeap::heap()->begin_archive_alloc_range(true /* open */);
@@ -548,7 +548,7 @@ void HeapShared::copy_open_objects(GrowableArray<MemRegion>* open_regions) {
 
   copy_roots();
 
-  G1CollectedHeap::heap()->end_archive_alloc_range(open_regions,
+  G1CollectedHeap::heap()->end_archive_alloc_range(*open_regions,
                                                    os::vm_allocation_granularity());
 }
 

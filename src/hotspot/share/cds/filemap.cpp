@@ -1617,12 +1617,12 @@ char* FileMapInfo::write_bitmap_region(const CHeapBitMap* ptrmap,
 //            ^^^
 //             |
 //             +-- gap
-size_t FileMapInfo::write_heap_regions(GrowableArray<MemRegion>* regions,
+size_t FileMapInfo::write_heap_regions(CHeapVector<MemRegion, mtClassShared>* regions,
                                        GrowableArray<ArchiveHeapOopmapInfo>* oopmaps,
                                        int first_region_id, int max_num_regions) {
   assert(max_num_regions <= 2, "Only support maximum 2 memory regions");
 
-  int arr_len = regions == NULL ? 0 : regions->length();
+  int arr_len = regions == NULL ? 0 : checked_cast<int>(regions->size());
   if (arr_len > max_num_regions) {
     fail_stop("Unable to write archive heap memory regions: "
               "number of memory regions exceeds maximum due to fragmentation. "
@@ -1633,11 +1633,12 @@ size_t FileMapInfo::write_heap_regions(GrowableArray<MemRegion>* regions,
 
   size_t total_size = 0;
   for (int i = 0; i < max_num_regions; i++) {
+    MemRegion region = (*regions)[i];
     char* start = NULL;
     size_t size = 0;
     if (i < arr_len) {
-      start = (char*)regions->at(i).start();
-      size = regions->at(i).byte_size();
+      start = (char*)region.start();
+      size = region.byte_size();
       total_size += size;
     }
 

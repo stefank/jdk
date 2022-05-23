@@ -708,7 +708,7 @@ public:
 
   // Optionally aligns the end address and returns the allocated ranges in
   // an array of MemRegions in order of ascending addresses.
-  void end_archive_alloc_range(GrowableArray<MemRegion>* ranges,
+  void end_archive_alloc_range(CHeapVector<MemRegion, mtClassShared>&,
                                size_t end_alignment_in_bytes = 0);
 
   // Facility for allocating a fixed range within the heap and marking

@@ -30,6 +30,7 @@
 #include "oops/array.hpp"
 #include "oops/compressedOops.hpp"
 #include "utilities/align.hpp"
+#include "utilities/cHeapVector.hpp"
 
 // To understand the layout of the CDS archive file:
 //
@@ -447,7 +448,7 @@ public:
                             GrowableArray<ArchiveHeapOopmapInfo>* closed_oopmaps,
                             GrowableArray<ArchiveHeapOopmapInfo>* open_oopmaps,
                             size_t &size_in_bytes);
-  size_t write_heap_regions(GrowableArray<MemRegion>* regions,
+  size_t write_heap_regions(CHeapVector<MemRegion, mtClassShared>* regions,
                             GrowableArray<ArchiveHeapOopmapInfo>* oopmaps,
                             int first_region_id, int max_num_regions);
   void  write_bytes(const void* buffer, size_t count);

@@ -39,6 +39,7 @@
 #include "oops/oopsHierarchy.hpp"
 #include "oops/typeArrayKlass.hpp"
 #include "utilities/bitMap.hpp"
+#include "utilities/cHeapVector.hpp"
 #include "utilities/growableArray.hpp"
 #include "utilities/resourceHash.hpp"
 
@@ -419,10 +420,10 @@ private:
 
   static void archive_klass_objects();
 
-  static void archive_objects(GrowableArray<MemRegion>* closed_regions,
-                              GrowableArray<MemRegion>* open_regions);
-  static void copy_closed_objects(GrowableArray<MemRegion>* closed_regions);
-  static void copy_open_objects(GrowableArray<MemRegion>* open_regions);
+  static void archive_objects(CHeapVector<MemRegion, mtClassShared>* closed_regions,
+                              CHeapVector<MemRegion, mtClassShared>* open_regions);
+  static void copy_closed_objects(CHeapVector<MemRegion, mtClassShared>* closed_regions);
+  static void copy_open_objects(CHeapVector<MemRegion, mtClassShared>* open_regions);
 
   static oop archive_reachable_objects_from(int level,
                                             KlassSubGraphInfo* subgraph_info,

@@ -75,6 +75,7 @@
 #include "services/memTracker.hpp"
 #include "utilities/align.hpp"
 #include "utilities/bitMap.inline.hpp"
+#include "utilities/cHeapVector.hpp"
 #include "utilities/ostream.hpp"
 #include "utilities/defaultStream.hpp"
 #include "utilities/resourceHash.hpp"
@@ -436,16 +437,16 @@ void MetaspaceShared::rewrite_nofast_bytecodes_and_calculate_fingerprints(Thread
 
 class VM_PopulateDumpSharedSpace : public VM_GC_Operation {
 private:
-  GrowableArray<MemRegion> *_closed_heap_regions;
-  GrowableArray<MemRegion> *_open_heap_regions;
+  CHeapVector<MemRegion, mtClassShared>* _closed_heap_regions;
+  CHeapVector<MemRegion, mtClassShared>* _open_heap_regions;
 
   GrowableArray<ArchiveHeapOopmapInfo> *_closed_heap_oopmaps;
   GrowableArray<ArchiveHeapOopmapInfo> *_open_heap_oopmaps;
 
   void dump_java_heap_objects(GrowableArray<Klass*>* klasses) NOT_CDS_JAVA_HEAP_RETURN;
   void dump_heap_oopmaps() NOT_CDS_JAVA_HEAP_RETURN;
-  void dump_heap_oopmaps(GrowableArray<MemRegion>* regions,
-                                 GrowableArray<ArchiveHeapOopmapInfo>* oopmaps);
+  void dump_heap_oopmaps(CHeapVector<MemRegion, mtClassShared>* regions,
+                         GrowableArray<ArchiveHeapOopmapInfo>* oopmaps);
   void dump_shared_symbol_table(GrowableArray<Symbol*>* symbols) {
     log_info(cds)("Dumping symbol table ...");
     SymbolTable::write_to_archive(symbols);
@@ -883,10 +884,14 @@ void VM_PopulateDumpSharedSpace::dump_java_heap_objects(GrowableArray<Klass*>* k
     }
   }
 
+  _closed_heap_regions = NewCHeapObject<CHeapVector<MemRegion, mtClassShared>, mtClassShared>();
+  _open_heap_regions = NewCHeapObject<CHeapVector<MemRegion, mtClassShared>, mtClassShared>();
+
   // The closed and open archive heap space has maximum two regions.
   // See FileMapInfo::write_heap_regions() for details.
-  _closed_heap_regions = new GrowableArray<MemRegion>(2);
-  _open_heap_regions = new GrowableArray<MemRegion>(2);
+  _closed_heap_regions->reserve(2);
+  _open_heap_regions->reserve(2);
+
   HeapShared::archive_objects(_closed_heap_regions, _open_heap_regions);
   ArchiveBuilder::OtherROAllocMark mark;
   HeapShared::write_subgraph_info_table();
@@ -902,10 +907,10 @@ void VM_PopulateDumpSharedSpace::dump_heap_oopmaps() {
   }
 }
 
-void VM_PopulateDumpSharedSpace::dump_heap_oopmaps(GrowableArray<MemRegion>* regions,
+void VM_PopulateDumpSharedSpace::dump_heap_oopmaps(CHeapVector<MemRegion, mtClassShared>* regions,
                                                    GrowableArray<ArchiveHeapOopmapInfo>* oopmaps) {
-  for (int i=0; i<regions->length(); i++) {
-    ResourceBitMap oopmap = HeapShared::calculate_oopmap(regions->at(i));
+  for (MemRegion region : *regions) {
+    ResourceBitMap oopmap = HeapShared::calculate_oopmap(region);
     size_t size_in_bits = oopmap.size();
     size_t size_in_bytes = oopmap.size_in_bytes();
     uintptr_t* buffer = (uintptr_t*)NEW_C_HEAP_ARRAY(char, size_in_bytes, mtInternal);
@@ -913,7 +918,7 @@ void VM_PopulateDumpSharedSpace::dump_heap_oopmaps(GrowableArray<MemRegion>* reg
     log_info(cds, heap)("Oopmap = " INTPTR_FORMAT " (" SIZE_FORMAT_W(6) " bytes) for heap region "
                         INTPTR_FORMAT " (" SIZE_FORMAT_W(8) " bytes)",
                         p2i(buffer), size_in_bytes,
-                        p2i(regions->at(i).start()), regions->at(i).byte_size());
+                        p2i(region.start()), region.byte_size());
 
     ArchiveHeapOopmapInfo info;
     info._oopmap = (address)buffer;

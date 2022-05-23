@@ -32,6 +32,7 @@
 #include "oops/klass.hpp"
 #include "runtime/os.hpp"
 #include "utilities/bitMap.hpp"
+#include "utilities/cHeapVector.hpp"
 #include "utilities/growableArray.hpp"
 #include "utilities/resizeableResourceHash.hpp"
 #include "utilities/resourceHash.hpp"
@@ -210,10 +211,10 @@ private:
   size_t _total_open_heap_region_size;
 
   void print_region_stats(FileMapInfo *map_info,
-                          GrowableArray<MemRegion>* closed_heap_regions,
-                          GrowableArray<MemRegion>* open_heap_regions);
+                          const CHeapVector<MemRegion, mtClassShared>* closed_heap_regions,
+                          const CHeapVector<MemRegion, mtClassShared>* open_heap_regions);
   void print_bitmap_region_stats(size_t size, size_t total_size);
-  void print_heap_region_stats(GrowableArray<MemRegion>* regions,
+  void print_heap_region_stats(const CHeapVector<MemRegion, mtClassShared>* regions,
                                const char *name, size_t total_size);
 
   // For global access.
@@ -376,8 +377,8 @@ public:
   void make_klasses_shareable();
   void relocate_to_requested();
   void write_archive(FileMapInfo* mapinfo,
-                     GrowableArray<MemRegion>* closed_heap_regions,
-                     GrowableArray<MemRegion>* open_heap_regions,
+                     CHeapVector<MemRegion, mtClassShared>* closed_heap_regions,
+                     CHeapVector<MemRegion, mtClassShared>* open_heap_regions,
                      GrowableArray<ArchiveHeapOopmapInfo>* closed_heap_oopmaps,
                      GrowableArray<ArchiveHeapOopmapInfo>* open_heap_oopmaps);
   void write_region(FileMapInfo* mapinfo, int region_idx, DumpRegion* dump_region,

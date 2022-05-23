@@ -254,7 +254,7 @@ public:
 
   // Return the memory ranges used in the current archive, after
   // aligning to the requested alignment.
-  void complete_archive(GrowableArray<MemRegion>* ranges,
+  void complete_archive(CHeapVector<MemRegion, mtClassShared>& ranges,
                         size_t end_alignment_in_bytes);
 };
 

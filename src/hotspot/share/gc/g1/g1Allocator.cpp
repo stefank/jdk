@@ -499,7 +499,7 @@ HeapWord* G1ArchiveAllocator::archive_mem_allocate(size_t word_size) {
   return old_top;
 }
 
-void G1ArchiveAllocator::complete_archive(GrowableArray<MemRegion>* ranges,
+void G1ArchiveAllocator::complete_archive(CHeapVector<MemRegion, mtClassShared>& ranges,
                                           size_t end_alignment_in_bytes) {
   assert((end_alignment_in_bytes >> LogHeapWordSize) < HeapRegion::min_region_size_in_words(),
          "alignment " SIZE_FORMAT " too large", end_alignment_in_bytes);
@@ -548,7 +548,7 @@ void G1ArchiveAllocator::complete_archive(GrowableArray<MemRegion>* ranges,
     HeapWord* new_base = next->bottom();
     HeapWord* new_top = next->top();
     if (new_base != top) {
-      ranges->append(MemRegion(base_address, pointer_delta(top, base_address)));
+      ranges.push_back(MemRegion(base_address, pointer_delta(top, base_address)));
       base_address = new_base;
     }
     top = new_top;
@@ -556,7 +556,7 @@ void G1ArchiveAllocator::complete_archive(GrowableArray<MemRegion>* ranges,
   }
 
   assert(top != base_address, "zero-sized range, address " PTR_FORMAT, p2i(base_address));
-  ranges->append(MemRegion(base_address, pointer_delta(top, base_address)));
+  ranges.push_back(MemRegion(base_address, pointer_delta(top, base_address)));
   _allocated_regions.clear();
   _allocation_region = NULL;
 };

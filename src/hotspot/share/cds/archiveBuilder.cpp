@@ -1032,10 +1032,10 @@ class ArchiveBuilder::CDSMapLogger : AllStatic {
 
 #if INCLUDE_CDS_JAVA_HEAP
   // open and closed archive regions
-  static void log_heap_regions(const char* which, GrowableArray<MemRegion> *regions) {
-    for (int i = 0; i < regions->length(); i++) {
-      address start = address(regions->at(i).start());
-      address end = address(regions->at(i).end());
+  static void log_heap_regions(const char* which, const CHeapVector<MemRegion, mtClassShared>* regions) {
+    for (MemRegion region : *regions) {
+      address start = address(region.start());
+      address end = address(region.end());
       log_region(which, start, end, to_requested(start));
 
       while (start < end) {
@@ -1099,8 +1099,8 @@ class ArchiveBuilder::CDSMapLogger : AllStatic {
 
 public:
   static void log(ArchiveBuilder* builder, FileMapInfo* mapinfo,
-                  GrowableArray<MemRegion> *closed_heap_regions,
-                  GrowableArray<MemRegion> *open_heap_regions,
+                  const CHeapVector<MemRegion, mtClassShared>* closed_heap_regions,
+                  const CHeapVector<MemRegion, mtClassShared>* open_heap_regions,
                   char* bitmap, size_t bitmap_size_in_bytes) {
     log_info(cds, map)("%s CDS archive map for %s", DumpSharedSpaces ? "Static" : "Dynamic", mapinfo->full_path());
 
@@ -1143,8 +1143,8 @@ void ArchiveBuilder::clean_up_src_obj_table() {
 }
 
 void ArchiveBuilder::write_archive(FileMapInfo* mapinfo,
-                                   GrowableArray<MemRegion>* closed_heap_regions,
-                                   GrowableArray<MemRegion>* open_heap_regions,
+                                   CHeapVector<MemRegion, mtClassShared>* closed_heap_regions,
+                                   CHeapVector<MemRegion, mtClassShared>* open_heap_regions,
                                    GrowableArray<ArchiveHeapOopmapInfo>* closed_heap_oopmaps,
                                    GrowableArray<ArchiveHeapOopmapInfo>* open_heap_oopmaps) {
   // Make sure NUM_CDS_REGIONS (exported in cds.h) agrees with
@@ -1197,8 +1197,8 @@ void ArchiveBuilder::write_region(FileMapInfo* mapinfo, int region_idx, DumpRegi
 }
 
 void ArchiveBuilder::print_region_stats(FileMapInfo *mapinfo,
-                                        GrowableArray<MemRegion>* closed_heap_regions,
-                                        GrowableArray<MemRegion>* open_heap_regions) {
+                                        const CHeapVector<MemRegion, mtClassShared>* closed_heap_regions,
+                                        const CHeapVector<MemRegion, mtClassShared>* open_heap_regions) {
   // Print statistics of all the regions
   const size_t bitmap_used = mapinfo->space_at(MetaspaceShared::bm)->used();
   const size_t bitmap_reserved = mapinfo->space_at(MetaspaceShared::bm)->used_aligned();
@@ -1231,15 +1231,15 @@ void ArchiveBuilder::print_bitmap_region_stats(size_t size, size_t total_size) {
                  size, size/double(total_size)*100.0, size);
 }
 
-void ArchiveBuilder::print_heap_region_stats(GrowableArray<MemRegion>* regions,
+void ArchiveBuilder::print_heap_region_stats(const CHeapVector<MemRegion, mtClassShared>* regions,
                                              const char *name, size_t total_size) {
-  int arr_len = regions == NULL ? 0 : regions->length();
-  for (int i = 0; i < arr_len; i++) {
-      char* start = (char*)regions->at(i).start();
-      size_t size = regions->at(i).byte_size();
-      char* top = start + size;
-      log_debug(cds)("%s%d space: " SIZE_FORMAT_W(9) " [ %4.1f%% of total] out of " SIZE_FORMAT_W(9) " bytes [100.0%% used] at " INTPTR_FORMAT,
-                     name, i, size, size/double(total_size)*100.0, size, p2i(start));
+  for (size_t i = 0; i < regions->size(); i++) {
+    MemRegion region = (*regions)[i];
+    char* start = (char*)region.start();
+    size_t size = region.byte_size();
+    char* top = start + size;
+    log_debug(cds)("%s%zu space: " SIZE_FORMAT_W(9) " [ %4.1f%% of total] out of " SIZE_FORMAT_W(9) " bytes [100.0%% used] at " INTPTR_FORMAT,
+                   name, i, size, size/double(total_size)*100.0, size, p2i(start));
   }
 }
 
