@@ -54,7 +54,8 @@ bool G1SegmentedArrayFreeMemoryTask::calculate_return_infos(jlong deadline) {
   G1SegmentedArrayMemoryStats used = _total_used;
   G1SegmentedArrayMemoryStats free = G1SegmentedArrayFreePool::free_list_sizes();
 
-  _return_info = new G1ReturnMemoryProcessorSet(used.num_pools());
+  assert(_return_info.size() == 0, "Must be");
+  _return_info.reserve(used.num_pools());
   for (uint i = 0; i < used.num_pools(); i++) {
     size_t return_to_vm_size = keep_size(free._num_mem_sizes[i],
                                          used._num_mem_sizes[i],
@@ -65,7 +66,7 @@ bool G1SegmentedArrayFreeMemoryTask::calculate_return_infos(jlong deadline) {
                         free._num_mem_sizes[i], free._num_segments[i],
                         used._num_mem_sizes[i], return_to_vm_size);
 
-    _return_info->append(new G1ReturnMemoryProcessor(return_to_vm_size));
+    _return_info.push_back(new G1ReturnMemoryProcessor(return_to_vm_size));
   }
 
   G1SegmentedArrayFreePool::update_unlink_processors(_return_info);
@@ -73,8 +74,7 @@ bool G1SegmentedArrayFreeMemoryTask::calculate_return_infos(jlong deadline) {
 }
 
 bool G1SegmentedArrayFreeMemoryTask::return_memory_to_vm(jlong deadline) {
-  for (int i = 0; i < _return_info->length(); i++) {
-    G1ReturnMemoryProcessor* info = _return_info->at(i);
+  for (G1ReturnMemoryProcessor* info : _return_info) {
     if (!info->finished_return_to_vm()) {
       if (info->return_to_vm(deadline)) {
         return true;
@@ -85,8 +85,7 @@ bool G1SegmentedArrayFreeMemoryTask::return_memory_to_vm(jlong deadline) {
 }
 
 bool G1SegmentedArrayFreeMemoryTask::return_memory_to_os(jlong deadline) {
-  for (int i = 0; i < _return_info->length(); i++) {
-    G1ReturnMemoryProcessor* info = _return_info->at(i);
+  for (G1ReturnMemoryProcessor* info : _return_info) {
     if (!info->finished_return_to_os()) {
       if (info->return_to_os(deadline)) {
         return true;
@@ -97,13 +96,12 @@ bool G1SegmentedArrayFreeMemoryTask::return_memory_to_os(jlong deadline) {
 }
 
 bool G1SegmentedArrayFreeMemoryTask::cleanup_return_infos() {
-  for (int i = 0; i < _return_info->length(); i++) {
-     G1ReturnMemoryProcessor* info = _return_info->at(i);
-     delete info;
+  for (G1ReturnMemoryProcessor* info : _return_info) {
+    delete info;
   }
-  delete _return_info;
+  _return_info.clear();
+  _return_info.shrink_to_fit();
 
-  _return_info = nullptr;
   return false;
 }
 
@@ -180,7 +178,7 @@ jlong G1SegmentedArrayFreeMemoryTask::reschedule_delay_ms() const {
 }
 
 G1SegmentedArrayFreeMemoryTask::G1SegmentedArrayFreeMemoryTask(const char* name) :
-  G1ServiceTask(name), _state(State::CalculateUsed), _return_info(nullptr) { }
+  G1ServiceTask(name), _state(State::CalculateUsed), _return_info() { }
 
 void G1SegmentedArrayFreeMemoryTask::execute() {
   SuspendibleThreadSetJoiner sts;

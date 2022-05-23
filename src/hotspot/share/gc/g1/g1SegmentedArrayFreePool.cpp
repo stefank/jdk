@@ -43,11 +43,11 @@ void G1SegmentedArrayMemoryStats::clear() {
   }
 }
 
-void G1SegmentedArrayFreePool::update_unlink_processors(G1ReturnMemoryProcessorSet* unlink_processor) {
+void G1SegmentedArrayFreePool::update_unlink_processors(const G1ReturnMemoryProcessorSet& unlink_processor) {
   uint num_free_lists = _freelist_pool.num_free_lists();
 
   for (uint i = 0; i < num_free_lists; i++) {
-    unlink_processor->at(i)->visit_free_list(_freelist_pool.free_list(i));
+    unlink_processor[i]->visit_free_list(_freelist_pool.free_list(i));
   }
 }
 

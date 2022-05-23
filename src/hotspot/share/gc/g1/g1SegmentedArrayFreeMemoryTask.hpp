@@ -29,7 +29,7 @@
 #include "gc/g1/g1SegmentedArrayFreePool.hpp"
 #include "gc/g1/g1ServiceThread.hpp"
 #include "gc/g1/heapRegionRemSet.hpp"
-#include "utilities/growableArray.hpp"
+#include "utilities/globalDefinitions.hpp"
 #include "utilities/ticks.hpp"
 
 // Task handling deallocation of free segmented array memory.
@@ -59,7 +59,7 @@ class G1SegmentedArrayFreeMemoryTask : public G1ServiceTask {
   using G1ReturnMemoryProcessor = G1SegmentedArrayFreePool::G1ReturnMemoryProcessor;
   using G1ReturnMemoryProcessorSet = G1SegmentedArrayFreePool::G1ReturnMemoryProcessorSet;
 
-  G1ReturnMemoryProcessorSet* _return_info;
+  G1ReturnMemoryProcessorSet _return_info;
 
   // Returns whether the given deadline has passed.
   bool deadline_exceeded(jlong deadline);

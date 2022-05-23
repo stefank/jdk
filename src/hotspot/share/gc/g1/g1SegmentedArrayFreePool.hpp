@@ -27,7 +27,7 @@
 
 #include "gc/g1/g1CardSet.hpp"
 #include "gc/g1/g1SegmentedArray.hpp"
-#include "utilities/growableArray.hpp"
+#include "utilities/cHeapVector.hpp"
 
 // Statistics for a segmented array. Contains the number of segments and memory
 // used for each. Note that statistics are typically not taken atomically so there
@@ -68,9 +68,9 @@ public:
   static G1SegmentedArrayMemoryStats free_list_sizes() { return _freelist_pool.memory_sizes(); }
 
   class G1ReturnMemoryProcessor;
-  typedef GrowableArrayCHeap<G1ReturnMemoryProcessor*, mtGC> G1ReturnMemoryProcessorSet;
+  typedef CHeapVector<G1ReturnMemoryProcessor*, mtGC> G1ReturnMemoryProcessorSet;
 
-  static void update_unlink_processors(G1ReturnMemoryProcessorSet* unlink_processors);
+  static void update_unlink_processors(const G1ReturnMemoryProcessorSet& unlink_processors);
 
   explicit G1SegmentedArrayFreePool(uint num_free_lists);
   ~G1SegmentedArrayFreePool();
