@@ -28,7 +28,6 @@
 #include "gc/serial/defNewGeneration.hpp"
 #include "gc/serial/tenuredGeneration.hpp"
 #include "gc/shared/genCollectedHeap.hpp"
-#include "utilities/growableArray.hpp"
 
 class GCMemoryManager;
 class MemoryPool;

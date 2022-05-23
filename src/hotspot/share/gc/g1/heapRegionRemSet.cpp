@@ -41,7 +41,6 @@
 #include "utilities/debug.hpp"
 #include "utilities/formatBuffer.hpp"
 #include "utilities/globalDefinitions.hpp"
-#include "utilities/growableArray.hpp"
 #include "utilities/powerOfTwo.hpp"
 
 uint HeapRegionRemSet::_split_card_shift = 0;

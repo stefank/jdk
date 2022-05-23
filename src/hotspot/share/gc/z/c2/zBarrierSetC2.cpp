@@ -42,7 +42,6 @@
 #include "opto/runtime.hpp"
 #include "opto/type.hpp"
 #include "utilities/arenaVector.hpp"
-#include "utilities/growableArray.hpp"
 #include "utilities/macros.hpp"
 
 class ZBarrierSetC2State : public ResourceObj {

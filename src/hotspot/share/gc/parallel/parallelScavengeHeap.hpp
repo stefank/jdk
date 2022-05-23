@@ -39,7 +39,6 @@
 #include "gc/shared/strongRootsScope.hpp"
 #include "gc/shared/workerThread.hpp"
 #include "logging/log.hpp"
-#include "utilities/growableArray.hpp"
 #include "utilities/ostream.hpp"
 
 class GCHeapSummary;

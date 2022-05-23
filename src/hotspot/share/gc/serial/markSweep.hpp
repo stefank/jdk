@@ -33,7 +33,6 @@
 #include "oops/markWord.hpp"
 #include "oops/oop.hpp"
 #include "runtime/timer.hpp"
-#include "utilities/growableArray.hpp"
 #include "utilities/stack.hpp"
 
 class ReferenceProcessor;

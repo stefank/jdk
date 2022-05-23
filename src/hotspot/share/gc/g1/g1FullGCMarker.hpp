@@ -35,7 +35,6 @@
 #include "oops/oop.hpp"
 #include "runtime/timer.hpp"
 #include "utilities/chunkedList.hpp"
-#include "utilities/growableArray.hpp"
 #include "utilities/stack.hpp"
 
 typedef OverflowTaskQueue<oop, mtGC>                 OopQueue;

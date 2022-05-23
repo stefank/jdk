@@ -31,7 +31,6 @@
 #include "gc/g1/g1SegmentedArrayFreePool.hpp"
 #include "gc/shared/freeListAllocator.hpp"
 #include "memory/allocation.hpp"
-#include "utilities/growableArray.hpp"
 
 class G1CardSetConfiguration;
 class outputStream;

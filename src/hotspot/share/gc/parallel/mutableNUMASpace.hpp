@@ -29,7 +29,6 @@
 #include "gc/shared/gcUtil.hpp"
 #include "runtime/globals.hpp"
 #include "utilities/cHeapVector.hpp"
-#include "utilities/growableArray.hpp"
 #include "utilities/macros.hpp"
 
 /*

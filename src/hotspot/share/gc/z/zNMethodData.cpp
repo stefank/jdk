@@ -29,7 +29,6 @@
 #include "runtime/atomic.hpp"
 #include "utilities/align.hpp"
 #include "utilities/debug.hpp"
-#include "utilities/growableArray.hpp"
 
 ZNMethodDataOops* ZNMethodDataOops::create(const ResourceAreaVector<oop*>& immediates, bool has_non_immediates) {
   return ::new (AttachedArray::alloc(immediates.size())) ZNMethodDataOops(immediates, has_non_immediates);

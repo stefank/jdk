@@ -74,7 +74,6 @@
 #include "services/memTracker.hpp"
 #include "utilities/align.hpp"
 #include "utilities/formatBuffer.hpp"
-#include "utilities/growableArray.hpp"
 
 bool G1CMBitMapClosure::do_addr(HeapWord* const addr) {
   assert(addr < _cm->finger(), "invariant");

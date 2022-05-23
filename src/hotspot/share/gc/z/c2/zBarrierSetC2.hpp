@@ -27,7 +27,6 @@
 #include "gc/shared/c2/barrierSetC2.hpp"
 #include "memory/allocation.hpp"
 #include "opto/node.hpp"
-#include "utilities/growableArray.hpp"
 
 const uint8_t ZLoadBarrierElided      = 0;
 const uint8_t ZLoadBarrierStrong      = 1;

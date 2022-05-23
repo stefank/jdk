@@ -26,7 +26,6 @@
 
 #include "memory/allocation.hpp"
 #include "utilities/cHeapVector.hpp"
-#include "utilities/growableArray.hpp"
 
 template <typename T> using ZArray = CHeapVector<T, mtGC>;
 
