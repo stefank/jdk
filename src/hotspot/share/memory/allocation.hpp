@@ -25,6 +25,7 @@
 #ifndef SHARE_MEMORY_ALLOCATION_HPP
 #define SHARE_MEMORY_ALLOCATION_HPP
 
+#include "cppstdlib/utility.hpp"
 #include "memory/allStatic.hpp"
 #include "utilities/globalDefinitions.hpp"
 #include "utilities/macros.hpp"
@@ -192,6 +193,18 @@ char* ReallocateHeap(char *old,
 
 // handles NULL pointers
 void FreeHeap(void* p);
+
+template <typename Class, MEMFLAGS memflags, typename ... Args>
+static Class* NewCHeapObject(Args&& ... args) {
+  char* mem = AllocateHeap(sizeof(Class), memflags);
+  return new (mem) Class(std::forward<Args>(args)...);
+}
+
+template <typename Class>
+void DeleteCHeapObject(Class* obj) {
+  obj->~Class();
+  FreeHeap(obj);
+}
 
 template <MEMFLAGS F> class CHeapObj ALLOCATION_SUPER_CLASS_SPEC {
  public:
