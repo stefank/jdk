@@ -34,6 +34,7 @@
 #include "runtime/vmOperations.hpp"
 #include "services/threadIdTable.hpp"
 #include "services/threadService.hpp"
+#include "utilities/cHeapUnorderedSet.hpp"
 #include "utilities/copy.hpp"
 #include "utilities/debug.hpp"
 #include "utilities/globalDefinitions.hpp"
@@ -182,35 +183,20 @@ inline ThreadsList* ThreadsSMRSupport::xchg_java_thread_list(ThreadsList* new_li
 // that are indirectly referenced by hazard ptrs. An instance of this
 // class only contains one type of pointer.
 //
-class ThreadScanHashtable : public CHeapObj<mtThread> {
+class ThreadScanHashtable : public StackObj {
  private:
-  static unsigned int ptr_hash(void * const& s1) {
-    // 2654435761 = 2^32 * Phi (golden ratio)
-    return (unsigned int)(((uint32_t)(uintptr_t)s1) * 2654435761u);
-  }
-
-  // ResourceHashtable SIZE is specified at compile time so we
-  // use 1031 which is the first prime after 1024.
-  typedef ResourceHashtable<void *, int, 1031,
-                            ResourceObj::C_HEAP, mtThread,
-                            &ThreadScanHashtable::ptr_hash> PtrTable;
-  PtrTable * _ptrs;
-
- public:
   // ResourceHashtable is passed to various functions and populated in
   // different places so we allocate it using C_HEAP to make it immune
   // from any ResourceMarks that happen to be in the code paths.
-  ThreadScanHashtable() : _ptrs(new (ResourceObj::C_HEAP, mtThread) PtrTable()) {}
+  CHeapPointerUnorderedSet<void*, mtThread> _ptrs;
 
-  ~ThreadScanHashtable() { delete _ptrs; }
-
-  bool has_entry(void *pointer) {
-    int *val_ptr = _ptrs->get(pointer);
-    return val_ptr != NULL && *val_ptr == 1;
+ public:
+  bool has_entry(void* pointer) {
+    return _ptrs.count(pointer) == 1;
   }
 
-  void add_entry(void *pointer) {
-    _ptrs->put(pointer, 1);
+  void add_entry(void* pointer) {
+    _ptrs.insert(pointer);
   }
 };
 
@@ -227,11 +213,11 @@ class AddThreadHazardPointerThreadClosure : public ThreadClosure {
   AddThreadHazardPointerThreadClosure(ThreadScanHashtable *table) : _table(table) {}
 
   virtual void do_thread(Thread *thread) {
-    if (!_table->has_entry((void*)thread)) {
+    if (!_table->has_entry(thread)) {
       // The same JavaThread might be on more than one ThreadsList or
       // more than one thread might be using the same ThreadsList. In
       // either case, we only need a single entry for a JavaThread.
-      _table->add_entry((void*)thread);
+      _table->add_entry(thread);
     }
   }
 };
@@ -323,8 +309,8 @@ class ScanHazardPtrGatherThreadsListClosure : public ThreadClosure {
     // published), then the only side effect is that we might keep a
     // to-be-deleted ThreadsList alive a little longer.
     hazard_ptr = Thread::untag_hazard_ptr(hazard_ptr);
-    if (!_table->has_entry((void*)hazard_ptr)) {
-      _table->add_entry((void*)hazard_ptr);
+    if (!_table->has_entry(hazard_ptr)) {
+      _table->add_entry(hazard_ptr);
     }
   }
 };
@@ -891,8 +877,8 @@ void ThreadsSMRSupport::free_list(ThreadsList* threads) {
   }
 
   // Gather a hash table of the current hazard ptrs:
-  ThreadScanHashtable *scan_table = new ThreadScanHashtable();
-  ScanHazardPtrGatherThreadsListClosure scan_cl(scan_table);
+  ThreadScanHashtable scan_table;
+  ScanHazardPtrGatherThreadsListClosure scan_cl(&scan_table);
   threads_do(&scan_cl);
   OrderAccess::acquire(); // Must order reads of hazard ptr before reads of
                           // nested reference counters
@@ -905,7 +891,7 @@ void ThreadsSMRSupport::free_list(ThreadsList* threads) {
   bool threads_is_freed = false;
   while (current != NULL) {
     next = current->next_list();
-    if (!scan_table->has_entry((void*)current) && current->_nested_handle_cnt == 0) {
+    if (!scan_table.has_entry(current) && current->_nested_handle_cnt == 0) {
       // This ThreadsList is not referenced by a hazard ptr.
       if (prev != NULL) {
         prev->set_next_list(next);
@@ -935,8 +921,6 @@ void ThreadsSMRSupport::free_list(ThreadsList* threads) {
 
   ValidateHazardPtrsClosure validate_cl;
   threads_do(&validate_cl);
-
-  delete scan_table;
 }
 
 // Return true if the specified JavaThread is protected by a hazard
@@ -947,8 +931,8 @@ bool ThreadsSMRSupport::is_a_protected_JavaThread(JavaThread *thread) {
 
   // Gather a hash table of the JavaThreads indirectly referenced by
   // hazard ptrs.
-  ThreadScanHashtable *scan_table = new ThreadScanHashtable();
-  ScanHazardPtrGatherProtectedThreadsClosure scan_cl(scan_table);
+  ThreadScanHashtable scan_table;
+  ScanHazardPtrGatherProtectedThreadsClosure scan_cl(&scan_table);
   threads_do(&scan_cl);
   OrderAccess::acquire(); // Must order reads of hazard ptr before reads of
                           // nested reference counters
@@ -961,17 +945,16 @@ bool ThreadsSMRSupport::is_a_protected_JavaThread(JavaThread *thread) {
     if (current->_nested_handle_cnt != 0) {
       // 'current' is in use by a nested ThreadsListHandle so the hazard
       // ptr is protecting all the JavaThreads on that ThreadsList.
-      AddThreadHazardPointerThreadClosure add_cl(scan_table);
+      AddThreadHazardPointerThreadClosure add_cl(&scan_table);
       current->threads_do(&add_cl);
     }
     current = current->next_list();
   }
 
   bool thread_is_protected = false;
-  if (scan_table->has_entry((void*)thread)) {
+  if (scan_table.has_entry(thread)) {
     thread_is_protected = true;
   }
-  delete scan_table;
   return thread_is_protected;
 }
 
