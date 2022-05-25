@@ -32,6 +32,7 @@
 #include "oops/klass.hpp"
 #include "runtime/os.hpp"
 #include "utilities/bitMap.hpp"
+#include "utilities/cHeapUnorderedMap.hpp"
 #include "utilities/cHeapVector.hpp"
 #include "utilities/growableArray.hpp"
 #include "utilities/resizeableResourceHash.hpp"
@@ -178,18 +179,9 @@ private:
     SourceObjInfo* at(int i) const { return objs()->at(i); }
   };
 
-  class SrcObjTableCleaner {
-  public:
-    bool do_entry(address key, const SourceObjInfo& value) {
-      delete value.ref();
-      return true;
-    }
-  };
-
   class CDSMapLogger;
 
   static const int INITIAL_TABLE_SIZE = 15889;
-  static const int MAX_TABLE_SIZE     = 1000000;
 
   ReservedSpace _shared_rs;
   VirtualSpace _shared_vs;
@@ -200,7 +192,7 @@ private:
 
   SourceObjList _rw_src_objs;                 // objs to put in rw region
   SourceObjList _ro_src_objs;                 // objs to put in ro region
-  ResizeableResourceHashtable<address, SourceObjInfo, ResourceObj::C_HEAP, mtClassShared> _src_obj_table;
+  CHeapUnorderedMap<address, SourceObjInfo, mtClassShared> _src_obj_table;
   GrowableArray<Klass*>* _klasses;
   GrowableArray<Symbol*>* _symbols;
   GrowableArray<SpecialRefInfo>* _special_refs;
