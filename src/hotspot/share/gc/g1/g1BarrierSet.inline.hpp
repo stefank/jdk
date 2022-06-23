@@ -30,6 +30,7 @@
 #include "gc/g1/g1CardTable.hpp"
 #include "gc/g1/g1ThreadLocalData.hpp"
 #include "gc/shared/accessBarrierSupport.inline.hpp"
+#include "gc/shared/modRefBarrierSet.inline.hpp"
 #include "oops/access.inline.hpp"
 #include "oops/compressedOops.inline.hpp"
 #include "oops/oop.hpp"

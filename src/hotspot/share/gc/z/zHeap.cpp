@@ -27,6 +27,7 @@
 #include "gc/shared/tlab_globals.hpp"
 #include "gc/z/zAddress.inline.hpp"
 #include "gc/z/zArray.inline.hpp"
+#include "gc/z/zBarrier.inline.hpp"
 #include "gc/z/zGlobals.hpp"
 #include "gc/z/zHeap.inline.hpp"
 #include "gc/z/zHeapIterator.hpp"

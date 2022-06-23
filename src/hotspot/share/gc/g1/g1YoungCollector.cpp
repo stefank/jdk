@@ -57,6 +57,7 @@
 #include "gc/shared/workerThread.hpp"
 #include "jfr/jfrEvents.hpp"
 #include "memory/resourceArea.hpp"
+#include "oops/access.inline.hpp"
 #include "utilities/ticks.hpp"
 
 // GCTraceTime wrapper that constructs the message according to GC pause type and

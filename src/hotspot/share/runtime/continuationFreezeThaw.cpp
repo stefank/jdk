@@ -32,6 +32,7 @@
 #include "gc/shared/continuationGCSupport.inline.hpp"
 #include "gc/shared/gc_globals.hpp"
 #include "gc/shared/barrierSet.hpp"
+#include "gc/shared/barrierSetConfig.inline.hpp"
 #include "gc/shared/memAllocator.hpp"
 #include "gc/shared/threadLocalAllocBuffer.inline.hpp"
 #include "interpreter/interpreter.hpp"

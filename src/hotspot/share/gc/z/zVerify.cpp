@@ -29,7 +29,7 @@
 #include "gc/z/zNMethod.hpp"
 #include "gc/z/zOop.hpp"
 #include "gc/z/zPageAllocator.hpp"
-#include "gc/z/zResurrection.hpp"
+#include "gc/z/zResurrection.inline.hpp"
 #include "gc/z/zRootsIterator.hpp"
 #include "gc/z/zStackWatermark.hpp"
 #include "gc/z/zStat.hpp"
