@@ -200,7 +200,7 @@ inline size_t ZLiveMap::find_base_bit(size_t start, size_t end) {
   assert(index_to_segment(start) == index_to_segment(end), "Only supports searches within segments");
   assert(is_segment_live(index_to_segment(end)), "Must be live");
 
-  BitMap::idx_t bit = _bitmap.get_prev_one_offset(start, end);
+  BitMap::idx_t bit = _bitmap.get_prev_one_offset_exclusive(start, end);
   if (bit == size_t(-1)) {
     return size_t(-1);
   }

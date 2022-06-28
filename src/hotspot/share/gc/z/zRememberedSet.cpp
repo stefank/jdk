@@ -144,7 +144,7 @@ bool ZRememberedSetIterator::next(uintptr_t* offset) {
 }
 
 ZRememberedSetReverseIterator::ZRememberedSetReverseIterator(BitMap* bitmap) :
-    ZRememberedSetReverseIterator(bitmap, 0, bitmap->size() - 1) {}
+    ZRememberedSetReverseIterator(bitmap, 0, bitmap->size()) {}
 
 ZRememberedSetReverseIterator::ZRememberedSetReverseIterator(BitMap* bitmap, BitMap::idx_t start, BitMap::idx_t end) :
     _bitmap(bitmap),
@@ -161,7 +161,7 @@ void ZRememberedSetReverseIterator::reset(BitMap::idx_t end) {
 }
 
 bool ZRememberedSetReverseIterator::next(size_t* index) {
-  BitMap::idx_t res = _bitmap->get_prev_one_offset(_start, _pos);
+  BitMap::idx_t res = _bitmap->get_prev_one_offset_exclusive(_start, _pos);
   if (res == size_t(-1)) {
     return false;
   }
@@ -205,7 +205,7 @@ bool ZRememberedSetContainingIterator::next(ZRememberedSetContaining* containing
 
       log_trace(gc, remset)("Remset Containing Obj  index: " PTR_FORMAT " base: " PTR_FORMAT " field: " PTR_FORMAT, index, untype(containing->_addr), untype(containing->_field_addr));
 
-      _obj_remset_iter.reset(to_index(containing->_field_addr) - 1);
+      _obj_remset_iter.reset(to_index(containing->_field_addr));
       return true;
     } else {
       // No more remset bits in the obj
@@ -227,12 +227,11 @@ bool ZRememberedSetContainingIterator::next(ZRememberedSetContaining* containing
     log_trace(gc, remset)("Remset Containing Main index: " PTR_FORMAT " base: " PTR_FORMAT " field: " PTR_FORMAT, index, untype(containing->_addr), untype(containing->_field_addr));
 
     // Don't scan inside the object in the main iterator
-    // Note: Can't use -1, since this might be the first object in the page.
     _remset_iter.reset(to_index(containing->_addr));
 
     // Scan inside the object iterator
     _obj = containing->_addr;
-    _obj_remset_iter.reset(to_index(containing->_addr), to_index(containing->_field_addr) - 1);
+    _obj_remset_iter.reset(to_index(containing->_addr), to_index(containing->_field_addr));
 
     return true;
   }

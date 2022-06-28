@@ -305,22 +305,22 @@ TEST_VM(BitMap, get_prev_one_offset) {
   size_t test_size = word_size * 2;
 
   for (size_t l_index = 0; l_index < test_size - 1; l_index++) {
-    for (size_t r_index = l_index; r_index < test_size - 1; r_index++) {
+    for (size_t r_index = l_index; r_index < test_size; r_index++) {
       for (size_t l_bit = 0; l_bit < test_size - 1; l_bit++) {
         BitMapTestSetter l_bit_setter(&bm, l_bit);
-        for (size_t r_bit = l_bit; r_bit < test_size - 1; r_bit++) {
+        for (size_t r_bit = l_bit; r_bit < test_size; r_bit++) {
           BitMapTestSetter r_bit_setter(&bm, r_bit);
-          if (l_index <= r_bit && r_bit <= r_index) {
+          if (l_index <= r_bit && r_bit < r_index) {
             // r_bit is within range; expect to find it
-            ASSERT_EQ(bm.get_prev_one_offset(l_index, r_index), r_bit) << ASSERT_MSG;
-            ASSERT_EQ(bm.get_prev_one_offset(r_index), r_bit) << ASSERT_MSG;
-          } else if (l_index <= l_bit && l_bit <= r_index) {
+            ASSERT_EQ(bm.get_prev_one_offset_exclusive(l_index, r_index), r_bit) << ASSERT_MSG;
+            ASSERT_EQ(bm.get_prev_one_offset_exclusive(r_index), r_bit) << ASSERT_MSG;
+          } else if (l_index <= l_bit && l_bit < r_index) {
             // r_bit is out-of-range while l_bit is within range; expect to find it
-            ASSERT_EQ(bm.get_prev_one_offset(l_index, r_index), l_bit) << ASSERT_MSG;
-            ASSERT_EQ(bm.get_prev_one_offset(r_index), l_bit) << ASSERT_MSG;
+            ASSERT_EQ(bm.get_prev_one_offset_exclusive(l_index, r_index), l_bit) << ASSERT_MSG;
+            ASSERT_EQ(bm.get_prev_one_offset_exclusive(r_index), l_bit) << ASSERT_MSG;
           } else {
             // No bit in range; expect to find nothing
-            ASSERT_EQ(bm.get_prev_one_offset(l_index, r_index), size_t(-1)) << ASSERT_MSG;
+            ASSERT_EQ(bm.get_prev_one_offset_exclusive(l_index, r_index), size_t(-1)) << ASSERT_MSG;
           }
         }
       }
@@ -329,8 +329,8 @@ TEST_VM(BitMap, get_prev_one_offset) {
 
   bm.at_put_range(0, test_size, true);
   for (size_t l_index = 0; l_index < test_size - 1; l_index++) {
-    for (size_t r_index = l_index; r_index < word_size - 1; r_index++) {
-      ASSERT_EQ(bm.get_prev_one_offset(l_index, r_index), r_index);
+    for (size_t r_index = l_index + 1; r_index < word_size; r_index++) {
+      ASSERT_EQ(bm.get_prev_one_offset_exclusive(l_index, r_index), r_index - 1);
     }
   }
 }
@@ -352,15 +352,15 @@ TEST_VM(BitMap, get_prev_one_offset_aligned_left) {
         BitMapTestSetter l_bit_setter(&bm, l_bit);
         for (size_t r_bit = l_bit; r_bit < test_size - 1; r_bit++) {
           BitMapTestSetter r_bit_setter(&bm, r_bit);
-          if (l_index <= r_bit && r_bit <= r_index) {
+          if (l_index <= r_bit && r_bit < r_index) {
             // r_bit is within range; expect to find it
-            ASSERT_EQ(bm.get_prev_one_offset_aligned_left(l_index, r_index), r_bit) << ASSERT_MSG;
-          } else if (l_index <= l_bit && l_bit <= r_index) {
+            ASSERT_EQ(bm.get_prev_one_offset_aligned_left_exclusive(l_index, r_index), r_bit) << ASSERT_MSG;
+          } else if (l_index <= l_bit && l_bit < r_index) {
             // r_bit is out-of-range while l_bit is within range; expect to find it
-            ASSERT_EQ(bm.get_prev_one_offset_aligned_left(l_index, r_index), l_bit) << ASSERT_MSG;
+            ASSERT_EQ(bm.get_prev_one_offset_aligned_left_exclusive(l_index, r_index), l_bit) << ASSERT_MSG;
           } else {
             // No bit in range; expect to find nothing
-            ASSERT_EQ(bm.get_prev_one_offset_aligned_left(l_index, r_index), size_t(-1)) << ASSERT_MSG;
+            ASSERT_EQ(bm.get_prev_one_offset_aligned_left_exclusive(l_index, r_index), size_t(-1)) << ASSERT_MSG;
           }
         }
       }
@@ -369,8 +369,8 @@ TEST_VM(BitMap, get_prev_one_offset_aligned_left) {
 
   bm.at_put_range(0, test_size, true);
   for (size_t l_index = 0; l_index < test_size - 1; l_index++) {
-    for (size_t r_index = l_index; r_index < word_size - 1; r_index++) {
-      ASSERT_EQ(bm.get_prev_one_offset(l_index, r_index), r_index);
+    for (size_t r_index = l_index + 1; r_index <= test_size; r_index++) {
+      ASSERT_EQ(bm.get_prev_one_offset_exclusive(l_index, r_index), r_index - 1);
     }
   }
 }
@@ -394,11 +394,11 @@ TEST_VM(BitMap, get_prev_zero_offset) {
         BitMapTestClearer l_bit_clearer(&bm, l_bit);
         for (size_t r_bit = l_bit; r_bit < test_size - 1; r_bit++) {
           BitMapTestClearer r_bit_clearer(&bm, r_bit);
-          if (l_index <= r_bit && r_bit <= r_index) {
+          if (l_index <= r_bit && r_bit < r_index) {
             // r_bit is within range; expect to find it
             ASSERT_EQ(bm.get_prev_zero_offset(l_index, r_index), r_bit) << ASSERT_MSG;
             ASSERT_EQ(bm.get_prev_zero_offset(r_index), r_bit) << ASSERT_MSG;
-          } else if (l_index <= l_bit && l_bit <= r_index) {
+          } else if (l_index <= l_bit && l_bit < r_index) {
             // r_bit is out-of-range while l_bit is within range; expect to find it
             ASSERT_EQ(bm.get_prev_zero_offset(l_index, r_index), l_bit) << ASSERT_MSG;
             ASSERT_EQ(bm.get_prev_zero_offset(r_index), l_bit) << ASSERT_MSG;
@@ -413,8 +413,8 @@ TEST_VM(BitMap, get_prev_zero_offset) {
 
   bm.at_put_range(0, test_size, false);
   for (size_t l_index = 0; l_index < test_size - 1; l_index++) {
-    for (size_t r_index = l_index; r_index < word_size - 1; r_index++) {
-      ASSERT_EQ(bm.get_prev_zero_offset(l_index, r_index), r_index);
+    for (size_t r_index = l_index + 1; r_index <= test_size; r_index++) {
+      ASSERT_EQ(bm.get_prev_zero_offset(l_index, r_index), r_index - 1) << "l_index: " << l_index << " r_index: " << r_index;
     }
   }
 
@@ -433,8 +433,8 @@ TEST_VM(BitMap, get_prev_one_offset_empty) {
   size_t test_size = word_size * 2;
 
   for (size_t l_index = 0; l_index < test_size - 1; l_index++) {
-    for (size_t r_index = l_index; r_index < test_size - 1; r_index++) {
-      ASSERT_EQ(bm.get_prev_one_offset(l_index, r_index), size_t(-1)) << ASSERT_MSG;
+    for (size_t r_index = l_index; r_index < test_size; r_index++) {
+      ASSERT_EQ(bm.get_prev_one_offset_exclusive(l_index, r_index), size_t(-1)) << ASSERT_MSG;
     }
   }
 

@@ -217,11 +217,11 @@ public:
       return true;
     };
 
-    bool val = bm.iterate_reverse_f(lambda, 0, bm.size() - 1);
+    bool val = bm.iterate_reverse_f_exclusive(lambda, 0, bm.size());
 
     ASSERT_TRUE(val) << "Failed";
 
-    ASSERT_TRUE(index == 0) << "Not all visited";
+    ASSERT_TRUE(index == 0) << "Not all visited. index: " << index << " size: " << size << " seq_length: " << seq_length;
   }
 
   static void test(size_t size, size_t* seq, size_t seq_length) {
@@ -237,7 +237,7 @@ public:
 
     // Iterate over the bits
     BitMapTestClosure cl(seq, seq_length);
-    bool val = bm.iterate_reverse(&cl, 0, bm.size()-1);
+    bool val = bm.iterate_reverse_exclusive(&cl, 0, bm.size());
     ASSERT_TRUE(val) << "Failed";
 
     ASSERT_TRUE(cl.all_visited()) << "Not all visited";
