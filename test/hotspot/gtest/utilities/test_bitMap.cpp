@@ -220,7 +220,7 @@ public:
       return true;
     };
 
-    bool val = bm.iterate_reverse_f(lambda, 0, bm.size());
+    bool val = bm.iterate_reverse(lambda, 0, bm.size());
 
     ASSERT_TRUE(val) << "Failed";
 

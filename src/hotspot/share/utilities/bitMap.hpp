@@ -344,14 +344,16 @@ class BitMap {
   //  beg - inclusive
   //  end - exclusive
   template <typename Function>
-  bool iterate_reverse_f(Function function, idx_t beg, idx_t end);
+  bool iterate_reverse(Function function, idx_t beg, idx_t end);
   template <typename Function>
-  bool iterate_reverse_f(Function function) {
-    return iterate_reverse_f(function, 0, _size);
+  bool iterate_reverse(Function function) {
+    return iterate_reverse(function, 0, _size);
   }
 
-  bool iterate_reverse(BitMapClosure* cl, idx_t beg, idx_t end);
-  bool iterate_reverse(BitMapClosure* cl) {
+  template <typename BitMapClosureType>
+  bool iterate_reverse(BitMapClosureType* cl, idx_t beg, idx_t end);
+  template <typename BitMapClosureType>
+  bool iterate_reverse(BitMapClosureType* cl) {
     return iterate_reverse(cl, 0, _size);
   }
 

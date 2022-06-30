@@ -357,8 +357,11 @@ inline bool BitMap::iterate(Function function, idx_t beg, idx_t end) {
   for (idx_t index = beg; true; ++index) {
     index = get_next_one_offset(index, end);
     if (index >= end) {
+      // Nothing was found
       return true;
-    } else if (!function(index)) {
+    }
+
+    if (!function(index)) {
       return false;
     }
   }
@@ -366,7 +369,7 @@ inline bool BitMap::iterate(Function function, idx_t beg, idx_t end) {
 
 template <typename BitMapClosureType>
 inline bool BitMap::iterate(BitMapClosureType* cl, idx_t beg, idx_t end) {
-  auto cl_to_lambda = [&](idx_t index)-> bool {
+  auto cl_to_lambda = [&](idx_t index) -> bool {
     return cl->do_bit(index);
   };
 
@@ -374,13 +377,14 @@ inline bool BitMap::iterate(BitMapClosureType* cl, idx_t beg, idx_t end) {
 }
 
 template <typename Function>
-inline bool BitMap::iterate_reverse_f(Function function, idx_t beg, idx_t end) {
-  for (idx_t index = end;;) {
+inline bool BitMap::iterate_reverse(Function function, idx_t beg, idx_t end) {
+  for (idx_t index = end; true;) {
     index = get_prev_one_offset(beg, index);
     if (index == BitMap::idx_t(-1)) {
       // Nothing was found
       return true;
     }
+
     if (!function(index)) {
       return false;
     }
@@ -391,12 +395,13 @@ inline bool BitMap::iterate_reverse_f(Function function, idx_t beg, idx_t end) {
   }
 }
 
-inline bool BitMap::iterate_reverse(BitMapClosure* cl, idx_t beg, idx_t end) {
-  auto cl_to_lambda = [&](idx_t index)-> bool {
+template <typename BitMapClosureType>
+inline bool BitMap::iterate_reverse(BitMapClosureType* cl, idx_t beg, idx_t end) {
+  auto cl_to_lambda = [&](idx_t index) -> bool {
     return cl->do_bit(index);
   };
 
-  return iterate_reverse_f(cl_to_lambda, beg, end);
+  return iterate_reverse(cl_to_lambda, beg, end);
 }
 
 // Returns a bit mask for a range of bits [beg, end) within a single word.  Each
