@@ -341,29 +341,18 @@ class BitMap {
   }
 
   // Reverse version of "iterate".
-  //
-  // Difference:
-  //  end - inclusive
+  //  beg - inclusive
+  //  end - exclusive
   template <typename Function>
-  bool iterate_reverse_f_inclusive(Function function, idx_t beg, idx_t end);
+  bool iterate_reverse_f(Function function, idx_t beg, idx_t end);
   template <typename Function>
-  bool iterate_reverse_f_exclusive(Function function, idx_t beg, idx_t end);
-  template <typename Function>
-  bool iterate_reverse_f_inclusive(Function function) {
-    return iterate_reverse_f_inclusive(function, 0, _size + 1);
-  }
-  template <typename Function>
-  bool iterate_reverse_f_exclusive(Function function) {
-    return iterate_reverse_f_exclusive(function, 0, _size);
+  bool iterate_reverse_f(Function function) {
+    return iterate_reverse_f(function, 0, _size);
   }
 
-  bool iterate_reverse_inclusive(BitMapClosure* cl, idx_t beg, idx_t end);
-  bool iterate_reverse_exclusive(BitMapClosure* cl, idx_t beg, idx_t end);
-  bool iterate_reverse_inclusive(BitMapClosure* cl) {
-    return iterate_reverse_inclusive(cl, 0, _size + 1);
-  }
-  bool iterate_reverse_exclusive(BitMapClosure* cl) {
-    return iterate_reverse_exclusive(cl, 0, _size);
+  bool iterate_reverse(BitMapClosure* cl, idx_t beg, idx_t end);
+  bool iterate_reverse(BitMapClosure* cl) {
+    return iterate_reverse(cl, 0, _size);
   }
 
   // Looking for 1's and 0's at indices equal to or greater than "l_index",
@@ -383,18 +372,14 @@ class BitMap {
   // aligned to bitsizeof(bm_word_t).
   idx_t get_next_one_offset_aligned_right(idx_t l_index, idx_t r_index) const;
 
-  // Looking for 1's and 0's at indices equal to or lower than "r_index",
-  // stopping if none has been found before "l_index", and returning
-  // "l_index" (which must be at most "size") in that case.
-  idx_t get_prev_one_offset_inclusive (idx_t l_index, idx_t r_index) const;
-  idx_t get_prev_one_offset_exclusive (idx_t l_index, idx_t r_index) const;
+  // Looking for 1's and 0's at indices lower than "r_index",
+  // stopping if none has been found before or at "l_index", and returning
+  // idx_t(-1) in that case.
+  idx_t get_prev_one_offset (idx_t l_index, idx_t r_index) const;
   idx_t get_prev_zero_offset(idx_t l_index, idx_t r_index) const;
 
-  idx_t get_prev_one_offset_inclusive(idx_t offset) const {
-    return get_prev_one_offset_inclusive(0, offset);
-  }
-  idx_t get_prev_one_offset_exclusive(idx_t offset) const {
-    return get_prev_one_offset_exclusive(0, offset);
+  idx_t get_prev_one_offset(idx_t offset) const {
+    return get_prev_one_offset(0, offset);
   }
   idx_t get_prev_zero_offset(idx_t offset) const {
     return get_prev_zero_offset(0, offset);
@@ -402,8 +387,7 @@ class BitMap {
 
   // Like "get_prev_one_offset", except requires that "l_index" is
   // aligned to bitsizeof(bm_word_t).
-  idx_t get_prev_one_offset_aligned_left_inclusive(idx_t l_index, idx_t r_index) const;
-  idx_t get_prev_one_offset_aligned_left_exclusive(idx_t l_index, idx_t r_index) const;
+  idx_t get_prev_one_offset_aligned_left(idx_t l_index, idx_t r_index) const;
 
   // Returns the number of bits set in the bitmap.
   idx_t count_one_bits() const;

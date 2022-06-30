@@ -124,14 +124,14 @@ ZRememberedSetIterator ZRememberedSet::iterator_limited_previous(uintptr_t offse
 }
 
 ZRememberedSetIterator::ZRememberedSetIterator(BitMap* bitmap) :
-    ZRememberedSetIterator(bitmap, 0, bitmap->size() - 1) {}
+    ZRememberedSetIterator(bitmap, 0, bitmap->size()) {}
 
 ZRememberedSetIterator::ZRememberedSetIterator(BitMap* bitmap, BitMap::idx_t start, BitMap::idx_t end) :
     _bitmap(bitmap),
     _pos(start),
     _end(end) {}
 
-bool ZRememberedSetIterator::next(uintptr_t* offset) {
+bool ZRememberedSetIterator::next(BitMap::idx_t* index) {
   BitMap::idx_t res = _bitmap->get_next_one_offset(_pos, _end);
   if (res == _end) {
     return false;
@@ -139,7 +139,7 @@ bool ZRememberedSetIterator::next(uintptr_t* offset) {
 
   _pos = res + 1;
 
-  *offset = ZRememberedSet::to_offset(res);
+  *index = res;
   return true;
 }
 
@@ -161,13 +161,12 @@ void ZRememberedSetReverseIterator::reset(BitMap::idx_t end) {
 }
 
 bool ZRememberedSetReverseIterator::next(size_t* index) {
-  BitMap::idx_t res = _bitmap->get_prev_one_offset_exclusive(_start, _pos);
-  if (res == size_t(-1)) {
+  BitMap::idx_t res = _bitmap->get_prev_one_offset(_start, _pos);
+  if (res == BitMap::idx_t(-1)) {
     return false;
   }
 
-  assert(_pos > _start, "Shouldn't find bits at the start of ranges");
-  _pos = res - 1;
+  _pos = res;
 
   *index = res;
   return true;
@@ -178,7 +177,7 @@ size_t ZRememberedSetContainingIterator::to_index(zaddress_unsafe addr) {
   return ZRememberedSet::to_index(local_offset);
 }
 
-zaddress_unsafe ZRememberedSetContainingIterator::to_addr(size_t index) {
+zaddress_unsafe ZRememberedSetContainingIterator::to_addr(BitMap::idx_t index) {
   const uintptr_t local_offset = ZRememberedSet::to_offset(index);
   return ZOffset::address_unsafe(_page->global_offset(local_offset));
 }
@@ -196,7 +195,7 @@ bool ZRememberedSetContainingIterator::next(ZRememberedSetContaining* containing
   // The (addr, addr_field) pair will contain the nearest live object, of a
   // given remset bit. Users of 'containing' need to do the filtering.
 
-  size_t index;
+  BitMap::idx_t index;
 
   if (!is_null(_obj)) {
     if (_obj_remset_iter.next(&index)) {

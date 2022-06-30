@@ -338,12 +338,7 @@ BitMap::get_next_one_offset_aligned_right(idx_t l_offset, idx_t r_offset) const 
 }
 
 inline BitMap::idx_t
-BitMap::get_prev_one_offset_inclusive(idx_t l_offset, idx_t r_offset) const {
-  return get_prev_bit_impl<find_ones_flip, false>(l_offset, r_offset + 1);
-}
-
-inline BitMap::idx_t
-BitMap::get_prev_one_offset_exclusive(idx_t l_offset, idx_t r_offset) const {
+BitMap::get_prev_one_offset(idx_t l_offset, idx_t r_offset) const {
   return get_prev_bit_impl<find_ones_flip, false>(l_offset, r_offset);
 }
 
@@ -353,12 +348,7 @@ BitMap::get_prev_zero_offset(idx_t l_offset, idx_t r_offset) const {
 }
 
 inline BitMap::idx_t
-BitMap::get_prev_one_offset_aligned_left_inclusive(idx_t l_offset, idx_t r_offset) const {
-  return get_prev_bit_impl<find_ones_flip, true>(l_offset, r_offset + 1);
-}
-
-inline BitMap::idx_t
-BitMap::get_prev_one_offset_aligned_left_exclusive(idx_t l_offset, idx_t r_offset) const {
+BitMap::get_prev_one_offset_aligned_left(idx_t l_offset, idx_t r_offset) const {
   return get_prev_bit_impl<find_ones_flip, true>(l_offset, r_offset);
 }
 
@@ -384,11 +374,11 @@ inline bool BitMap::iterate(BitMapClosureType* cl, idx_t beg, idx_t end) {
 }
 
 template <typename Function>
-inline bool BitMap::iterate_reverse_f_exclusive(Function function, idx_t beg, idx_t end) {
+inline bool BitMap::iterate_reverse_f(Function function, idx_t beg, idx_t end) {
   for (idx_t index = end;;) {
-    index = get_prev_one_offset_exclusive(beg, index);
-    // Returns size_t(-1) if nothing was found
-    if (index == size_t(-1)) {
+    index = get_prev_one_offset(beg, index);
+    if (index == BitMap::idx_t(-1)) {
+      // Nothing was found
       return true;
     }
     if (!function(index)) {
@@ -401,38 +391,12 @@ inline bool BitMap::iterate_reverse_f_exclusive(Function function, idx_t beg, id
   }
 }
 
-template <typename Function>
-inline bool BitMap::iterate_reverse_f_inclusive(Function function, idx_t beg, idx_t end) {
-  for (idx_t index = end; true; --index) {
-    index = get_prev_one_offset_inclusive(beg, index);
-    // Returns size_t(-1) if nothing was found
-    if (index == size_t(-1)) {
-      return true;
-    }
-    if (!function(index)) {
-      return false;
-    }
-
-    if (index == beg) {
-      return true;
-    }
-  }
-}
-
-inline bool BitMap::iterate_reverse_inclusive(BitMapClosure* cl, idx_t beg, idx_t end) {
+inline bool BitMap::iterate_reverse(BitMapClosure* cl, idx_t beg, idx_t end) {
   auto cl_to_lambda = [&](idx_t index)-> bool {
     return cl->do_bit(index);
   };
 
-  return iterate_reverse_f_inclusive(cl_to_lambda, beg, end);
-}
-
-inline bool BitMap::iterate_reverse_exclusive(BitMapClosure* cl, idx_t beg, idx_t end) {
-  auto cl_to_lambda = [&](idx_t index)-> bool {
-    return cl->do_bit(index);
-  };
-
-  return iterate_reverse_f_exclusive(cl_to_lambda, beg, end);
+  return iterate_reverse_f(cl_to_lambda, beg, end);
 }
 
 // Returns a bit mask for a range of bits [beg, end) within a single word.  Each

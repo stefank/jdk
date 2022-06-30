@@ -95,18 +95,18 @@ inline BitMap::idx_t ZLiveMap::index_to_segment(BitMap::idx_t index) const {
   return index >> _segment_shift;
 }
 
-inline bool ZLiveMap::get(ZGenerationId id, size_t index) const {
+inline bool ZLiveMap::get(ZGenerationId id, BitMap::idx_t index) const {
   BitMap::idx_t segment = index_to_segment(index);
-  return is_marked(id) &&                  // Page is marked
+  return is_marked(id) &&                             // Page is marked
          is_segment_live(segment) &&                  // Segment is marked
          _bitmap.par_at(index, memory_order_relaxed); // Object is marked
 }
 
-inline bool ZLiveMap::set(ZGenerationId id, size_t index, bool finalizable, bool& inc_live) {
+inline bool ZLiveMap::set(ZGenerationId id, BitMap::idx_t index, bool finalizable, bool& inc_live) {
   if (!is_marked(id)) {
     // First object to be marked during this
     // cycle, reset marking information.
-    reset(id, index);
+    reset(id);
   }
 
   const BitMap::idx_t segment = index_to_segment(index);
@@ -173,12 +173,12 @@ inline void ZLiveMap::iterate(ZGenerationId id, Function function) {
   }
 }
 
-inline size_t ZLiveMap::find_base_bit(size_t index) {
+inline BitMap::idx_t ZLiveMap::find_base_bit(BitMap::idx_t index) {
   // Check first segment
   BitMap::idx_t start_segment = index_to_segment(index);
   if (is_segment_live(start_segment)) {
-    size_t res = find_base_bit(segment_start(start_segment), index);
-    if (res != size_t(-1)) {
+    BitMap::idx_t res = find_base_bit(segment_start(start_segment), index);
+    if (res != BitMap::idx_t(-1)) {
       return res;
     }
   }
@@ -186,23 +186,23 @@ inline size_t ZLiveMap::find_base_bit(size_t index) {
   // Search earlier segments
   for (BitMap::idx_t segment = start_segment; segment-- > 0; ) {
     if (is_segment_live(segment)) {
-      size_t res = find_base_bit(segment_start(segment), segment_end(segment) - 1);
-      if (res != size_t(-1)) {
+      BitMap::idx_t res = find_base_bit(segment_start(segment), segment_end(segment) - 1);
+      if (res != BitMap::idx_t(-1)) {
         return res;
       }
     }
   }
 
-  return size_t(-1);
+  return BitMap::idx_t(-1);
 }
 
-inline size_t ZLiveMap::find_base_bit(size_t start, size_t end) {
+inline BitMap::idx_t ZLiveMap::find_base_bit(BitMap::idx_t start, BitMap::idx_t end) {
   assert(index_to_segment(start) == index_to_segment(end), "Only supports searches within segments");
   assert(is_segment_live(index_to_segment(end)), "Must be live");
 
-  BitMap::idx_t bit = _bitmap.get_prev_one_offset_exclusive(start, end);
-  if (bit == size_t(-1)) {
-    return size_t(-1);
+  BitMap::idx_t bit = _bitmap.get_prev_one_offset(start, end);
+  if (bit == BitMap::idx_t(-1)) {
+    return BitMap::idx_t(-1);
   }
 
   // Align down marked vs strongly marked
