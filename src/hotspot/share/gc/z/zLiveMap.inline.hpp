@@ -150,7 +150,7 @@ inline void ZLiveMap::iterate_segment(BitMap::idx_t segment, Function function) 
   const BitMap::idx_t start_index = segment_start(segment);
   const BitMap::idx_t end_index   = segment_end(segment);
 
-  _bitmap.iterate_f(function, start_index, end_index);
+  _bitmap.iterate(function, start_index, end_index);
 }
 
 template <typename Function>
