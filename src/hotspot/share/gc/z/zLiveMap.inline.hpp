@@ -186,7 +186,7 @@ inline BitMap::idx_t ZLiveMap::find_base_bit(BitMap::idx_t index) {
   // Search earlier segments
   for (BitMap::idx_t segment = start_segment; segment-- > 0; ) {
     if (is_segment_live(segment)) {
-      BitMap::idx_t res = find_base_bit(segment_start(segment), segment_end(segment) - 1);
+      BitMap::idx_t res = find_base_bit(segment_start(segment), segment_end(segment));
       if (res != BitMap::idx_t(-1)) {
         return res;
       }
