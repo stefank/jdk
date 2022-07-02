@@ -174,10 +174,13 @@ inline void ZLiveMap::iterate(ZGenerationId id, Function function) {
 }
 
 inline BitMap::idx_t ZLiveMap::find_base_bit(BitMap::idx_t index) {
+  // Index is exclusive
+  BitMap::idx_t start_index = index - 1;
+
   // Check first segment
-  BitMap::idx_t start_segment = index_to_segment(index);
+  BitMap::idx_t start_segment = index_to_segment(start_index);
   if (is_segment_live(start_segment)) {
-    BitMap::idx_t res = find_base_bit(segment_start(start_segment), index);
+    BitMap::idx_t res = find_base_bit(segment_start(start_segment), start_index);
     if (res != BitMap::idx_t(-1)) {
       return res;
     }
@@ -197,15 +200,17 @@ inline BitMap::idx_t ZLiveMap::find_base_bit(BitMap::idx_t index) {
 }
 
 inline BitMap::idx_t ZLiveMap::find_base_bit(BitMap::idx_t start, BitMap::idx_t end) {
-  assert(index_to_segment(start) == index_to_segment(end), "Only supports searches within segments");
-  assert(is_segment_live(index_to_segment(end)), "Must be live");
+  // end is exclusive
+  assert(index_to_segment(start) == index_to_segment(end - 1), "Only supports searches within segments start: %zu end: %zu", start, end);
+  assert(is_segment_live(index_to_segment(start)), "Must be live");
 
   BitMap::idx_t bit = _bitmap.get_prev_one_offset(start, end);
   if (bit == BitMap::idx_t(-1)) {
     return BitMap::idx_t(-1);
   }
 
-  // Align down marked vs strongly marked
+  // The bitmaps contain pairs of bits to deal with strongly marked vs only finalizable marked.
+  // Align down to get the the first bit position.
   return bit & ~BitMap::idx_t(1);
 }
 
