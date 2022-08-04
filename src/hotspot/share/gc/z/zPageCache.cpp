@@ -33,8 +33,6 @@
 #include "runtime/globals.hpp"
 #include "runtime/os.hpp"
 
-PRAGMA_ALLOW_LOSSY_CONVERSIONS
-
 static const ZStatCounter ZCounterPageCacheHitL1("Memory", "Page Cache Hit L1", ZStatUnitOpsPerSecond);
 static const ZStatCounter ZCounterPageCacheHitL2("Memory", "Page Cache Hit L2", ZStatUnitOpsPerSecond);
 static const ZStatCounter ZCounterPageCacheHitL3("Memory", "Page Cache Hit L3", ZStatUnitOpsPerSecond);
@@ -310,7 +308,7 @@ public:
 };
 
 size_t ZPageCache::flush_for_uncommit(size_t requested, ZList<ZPage>* to, uint64_t* timeout) {
-  const uint64_t now = os::elapsedTime();
+  const uint64_t now = (uint64_t)os::elapsedTime();
   const uint64_t expires = _last_commit + ZUncommitDelay;
   if (expires > now) {
     // Delay uncommit, set next timeout
@@ -331,7 +329,7 @@ size_t ZPageCache::flush_for_uncommit(size_t requested, ZList<ZPage>* to, uint64
 }
 
 void ZPageCache::set_last_commit() {
-  _last_commit = ceil(os::elapsedTime());
+  _last_commit = (uint64_t)ceil(os::elapsedTime());
 }
 
 void ZPageCache::pages_do(ZPageClosure* cl) const {

@@ -43,8 +43,6 @@
 #include "utilities/debug.hpp"
 #include "utilities/ticks.hpp"
 
-PRAGMA_ALLOW_LOSSY_CONVERSIONS
-
 #define ZSIZE_FMT                       SIZE_FORMAT "M(%.0f%%)"
 #define ZSIZE_ARGS_WITH_MAX(size, max)  ((size) / M), (percent_of(size, max))
 #define ZSIZE_ARGS(size)                ZSIZE_ARGS_WITH_MAX(size, ZStatHeap::max_capacity())
@@ -852,11 +850,11 @@ const ZStatUnsampledCounter& ZStatAllocRate::counter() {
   return _counter;
 }
 
-uint64_t ZStatAllocRate::sample_and_reset() {
+double ZStatAllocRate::sample_and_reset() {
   const ZStatCounterData bytes_per_sample = _counter.collect_and_reset();
-  _samples.add(bytes_per_sample._counter);
+  _samples.add((double)bytes_per_sample._counter);
 
-  const uint64_t bytes_per_second = _samples.sum();
+  const double bytes_per_second = _samples.sum();
   _rate.add(bytes_per_second);
 
   return bytes_per_second;
@@ -898,7 +896,7 @@ void ZStat::sample_and_collect(ZStatSamplerHistory* history) const {
 
 bool ZStat::should_print(LogTargetHandle log) const {
   static uint64_t print_at = ZStatisticsInterval;
-  const uint64_t now = os::elapsedTime();
+  const uint64_t now = (uint64_t)os::elapsedTime();
 
   if (now < print_at) {
     return false;

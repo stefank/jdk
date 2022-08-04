@@ -37,8 +37,6 @@
 #include "memory/iterator.inline.hpp"
 #include "utilities/bitMap.inline.hpp"
 
-PRAGMA_ALLOW_LOSSY_CONVERSIONS
-
 class ZHeapIteratorBitMap : public CHeapObj<mtGC> {
 private:
   CHeapBitMap _bitmap;
@@ -359,7 +357,7 @@ void ZHeapIterator::follow_array_chunk(const ZHeapIteratorContext& context, cons
   const objArrayOop obj = objArrayOop(array.obj());
   const int length = obj->length();
   const int start = array.index();
-  const int stride = MIN2<int>(length - start, ObjArrayMarkingStride);
+  const int stride = MIN2<int>(length - start, (int)ObjArrayMarkingStride);
   const int end = start + stride;
 
   // Push remaining array chunk first

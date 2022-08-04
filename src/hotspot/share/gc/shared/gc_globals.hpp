@@ -281,6 +281,7 @@
   develop(uintx, ObjArrayMarkingStride, 2048,                               \
           "Number of object array elements to push onto the marking stack " \
           "before pushing a continuation entry")                            \
+          range(1, INT_MAX)                                                 \
                                                                             \
   develop(bool, MetadataAllocationFailALot, false,                          \
           "Fail metadata allocations at intervals controlled by "           \

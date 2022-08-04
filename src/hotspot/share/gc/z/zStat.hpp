@@ -338,7 +338,7 @@ public:
   static const uint64_t sample_hz = 10;
 
   static const ZStatUnsampledCounter& counter();
-  static uint64_t sample_and_reset();
+  static double sample_and_reset();
 
   static double predict();
   static double avg();

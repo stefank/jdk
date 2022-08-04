@@ -37,9 +37,6 @@
 #include "utilities/align.hpp"
 #include "utilities/debug.hpp"
 
-PRAGMA_DIAG_PUSH
-PRAGMA_ALLOW_LOSSY_CONVERSIONS
-
 inline uint8_t ZPage::type_from_size(size_t size) const {
   if (size == ZPageSizeSmall) {
     return ZPageTypeSmall;
@@ -161,7 +158,7 @@ inline uint64_t ZPage::last_used() const {
 }
 
 inline void ZPage::set_last_used() {
-  _last_used = ceil(os::elapsedTime());
+  _last_used = (uint64_t)ceil(os::elapsedTime());
 }
 
 inline bool ZPage::is_in(uintptr_t addr) const {
@@ -311,7 +308,5 @@ inline bool ZPage::undo_alloc_object_atomic(uintptr_t addr, size_t size) {
     old_top = prev_top;
   }
 }
-
-PRAGMA_DIAG_POP
 
 #endif // SHARE_GC_Z_ZPAGE_INLINE_HPP

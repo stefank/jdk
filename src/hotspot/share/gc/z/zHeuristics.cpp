@@ -32,8 +32,6 @@
 #include "utilities/globalDefinitions.hpp"
 #include "utilities/powerOfTwo.hpp"
 
-PRAGMA_ALLOW_LOSSY_CONVERSIONS
-
 void ZHeuristics::set_medium_page_size() {
   // Set ZPageSizeMedium so that a medium page occupies at most 3.125% of the
   // max heap size. ZPageSizeMedium is initially set to 0, which means medium
@@ -41,7 +39,7 @@ void ZHeuristics::set_medium_page_size() {
   // becomes larger than ZPageSizeSmall.
   const size_t min = ZGranuleSize;
   const size_t max = ZGranuleSize * 16;
-  const size_t unclamped = MaxHeapSize * 0.03125;
+  const size_t unclamped = size_t(MaxHeapSize * 0.03125);
   const size_t clamped = clamp(unclamped, min, max);
   const size_t size = round_down_power_of_2(clamped);
 
@@ -66,17 +64,17 @@ bool ZHeuristics::use_per_cpu_shared_small_pages() {
   // Use per-CPU shared small pages only if these pages occupy at most 3.125%
   // of the max heap size. Otherwise fall back to using a single shared small
   // page. This is useful when using small heaps on large machines.
-  const size_t per_cpu_share = (MaxHeapSize * 0.03125) / ZCPU::count();
+  const size_t per_cpu_share = size_t((MaxHeapSize * 0.03125) / ZCPU::count());
   return per_cpu_share >= ZPageSizeSmall;
 }
 
 static uint nworkers_based_on_ncpus(double cpu_share_in_percent) {
-  return ceil(os::initial_active_processor_count() * cpu_share_in_percent / 100.0);
+  return uint(ceil(os::initial_active_processor_count() * cpu_share_in_percent / 100.0));
 }
 
 static uint nworkers_based_on_heap_size(double heap_share_in_percent) {
-  const int nworkers = (MaxHeapSize * (heap_share_in_percent / 100.0)) / ZPageSizeSmall;
-  return MAX2(nworkers, 1);
+  const uint nworkers = uint((MaxHeapSize * (heap_share_in_percent / 100.0)) / ZPageSizeSmall);
+  return MAX2(nworkers, 1u);
 }
 
 static uint nworkers(double cpu_share_in_percent) {

@@ -27,8 +27,6 @@
 #include "runtime/timer.hpp"
 #include "utilities/ticks.hpp"
 
-PRAGMA_ALLOW_LOSSY_CONVERSIONS
-
 ZMetronome::ZMetronome(uint64_t hz) :
     _monitor(Monitor::nosafepoint, "ZMetronome_lock"),
     _interval_ms(MILLIUNITS / hz),
@@ -40,7 +38,7 @@ bool ZMetronome::wait_for_tick() {
   if (_nticks++ == 0) {
     // First tick, set start time
     const Ticks now = Ticks::now();
-    _start_ms = TimeHelper::counter_to_millis(now.value());
+    _start_ms = (uint64_t)TimeHelper::counter_to_millis(now.value());
   }
 
   MonitorLocker ml(&_monitor, Monitor::_no_safepoint_check_flag);
@@ -49,7 +47,7 @@ bool ZMetronome::wait_for_tick() {
     // We might wake up spuriously from wait, so always recalculate
     // the timeout after a wakeup to see if we need to wait again.
     const Ticks now = Ticks::now();
-    const uint64_t now_ms = TimeHelper::counter_to_millis(now.value());
+    const uint64_t now_ms = (uint64_t)TimeHelper::counter_to_millis(now.value());
     const uint64_t next_ms = _start_ms + (_interval_ms * _nticks);
     const int64_t timeout_ms = next_ms - now_ms;
 

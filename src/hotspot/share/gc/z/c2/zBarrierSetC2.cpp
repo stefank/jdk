@@ -44,8 +44,6 @@
 #include "utilities/growableArray.hpp"
 #include "utilities/macros.hpp"
 
-PRAGMA_ALLOW_LOSSY_CONVERSIONS
-
 class ZBarrierSetC2State : public ResourceObj {
 private:
   GrowableArray<ZLoadBarrierStubC2*>* _stubs;
@@ -187,7 +185,7 @@ int ZBarrierSetC2::estimate_stub_size() const {
   int size = 0;
 
   for (int i = 0; i < stubs->length(); i++) {
-    CodeBuffer cb(blob->content_begin(), (address)C->output()->scratch_locs_memory() - blob->content_begin());
+    CodeBuffer cb(blob->content_begin(), CodeBuffer::csize_t((address)C->output()->scratch_locs_memory() - blob->content_begin()));
     MacroAssembler masm(&cb);
     ZBarrierSet::assembler()->generate_c2_load_barrier_stub(&masm, stubs->at(i));
     size += cb.insts_size();

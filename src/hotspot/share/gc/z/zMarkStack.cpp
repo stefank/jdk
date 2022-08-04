@@ -28,8 +28,6 @@
 #include "utilities/debug.hpp"
 #include "utilities/powerOfTwo.hpp"
 
-PRAGMA_ALLOW_LOSSY_CONVERSIONS
-
 ZMarkStripe::ZMarkStripe() :
     _published(),
     _overflowed() {}
@@ -73,7 +71,7 @@ ZMarkStripe* ZMarkStripeSet::stripe_for_worker(uint nworkers, uint worker_id) {
     const size_t spillover_nworkers = nworkers - spillover_limit;
     const size_t spillover_worker_id = worker_id - spillover_limit;
     const double spillover_chunk = (double)_nstripes / (double)spillover_nworkers;
-    index = spillover_worker_id * spillover_chunk;
+    index = size_t(spillover_worker_id * spillover_chunk);
   }
 
   assert(index < _nstripes, "Invalid index");

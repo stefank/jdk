@@ -30,8 +30,6 @@
 #include "gc/z/zStat.hpp"
 #include "logging/log.hpp"
 
-PRAGMA_ALLOW_LOSSY_CONVERSIONS
-
 constexpr double one_in_1000 = 3.290527;
 constexpr double sample_interval = 1.0 / ZStatAllocRate::sample_hz;
 
@@ -78,7 +76,7 @@ static ZDriverRequest rule_warmup() {
   const size_t soft_max_capacity = ZHeap::heap()->soft_max_capacity();
   const size_t used = ZHeap::heap()->used();
   const double used_threshold_percent = (ZStatCycle::nwarmup_cycles() + 1) * 0.1;
-  const size_t used_threshold = soft_max_capacity * used_threshold_percent;
+  const size_t used_threshold = size_t(soft_max_capacity * used_threshold_percent);
 
   log_debug(gc, director)("Rule: Warmup %.0f%%, Used: " SIZE_FORMAT "MB, UsedThreshold: " SIZE_FORMAT "MB",
                           used_threshold_percent * 100, used / M, used_threshold / M);
@@ -116,7 +114,7 @@ static double estimated_gc_workers(double serial_gc_time, double parallelizable_
 }
 
 static uint discrete_gc_workers(double gc_workers) {
-  return clamp<uint>(ceil(gc_workers), 1, ConcGCThreads);
+  return clamp<uint>((uint)ceil(gc_workers), 1u, ConcGCThreads);
 }
 
 static double select_gc_workers(double serial_gc_time, double parallelizable_gc_time, double alloc_rate_sd_percent, double time_until_oom) {
@@ -336,7 +334,7 @@ static ZDriverRequest rule_proactive() {
   // passed since the previous GC. This helps avoid superfluous GCs when running
   // applications with very low allocation rate.
   const size_t used_after_last_gc = ZStatHeap::used_at_relocate_end();
-  const size_t used_increase_threshold = ZHeap::heap()->soft_max_capacity() * 0.10; // 10%
+  const size_t used_increase_threshold = ZHeap::heap()->soft_max_capacity() / 10; // 10%
   const size_t used_threshold = used_after_last_gc + used_increase_threshold;
   const size_t used = ZHeap::heap()->used();
   const double time_since_last_gc = ZStatCycle::time_since_last();
