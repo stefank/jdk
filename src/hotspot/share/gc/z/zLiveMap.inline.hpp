@@ -173,14 +173,15 @@ inline void ZLiveMap::iterate(ZGenerationId id, Function function) {
   }
 }
 
+// Find the bit index that correspond the start of the object that is nearest the given bit index.
+// Typically used to find the start of an object when there's only a field address available.
+//
+// index - is inclusive
 inline BitMap::idx_t ZLiveMap::find_base_bit(BitMap::idx_t index) {
-  // Index is exclusive
-  BitMap::idx_t start_index = index - 1;
-
   // Check first segment
-  BitMap::idx_t start_segment = index_to_segment(start_index);
+  BitMap::idx_t start_segment = index_to_segment(index);
   if (is_segment_live(start_segment)) {
-    BitMap::idx_t res = find_base_bit(segment_start(start_segment), start_index);
+    BitMap::idx_t res = find_base_bit(segment_start(start_segment), index);
     if (res != BitMap::idx_t(-1)) {
       return res;
     }
@@ -189,7 +190,7 @@ inline BitMap::idx_t ZLiveMap::find_base_bit(BitMap::idx_t index) {
   // Search earlier segments
   for (BitMap::idx_t segment = start_segment; segment-- > 0; ) {
     if (is_segment_live(segment)) {
-      BitMap::idx_t res = find_base_bit(segment_start(segment), segment_end(segment));
+      BitMap::idx_t res = find_base_bit(segment_start(segment), segment_end(segment) - 1);
       if (res != BitMap::idx_t(-1)) {
         return res;
       }
@@ -199,12 +200,12 @@ inline BitMap::idx_t ZLiveMap::find_base_bit(BitMap::idx_t index) {
   return BitMap::idx_t(-1);
 }
 
+// end - inclusive
 inline BitMap::idx_t ZLiveMap::find_base_bit(BitMap::idx_t start, BitMap::idx_t end) {
-  // end is exclusive
-  assert(index_to_segment(start) == index_to_segment(end - 1), "Only supports searches within segments start: %zu end: %zu", start, end);
+  assert(index_to_segment(start) == index_to_segment(end), "Only supports searches within segments start: %zu end: %zu", start, end);
   assert(is_segment_live(index_to_segment(start)), "Must be live");
 
-  BitMap::idx_t bit = _bitmap.get_prev_one_offset(start, end);
+  BitMap::idx_t bit = _bitmap.get_prev_one_offset(start, end + 1);
   if (bit == BitMap::idx_t(-1)) {
     return BitMap::idx_t(-1);
   }
