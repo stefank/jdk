@@ -173,15 +173,21 @@ inline void ZLiveMap::iterate(ZGenerationId id, Function function) {
   }
 }
 
-// Find the bit index that correspond the start of the object that is nearest the given bit index.
-// Typically used to find the start of an object when there's only a field address available.
+// Find the bit index that correspond the start of the object that is lower,
+// or equal, to the given index (index is inclusive).
 //
-// index - is inclusive
+// Typically used to find the start of an object when there's only a field
+// address available. Note that it's not guaranteed that the found index
+// corresponds to an object that spans the given index. This function just
+// looks at the bits. The calling code is responsible to check the object
+// at the returned index.
+//
+// returns -1 if no bit was found
 inline BitMap::idx_t ZLiveMap::find_base_bit(BitMap::idx_t index) {
   // Check first segment
   BitMap::idx_t start_segment = index_to_segment(index);
   if (is_segment_live(start_segment)) {
-    BitMap::idx_t res = find_base_bit(segment_start(start_segment), index);
+    BitMap::idx_t res = find_base_bit_in_segment(segment_start(start_segment), index);
     if (res != BitMap::idx_t(-1)) {
       return res;
     }
@@ -190,28 +196,32 @@ inline BitMap::idx_t ZLiveMap::find_base_bit(BitMap::idx_t index) {
   // Search earlier segments
   for (BitMap::idx_t segment = start_segment; segment-- > 0; ) {
     if (is_segment_live(segment)) {
-      BitMap::idx_t res = find_base_bit(segment_start(segment), segment_end(segment) - 1);
+      BitMap::idx_t res = find_base_bit_in_segment(segment_start(segment), segment_end(segment) - 1);
       if (res != BitMap::idx_t(-1)) {
         return res;
       }
     }
   }
 
+  // Not found
   return BitMap::idx_t(-1);
 }
 
-// end - inclusive
-inline BitMap::idx_t ZLiveMap::find_base_bit(BitMap::idx_t start, BitMap::idx_t end) {
-  assert(index_to_segment(start) == index_to_segment(end), "Only supports searches within segments start: %zu end: %zu", start, end);
+// Find the bit index that correspond the start of the object that is lower,
+// or equal, to the given index (index is inclusive). Stopping when reaching
+// start.
+inline BitMap::idx_t ZLiveMap::find_base_bit_in_segment(BitMap::idx_t start, BitMap::idx_t index) {
+  assert(index_to_segment(start) == index_to_segment(index), "Only supports searches within segments start: %zu index: %zu", start, index);
   assert(is_segment_live(index_to_segment(start)), "Must be live");
 
-  BitMap::idx_t bit = _bitmap.get_prev_one_offset(start, end + 1);
+  // Search backwards - + 1 to make an exclusive index.
+  BitMap::idx_t bit = _bitmap.get_prev_one_offset(start, index + 1);
   if (bit == BitMap::idx_t(-1)) {
     return BitMap::idx_t(-1);
   }
 
-  // The bitmaps contain pairs of bits to deal with strongly marked vs only finalizable marked.
-  // Align down to get the the first bit position.
+  // The bitmaps contain pairs of bits to deal with strongly marked vs only
+  // finalizable marked. Align down to get the the first bit position.
   return bit & ~BitMap::idx_t(1);
 }
 

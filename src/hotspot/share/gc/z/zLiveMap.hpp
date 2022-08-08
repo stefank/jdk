@@ -94,7 +94,7 @@ public:
   void iterate(ZGenerationId id, Function function);
 
   BitMap::idx_t find_base_bit(BitMap::idx_t index);
-  BitMap::idx_t find_base_bit(BitMap::idx_t start, BitMap::idx_t end);
+  BitMap::idx_t find_base_bit_in_segment(BitMap::idx_t start, BitMap::idx_t index);
 };
 
 #endif // SHARE_GC_Z_ZLIVEMAP_HPP
