@@ -380,7 +380,7 @@ template <typename Function>
 inline bool BitMap::iterate_reverse(Function function, idx_t beg, idx_t end) {
   for (idx_t index = end; true;) {
     index = get_prev_one_offset(beg, index);
-    if (index == BitMap::idx_t(-1)) {
+    if (index == idx_t(-1)) {
       // Nothing was found
       return true;
     }
@@ -502,7 +502,7 @@ inline void BitMapReverseIterator::reset(BitMap::idx_t end) {
   _pos = end;
 }
 
-inline bool BitMapReverseIterator::next(size_t* index) {
+inline bool BitMapReverseIterator::next(BitMap::idx_t* index) {
   BitMap::idx_t res = _bitmap->get_prev_one_offset(_start, _pos);
   if (res == BitMap::idx_t(-1)) {
     return false;
