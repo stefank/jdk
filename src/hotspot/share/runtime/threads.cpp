@@ -91,7 +91,7 @@
 #include "services/memTracker.hpp"
 #include "services/threadService.hpp"
 #include "utilities/dtrace.hpp"
-#include "utilities/events.hpp"
+#include "utilities/events.inline.hpp"
 #include "utilities/macros.hpp"
 #include "utilities/vmError.hpp"
 #if INCLUDE_JVMCI

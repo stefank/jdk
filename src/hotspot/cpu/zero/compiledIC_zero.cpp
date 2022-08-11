@@ -38,8 +38,6 @@
 #include "runtime/icache.hpp"
 #include "runtime/sharedRuntime.hpp"
 #include "runtime/stubRoutines.hpp"
-#include "utilities/events.hpp"
-
 
 // ----------------------------------------------------------------------------
 

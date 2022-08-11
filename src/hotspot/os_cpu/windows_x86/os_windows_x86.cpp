@@ -49,7 +49,6 @@
 #include "runtime/timer.hpp"
 #include "symbolengine.hpp"
 #include "unwind_windows_x86.hpp"
-#include "utilities/events.hpp"
 #include "utilities/vmError.hpp"
 #include "windbghelp.hpp"
 

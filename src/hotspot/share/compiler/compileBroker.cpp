@@ -70,7 +70,7 @@
 #include "runtime/vframe.inline.hpp"
 #include "utilities/debug.hpp"
 #include "utilities/dtrace.hpp"
-#include "utilities/events.hpp"
+#include "utilities/events.inline.hpp"
 #include "utilities/formatBuffer.hpp"
 #include "utilities/macros.hpp"
 #ifdef COMPILER1

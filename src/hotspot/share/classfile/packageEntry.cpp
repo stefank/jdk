@@ -35,7 +35,6 @@
 #include "oops/symbol.hpp"
 #include "runtime/java.hpp"
 #include "runtime/handles.inline.hpp"
-#include "utilities/events.hpp"
 #include "utilities/growableArray.hpp"
 #include "utilities/hashtable.inline.hpp"
 #include "utilities/ostream.hpp"

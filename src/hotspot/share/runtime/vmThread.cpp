@@ -48,9 +48,8 @@
 #include "runtime/vmThread.hpp"
 #include "runtime/vmOperations.hpp"
 #include "utilities/dtrace.hpp"
-#include "utilities/events.hpp"
+#include "utilities/events.inline.hpp"
 #include "utilities/vmError.hpp"
-
 
 //------------------------------------------------------------------------------------------------------------------
 // Timeout machinery

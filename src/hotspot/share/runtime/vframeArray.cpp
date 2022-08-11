@@ -41,7 +41,7 @@
 #include "runtime/vframeArray.hpp"
 #include "runtime/vframe_hp.hpp"
 #include "utilities/copy.hpp"
-#include "utilities/events.hpp"
+#include "utilities/events.inline.hpp"
 #ifdef COMPILER2
 #include "opto/runtime.hpp"
 #endif

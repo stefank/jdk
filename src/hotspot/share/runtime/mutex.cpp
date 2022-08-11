@@ -32,7 +32,6 @@
 #include "runtime/osThread.hpp"
 #include "runtime/safepointMechanism.inline.hpp"
 #include "runtime/threadCrashProtection.hpp"
-#include "utilities/events.hpp"
 #include "utilities/macros.hpp"
 
 class InFlightMutexRelease {

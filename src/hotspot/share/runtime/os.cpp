@@ -70,7 +70,6 @@
 #include "utilities/align.hpp"
 #include "utilities/count_trailing_zeros.hpp"
 #include "utilities/defaultStream.hpp"
-#include "utilities/events.hpp"
 #include "utilities/powerOfTwo.hpp"
 
 #ifndef _WINDOWS

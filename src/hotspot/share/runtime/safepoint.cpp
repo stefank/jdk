@@ -69,7 +69,6 @@
 #include "runtime/threadWXSetters.inline.hpp"
 #include "runtime/timerTrace.hpp"
 #include "services/runtimeService.hpp"
-#include "utilities/events.hpp"
 #include "utilities/macros.hpp"
 
 static void post_safepoint_begin_event(EventSafepointBegin& event,

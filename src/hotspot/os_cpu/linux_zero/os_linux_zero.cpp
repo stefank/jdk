@@ -50,7 +50,6 @@
 #include "runtime/timer.hpp"
 #include "signals_posix.hpp"
 #include "utilities/align.hpp"
-#include "utilities/events.hpp"
 #include "utilities/vmError.hpp"
 
 address os::current_stack_pointer() {

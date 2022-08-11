@@ -71,7 +71,7 @@
 #include "runtime/vm_version.hpp"
 #include "utilities/copy.hpp"
 #include "utilities/dtrace.hpp"
-#include "utilities/events.hpp"
+#include "utilities/events.inline.hpp"
 #include "utilities/hashtable.inline.hpp"
 #include "utilities/macros.hpp"
 #include "utilities/xmlstream.hpp"

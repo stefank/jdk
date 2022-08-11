@@ -56,7 +56,7 @@
 #include "services/heapDumper.hpp"
 #include "utilities/align.hpp"
 #include "utilities/copy.hpp"
-#include "utilities/events.hpp"
+#include "utilities/events.inline.hpp"
 
 class ClassLoaderData;
 
@@ -65,23 +65,13 @@ Klass* CollectedHeap::_filler_object_klass = NULL;
 size_t CollectedHeap::_filler_array_max_size = 0;
 size_t CollectedHeap::_stack_chunk_max_size = 0;
 
-class GCMessage : public FormatBuffer<1024> {
- public:
-  bool is_before;
-};
 
-template <>
-void EventLogBase<GCMessage>::print(outputStream* st, GCMessage& m) {
-  st->print_cr("GC heap %s", m.is_before ? "before" : "after");
-  st->print_raw(m);
-}
-
-class GCHeapLog : public EventLogBase<GCMessage> {
+class GCHeapLog : public ExtraExtendedStringEventLog {
  private:
   void log_heap(CollectedHeap* heap, bool before);
 
  public:
-  GCHeapLog() : EventLogBase<GCMessage>("GC Heap History", "gc") {}
+  GCHeapLog() : ExtraExtendedStringEventLog("GC Heap History", "gc") {}
 
   void log_heap_before(CollectedHeap* heap) {
     log_heap(heap, true);
@@ -101,9 +91,9 @@ void GCHeapLog::log_heap(CollectedHeap* heap, bool before) {
   int index = compute_log_index();
   _records[index].thread = NULL; // Its the GC thread so it's not that interesting.
   _records[index].timestamp = timestamp;
-  _records[index].data.is_before = before;
   stringStream st(_records[index].data.buffer(), _records[index].data.size());
 
+  st.print_cr("GC heap %s", before ? "before" : "after");
   st.print_cr("{Heap %s GC invocations=%u (full %u):",
                  before ? "before" : "after",
                  heap->total_collections(),

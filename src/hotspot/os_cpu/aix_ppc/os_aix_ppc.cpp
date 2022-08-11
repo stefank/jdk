@@ -52,7 +52,6 @@
 #include "runtime/stubRoutines.hpp"
 #include "runtime/timer.hpp"
 #include "signals_posix.hpp"
-#include "utilities/events.hpp"
 #include "utilities/vmError.hpp"
 #ifdef COMPILER1
 #include "c1/c1_Runtime1.hpp"

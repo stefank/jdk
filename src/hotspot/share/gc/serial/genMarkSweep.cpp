@@ -57,7 +57,6 @@
 #include "runtime/synchronizer.hpp"
 #include "runtime/vmThread.hpp"
 #include "utilities/copy.hpp"
-#include "utilities/events.hpp"
 #include "utilities/stack.inline.hpp"
 #if INCLUDE_JVMCI
 #include "jvmci/jvmci.hpp"

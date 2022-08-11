@@ -41,7 +41,6 @@
 #include "oops/oop.inline.hpp"
 #include "runtime/java.hpp"
 #include "utilities/copy.hpp"
-#include "utilities/events.hpp"
 
 Generation::Generation(ReservedSpace rs, size_t initial_size) :
   _gc_manager(NULL),

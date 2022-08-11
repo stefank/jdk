@@ -49,7 +49,6 @@
 #include "runtime/timer.hpp"
 #include "unwind_windows_aarch64.hpp"
 #include "utilities/debug.hpp"
-#include "utilities/events.hpp"
 #include "utilities/vmError.hpp"
 
 

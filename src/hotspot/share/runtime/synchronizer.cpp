@@ -56,7 +56,6 @@
 #include "runtime/vmThread.hpp"
 #include "utilities/align.hpp"
 #include "utilities/dtrace.hpp"
-#include "utilities/events.hpp"
 #include "utilities/preserveException.hpp"
 
 class CleanupObjectMonitorsHashtable: StackObj {

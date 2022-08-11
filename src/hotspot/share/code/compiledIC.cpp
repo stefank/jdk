@@ -45,8 +45,6 @@
 #include "runtime/safepoint.hpp"
 #include "runtime/sharedRuntime.hpp"
 #include "runtime/stubRoutines.hpp"
-#include "utilities/events.hpp"
-
 
 // Every time a compiled IC is changed or its type is being accessed,
 // either the CompiledIC_lock must be set or we must be at a safe point.

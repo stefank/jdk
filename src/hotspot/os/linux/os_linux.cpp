@@ -69,7 +69,7 @@
 #include "utilities/align.hpp"
 #include "utilities/decoder.hpp"
 #include "utilities/defaultStream.hpp"
-#include "utilities/events.hpp"
+#include "utilities/events.inline.hpp"
 #include "utilities/elfFile.hpp"
 #include "utilities/growableArray.hpp"
 #include "utilities/globalDefinitions.hpp"

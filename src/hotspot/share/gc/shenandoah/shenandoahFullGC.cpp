@@ -59,7 +59,7 @@
 #include "runtime/orderAccess.hpp"
 #include "runtime/vmThread.hpp"
 #include "utilities/copy.hpp"
-#include "utilities/events.hpp"
+#include "utilities/events.inline.hpp"
 #include "utilities/growableArray.hpp"
 
 ShenandoahFullGC::ShenandoahFullGC() :

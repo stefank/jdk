@@ -35,7 +35,6 @@
 #include "opto/callGenerator.hpp"
 #include "opto/parse.hpp"
 #include "runtime/handles.inline.hpp"
-#include "utilities/events.hpp"
 
 //=============================================================================
 //------------------------------InlineTree-------------------------------------

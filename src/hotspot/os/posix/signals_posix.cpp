@@ -43,7 +43,7 @@
 #include "runtime/threadCrashProtection.hpp"
 #include "signals_posix.hpp"
 #include "suspendResume_posix.hpp"
-#include "utilities/events.hpp"
+#include "utilities/events.inline.hpp"
 #include "utilities/ostream.hpp"
 #include "utilities/vmError.hpp"
 

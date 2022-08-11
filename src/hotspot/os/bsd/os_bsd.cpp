@@ -65,7 +65,7 @@
 #include "utilities/align.hpp"
 #include "utilities/decoder.hpp"
 #include "utilities/defaultStream.hpp"
-#include "utilities/events.hpp"
+#include "utilities/events.inline.hpp"
 #include "utilities/growableArray.hpp"
 #include "utilities/vmError.hpp"
 

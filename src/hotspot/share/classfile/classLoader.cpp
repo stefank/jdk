@@ -73,7 +73,7 @@
 #include "services/management.hpp"
 #include "services/threadService.hpp"
 #include "utilities/classpathStream.hpp"
-#include "utilities/events.hpp"
+#include "utilities/events.inline.hpp"
 #include "utilities/hashtable.inline.hpp"
 #include "utilities/macros.hpp"
 #include "utilities/utf8.hpp"

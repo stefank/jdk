@@ -30,8 +30,7 @@
 #include "runtime/osThread.hpp"
 #include "runtime/threadCritical.hpp"
 #include "runtime/timer.hpp"
-#include "utilities/events.hpp"
-
+#include "utilities/events.inline.hpp"
 
 EventLog* Events::_logs = NULL;
 StringEventLog* Events::_messages = NULL;
@@ -52,6 +51,101 @@ EventLog::EventLog() {
   Events::_logs = this;
 }
 
+bool EventLogImplBase::matches_name_or_handle(const char* s) const {
+  return ::strcasecmp(s, _name) == 0 ||
+         ::strcasecmp(s, _handle) == 0;
+}
+
+void EventLogImplBase::print_names(outputStream* out) const {
+  out->print("\"%s\" : %s", _handle, _name);
+}
+
+// Dump the ring buffer entries that current have entries.
+void EventLogImplBase::print_log_on_inner(outputStream* out, int max) {
+  out->print_cr("%s (%d events):", _name, _count);
+  if (_count == 0) {
+    out->print_cr("No events");
+    out->cr();
+    return;
+  }
+
+  int printed = 0;
+  if (_count < _length) {
+    for (int i = 0; i < _count; i++) {
+      if (max > 0 && printed == max) {
+        break;
+      }
+      print_record_on(out, i);
+      printed++;
+    }
+  } else {
+    for (int i = _index; i < _length; i++) {
+      if (max > 0 && printed == max) {
+        break;
+      }
+      print_record_on(out, i);
+      printed ++;
+    }
+    for (int i = 0; i < _index; i++) {
+      if (max > 0 && printed == max) {
+        break;
+      }
+      print_record_on(out, i);
+      printed++;
+    }
+  }
+
+  if (printed == max) {
+    out->print_cr("...(skipped)");
+  }
+
+  out->cr();
+}
+
+void EventLogImplBase::print_record_decomposed_on(outputStream* out, double timestamp, Thread* thread, const char* msg) {
+  out->print("Event: %.3f ", timestamp);
+  if (thread != NULL) {
+    out->print("Thread " INTPTR_FORMAT " ", p2i(thread));
+  }
+  out->print_raw_cr(msg);
+}
+
+void EventLogImplBase::print_log_on(outputStream* out, int max) {
+  struct MaybeLocker {
+    Mutex* const _mutex;
+    bool         _proceed;
+    bool         _locked;
+
+    MaybeLocker(Mutex* mutex) : _mutex(mutex), _proceed(false), _locked(false) {
+      if (Thread::current_or_null() == NULL) {
+        _proceed = true;
+      } else if (VMError::is_error_reported()) {
+        if (_mutex->try_lock_without_rank_check()) {
+          _proceed = _locked = true;
+        }
+      } else {
+        _mutex->lock_without_safepoint_check();
+        _proceed = _locked = true;
+      }
+    }
+    ~MaybeLocker() {
+      if (_locked) {
+        _mutex->unlock();
+      }
+    }
+  };
+
+  MaybeLocker ml(&_mutex);
+
+  if (ml._proceed) {
+    print_log_on_inner(out, max);
+  } else {
+    out->print_cr("%s (%d events):", _name, _count);
+    out->print_cr("No events printed - crash while holding lock");
+    out->cr();
+  }
+}
+
 // For each registered event logger, print out the current contents of
 // the buffer.
 void Events::print_all(outputStream* out, int max) {
@@ -69,7 +163,7 @@ void Events::print_one(outputStream* out, const char* log_name, int max) {
   while (log != NULL) {
     if (log->matches_name_or_handle(log_name)) {
       log->print_log_on(out, max);
-      num_printed ++;
+      num_printed++;
     }
     log = log->next();
   }
@@ -85,7 +179,6 @@ void Events::print_one(outputStream* out, const char* log_name, int max) {
     }
   }
 }
-
 
 void Events::print() {
   print_all(tty);

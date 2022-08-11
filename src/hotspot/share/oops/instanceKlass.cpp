@@ -88,7 +88,7 @@
 #include "services/finalizerService.hpp"
 #include "services/threadService.hpp"
 #include "utilities/dtrace.hpp"
-#include "utilities/events.hpp"
+#include "utilities/events.inline.hpp"
 #include "utilities/macros.hpp"
 #include "utilities/stringUtils.hpp"
 #include "utilities/pair.hpp"

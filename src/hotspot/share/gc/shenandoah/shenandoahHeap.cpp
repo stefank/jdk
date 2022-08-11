@@ -86,7 +86,7 @@
 #include "runtime/vmThread.hpp"
 #include "services/mallocTracker.hpp"
 #include "services/memTracker.hpp"
-#include "utilities/events.hpp"
+#include "utilities/events.inline.hpp"
 #include "utilities/powerOfTwo.hpp"
 
 class ShenandoahPretouchHeapTask : public WorkerTask {

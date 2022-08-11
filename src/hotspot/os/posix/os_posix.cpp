@@ -44,7 +44,7 @@
 #include "runtime/perfMemory.hpp"
 #include "utilities/align.hpp"
 #include "utilities/defaultStream.hpp"
-#include "utilities/events.hpp"
+#include "utilities/events.inline.hpp"
 #include "utilities/formatBuffer.hpp"
 #include "utilities/globalDefinitions.hpp"
 #include "utilities/macros.hpp"
@@ -2015,4 +2015,3 @@ void os::die() {
 const char* os::file_separator() { return "/"; }
 const char* os::line_separator() { return "\n"; }
 const char* os::path_separator() { return ":"; }
-

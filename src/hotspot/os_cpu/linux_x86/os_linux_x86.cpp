@@ -51,7 +51,6 @@
 #include "services/memTracker.hpp"
 #include "utilities/align.hpp"
 #include "utilities/debug.hpp"
-#include "utilities/events.hpp"
 #include "utilities/vmError.hpp"
 
 // put OS-includes here

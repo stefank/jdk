@@ -62,7 +62,7 @@
 #include "runtime/relocator.hpp"
 #include "runtime/safepointVerifiers.hpp"
 #include "utilities/bitMap.inline.hpp"
-#include "utilities/events.hpp"
+#include "utilities/events.inline.hpp"
 
 Array<Method*>* VM_RedefineClasses::_old_methods = NULL;
 Array<Method*>* VM_RedefineClasses::_new_methods = NULL;

@@ -31,7 +31,6 @@
 #include "memory/resourceArea.hpp"
 #include "runtime/signature.hpp"
 #include "runtime/safepointVerifiers.hpp"
-#include "utilities/events.hpp"
 #include "utilities/ostream.hpp"
 
 class SimulatedOperandStack;

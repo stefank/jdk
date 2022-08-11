@@ -60,6 +60,7 @@
 #include "utilities/events.hpp"
 #include "utilities/formatBuffer.hpp"
 #include "utilities/macros.hpp"
+#include "utilities/vmError.hpp"
 #ifdef LINUX
 #include "trimCHeapDCmd.hpp"
 #endif

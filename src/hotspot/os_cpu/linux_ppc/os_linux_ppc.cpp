@@ -54,7 +54,6 @@
 #include "runtime/vm_version.hpp"
 #include "signals_posix.hpp"
 #include "utilities/debug.hpp"
-#include "utilities/events.hpp"
 #include "utilities/vmError.hpp"
 
 // put OS-includes here

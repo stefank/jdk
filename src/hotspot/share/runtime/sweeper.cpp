@@ -46,7 +46,6 @@
 #include "runtime/sweeper.hpp"
 #include "runtime/vmOperations.hpp"
 #include "runtime/vmThread.hpp"
-#include "utilities/events.hpp"
 #include "utilities/xmlstream.hpp"
 
 #ifdef ASSERT

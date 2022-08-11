@@ -76,7 +76,7 @@
 #include "utilities/align.hpp"
 #include "utilities/copy.hpp"
 #include "utilities/dtrace.hpp"
-#include "utilities/events.hpp"
+#include "utilities/events.inline.hpp"
 #include "utilities/globalDefinitions.hpp"
 #include "utilities/resourceHash.hpp"
 #include "utilities/xmlstream.hpp"

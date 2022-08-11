@@ -47,7 +47,7 @@
 #include "memory/allocation.hpp"
 #include "prims/jvmtiTagMap.hpp"
 #include "runtime/vmThread.hpp"
-#include "utilities/events.hpp"
+#include "utilities/events.inline.hpp"
 
 // Breakpoint support
 class ShenandoahBreakpointGCScope : public StackObj {
