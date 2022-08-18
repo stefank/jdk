@@ -1500,9 +1500,6 @@ static inline int freeze_internal(JavaThread* current, intptr_t* const sp) {
 
   ContinuationEntry* entry = current->last_continuation();
 
-  // Make sure oops in entry are accessible
-  entry->flush_stack_processing(current);
-
   oop oopCont = entry->cont_oop(current);
   assert(oopCont == current->last_continuation()->cont_oop(current), "");
   assert(ContinuationEntry::assert_entry_frame_laid_out(current), "");
@@ -1628,7 +1625,6 @@ static inline int prepare_thaw_internal(JavaThread* thread, bool return_barrier)
 
   ContinuationEntry* ce = thread->last_continuation();
   assert(ce != nullptr, "");
-
   oop continuation = ce->cont_oop(thread);
   assert(continuation == get_continuation(thread), "");
   verify_continuation(continuation);
