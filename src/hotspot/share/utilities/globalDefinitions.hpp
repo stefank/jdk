@@ -123,14 +123,14 @@ class oopDesc;
 
 // Format 64-bit quantities.
 #define INT64_FORMAT             "%"          PRId64
-#define INT64_FORMAT_X           "%"          PRIx64
+#define INT64_FORMAT_X           "0x%"        PRIx64
 #define INT64_FORMAT_X_0         "0x%016"     PRIx64
 #define INT64_FORMAT_W(width)    "%"   #width PRId64
 #define UINT64_FORMAT            "%"          PRIu64
-#define UINT64_FORMAT_X          "%"          PRIx64
+#define UINT64_FORMAT_X          "0x%"        PRIx64
 #define UINT64_FORMAT_X_0        "0x%016"     PRIx64
 #define UINT64_FORMAT_W(width)   "%"   #width PRIu64
-#define UINT64_FORMAT_X_W(width) "%"   #width PRIx64
+#define UINT64_FORMAT_X_W(width) "0x%" #width PRIx64
 
 #define PTR64_FORMAT             "0x%016"     PRIx64
 
