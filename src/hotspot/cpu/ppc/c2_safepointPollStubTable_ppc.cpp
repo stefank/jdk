@@ -23,7 +23,6 @@
  *
  */
 
-#include "precompiled.hpp"
 #include "macroAssembler_ppc.inline.hpp"
 #include "opto/compile.hpp"
 #include "opto/node.hpp"

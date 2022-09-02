@@ -22,7 +22,6 @@
 *
 */
 
-#include "precompiled.hpp"
 #include "cds/filemap.hpp"
 #include "classfile/classFileParser.hpp"
 #include "classfile/classFileStream.hpp"

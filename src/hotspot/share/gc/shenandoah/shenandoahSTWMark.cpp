@@ -23,7 +23,6 @@
  */
 
 
-#include "precompiled.hpp"
 
 #include "gc/shared/strongRootsScope.hpp"
 #include "gc/shared/taskTerminator.hpp"

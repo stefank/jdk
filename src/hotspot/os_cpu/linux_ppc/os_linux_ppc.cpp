@@ -23,7 +23,6 @@
  *
  */
 
-// no precompiled headers
 #include "jvm.h"
 #include "assembler_ppc.hpp"
 #include "asm/assembler.inline.hpp"

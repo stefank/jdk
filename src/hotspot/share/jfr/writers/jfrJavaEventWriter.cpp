@@ -22,7 +22,6 @@
  *
  */
 
-#include "precompiled.hpp"
 #include "jni.h"
 #include "classfile/symbolTable.hpp"
 #include "classfile/systemDictionary.hpp"

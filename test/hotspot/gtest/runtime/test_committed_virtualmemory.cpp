@@ -21,7 +21,6 @@
  * questions.
  */
 
-#include "precompiled.hpp"
 
 // Included early because the NMT flags don't include it.
 #include "utilities/macros.hpp"

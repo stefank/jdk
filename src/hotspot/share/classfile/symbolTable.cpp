@@ -22,7 +22,6 @@
  *
  */
 
-#include "precompiled.hpp"
 #include "cds/archiveBuilder.hpp"
 #include "cds/dynamicArchive.hpp"
 #include "classfile/altHashing.hpp"

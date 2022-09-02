@@ -23,7 +23,6 @@
  *
  */
 
-#include "precompiled.hpp"
 #include "asm/register.hpp"
 #include "runtime/os.hpp"
 #include "runtime/os.inline.hpp"

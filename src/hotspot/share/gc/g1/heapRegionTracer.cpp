@@ -22,7 +22,6 @@
  *
  */
 
-#include "precompiled.hpp"
 #include "gc/g1/heapRegionTracer.hpp"
 #include "jfr/jfrEvents.hpp"
 

@@ -26,7 +26,6 @@
 // cross platform development for JSR292.
 // Last synchronization: changeset f8c9417e3571
 
-#include "precompiled.hpp"
 #include "jvm.h"
 #include "classfile/javaClasses.inline.hpp"
 #include "classfile/vmClasses.hpp"

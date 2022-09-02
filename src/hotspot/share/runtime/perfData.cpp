@@ -22,7 +22,6 @@
  *
  */
 
-#include "precompiled.hpp"
 #include "jvm.h"
 #include "classfile/vmSymbols.hpp"
 #include "logging/log.hpp"

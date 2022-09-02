@@ -23,7 +23,6 @@
  *
  */
 
-#include "precompiled.hpp"
 #include "runtime/os.hpp"
 #include "services/nmtPreInit.hpp"
 #include "utilities/align.hpp"

@@ -23,7 +23,6 @@
  *
  */
 
-#include "precompiled.hpp"
 #include "jvm.h"
 #include "asm/macroAssembler.hpp"
 #include "classfile/vmSymbols.hpp"

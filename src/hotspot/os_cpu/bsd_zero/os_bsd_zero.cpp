@@ -28,7 +28,6 @@
 # include <pthread_np.h> /* For pthread_attr_get_np */
 #endif
 
-// no precompiled headers
 #include "jvm.h"
 #include "asm/assembler.inline.hpp"
 #include "atomic_bsd_zero.hpp"

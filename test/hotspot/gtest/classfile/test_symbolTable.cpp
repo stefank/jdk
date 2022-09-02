@@ -21,7 +21,6 @@
  * questions.
  */
 
-#include "precompiled.hpp"
 #include "runtime/interfaceSupport.inline.hpp"
 #include "classfile/symbolTable.hpp"
 #include "threadHelper.inline.hpp"

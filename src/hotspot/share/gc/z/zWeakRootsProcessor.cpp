@@ -21,7 +21,6 @@
  * questions.
  */
 
-#include "precompiled.hpp"
 #include "gc/z/zBarrier.inline.hpp"
 #include "gc/z/zRootsIterator.hpp"
 #include "gc/z/zTask.hpp"

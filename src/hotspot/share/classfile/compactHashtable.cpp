@@ -22,7 +22,6 @@
  *
  */
 
-#include "precompiled.hpp"
 #include "jvm.h"
 #include "cds/archiveBuilder.hpp"
 #include "cds/cds_globals.hpp"

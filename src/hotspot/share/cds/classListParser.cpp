@@ -22,7 +22,6 @@
  *
  */
 
-#include "precompiled.hpp"
 #include "jvm.h"
 #include "jimage.hpp"
 #include "cds/archiveUtils.hpp"

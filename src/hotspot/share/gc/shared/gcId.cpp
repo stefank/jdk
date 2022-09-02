@@ -22,7 +22,6 @@
  *
  */
 
-#include "precompiled.hpp"
 #include "jvm.h"
 #include "gc/shared/gcId.hpp"
 #include "runtime/javaThread.hpp"

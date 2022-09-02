@@ -22,7 +22,6 @@
  *
  */
 
-#include "precompiled.hpp"
 #include "jni.h"
 #include "jvm.h"
 #include "jfr/jfr.hpp"

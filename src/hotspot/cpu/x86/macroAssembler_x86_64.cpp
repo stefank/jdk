@@ -22,7 +22,6 @@
  *
  */
 
-#include "precompiled.hpp"
 #include "runtime/continuation.hpp"
 #include "runtime/continuationEntry.hpp"
 #include "runtime/javaThread.hpp"

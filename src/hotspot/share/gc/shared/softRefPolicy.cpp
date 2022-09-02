@@ -22,7 +22,6 @@
  *
  */
 
-#include "precompiled.hpp"
 #include "gc/shared/softRefPolicy.hpp"
 
 SoftRefPolicy::SoftRefPolicy() :

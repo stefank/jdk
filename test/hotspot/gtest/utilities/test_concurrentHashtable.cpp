@@ -21,7 +21,6 @@
  * questions.
  */
 
-#include "precompiled.hpp"
 #include "runtime/mutex.hpp"
 #include "runtime/os.hpp" // malloc
 #include "runtime/semaphore.hpp"

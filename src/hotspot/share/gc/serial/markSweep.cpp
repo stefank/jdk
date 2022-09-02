@@ -22,7 +22,6 @@
  *
  */
 
-#include "precompiled.hpp"
 #include "compiler/compileBroker.hpp"
 #include "gc/serial/markSweep.inline.hpp"
 #include "gc/shared/collectedHeap.inline.hpp"

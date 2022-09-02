@@ -22,7 +22,6 @@
  *
  */
 
-#include "precompiled.hpp"
 #include "gc/shenandoah/shenandoahMemoryPool.hpp"
 
 ShenandoahMemoryPool::ShenandoahMemoryPool(ShenandoahHeap* heap) :

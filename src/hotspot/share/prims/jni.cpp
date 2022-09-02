@@ -24,7 +24,6 @@
  *
  */
 
-#include "precompiled.hpp"
 #include "jni.h"
 #include "jvm.h"
 #include "ci/ciReplay.hpp"

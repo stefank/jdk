@@ -22,7 +22,6 @@
  *
  */
 
-#include "precompiled.hpp"
 #include "memory/metaspaceClosure.hpp"
 
 // Update the reference to point to new_loc.

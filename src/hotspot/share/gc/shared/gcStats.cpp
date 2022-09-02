@@ -22,7 +22,6 @@
  *
  */
 
-#include "precompiled.hpp"
 #include "gc/shared/gcStats.hpp"
 #include "gc/shared/gcUtil.inline.hpp"
 #include "gc/shared/gc_globals.hpp"

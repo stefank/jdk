@@ -22,7 +22,6 @@
  *
  */
 
-#include "precompiled.hpp"
 #include "jvm.h"
 #include "classfile/systemDictionary.hpp"
 #include "code/codeCache.hpp"

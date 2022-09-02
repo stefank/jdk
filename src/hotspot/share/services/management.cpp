@@ -22,7 +22,6 @@
  *
  */
 
-#include "precompiled.hpp"
 #include "jmm.h"
 #include "classfile/classLoader.hpp"
 #include "classfile/systemDictionary.hpp"

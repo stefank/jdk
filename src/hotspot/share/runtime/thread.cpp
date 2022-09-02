@@ -23,7 +23,6 @@
  *
  */
 
-#include "precompiled.hpp"
 #include "jvm.h"
 #include "classfile/javaClasses.hpp"
 #include "classfile/javaThreadStatus.hpp"

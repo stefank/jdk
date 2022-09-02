@@ -24,7 +24,6 @@
  *
  */
 
-#include "precompiled.hpp"
 #include "asm/macroAssembler.inline.hpp"
 #include "assembler_riscv.inline.hpp"
 #include "code/vtableStubs.hpp"

@@ -23,7 +23,6 @@
  *
  */
 
-// no precompiled headers
 
 #include "memory/allocation.inline.hpp"
 #include "runtime/handles.inline.hpp"

@@ -23,7 +23,6 @@
  *
  */
 
-#include "precompiled.hpp"
 #include "prims/downcallLinker.hpp"
 #include "utilities/debug.hpp"
 

@@ -25,7 +25,6 @@
 
 // This file is organized as os_linux_x86.cpp.
 
-// no precompiled headers
 #include "jvm.h"
 #include "asm/assembler.inline.hpp"
 #include "classfile/vmSymbols.hpp"

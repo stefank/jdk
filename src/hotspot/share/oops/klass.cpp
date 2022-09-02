@@ -22,7 +22,6 @@
  *
  */
 
-#include "precompiled.hpp"
 #include "jvm_io.h"
 #include "cds/heapShared.hpp"
 #include "classfile/classLoaderData.inline.hpp"

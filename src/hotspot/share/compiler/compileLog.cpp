@@ -22,7 +22,6 @@
  *
  */
 
-#include "precompiled.hpp"
 #include "jvm.h"
 #include "ci/ciMethod.hpp"
 #include "code/codeCache.hpp"

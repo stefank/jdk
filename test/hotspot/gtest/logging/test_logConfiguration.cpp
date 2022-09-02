@@ -21,7 +21,6 @@
  * questions.
  */
 
-#include "precompiled.hpp"
 #include "jvm.h"
 #include "concurrentTestRunner.inline.hpp"
 #include "logTestFixture.hpp"

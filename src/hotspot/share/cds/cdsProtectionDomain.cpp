@@ -22,7 +22,6 @@
  *
  */
 
-#include "precompiled.hpp"
 #include "cds/cdsProtectionDomain.hpp"
 #include "classfile/classLoader.hpp"
 #include "classfile/classLoaderExt.hpp"

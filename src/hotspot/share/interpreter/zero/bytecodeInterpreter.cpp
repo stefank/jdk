@@ -22,7 +22,6 @@
  *
  */
 
-// no precompiled headers
 #include "jvm_io.h"
 #include "classfile/javaClasses.hpp"
 #include "classfile/vmSymbols.hpp"
@@ -60,7 +59,6 @@
 #include "utilities/exceptions.hpp"
 #include "utilities/macros.hpp"
 
-// no precompiled headers
 
 /*
  * USELABELS - If using GCC, then use labels for the opcode dispatching

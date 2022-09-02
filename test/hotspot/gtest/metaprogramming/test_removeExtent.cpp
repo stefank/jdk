@@ -22,7 +22,6 @@
  *
  */
 
-#include "precompiled.hpp"
 #include "memory/allocation.hpp"
 #include "metaprogramming/removeExtent.hpp"
 #include "metaprogramming/isSame.hpp"

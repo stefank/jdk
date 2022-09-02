@@ -22,7 +22,6 @@
  *
  */
 
-// no precompiled headers
 #include "jvm.h"
 #include "asm/assembler.inline.hpp"
 #include "classfile/vmSymbols.hpp"

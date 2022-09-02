@@ -21,7 +21,6 @@
  * questions.
  */
 
-// no precompiled headers
 #include "ci/ciUtilities.hpp"
 #include "compiler/compiler_globals.hpp"
 #include "compiler/oopMap.hpp"

@@ -23,7 +23,6 @@
  *
  */
 
-#include "precompiled.hpp"
 #include "jvm.h"
 #include "asm/assembler.inline.hpp"
 #include "asm/macroAssembler.inline.hpp"

@@ -23,7 +23,6 @@
  *
  */
 
-#include "precompiled.hpp"
 #include "pauth_aarch64.hpp"
 #include "runtime/arguments.hpp"
 #include "runtime/globals_extension.hpp"

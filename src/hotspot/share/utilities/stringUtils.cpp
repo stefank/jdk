@@ -23,7 +23,6 @@
  */
 
 #include "jvm_io.h"
-#include "precompiled.hpp"
 #include "utilities/debug.hpp"
 #include "utilities/stringUtils.hpp"
 

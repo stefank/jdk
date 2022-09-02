@@ -22,7 +22,6 @@
  *
  */
 
-#include "precompiled.hpp"
 #include "memory/allocation.hpp"
 #include "metaprogramming/decay.hpp"
 #include "metaprogramming/isSame.hpp"

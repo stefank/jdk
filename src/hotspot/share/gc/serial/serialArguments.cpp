@@ -22,7 +22,6 @@
  *
  */
 
-#include "precompiled.hpp"
 #include "gc/shared/genArguments.hpp"
 #include "gc/serial/serialArguments.hpp"
 #include "gc/serial/serialHeap.hpp"

@@ -22,7 +22,6 @@
  *
  */
 
-#include "precompiled.hpp"
 #include "jvm_constants.h"
 #include "jvm_io.h"
 #include "classfile/vmIntrinsics.hpp"

@@ -23,7 +23,6 @@
  *
  */
 
-// no precompiled headers
 #include "jvm.h"
 #include "asm/assembler.inline.hpp"
 #include "atomic_linux_zero.hpp"

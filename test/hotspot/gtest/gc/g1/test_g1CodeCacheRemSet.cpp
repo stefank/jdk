@@ -21,7 +21,6 @@
  * questions.
  */
 
-#include "precompiled.hpp"
 #include "gc/g1/g1CodeRootSetTable.hpp"
 #include "gc/g1/g1CodeCacheRemSet.hpp"
 #include "unittest.hpp"

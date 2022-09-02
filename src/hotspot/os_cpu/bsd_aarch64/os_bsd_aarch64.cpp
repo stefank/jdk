@@ -24,7 +24,6 @@
  *
  */
 
-// no precompiled headers
 #include "jvm.h"
 #include "asm/macroAssembler.hpp"
 #include "classfile/classLoader.hpp"

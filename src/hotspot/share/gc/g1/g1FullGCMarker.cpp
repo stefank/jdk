@@ -22,7 +22,6 @@
  *
  */
 
-#include "precompiled.hpp"
 #include "classfile/classLoaderData.hpp"
 #include "gc/g1/g1FullGCMarker.inline.hpp"
 #include "gc/shared/referenceProcessor.hpp"

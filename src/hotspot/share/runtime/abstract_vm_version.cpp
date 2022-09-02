@@ -22,7 +22,6 @@
  *
  */
 
-#include "precompiled.hpp"
 #include "jvm_io.h"
 #include "compiler/compilerDefinitions.hpp"
 #include "runtime/arguments.hpp"

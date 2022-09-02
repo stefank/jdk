@@ -22,7 +22,6 @@
  *
  */
 
-#include "precompiled.hpp"
 #include "code/compressedStream.hpp"
 #include "utilities/ostream.hpp"
 #include "utilities/moveBits.hpp"

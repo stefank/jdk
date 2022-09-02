@@ -22,7 +22,6 @@
  *
  */
 
-#include "precompiled.hpp"
 #include "jvm_io.h"
 #include "gc/shared/barrierSet.hpp"
 #include "gc/shared/gcId.hpp"

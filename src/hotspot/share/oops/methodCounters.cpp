@@ -21,7 +21,6 @@
  * questions.
  *
  */
-#include "precompiled.hpp"
 #include "compiler/compiler_globals.hpp"
 #include "oops/method.hpp"
 #include "oops/methodCounters.hpp"

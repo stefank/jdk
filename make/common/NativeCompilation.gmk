@@ -811,7 +811,7 @@ define SetupNativeCompilationBody
         ))
 
         $1_USE_PCH_FLAGS := \
-            -Fp$$($1_PCH_FILE) -Yu$$(notdir $$($1_PRECOMPILED_HEADER))
+            -include precompiled/$$(notdir $$($1_PRECOMPILED_HEADER)) -Fp$$($1_PCH_FILE) -Yu$$(notdir $$($1_PRECOMPILED_HEADER))
 
         $$($1_ALL_OBJS): $$($1_GENERATED_PCH_OBJ)
 
@@ -825,10 +825,10 @@ define SetupNativeCompilationBody
       else ifneq ($(findstring $(TOOLCHAIN_TYPE), gcc clang), )
         ifeq ($(TOOLCHAIN_TYPE), gcc)
           $1_PCH_FILE := $$($1_OBJECT_DIR)/precompiled/$$(notdir $$($1_PRECOMPILED_HEADER)).gch
-          $1_USE_PCH_FLAGS := -I$$($1_OBJECT_DIR)/precompiled
+          $1_USE_PCH_FLAGS := -include precompiled/$$(notdir $$($1_PRECOMPILED_HEADER)) -I$$($1_OBJECT_DIR)/precompiled
         else ifeq ($(TOOLCHAIN_TYPE), clang)
           $1_PCH_FILE := $$($1_OBJECT_DIR)/precompiled/$$(notdir $$($1_PRECOMPILED_HEADER)).pch
-          $1_USE_PCH_FLAGS := -include-pch $$($1_PCH_FILE)
+          $1_USE_PCH_FLAGS := -include precompiled/$$(notdir $$($1_PRECOMPILED_HEADER)) -include-pch $$($1_PCH_FILE)
         endif
         $1_PCH_DEPS_FILE := $$($1_PCH_FILE).d
         $1_PCH_DEPS_TARGETS_FILE := $$($1_PCH_FILE).d.targets

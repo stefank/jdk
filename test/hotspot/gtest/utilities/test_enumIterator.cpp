@@ -21,7 +21,6 @@
  * questions.
  */
 
-#include "precompiled.hpp"
 #include "utilities/enumIterator.hpp"
 #include <type_traits>
 #include "unittest.hpp"

@@ -22,7 +22,6 @@
  *
  */
 
-#include "precompiled.hpp"
 #include "jvm.h"
 #include "cds/classListWriter.hpp"
 #include "compiler/compileLog.hpp"

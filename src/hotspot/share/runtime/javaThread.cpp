@@ -23,7 +23,6 @@
  *
  */
 
-#include "precompiled.hpp"
 #include "jvm.h"
 #include "cds/dynamicArchive.hpp"
 #include "ci/ciEnv.hpp"

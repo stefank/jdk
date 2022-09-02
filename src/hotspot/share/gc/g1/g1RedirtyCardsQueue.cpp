@@ -22,7 +22,6 @@
  *
  */
 
-#include "precompiled.hpp"
 #include "gc/g1/g1RedirtyCardsQueue.hpp"
 #include "runtime/atomic.hpp"
 #include "utilities/debug.hpp"

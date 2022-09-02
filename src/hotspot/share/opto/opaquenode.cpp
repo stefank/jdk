@@ -22,7 +22,6 @@
  *
  */
 
-#include "precompiled.hpp"
 #include "opto/opaquenode.hpp"
 #include "opto/phaseX.hpp"
 

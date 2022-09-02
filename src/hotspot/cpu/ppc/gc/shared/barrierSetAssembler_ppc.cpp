@@ -24,7 +24,6 @@
  */
 
 #include "nativeInst_ppc.hpp"
-#include "precompiled.hpp"
 #include "asm/macroAssembler.inline.hpp"
 #include "classfile/classLoaderData.hpp"
 #include "gc/shared/barrierSetAssembler.hpp"

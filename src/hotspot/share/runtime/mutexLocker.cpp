@@ -22,7 +22,6 @@
  *
  */
 
-#include "precompiled.hpp"
 #include "gc/shared/gc_globals.hpp"
 #include "memory/universe.hpp"
 #include "runtime/javaThread.hpp"

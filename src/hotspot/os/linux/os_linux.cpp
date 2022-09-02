@@ -23,7 +23,6 @@
  *
  */
 
-// no precompiled headers
 #include "jvm.h"
 #include "classfile/vmSymbols.hpp"
 #include "code/icBuffer.hpp"

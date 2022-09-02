@@ -22,7 +22,6 @@
  *
  */
 
-#include "precompiled.hpp"
 #include "gc/shared/cardTableRS.hpp"
 #include "gc/shared/generationSpec.hpp"
 #include "runtime/java.hpp"

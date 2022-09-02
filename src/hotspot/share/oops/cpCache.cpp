@@ -22,7 +22,6 @@
  *
  */
 
-#include "precompiled.hpp"
 #include "cds/archiveBuilder.hpp"
 #include "cds/heapShared.hpp"
 #include "classfile/resolutionErrors.hpp"

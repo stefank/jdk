@@ -23,7 +23,6 @@
  */
 
 #include "asm/register.hpp"
-#include "precompiled.hpp"
 #include "asm/macroAssembler.inline.hpp"
 #include "code/codeBlob.hpp"
 #include "code/vmreg.inline.hpp"

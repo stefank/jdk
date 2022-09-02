@@ -22,7 +22,6 @@
  *
  */
 
-#include "precompiled.hpp"
 #include "oops/oop.inline.hpp"
 #include "runtime/basicLock.hpp"
 #include "runtime/synchronizer.hpp"

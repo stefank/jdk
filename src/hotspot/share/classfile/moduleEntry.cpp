@@ -22,7 +22,6 @@
  *
  */
 
-#include "precompiled.hpp"
 #include "jni.h"
 #include "cds/archiveBuilder.hpp"
 #include "cds/archiveUtils.hpp"
