@@ -22,7 +22,6 @@
  *
  */
 
-#include "precompiled.hpp"
 #include "resolvedFieldEntry.hpp"
 
 void ResolvedFieldEntry::print_on(outputStream* st) const {

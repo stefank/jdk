@@ -22,7 +22,6 @@
  */
 
 #include "memory/allocation.hpp"
-#include "precompiled.hpp"
 #include "classfile/classLoaderData.hpp"
 #include "gc/shared/gc_globals.hpp"
 #include "gc/shared/isGCActiveMark.hpp"

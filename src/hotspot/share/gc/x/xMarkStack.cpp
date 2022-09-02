@@ -21,7 +21,6 @@
  * questions.
  */
 
-#include "precompiled.hpp"
 #include "gc/x/xMarkStack.inline.hpp"
 #include "gc/x/xMarkStackAllocator.hpp"
 #include "logging/log.hpp"

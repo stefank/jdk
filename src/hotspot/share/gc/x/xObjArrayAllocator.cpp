@@ -21,7 +21,6 @@
  * questions.
  */
 
-#include "precompiled.hpp"
 #include "gc/x/xThreadLocalData.hpp"
 #include "gc/x/xObjArrayAllocator.hpp"
 #include "gc/x/xUtils.inline.hpp"

@@ -23,8 +23,6 @@
  *
  */
 
-#include "precompiled.hpp"
-
 #include "memory/allocation.hpp"
 #include "nmt/nmtCommon.hpp"
 #include "runtime/java.hpp"
@@ -231,4 +229,3 @@ void MallocLimitHandler::print_on(outputStream* st) {
     st->print_cr("MallocLimit: unset");
   }
 }
-

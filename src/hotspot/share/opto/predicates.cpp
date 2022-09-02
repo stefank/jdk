@@ -22,7 +22,6 @@
  *
  */
 
-#include "precompiled.hpp"
 #include "opto/callnode.hpp"
 #include "opto/predicates.hpp"
 

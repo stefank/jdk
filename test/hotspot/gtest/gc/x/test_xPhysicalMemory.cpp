@@ -21,7 +21,6 @@
  * questions.
  */
 
-#include "precompiled.hpp"
 #include "gc/x/xPhysicalMemory.inline.hpp"
 #include "unittest.hpp"
 

@@ -21,7 +21,6 @@
  * questions.
  */
 
-#include "precompiled.hpp"
 #include "gc/x/xThread.inline.hpp"
 #include "runtime/javaThread.hpp"
 #include "runtime/nonJavaThread.hpp"

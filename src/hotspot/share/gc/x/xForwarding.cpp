@@ -21,7 +21,6 @@
  * questions.
  */
 
-#include "precompiled.hpp"
 #include "gc/x/xAddress.inline.hpp"
 #include "gc/x/xForwarding.inline.hpp"
 #include "gc/x/xStat.hpp"

@@ -22,7 +22,6 @@
  *
  */
 
-// no precompiled headers
 #include "memory/allocation.inline.hpp"
 #include "runtime/mutex.hpp"
 #include "runtime/osThread.hpp"

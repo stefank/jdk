@@ -21,7 +21,6 @@
  * questions.
  */
 
-#include "precompiled.hpp"
 #include "gc/x/xBarrier.inline.hpp"
 #include "gc/x/xBarrierSetRuntime.hpp"
 #include "oops/access.hpp"

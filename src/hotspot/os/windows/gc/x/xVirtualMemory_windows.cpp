@@ -21,7 +21,6 @@
  * questions.
  */
 
-#include "precompiled.hpp"
 #include "gc/x/xAddress.inline.hpp"
 #include "gc/x/xGlobals.hpp"
 #include "gc/x/xLargePages.inline.hpp"

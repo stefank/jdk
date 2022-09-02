@@ -21,7 +21,6 @@
  * questions.
  */
 
-#include "precompiled.hpp"
 #include "gc/shared/concurrentGCBreakpoints.hpp"
 #include "gc/x/xBreakpoint.hpp"
 #include "runtime/mutexLocker.hpp"

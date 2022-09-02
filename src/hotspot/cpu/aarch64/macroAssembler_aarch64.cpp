@@ -25,7 +25,6 @@
 
 #include <sys/types.h>
 
-#include "precompiled.hpp"
 #include "asm/assembler.hpp"
 #include "asm/assembler.inline.hpp"
 #include "ci/ciEnv.hpp"

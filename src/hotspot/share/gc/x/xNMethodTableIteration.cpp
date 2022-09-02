@@ -21,7 +21,6 @@
  * questions.
  */
 
-#include "precompiled.hpp"
 #include "gc/x/xNMethodTableEntry.hpp"
 #include "gc/x/xNMethodTableIteration.hpp"
 #include "memory/iterator.hpp"

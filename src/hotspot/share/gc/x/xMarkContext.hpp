@@ -24,7 +24,6 @@
 #ifndef SHARE_GC_X_XMARKCONTEXT_HPP
 #define SHARE_GC_X_XMARKCONTEXT_HPP
 
-#include "gc/x/xMarkCache.hpp"
 #include "gc/shared/stringdedup/stringDedup.hpp"
 #include "memory/allocation.hpp"
 

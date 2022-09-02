@@ -21,7 +21,6 @@
  * questions.
  */
 
-#include "precompiled.hpp"
 #include "gc/x/xAddressSpaceLimit.hpp"
 #include "gc/x/xArguments.hpp"
 #include "gc/x/xCollectedHeap.hpp"

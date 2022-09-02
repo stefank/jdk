@@ -21,7 +21,6 @@
  * questions.
  */
 
-#include "precompiled.hpp"
 #include "gc/shared/gcLogPrecious.hpp"
 #include "gc/x/xAddress.inline.hpp"
 #include "gc/x/xArray.inline.hpp"

@@ -21,7 +21,6 @@
  * questions.
  */
 
-#include "precompiled.hpp"
 #include "gc/x/xBarrier.inline.hpp"
 #include "gc/x/xRootsIterator.hpp"
 #include "gc/x/xTask.hpp"

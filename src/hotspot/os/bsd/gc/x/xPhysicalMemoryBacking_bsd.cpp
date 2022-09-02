@@ -21,7 +21,6 @@
  * questions.
  */
 
-#include "precompiled.hpp"
 #include "gc/shared/gcLogPrecious.hpp"
 #include "gc/x/xErrno.hpp"
 #include "gc/x/xGlobals.hpp"

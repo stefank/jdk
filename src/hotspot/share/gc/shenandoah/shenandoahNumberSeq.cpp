@@ -22,7 +22,6 @@
  *
  */
 
-#include "precompiled.hpp"
 
 #include "gc/shenandoah/shenandoahNumberSeq.hpp"
 #include "runtime/atomic.hpp"

@@ -22,7 +22,6 @@
  *
  */
 
-#include "precompiled.hpp"
 #include "gc/shared/blockOffsetTable.hpp"
 #include "utilities/globalDefinitions.hpp"
 

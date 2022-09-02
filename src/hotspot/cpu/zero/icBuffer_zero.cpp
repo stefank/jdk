@@ -23,7 +23,6 @@
  *
  */
 
-#include "precompiled.hpp"
 #include "asm/assembler.inline.hpp"
 #include "code/icBuffer.hpp"
 #include "gc/shared/collectedHeap.inline.hpp"

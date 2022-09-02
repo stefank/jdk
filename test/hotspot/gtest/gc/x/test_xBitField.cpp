@@ -21,7 +21,6 @@
  * questions.
  */
 
-#include "precompiled.hpp"
 #include "gc/x/xBitField.hpp"
 #include "unittest.hpp"
 

@@ -22,7 +22,6 @@
 *
 */
 
-#include "precompiled.hpp"
 #include "runtime/sharedRuntime.hpp"
 
 #ifdef _WIN64

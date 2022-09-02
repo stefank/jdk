@@ -21,7 +21,6 @@
  * questions.
  */
 
-#include "precompiled.hpp"
 #include "gc/x/xList.inline.hpp"
 #include "gc/x/xPage.inline.hpp"
 #include "gc/x/xPhysicalMemory.inline.hpp"

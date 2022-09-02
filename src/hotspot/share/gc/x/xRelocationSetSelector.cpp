@@ -21,7 +21,6 @@
  * questions.
  */
 
-#include "precompiled.hpp"
 #include "gc/shared/gc_globals.hpp"
 #include "gc/x/xArray.inline.hpp"
 #include "gc/x/xForwarding.inline.hpp"

@@ -26,7 +26,6 @@
 #include "gc/shared/gcArguments.hpp"
 #include "gc/shared/gc_globals.hpp"
 #include "macroAssembler_ppc.hpp"
-#include "precompiled.hpp"
 #include "asm/macroAssembler.inline.hpp"
 #include "gc/shenandoah/shenandoahBarrierSet.hpp"
 #include "gc/shenandoah/shenandoahBarrierSetAssembler.hpp"

@@ -27,7 +27,6 @@
 // with C++ compiler before referencing the function alloca()
 #pragma alloca
 
-// no precompiled headers
 #include "classfile/vmSymbols.hpp"
 #include "code/icBuffer.hpp"
 #include "code/vtableStubs.hpp"

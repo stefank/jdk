@@ -21,7 +21,6 @@
  * questions.
  */
 
-#include "precompiled.hpp"
 #include "gc/x/xMapper_windows.hpp"
 #include "gc/x/xSyscall_windows.hpp"
 #include "logging/log.hpp"

@@ -22,7 +22,6 @@
  * questions.
  */
 
-#include "precompiled.hpp"
 #include "nmt/memTracker.hpp"
 #include "nmt/virtualMemoryTracker.hpp"
 #include "runtime/os.hpp"
@@ -51,4 +50,3 @@ TEST_VM(NMT, ReservedRegionCopy) {
   rgn = itr.next();
   ASSERT_EQ(rgn, (const CommittedMemoryRegion*)nullptr); // and nothing else
 }
-

@@ -21,7 +21,6 @@
  * questions.
  */
 
-#include "precompiled.hpp"
 #include "gc/x/xMetronome.hpp"
 #include "runtime/mutexLocker.hpp"
 #include "runtime/timer.hpp"

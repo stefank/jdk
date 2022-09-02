@@ -23,8 +23,6 @@
  *
  */
 
-#include "precompiled.hpp"
-
 #include "runtime/os.hpp"
 #include "nmt/memMapPrinter.hpp"
 #include "utilities/globalDefinitions.hpp"

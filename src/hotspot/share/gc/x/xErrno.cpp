@@ -21,7 +21,6 @@
  * questions.
  */
 
-#include "precompiled.hpp"
 #include "gc/x/xErrno.hpp"
 #include "runtime/os.hpp"
 

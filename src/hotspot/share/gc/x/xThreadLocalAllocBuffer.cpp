@@ -21,7 +21,6 @@
  * questions.
  */
 
-#include "precompiled.hpp"
 #include "gc/shared/tlab_globals.hpp"
 #include "gc/x/xAddress.inline.hpp"
 #include "gc/x/xStackWatermark.hpp"

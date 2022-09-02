@@ -21,7 +21,6 @@
  * questions.
  */
 
-#include "precompiled.hpp"
 #include "gc/x/xGlobals.hpp"
 
 uint32_t   XGlobalPhase                = XPhaseRelocate;

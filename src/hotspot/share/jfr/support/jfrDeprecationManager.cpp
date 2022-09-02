@@ -22,7 +22,6 @@
 *
 */
 
-#include "precompiled.hpp"
 #include "classfile/moduleEntry.hpp"
 #include "jfrfiles/jfrEventIds.hpp"
 #include "jfr/jni/jfrJavaSupport.hpp"

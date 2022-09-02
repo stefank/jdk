@@ -21,7 +21,6 @@
  * questions.
  */
 
-#include "precompiled.hpp"
 #include "gc/x/xArray.inline.hpp"
 #include "unittest.hpp"
 

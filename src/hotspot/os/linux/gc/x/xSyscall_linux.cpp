@@ -21,7 +21,6 @@
  * questions.
  */
 
-#include "precompiled.hpp"
 #include "gc/x/xSyscall_linux.hpp"
 #include OS_CPU_HEADER(gc/x/xSyscall)
 

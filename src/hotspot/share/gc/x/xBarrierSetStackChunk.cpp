@@ -22,7 +22,6 @@
  *
  */
 
-#include "precompiled.hpp"
 #include "gc/x/xBarrier.inline.hpp"
 #include "gc/x/xBarrierSetStackChunk.hpp"
 #include "runtime/atomic.hpp"

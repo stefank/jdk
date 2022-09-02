@@ -21,7 +21,6 @@
  * questions.
  */
 
-#include "precompiled.hpp"
 #include "gc/x/xBitMap.inline.hpp"
 #include "unittest.hpp"
 

@@ -21,7 +21,6 @@
  * questions.
  */
 
-#include "precompiled.hpp"
 #include "gc/x/xInitialize.hpp"
 
 void XInitialize::pd_initialize() {

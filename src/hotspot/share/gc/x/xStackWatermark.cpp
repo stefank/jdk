@@ -21,7 +21,6 @@
  * questions.
  */
 
-#include "precompiled.hpp"
 #include "gc/x/xAddress.hpp"
 #include "gc/x/xBarrier.inline.hpp"
 #include "gc/x/xStackWatermark.hpp"

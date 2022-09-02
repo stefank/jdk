@@ -21,7 +21,6 @@
  * questions.
  */
 
-#include "precompiled.hpp"
 #include "gc/x/xBarrierSet.hpp"
 #include "gc/x/xBarrierSetAssembler.hpp"
 #include "gc/x/xBarrierSetNMethod.hpp"

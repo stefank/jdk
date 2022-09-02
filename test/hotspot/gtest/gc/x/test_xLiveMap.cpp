@@ -21,7 +21,6 @@
  * questions.
  */
 
-#include "precompiled.hpp"
 #include "gc/x/xLiveMap.inline.hpp"
 #include "unittest.hpp"
 

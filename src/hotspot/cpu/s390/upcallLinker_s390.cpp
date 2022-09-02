@@ -21,7 +21,6 @@
  * questions.
  */
 
-#include "precompiled.hpp"
 #include "asm/macroAssembler.inline.hpp"
 #include "logging/logStream.hpp"
 #include "memory/resourceArea.hpp"

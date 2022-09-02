@@ -21,7 +21,6 @@
  * questions.
  */
 
-#include "precompiled.hpp"
 #include "code/nmethod.hpp"
 #include "gc/x/xBarrierSetNMethod.hpp"
 #include "gc/x/xGlobals.hpp"

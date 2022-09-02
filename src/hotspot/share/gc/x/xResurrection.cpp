@@ -21,7 +21,6 @@
  * questions.
  */
 
-#include "precompiled.hpp"
 #include "gc/x/xResurrection.hpp"
 #include "runtime/atomic.hpp"
 #include "runtime/safepoint.hpp"

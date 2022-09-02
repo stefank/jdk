@@ -21,7 +21,6 @@
  * questions.
  */
 
-#include "precompiled.hpp"
 #include "gc/x/xAttachedArray.inline.hpp"
 #include "gc/x/xLock.inline.hpp"
 #include "gc/x/xNMethodData.hpp"

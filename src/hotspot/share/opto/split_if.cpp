@@ -24,7 +24,6 @@
 
 #include "opto/addnode.hpp"
 #include "opto/node.hpp"
-#include "precompiled.hpp"
 #include "memory/allocation.inline.hpp"
 #include "opto/callnode.hpp"
 #include "opto/loopnode.hpp"

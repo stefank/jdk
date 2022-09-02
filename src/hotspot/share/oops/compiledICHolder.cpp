@@ -22,7 +22,6 @@
  *
  */
 
-#include "precompiled.hpp"
 #include "oops/compiledICHolder.hpp"
 #include "runtime/atomic.hpp"
 

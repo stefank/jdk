@@ -21,7 +21,6 @@
  * questions.
  */
 
-#include "precompiled.hpp"
 #include "gc/shared/gcArguments.hpp"
 #include "gc/x/xArguments.hpp"
 #include "gc/z/shared/zSharedArguments.hpp"

@@ -21,7 +21,6 @@
  * questions.
  */
 
-#include "precompiled.hpp"
 #include "gc/x/xTask.hpp"
 #include "gc/x/xThread.hpp"
 

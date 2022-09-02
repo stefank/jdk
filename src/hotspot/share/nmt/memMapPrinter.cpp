@@ -23,8 +23,6 @@
  *
  */
 
-#include "precompiled.hpp"
-
 #ifdef LINUX
 
 #include "logging/logAsyncWriter.hpp"

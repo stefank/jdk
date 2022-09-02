@@ -21,7 +21,6 @@
  * questions.
  */
 
-#include "precompiled.hpp"
 #include "utilities/utf8.hpp"
 #include "unittest.hpp"
 

@@ -21,7 +21,6 @@
  * questions.
  */
 
-#include "precompiled.hpp"
 #include "gc/x/xLargePages.hpp"
 #include "runtime/globals.hpp"
 

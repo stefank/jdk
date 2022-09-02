@@ -21,7 +21,6 @@
  * questions.
  */
 
-#include "precompiled.hpp"
 #include "gc/shared/gc_globals.hpp"
 #include "gc/x/xDirector.hpp"
 #include "gc/x/xDriver.hpp"

@@ -22,7 +22,6 @@
  *
  */
 
-#include "precompiled.hpp"
 #include "code/compressedStream.hpp"
 #include "oops/method.hpp"
 #include "oops/resolvedIndyEntry.hpp"

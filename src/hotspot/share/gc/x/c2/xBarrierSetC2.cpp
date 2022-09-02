@@ -21,7 +21,6 @@
  * questions.
  */
 
-#include "precompiled.hpp"
 #include "classfile/javaClasses.hpp"
 #include "gc/x/c2/xBarrierSetC2.hpp"
 #include "gc/x/xBarrierSet.hpp"
