@@ -302,6 +302,11 @@ void Klass::initialize_supers(Klass* k, Array<InstanceKlass*>* transitive_interf
 
     ResourceMark rm(THREAD);  // need to reclaim GrowableArrays allocated below
 
+    {
+      GrowableArray<Klass*>* test = new GrowableArray<Klass*>(10);
+      delete test;
+    }
+
     // Compute the "real" non-extra secondaries.
     GrowableArray<Klass*>* secondaries = compute_secondary_supers(extras, transitive_interfaces);
     if (secondaries == NULL) {
