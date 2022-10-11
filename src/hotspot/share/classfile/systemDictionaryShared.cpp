@@ -441,7 +441,7 @@ bool SystemDictionaryShared::add_unregistered_class(Thread* current, InstanceKla
   MutexLocker ml(current, UnregisteredClassesTable_lock);
   Symbol* name = klass->name();
   if (_unregistered_classes_table == NULL) {
-    _unregistered_classes_table = new (ResourceObj::C_HEAP, mtClass)UnregisteredClassesTable();
+    _unregistered_classes_table = new (mtClass)UnregisteredClassesTable();
   }
   bool created;
   InstanceKlass** v = _unregistered_classes_table->put_if_absent(name, klass, &created);
@@ -500,9 +500,9 @@ void SystemDictionaryShared::set_shared_class_misc_info(InstanceKlass* k, ClassF
 
 void SystemDictionaryShared::initialize() {
   if (Arguments::is_dumping_archive()) {
-    _dumptime_table = new (ResourceObj::C_HEAP, mtClass) DumpTimeSharedClassTable;
+    _dumptime_table = new (mtClass) DumpTimeSharedClassTable;
     _dumptime_lambda_proxy_class_dictionary =
-                      new (ResourceObj::C_HEAP, mtClass) DumpTimeLambdaProxyClassDictionary;
+                      new (mtClass) DumpTimeLambdaProxyClassDictionary;
   }
 }
 
@@ -1495,7 +1495,7 @@ void SystemDictionaryShared::clone_dumptime_tables() {
   assert_lock_strong(DumpTimeTable_lock);
 
   assert(_cloned_dumptime_table == NULL, "_cloned_dumptime_table must be cleaned");
-  _cloned_dumptime_table = new (ResourceObj::C_HEAP, mtClass) DumpTimeSharedClassTable;
+  _cloned_dumptime_table = new (mtClass) DumpTimeSharedClassTable;
   CloneDumpTimeClassTable copy_classes(_dumptime_table, _cloned_dumptime_table);
   _dumptime_table->iterate_all_live_classes(&copy_classes);
   _cloned_dumptime_table->update_counts();
@@ -1503,7 +1503,7 @@ void SystemDictionaryShared::clone_dumptime_tables() {
   assert(_cloned_dumptime_lambda_proxy_class_dictionary == NULL,
          "_cloned_dumptime_lambda_proxy_class_dictionary must be cleaned");
   _cloned_dumptime_lambda_proxy_class_dictionary =
-                                        new (ResourceObj::C_HEAP, mtClass) DumpTimeLambdaProxyClassDictionary;
+                                        new (mtClass) DumpTimeLambdaProxyClassDictionary;
   CloneDumpTimeLambdaProxyClassTable copy_proxy_classes(_dumptime_lambda_proxy_class_dictionary,
                                                         _cloned_dumptime_lambda_proxy_class_dictionary);
   _dumptime_lambda_proxy_class_dictionary->iterate(&copy_proxy_classes);

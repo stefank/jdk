@@ -116,7 +116,7 @@ void ProtectionDomainCacheTable::unlink() {
 
   // Create a list for holding deleted entries
   if (_delete_list == NULL) {
-    _delete_list = new (ResourceObj::C_HEAP, mtClass)
+    _delete_list = new (mtClass)
                        GrowableArray<ProtectionDomainEntry*>(20, mtClass);
   }
 

@@ -71,18 +71,7 @@ void GrowableArrayNestingCheck::on_stack_alloc() const {
 }
 
 void GrowableArrayMetadata::init_checks(const GrowableArrayBase* array) const {
-  // Stack allocated arrays support all three element allocation locations
-  if (array->allocated_on_stack_or_embedded()) {
-    return;
-  }
-
-  // Otherwise there's a strict one-to-one mapping
-  assert(on_C_heap() == array->allocated_on_C_heap(),
-         "growable array must be C heap allocated if elements are");
-  assert(on_stack() == array->allocated_on_res_area(),
-         "growable array must be resource allocated if elements are");
-  assert(on_arena() == array->allocated_on_arena(),
-         "growable array must be arena allocated if elements are");
+  // Do nothing ATM
 }
 
 void GrowableArrayMetadata::on_stack_alloc_check() const {

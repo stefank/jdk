@@ -264,7 +264,7 @@ private:
 
   static void init_seen_objects_table() {
     assert(_seen_objects_table == NULL, "must be");
-    _seen_objects_table = new (ResourceObj::C_HEAP, mtClass)SeenObjectsTable();
+    _seen_objects_table = new (mtClass)SeenObjectsTable();
   }
   static void delete_seen_objects_table() {
     assert(_seen_objects_table != NULL, "must be");
@@ -316,10 +316,10 @@ private:
   static void reset_archived_object_states(TRAPS);
   static void create_archived_object_cache(bool create_orig_table) {
     _archived_object_cache =
-      new (ResourceObj::C_HEAP, mtClass)ArchivedObjectCache();
+      new (mtClass)ArchivedObjectCache();
     if (create_orig_table) {
       _original_object_table =
-        new (ResourceObj::C_HEAP, mtClass)OriginalObjectTable();
+        new (mtClass)OriginalObjectTable();
     } else {
       _original_object_table = NULL;
     }

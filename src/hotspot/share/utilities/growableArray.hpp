@@ -751,11 +751,11 @@ public:
   }
 
   void* operator new(size_t size) throw() {
-    return ResourceObj::operator new(size, ResourceObj::C_HEAP, F);
+    return ResourceObj::operator new(size, F);
   }
 
   void* operator new(size_t size, const std::nothrow_t&  nothrow_constant) throw() {
-    return ResourceObj::operator new(size, nothrow_constant, ResourceObj::C_HEAP, F);
+    return ResourceObj::operator new(size, nothrow_constant, F);
   }
 };
 

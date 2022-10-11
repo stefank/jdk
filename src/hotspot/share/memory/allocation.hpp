@@ -375,50 +375,20 @@ extern void resource_free_bytes( char *old, size_t size );
 // use delete to deallocate.
 class ResourceObj {
  public:
-  enum allocation_type { STACK_OR_EMBEDDED = 0, RESOURCE_AREA, C_HEAP, ARENA, allocation_mask = 0x3 };
-  static void set_allocation_type(address res, allocation_type type) NOT_DEBUG_RETURN;
-#ifdef ASSERT
- private:
-  // When this object is allocated on stack the new() operator is not
-  // called but garbage on stack may look like a valid allocation_type.
-  // Store negated 'this' pointer when new() is called to distinguish cases.
-  // Use second array's element for verification value to distinguish garbage.
-  uintptr_t _allocation_t[2];
-  bool is_type_set() const;
-  void initialize_allocation_info();
- public:
-  allocation_type get_allocation_type() const;
-  bool allocated_on_stack_or_embedded() const { return get_allocation_type() == STACK_OR_EMBEDDED; }
-  bool allocated_on_res_area() const { return get_allocation_type() == RESOURCE_AREA; }
-  bool allocated_on_C_heap()   const { return get_allocation_type() == C_HEAP; }
-  bool allocated_on_arena()    const { return get_allocation_type() == ARENA; }
-protected:
-  ResourceObj(); // default constructor
-  ResourceObj(const ResourceObj& r); // default copy constructor
-  ResourceObj& operator=(const ResourceObj& r); // default copy assignment
-  ~ResourceObj();
-#endif // ASSERT
-
- public:
-  void* operator new(size_t size, allocation_type type, MEMFLAGS flags) throw();
-  void* operator new [](size_t size, allocation_type type, MEMFLAGS flags) throw() = delete;
-  void* operator new(size_t size, const std::nothrow_t&  nothrow_constant,
-      allocation_type type, MEMFLAGS flags) throw();
-  void* operator new [](size_t size, const std::nothrow_t&  nothrow_constant,
-      allocation_type type, MEMFLAGS flags) throw() = delete;
+  enum allocation_type { STACK_OR_EMBEDDED = 0, RESOURCE_AREA, C_HEAP, ARENA };
+  void* operator new(size_t size, MEMFLAGS flags) throw();
+  void* operator new [](size_t size, MEMFLAGS flags) throw() = delete;
+  void* operator new(size_t size, const std::nothrow_t&  nothrow_constant, MEMFLAGS flags) throw();
+  void* operator new [](size_t size, const std::nothrow_t&  nothrow_constant, MEMFLAGS flags) throw() = delete;
   void* operator new(size_t size, Arena *arena) throw();
   void* operator new [](size_t size, Arena *arena) throw() = delete;
 
   void* operator new(size_t size) throw() {
-      address res = (address)resource_allocate_bytes(size);
-      DEBUG_ONLY(set_allocation_type(res, RESOURCE_AREA);)
-      return res;
+    return resource_allocate_bytes(size);
   }
 
   void* operator new(size_t size, const std::nothrow_t& nothrow_constant) throw() {
-      address res = (address)resource_allocate_bytes(size, AllocFailStrategy::RETURN_NULL);
-      DEBUG_ONLY(if (res != NULL) set_allocation_type(res, RESOURCE_AREA);)
-      return res;
+    return resource_allocate_bytes(size, AllocFailStrategy::RETURN_NULL);
   }
 
   void* operator new [](size_t size) throw() = delete;

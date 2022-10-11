@@ -343,7 +343,7 @@ protected:
 
     // CHeap/CHeap allocated
     {
-      GrowableArray<int>* a = new (ResourceObj::C_HEAP, mtTest) GrowableArray<int>(max, mtTest);
+      GrowableArray<int>* a = new (mtTest) GrowableArray<int>(max, mtTest);
       modify_and_test(a, modify, test);
       delete a;
     }
@@ -417,14 +417,12 @@ TEST_VM_F(GrowableArrayTest, assignment) {
 #ifdef ASSERT
 TEST_VM_F(GrowableArrayTest, where) {
   WithEmbeddedArray s(1, mtTest);
-  ASSERT_FALSE(s._a.allocated_on_C_heap());
   ASSERT_TRUE(elements_on_C_heap(&s._a));
 
   // Resource/Resource allocated
   {
     ResourceMark rm;
     GrowableArray<int>* a = new GrowableArray<int>();
-    ASSERT_TRUE(a->allocated_on_res_area());
     ASSERT_TRUE(elements_on_stack(a));
   }
 
@@ -439,8 +437,7 @@ TEST_VM_F(GrowableArrayTest, where) {
 
   // CHeap/CHeap allocated
   {
-    GrowableArray<int>* a = new (ResourceObj::C_HEAP, mtTest) GrowableArray<int>(0, mtTest);
-    ASSERT_TRUE(a->allocated_on_C_heap());
+    GrowableArray<int>* a = new (mtTest) GrowableArray<int>(0, mtTest);
     ASSERT_TRUE(elements_on_C_heap(a));
     delete a;
   }
@@ -452,14 +449,12 @@ TEST_VM_F(GrowableArrayTest, where) {
   {
     ResourceMark rm;
     GrowableArray<int> a(0);
-    ASSERT_TRUE(a.allocated_on_stack_or_embedded());
     ASSERT_TRUE(elements_on_stack(&a));
   }
 
   // Stack/CHeap allocated
   {
     GrowableArray<int> a(0, mtTest);
-    ASSERT_TRUE(a.allocated_on_stack_or_embedded());
     ASSERT_TRUE(elements_on_C_heap(&a));
   }
 
@@ -467,7 +462,6 @@ TEST_VM_F(GrowableArrayTest, where) {
   {
     Arena arena(mtTest);
     GrowableArray<int> a(&arena, 0, 0, 0);
-    ASSERT_TRUE(a.allocated_on_stack_or_embedded());
     ASSERT_TRUE(elements_on_arena(&a));
   }
 
@@ -475,14 +469,12 @@ TEST_VM_F(GrowableArrayTest, where) {
   {
     ResourceMark rm;
     WithEmbeddedArray w(0);
-    ASSERT_TRUE(w._a.allocated_on_stack_or_embedded());
     ASSERT_TRUE(elements_on_stack(&w._a));
   }
 
   // Embedded/CHeap allocated
   {
     WithEmbeddedArray w(0, mtTest);
-    ASSERT_TRUE(w._a.allocated_on_stack_or_embedded());
     ASSERT_TRUE(elements_on_C_heap(&w._a));
   }
 
@@ -490,7 +482,6 @@ TEST_VM_F(GrowableArrayTest, where) {
   {
     Arena arena(mtTest);
     WithEmbeddedArray w(&arena, 0);
-    ASSERT_TRUE(w._a.allocated_on_stack_or_embedded());
     ASSERT_TRUE(elements_on_arena(&w._a));
   }
 }
@@ -517,9 +508,6 @@ TEST(GrowableArrayCHeap, sanity) {
   // Stack/CHeap
   {
     GrowableArrayCHeap<int, mtTest> a(0);
-#ifdef ASSERT
-    ASSERT_TRUE(a.allocated_on_stack_or_embedded());
-#endif
     ASSERT_TRUE(a.is_empty());
 
     a.append(1);
@@ -530,9 +518,6 @@ TEST(GrowableArrayCHeap, sanity) {
   // CHeap/CHeap
   {
     GrowableArrayCHeap<int, mtTest>* a = new GrowableArrayCHeap<int, mtTest>(0);
-#ifdef ASSERT
-    ASSERT_TRUE(a->allocated_on_C_heap());
-#endif
     ASSERT_TRUE(a->is_empty());
 
     a->append(1);
@@ -544,9 +529,6 @@ TEST(GrowableArrayCHeap, sanity) {
   // CHeap/CHeap - nothrow new operator
   {
     GrowableArrayCHeap<int, mtTest>* a = new (std::nothrow) GrowableArrayCHeap<int, mtTest>(0);
-#ifdef ASSERT
-    ASSERT_TRUE(a->allocated_on_C_heap());
-#endif
     ASSERT_TRUE(a->is_empty());
 
     a->append(1);

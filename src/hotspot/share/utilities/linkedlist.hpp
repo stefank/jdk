@@ -335,11 +335,16 @@ template <class E, ResourceObj::allocation_type T = ResourceObj::C_HEAP,
          return new(_arena) LinkedListNode<E>(e);
        }
        case ResourceObj::RESOURCE_AREA:
+         if (alloc_failmode == AllocFailStrategy::RETURN_NULL) {
+           return new(std::nothrow) LinkedListNode<E>(e);
+         } else {
+           return new LinkedListNode<E>(e);
+         }
        case ResourceObj::C_HEAP: {
          if (alloc_failmode == AllocFailStrategy::RETURN_NULL) {
-           return new(std::nothrow, T, F) LinkedListNode<E>(e);
+           return new(std::nothrow, F) LinkedListNode<E>(e);
          } else {
-           return new(T, F) LinkedListNode<E>(e);
+           return new(F) LinkedListNode<E>(e);
          }
        }
        default:

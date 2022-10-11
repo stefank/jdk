@@ -203,7 +203,7 @@ class ThreadScanHashtable : public CHeapObj<mtThread> {
   // ResourceHashtable is passed to various functions and populated in
   // different places so we allocate it using C_HEAP to make it immune
   // from any ResourceMarks that happen to be in the code paths.
-  ThreadScanHashtable() : _ptrs(new (ResourceObj::C_HEAP, mtThread) PtrTable()) {}
+  ThreadScanHashtable() : _ptrs(new (mtThread) PtrTable()) {}
 
   ~ThreadScanHashtable() { delete _ptrs; }
 

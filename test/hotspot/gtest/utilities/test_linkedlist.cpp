@@ -103,7 +103,7 @@ TEST(LinkedList, generic) {
   EXPECT_EQ(*(il.head()->peek()), N-1);
 
   typedef LinkedListImpl<Integer, ResourceObj::C_HEAP, mtTest> list_t;
-  LinkedList<Integer>* list = new(ResourceObj::C_HEAP, mtTest) list_t();
+  LinkedList<Integer>* list = new(mtTest) list_t();
   list->add(Integer(1));
   list->add(Integer(2));
   EXPECT_EQ(list->size(), (size_t)2);

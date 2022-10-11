@@ -265,9 +265,7 @@ public:
     _open(open),
     _g1h(g1h),
     _allocation_region(NULL),
-    _allocated_regions((ResourceObj::set_allocation_type((address) &_allocated_regions,
-                                                         ResourceObj::C_HEAP),
-                        2), mtGC),
+    _allocated_regions(2, mtGC),
     _bottom(NULL),
     _top(NULL),
     _max(NULL) { }
