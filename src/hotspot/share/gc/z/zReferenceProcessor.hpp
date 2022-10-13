@@ -56,7 +56,7 @@ private:
 
   void discover(zaddress reference, ReferenceType type);
 
-  zpointer drop(zaddress reference, ReferenceType type);
+  zaddress drop(zaddress reference, ReferenceType type);
   zpointer* keep(zaddress reference, ReferenceType type);
 
   void verify_empty() const;
@@ -65,7 +65,7 @@ private:
   void work();
   void collect_statistics();
 
-  zpointer swap_pending_list(zpointer pending_list);
+  zaddress swap_pending_list(zpointer pending_list);
 
 public:
   ZReferenceProcessor(ZWorkers* workers);

@@ -266,14 +266,14 @@ bool ZReferenceProcessor::discover_reference(oop reference_obj, ReferenceType ty
   return true;
 }
 
-zpointer ZReferenceProcessor::drop(zaddress reference, ReferenceType type) {
+zaddress ZReferenceProcessor::drop(zaddress reference, ReferenceType type) {
   log_trace(gc, ref)("Dropped Reference: " PTR_FORMAT " (%s)", untype(reference), reference_type_name(type));
 
   // Unlink and return next in list
   const zaddress next = reference_discovered(reference);
   reference_set_discovered(reference, zaddress::null);
   assert(*reference_discovered_addr(reference) != zpointer::null, "No raw nulls");
-  return ZAddress::store_good(next);
+  return next;
 }
 
 zpointer* ZReferenceProcessor::keep(zaddress reference, ReferenceType type) {
@@ -286,19 +286,20 @@ zpointer* ZReferenceProcessor::keep(zaddress reference, ReferenceType type) {
   return reference_discovered_addr(reference);
 }
 
-void ZReferenceProcessor::process_worker_discovered_list(zpointer discovered_list) {
-  zpointer* const start = &discovered_list;
+static void store_in_list(zpointer* list_head_in_native, zpointer* p, zaddress address) {
+  if (p == list_head_in_native) {
+    // Store to the list head, which is in native memory - no store barrier required
+  } else {
+    // Store in the middle of the list - store barrier required
+    ZBarrier::store_barrier_on_heap_oop_field(p, false /* heal */);
+  }
+  *p = ZAddress::store_good(address);
+}
 
+void ZReferenceProcessor::process_worker_discovered_list(zpointer discovered_list_ptr) {
   // The list is chained through the discovered field,
   // but the first entry is not in the heap.
-  auto store_in_list = [&](zpointer* p, zpointer ptr) {
-    if (p != start) {
-      ZBarrier::store_barrier_on_heap_oop_field(p, false /* heal */);
-    }
-    *p = ptr;
-  };
-
-  zpointer* p = start;
+  zpointer* p = &discovered_list_ptr;
 
   for (;;) {
     const zaddress reference = ZBarrier::load_barrier_on_oop_field(p);
@@ -313,7 +314,7 @@ void ZReferenceProcessor::process_worker_discovered_list(zpointer discovered_lis
     if (try_make_inactive(reference, type)) {
       p = keep(reference, type);
     } else {
-      store_in_list(p, drop(reference, type));
+      store_in_list(&discovered_list_ptr, p, drop(reference, type));
       assert(*p != zpointer::null, "No NULL");
     }
 
@@ -324,20 +325,19 @@ void ZReferenceProcessor::process_worker_discovered_list(zpointer discovered_lis
 
   // Prepend discovered references to internal pending list
 
-  // Anything keept on the list?
-  if (!is_null_any(*start)) {
-    zpointer old_pending_list = Atomic::xchg(_pending_list.addr(), *start);
-
-    // Old list could be empty and contain a raw null, don't store raw nulls.
-    if (old_pending_list == zpointer::null) {
-      old_pending_list = ZAddress::store_good(zaddress::null);
-    }
+  // Anything kept on the list?
+  if (!is_null_any(discovered_list_ptr)) {
+    assert(ZPointer::is_load_good(discovered_list_ptr), "Bad oop: " PTR_FORMAT, untype(discovered_list_ptr));
+    const zaddress discovered_list = ZPointer::uncolor(discovered_list_ptr);
+    const zpointer old_pending_list_ptr = Atomic::xchg(_pending_list.addr(), ZAddress::store_good(discovered_list));
+    zaddress old_pending_list = ZBarrier::load_barrier_on_oop_field_preloaded(nullptr /* p */, old_pending_list_ptr);
 
     // Concatenate the old list
-    store_in_list(end,  old_pending_list);
+    store_in_list(&discovered_list_ptr, end,  old_pending_list);
 
-    if (is_null_any(old_pending_list)) {
+    if (is_null(old_pending_list)) {
       // Old list was empty. First to prepend to list, record tail
+      assert(ZHeap::heap()->is_in(uintptr_t(end)), "Must be in heap");
       _pending_list_tail = end;
     }
   }
@@ -490,10 +490,10 @@ void ZReferenceProcessor::verify_pending_references() {
 #endif
 }
 
-zpointer ZReferenceProcessor::swap_pending_list(zpointer pending_list) {
+zaddress ZReferenceProcessor::swap_pending_list(zpointer pending_list) {
   oop pending_list_oop = to_oop(ZBarrier::load_barrier_on_oop_field_preloaded(NULL, pending_list));
   oop prev = Universe::swap_reference_pending_list(pending_list_oop);
-  return ZAddress::store_good(to_zaddress(prev));
+  return to_zaddress(prev);
 }
 
 void ZReferenceProcessor::enqueue_references() {
@@ -513,12 +513,13 @@ void ZReferenceProcessor::enqueue_references() {
     SuspendibleThreadSetJoiner sts_joiner;
 
     // Prepend internal pending list to external pending list
+    assert(_pending_list_tail != _pending_list.addr(), "When does this ever happen");
     if (_pending_list_tail != _pending_list.addr()) {
       // The tail could be a discovered field in the heap; apply store barriers
       ZBarrier::store_barrier_on_heap_oop_field(_pending_list_tail, false /* heal */);
     }
 
-    *_pending_list_tail = swap_pending_list(_pending_list.get());
+    *_pending_list_tail = ZAddress::store_good(swap_pending_list(_pending_list.get()));
 
     // Notify ReferenceHandler thread
     ml.notify_all();
