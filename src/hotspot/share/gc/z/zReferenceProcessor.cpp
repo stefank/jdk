@@ -296,6 +296,12 @@ static void store_in_list(zpointer* list_head_in_native, zpointer* p, zaddress a
   *p = ZAddress::store_good(address);
 }
 
+zaddress ZReferenceProcessor::swap_discovered_pending_list(zpointer discovered_list_ptr) {
+  const zaddress discovered_list = ZBarrier::load_barrier_on_oop_field_preloaded(nullptr /* p */, discovered_list_ptr);
+  const zpointer old_pending_list_ptr = Atomic::xchg(_pending_list.addr(), ZAddress::store_good(discovered_list));
+  return ZBarrier::load_barrier_on_oop_field_preloaded(nullptr /* p */, old_pending_list_ptr);
+}
+
 void ZReferenceProcessor::process_worker_discovered_list(zpointer discovered_list_ptr) {
   // The list is chained through the discovered field,
   // but the first entry is not in the heap.
@@ -327,10 +333,7 @@ void ZReferenceProcessor::process_worker_discovered_list(zpointer discovered_lis
 
   // Anything kept on the list?
   if (!is_null_any(discovered_list_ptr)) {
-    assert(ZPointer::is_load_good(discovered_list_ptr), "Bad oop: " PTR_FORMAT, untype(discovered_list_ptr));
-    const zaddress discovered_list = ZPointer::uncolor(discovered_list_ptr);
-    const zpointer old_pending_list_ptr = Atomic::xchg(_pending_list.addr(), ZAddress::store_good(discovered_list));
-    zaddress old_pending_list = ZBarrier::load_barrier_on_oop_field_preloaded(nullptr /* p */, old_pending_list_ptr);
+    const zaddress old_pending_list = swap_discovered_pending_list(discovered_list_ptr);
 
     // Concatenate the old list
     store_in_list(&discovered_list_ptr, end,  old_pending_list);
@@ -490,7 +493,7 @@ void ZReferenceProcessor::verify_pending_references() {
 #endif
 }
 
-zaddress ZReferenceProcessor::swap_pending_list(zpointer pending_list) {
+zaddress ZReferenceProcessor::swap_global_pending_list(zpointer pending_list) {
   oop pending_list_oop = to_oop(ZBarrier::load_barrier_on_oop_field_preloaded(NULL, pending_list));
   oop prev = Universe::swap_reference_pending_list(pending_list_oop);
   return to_zaddress(prev);
@@ -519,7 +522,7 @@ void ZReferenceProcessor::enqueue_references() {
       ZBarrier::store_barrier_on_heap_oop_field(_pending_list_tail, false /* heal */);
     }
 
-    *_pending_list_tail = ZAddress::store_good(swap_pending_list(_pending_list.get()));
+    *_pending_list_tail = ZAddress::store_good(swap_global_pending_list(_pending_list.get()));
 
     // Notify ReferenceHandler thread
     ml.notify_all();
