@@ -165,7 +165,7 @@ void GCArguments::initialize_heap_flags_and_sizes() {
   }
 
   if (FLAG_IS_DEFAULT(SoftMaxHeapSize)) {
-    FLAG_SET_ERGO(SoftMaxHeapSize, MaxHeapSize);
+    FLAG_SET_ERGO(SoftMaxHeapSize, MIN2(64 * M, MaxHeapSize));
   }
 
   FLAG_SET_ERGO(MinHeapDeltaBytes, align_up(MinHeapDeltaBytes, SpaceAlignment));
