@@ -43,6 +43,7 @@ class objArrayOopDesc : public arrayOopDesc {
   template <typename T>
   friend class RawOopWriter;
 
+public:
   template <class T> T* obj_at_addr(int index) const;
 
   template <class T>

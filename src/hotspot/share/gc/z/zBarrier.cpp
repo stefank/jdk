@@ -250,3 +250,17 @@ void ZBarrier::verify_on_weak(volatile zpointer* referent_addr) {
 }
 
 #endif
+
+void ZBarrier::find_raw_null_in(zaddress ret) {
+  if (!is_null(ret) && ZHeap::heap()->is_old(ret)) {
+    oop obj = to_oop(ret);
+    if (obj->is_objArray()) {
+      objArrayOop array = objArrayOop(obj);
+      for (int i = 0; i < array->length(); i++) {
+        oop* elem_addr = array->obj_at_addr<oop>(i);
+        uintptr_t elem_value = *(uintptr_t*)elem_addr;
+        guarantee(elem_value != 0, "Found raw null in obj: " PTR_FORMAT " at offset: %d", p2i(obj), i);
+      }
+    }
+  }
+}

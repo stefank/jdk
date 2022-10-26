@@ -453,7 +453,7 @@ inline bool ZPointer::is_young_load_good(zpointer ptr) {
 }
 
 inline bool ZPointer::is_old_load_good(zpointer ptr) {
-  assert(!is_null(ptr), "not supported");
+  guarantee(!is_null(ptr), "not supported");
   return (remap_bits(untype(ptr)) & ZPointerRemappedOldMask) != 0;
 }
 

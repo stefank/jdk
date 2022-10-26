@@ -526,7 +526,11 @@ inline zaddress ZBarrier::load_barrier_on_oop_field_preloaded(volatile zpointer*
     return addr;
   };
 
-  return barrier(is_load_good_or_null_fast_path, slow_path, color_load_good, p, o);
+  zaddress ret = barrier(is_load_good_or_null_fast_path, slow_path, color_load_good, p, o);
+
+  ZBarrier::find_raw_null_in(ret);
+
+  return ret;
 }
 
 inline zaddress ZBarrier::keep_alive_load_barrier_on_oop_field_preloaded(volatile zpointer* p, zpointer o) {
