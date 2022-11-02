@@ -491,9 +491,9 @@ class CHeapBitMap : public BitMap {
   MEMFLAGS _flags;
 
  public:
-  CHeapBitMap(MEMFLAGS flags = mtInternal) : BitMap(NULL, 0), _flags(flags) {}
+  CHeapBitMap(MEMFLAGS flags) : BitMap(NULL, 0), _flags(flags) {}
   // Clears the bitmap memory.
-  CHeapBitMap(idx_t size_in_bits, MEMFLAGS flags = mtInternal, bool clear = true);
+  CHeapBitMap(idx_t size_in_bits, MEMFLAGS flags, bool clear);
   ~CHeapBitMap();
 
   // Resize the backing bitmap memory.

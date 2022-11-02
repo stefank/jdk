@@ -37,7 +37,7 @@ void ZRememberedSet::flip() {
 }
 
 ZRememberedSet::ZRememberedSet() :
-    _bitmap() {
+    _bitmap{{mtGC}, {mtGC}} {
   // Defer initialization of the bitmaps until the owning
   // page becomes old and its remembered set is initialized.
 }

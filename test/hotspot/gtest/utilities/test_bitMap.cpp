@@ -116,24 +116,29 @@ class BitMapTest {
 #endif
 };
 
+class TestCHeapBitMap : public CHeapBitMap {
+public:
+  TestCHeapBitMap(size_t size = 0) : CHeapBitMap(size, mtTest, true) {}
+};
+
 TEST_VM(BitMap, resize_grow) {
   BitMapTest::testResizeGrow<ResourceBitMap>();
   EXPECT_FALSE(HasFailure()) << "Failed on type ResourceBitMap";
-  BitMapTest::testResizeGrow<CHeapBitMap>();
+  BitMapTest::testResizeGrow<TestCHeapBitMap>();
   EXPECT_FALSE(HasFailure()) << "Failed on type CHeapBitMap";
 }
 
 TEST_VM(BitMap, resize_shrink) {
   BitMapTest::testResizeShrink<ResourceBitMap>();
   EXPECT_FALSE(HasFailure()) << "Failed on type ResourceBitMap";
-  BitMapTest::testResizeShrink<CHeapBitMap>();
+  BitMapTest::testResizeShrink<TestCHeapBitMap>();
   EXPECT_FALSE(HasFailure()) << "Failed on type CHeapBitMap";
 }
 
 TEST_VM(BitMap, resize_same) {
   BitMapTest::testResizeSame<ResourceBitMap>();
   EXPECT_FALSE(HasFailure()) << "Failed on type ResourceBitMap";
-  BitMapTest::testResizeSame<CHeapBitMap>();
+  BitMapTest::testResizeSame<TestCHeapBitMap>();
   EXPECT_FALSE(HasFailure()) << "Failed on type CHeapBitMap";
 }
 
@@ -158,7 +163,7 @@ TEST_VM(BitMap, resize_grow_clear) {
 TEST_VM(BitMap, initialize) {
   BitMapTest::testInitialize<ResourceBitMap>();
   EXPECT_FALSE(HasFailure()) << "Failed on type ResourceBitMap";
-  BitMapTest::testInitialize<CHeapBitMap>();
+  BitMapTest::testInitialize<TestCHeapBitMap>();
   EXPECT_FALSE(HasFailure()) << "Failed on type CHeapBitMap";
 }
 
