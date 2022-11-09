@@ -95,7 +95,7 @@ JvmtiFramePops::clear_to(JvmtiFramePop& fp) {
 //
 
 JvmtiFramePops::JvmtiFramePops() {
-  _pops = new (ResourceObj::C_HEAP, mtServiceability) GrowableArray<int> (2, mtServiceability);
+  _pops = new (ResourceObj::C_HEAP, mtServiceability) GrowableArray<int>(mtServiceability, 2);
 }
 
 JvmtiFramePops::~JvmtiFramePops() {
