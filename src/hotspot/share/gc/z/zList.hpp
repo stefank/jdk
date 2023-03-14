@@ -84,6 +84,8 @@ public:
   void remove(T* elem);
   T* remove_first();
   T* remove_last();
+
+  void transfer_all(ZList<T>* to);
 };
 
 template <typename T, bool Forward>

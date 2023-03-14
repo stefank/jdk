@@ -152,4 +152,35 @@ TEST_F(ZListTest, test_remove) {
   }
 }
 
+TEST_F(ZListTest, transfer_all) {
+  ZList<ZTestEntry> from;
+  ZList<ZTestEntry> to;
+
+  ZTestEntry e0(0);
+  ZTestEntry e1(1);
+  ZTestEntry e2(2);
+  ZTestEntry e3(3);
+  ZTestEntry e4(4);
+  ZTestEntry e5(5);
+
+  from.insert_last(&e0);
+  from.insert_last(&e1);
+  from.insert_last(&e2);
+  from.insert_last(&e3);
+  from.insert_last(&e4);
+  from.insert_last(&e5);
+
+  from.transfer_all(&to);
+
+  EXPECT_EQ(from.size(), 0u);
+  EXPECT_EQ(to.size(), 6u);
+
+  for (int i = 5; i >= 0; i--) {
+    ZTestEntry* e = to.remove_last();
+    EXPECT_EQ(e->id(), i);
+  }
+
+  EXPECT_EQ(to.size(), 0u);
+}
+
 #endif // PRODUCT

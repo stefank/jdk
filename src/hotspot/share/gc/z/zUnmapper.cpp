@@ -40,17 +40,17 @@ ZUnmapper::ZUnmapper(ZPageAllocator* page_allocator) :
   create_and_start();
 }
 
-ZPage* ZUnmapper::dequeue() {
+bool ZUnmapper::dequeue_all(ZList<ZPage>* to) {
   ZLocker<ZConditionLock> locker(&_lock);
 
   for (;;) {
     if (_stop) {
-      return nullptr;
+      return false;
     }
 
-    ZPage* const page = _queue.remove_first();
-    if (page != nullptr) {
-      return page;
+    _queue.transfer_all(to);
+    if (!to->is_empty()) {
+      return true;
     }
 
     _lock.wait();
@@ -78,13 +78,18 @@ void ZUnmapper::unmap_and_destroy_page(ZPage* page) {
 
 void ZUnmapper::run_thread() {
   for (;;) {
-    ZPage* const page = dequeue();
-    if (page == nullptr) {
+    ZList<ZPage> to_unmap;
+
+    const bool stop = !dequeue_all(&to_unmap);
+    if (stop) {
       // Stop
       return;
     }
 
-    do_unmap_and_destroy_page(page);
+    ZListRemoveIterator<ZPage> iter(&to_unmap);
+    for (ZPage* page; iter.next(&page);) {
+      do_unmap_and_destroy_page(page);
+    }
   }
 }
 

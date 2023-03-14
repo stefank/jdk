@@ -208,6 +208,37 @@ inline T* ZList<T>::remove_last() {
   return elem;
 }
 
+template <typename T>
+inline void ZList<T>::transfer_all(ZList<T>* to) {
+  if (size() == 0) {
+    // Nothing to move
+    return;
+  }
+
+  assert(to->is_empty(), "The to list is expected to be empty");
+  to->verify_head();
+
+  verify_head();
+
+  // Copy
+  to->_head._next = _head._next;
+  to->_head._prev = _head._prev;
+  to->_size = _size;
+
+  // Fix back-pointers to old head
+  to->_head._next->_prev = &to->_head;
+  to->_head._prev->_next = &to->_head;
+
+  to->verify_head();
+
+  // Empty
+  _head._next = &_head;
+  _head._prev = &_head;
+  _size = 0;
+
+  verify_head();
+}
+
 template <typename T, bool Forward>
 inline ZListIteratorImpl<T, Forward>::ZListIteratorImpl(const ZList<T>* list) :
     _list(list),
