@@ -38,7 +38,7 @@ private:
   ZList<ZPage>          _queue;
   bool                  _stop;
 
-  bool dequeue_all(ZList<ZPage>* to);
+  bool dequeue(ZList<ZPage>* to);
   void do_unmap_and_destroy_page(ZPage* page) const;
 
 protected:

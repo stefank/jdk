@@ -78,6 +78,9 @@
           "Uncommit memory if it has been unused for the specified "        \
           "amount of time (in seconds)")                                    \
                                                                             \
+  product(bool, ZUnmapInBulk, true,                                         \
+          "Perform page memory unmapping in bulk")                          \
+                                                                            \
   product(uintx, ZIndexDistributorStrategy, 0, DIAGNOSTIC,                  \
           "Strategy used to distribute indices to parallel workers "        \
           "0: Claim tree "                                                  \
