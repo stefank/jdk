@@ -43,7 +43,7 @@
 #include "gc/shenandoah/shenandoah_globals.hpp"
 #endif
 #if INCLUDE_ZGC
-#include "gc/z/z_globals.hpp"
+#include "gc/z/shared/z_shared_globals.hpp"
 #endif
 
 #define GC_FLAGS(develop,                                                   \

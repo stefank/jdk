@@ -69,6 +69,10 @@
   template(ZRelocateStartYoung)                   \
   template(ZRendezvousGCThreads)                  \
   template(ZVerifyOld)                            \
+  template(ZLegacyMarkStart)                      \
+  template(ZLegacyMarkEnd)                        \
+  template(ZLegacyRelocateStart)                  \
+  template(ZLegacyVerify)                         \
   template(HandshakeAllThreads)                   \
   template(PopulateDumpSharedSpace)               \
   template(JNIFunctionTableCopier)                \
