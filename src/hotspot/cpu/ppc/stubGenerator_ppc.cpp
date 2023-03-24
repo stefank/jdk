@@ -48,6 +48,7 @@
 #include "utilities/align.hpp"
 #include "utilities/powerOfTwo.hpp"
 #if INCLUDE_ZGC
+#include "gc/z/legacy/zLegacyBarrierSetAssembler.hpp"
 #include "gc/z/zBarrierSetAssembler.hpp"
 #endif
 

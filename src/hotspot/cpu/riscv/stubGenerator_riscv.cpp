@@ -51,9 +51,6 @@
 #ifdef COMPILER2
 #include "opto/runtime.hpp"
 #endif
-#if INCLUDE_ZGC
-#include "gc/z/zThreadLocalData.hpp"
-#endif
 
 // Declaration and definition of StubGenerator (no .hpp file).
 // For a more detailed description of the stub routine structure

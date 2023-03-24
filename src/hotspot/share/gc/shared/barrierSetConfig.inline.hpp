@@ -40,8 +40,8 @@
 #include "gc/shenandoah/shenandoahBarrierSet.inline.hpp"
 #endif
 #if INCLUDE_ZGC
-#include "gc/z/zBarrierSet.inline.hpp"
 #include "gc/z/legacy/zLegacyBarrierSet.inline.hpp"
+#include "gc/z/zBarrierSet.inline.hpp"
 #endif
 
 #endif // SHARE_GC_SHARED_BARRIERSETCONFIG_INLINE_HPP
