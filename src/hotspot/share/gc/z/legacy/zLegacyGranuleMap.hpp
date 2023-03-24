@@ -32,6 +32,9 @@ class VMStructs;
 namespace ZLegacy {
 
 template <typename T>
+class ZGranuleMapIterator;
+
+template <typename T>
 class ZGranuleMap {
   friend class ::VMStructs;
   template <typename> friend class ZGranuleMapIterator;
