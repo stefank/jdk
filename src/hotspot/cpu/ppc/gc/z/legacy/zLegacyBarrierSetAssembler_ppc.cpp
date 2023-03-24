@@ -40,10 +40,10 @@
 #ifdef COMPILER1
 #include "c1/c1_LIRAssembler.hpp"
 #include "c1/c1_MacroAssembler.hpp"
-#include "gc/z/c1/zBarrierSetC1.hpp"
+#include "gc/z/legacy/c1/zLegacyBarrierSetC1.hpp"
 #endif // COMPILER1
 #ifdef COMPILER2
-#include "gc/z/c2/zBarrierSetC2.hpp"
+#include "gc/z/legacy/c2/zLegacyBarrierSetC2.hpp"
 #endif // COMPILER2
 
 namespace ZLegacy {
