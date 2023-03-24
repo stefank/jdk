@@ -32,6 +32,7 @@ class VMStructs;
 namespace ZLegacy {
 
 class ZPage;
+class ZPageTableIterator;
 
 class ZPageTable {
   friend class ::VMStructs;
