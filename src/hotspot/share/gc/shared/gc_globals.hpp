@@ -125,6 +125,9 @@
   product(bool, UseZGC, false,                                              \
           "Use the Z garbage collector")                                    \
                                                                             \
+  product(bool, ZLegacyMode, false,                                         \
+          "Use legacy, non-generational version of ZGC")                    \
+                                                                            \
   product(bool, UseShenandoahGC, false,                                     \
           "Use the Shenandoah garbage collector")                           \
                                                                             \

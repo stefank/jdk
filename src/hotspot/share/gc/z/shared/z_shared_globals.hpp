@@ -35,9 +35,6 @@
                    range,                                                   \
                    constraint)                                              \
                                                                             \
-  product(bool, ZLegacyMode, false,                                         \
-          "Use legacy, non-generational version of ZGC")                    \
-                                                                            \
   product(double, ZAllocationSpikeTolerance, 2.0,                           \
           "Allocation spike tolerance factor")                              \
                                                                             \
