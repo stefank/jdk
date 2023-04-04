@@ -89,13 +89,16 @@ void ZGlobalsPointers::set_good_masks() {
   pd_set_good_masks();
 }
 
+static void z_check_oop(oopDesc* obj) {
+  // to_zaddress performs the the validation checks
+  (void)to_zaddress(obj);
+}
+
 static void initialize_check_oop_function() {
 #ifdef CHECK_UNHANDLED_OOPS
   if (ZVerifyOops) {
     // Enable extra verification of usages of oops in oopsHierarchy.hpp
-    check_oop_function = [](oopDesc* obj) {
-      (void)to_zaddress(obj);
-    };
+    check_oop_function = &z_check_oop;
   }
 #endif
 }
