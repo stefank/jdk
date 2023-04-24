@@ -29,15 +29,6 @@
 #include "gc/z/zArray.inline.hpp"
 #include "gc/z/zPage.inline.hpp"
 
-inline void ZRelocationSetSelectorGroupStats::reset() {
-  _npages_candidates = 0;
-  _total = 0;
-  _live = 0;
-  _empty = 0;
-  _npages_selected = 0;
-  _relocate = 0;
-}
-
 inline size_t ZRelocationSetSelectorGroupStats::npages_candidates() const {
   return _npages_candidates;
 }
@@ -60,16 +51,6 @@ inline size_t ZRelocationSetSelectorGroupStats::npages_selected() const {
 
 inline size_t ZRelocationSetSelectorGroupStats::relocate() const {
   return _relocate;
-}
-
-inline void ZRelocationSetSelectorStats::reset() {
-  for (uint i = 0; i <= ZPageAgeMax; ++i) {
-    _small[i].reset();
-    _medium[i].reset();
-    _large[i].reset();
-  }
-
-  _has_relocatable_pages = false;
 }
 
 inline const ZRelocationSetSelectorGroupStats& ZRelocationSetSelectorStats::small(ZPageAge age) const {

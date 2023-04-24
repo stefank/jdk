@@ -50,8 +50,6 @@ private:
 public:
   ZRelocationSetSelectorGroupStats();
 
-  void reset();
-
   size_t npages_candidates() const;
   size_t total() const;
   size_t live() const;
@@ -77,8 +75,6 @@ public:
                               const ZRelocationSetSelectorGroup* medium,
                               const ZRelocationSetSelectorGroup* large,
                               bool has_relocatable_pages);
-
-  void reset();
 
   const ZRelocationSetSelectorGroupStats& small(ZPageAge age) const;
   const ZRelocationSetSelectorGroupStats& medium(ZPageAge age) const;

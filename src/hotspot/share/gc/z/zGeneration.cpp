@@ -368,17 +368,17 @@ void ZGeneration::set_phase(Phase new_phase) {
   _phase = new_phase;
 }
 
+void ZGeneration::reset_relocation_stats() {
+  _previous_stat_relocation = _stat_relocation;
+  _stat_relocation = {};
+}
+
 void ZGeneration::at_collection_start(ConcurrentGCTimer* gc_timer) {
   set_gc_timer(gc_timer);
   stat_cycle()->at_start();
   stat_heap()->at_collection_start(_page_allocator->stats(this));
   reset_relocation_stats();
   workers()->set_active();
-}
-
-void ZGeneration::reset_relocation_stats() {
-  _previous_stat_relocation = _stat_relocation;
-  _stat_relocation.reset();
 }
 
 void ZGeneration::at_collection_end() {

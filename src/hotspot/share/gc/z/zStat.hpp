@@ -527,8 +527,6 @@ private:
 public:
   ZStatRelocation();
 
-  void reset();
-
   void at_select_relocation_set(const ZRelocationSetSelectorStats& selector_stats);
   void at_install_relocation_set(size_t forwarding_usage);
   void at_relocate_end(size_t small_in_place_count, size_t medium_in_place_count);

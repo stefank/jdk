@@ -1470,15 +1470,6 @@ ZStatRelocation::ZStatRelocation() :
     _medium_in_place_count(0) {
 }
 
-void ZStatRelocation::reset() {
-  _selector_stats.reset();
-  _forwarding_usage = 0;
-  _small_selected = 0;
-  _small_in_place_count = 0;
-  _medium_selected = 0;
-  _medium_in_place_count = 0;
-}
-
 void ZStatRelocation::at_select_relocation_set(const ZRelocationSetSelectorStats& selector_stats) {
   _selector_stats = selector_stats;
 }
