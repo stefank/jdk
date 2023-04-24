@@ -732,9 +732,9 @@ void ZStatPhaseGeneration::register_end(ConcurrentGCTimer* timer, const Ticks& s
     ZStatReferences::print();
   }
 
-  generation->current_stat_relocation()->print_page_summary();
+  generation->stat_relocation()->print_page_summary();
   if (generation->is_young()) {
-    generation->current_stat_relocation()->print_age_table(generation->previous_stat_relocation());
+    generation->stat_relocation()->print_age_table(generation->previous_stat_relocation());
   }
 
   generation->stat_heap()->print(generation);
@@ -1470,6 +1470,15 @@ ZStatRelocation::ZStatRelocation() :
     _medium_in_place_count(0) {
 }
 
+void ZStatRelocation::reset() {
+  _selector_stats.reset();
+  _forwarding_usage = 0;
+  _small_selected = 0;
+  _small_in_place_count = 0;
+  _medium_selected = 0;
+  _medium_in_place_count = 0;
+}
+
 void ZStatRelocation::at_select_relocation_set(const ZRelocationSetSelectorStats& selector_stats) {
   _selector_stats = selector_stats;
 }
@@ -1573,12 +1582,11 @@ void ZStatRelocation::print_age_table(const ZStatRelocation* const previous) con
 
   for (uint i = 0; i <= ZPageAgeMax; ++i) {
     const ZPageAge age = static_cast<ZPageAge>(i);
-
-    if (_selector_stats.npages(age) == 0 &&
-        previous->_selector_stats.npages(age) == 0) {
+    if (age == ZPageAge::old) {
       break;
     }
-    if (age == ZPageAge::old) {
+
+    if (_selector_stats.npages(age) == 0 && previous->_selector_stats.npages(age) == 0) {
       break;
     }
 
@@ -1605,15 +1613,6 @@ void ZStatRelocation::print_age_table(const ZStatRelocation* const previous) con
                     _selector_stats.large(age).npages_candidates())
               .end());
   }
-}
-
-void ZStatRelocation::reset() {
-  _selector_stats.reset();
-  _forwarding_usage = 0;
-  _small_selected = 0;
-  _small_in_place_count = 0;
-  _medium_selected = 0;
-  _medium_in_place_count = 0;
 }
 
 //

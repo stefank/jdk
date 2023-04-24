@@ -81,8 +81,9 @@ protected:
   ZStatCycle            _stat_cycle;
   ZStatWorkers          _stat_workers;
   ZStatMark             _stat_mark;
+  ZStatRelocation       _stat_relocation;
+
   ZStatRelocation       _previous_stat_relocation;
-  ZStatRelocation       _current_stat_relocation;
 
   ConcurrentGCTimer*    _gc_timer;
 
@@ -140,8 +141,9 @@ public:
   ZStatCycle* stat_cycle();
   ZStatWorkers* stat_workers();
   ZStatMark* stat_mark();
+  ZStatRelocation* stat_relocation();
+
   const ZStatRelocation* previous_stat_relocation() const;
-  ZStatRelocation* current_stat_relocation();
 
   void at_collection_start(ConcurrentGCTimer* gc_timer);
   void at_collection_end();
