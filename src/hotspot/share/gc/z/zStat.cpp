@@ -1555,10 +1555,27 @@ void ZStatRelocation::print_page_summary() const {
 
 void ZStatRelocation::print_age_table(const ZStatRelocation* const previous) const {
   LogTarget(Info, gc, reloc) lt;
+
   if (!_selector_stats.has_relocatable_pages() || !lt.is_enabled()) {
     // Nothing to log or logging not enabled.
     return;
   }
+
+  // Find range of pages to print
+  const uint end = [&]() {
+    for (uint i = 0; i <= ZPageAgeMax; ++i) {
+      const ZPageAge age = static_cast<ZPageAge>(i);
+      if (age == ZPageAge::old) {
+        return i;
+      }
+
+      if (_selector_stats.npages(age) == 0 && previous->_selector_stats.npages(age) == 0) {
+        return i;
+      }
+    }
+
+    return ZPageAgeMax;
+  }();
 
   ZStatTablePrinter age_table(11, 18);
   lt.print("Age Table:");
@@ -1570,16 +1587,8 @@ void ZStatRelocation::print_age_table(const ZStatRelocation* const previous) con
            .center("Large")
            .end());
 
-
-  for (uint i = 0; i <= ZPageAgeMax; ++i) {
+  for (uint i = 0; i < end; ++i) {
     const ZPageAge age = static_cast<ZPageAge>(i);
-    if (age == ZPageAge::old) {
-      break;
-    }
-
-    if (_selector_stats.npages(age) == 0 && previous->_selector_stats.npages(age) == 0) {
-      break;
-    }
 
     FormatBuffer<> desc("");
     if (age == ZPageAge::eden) {
@@ -1589,20 +1598,20 @@ void ZStatRelocation::print_age_table(const ZStatRelocation* const previous) con
     }
 
     lt.print("%s", age_table()
-              .left("%s", desc.buffer())
-              .left(SIZE_FORMAT_W(8) "M -> " SIZE_FORMAT "M",
-                    (previous->_selector_stats.live_bytes(age) / M),
-                    (_selector_stats.live_bytes(age) / M))
-              .left(SIZE_FORMAT_W(7) " -> " SIZE_FORMAT,
-                    previous->_selector_stats.small(age).npages_candidates(),
-                    _selector_stats.small(age).npages_candidates())
-              .left(SIZE_FORMAT_W(7) " -> " SIZE_FORMAT,
-                    previous->_selector_stats.medium(age).npages_candidates(),
-                    _selector_stats.medium(age).npages_candidates())
-              .left(SIZE_FORMAT_W(7) " -> " SIZE_FORMAT,
-                    previous->_selector_stats.large(age).npages_candidates(),
-                    _selector_stats.large(age).npages_candidates())
-              .end());
+             .left("%s", desc.buffer())
+             .left(SIZE_FORMAT_W(8) "M -> " SIZE_FORMAT "M",
+                   (previous->_selector_stats.live_bytes(age) / M),
+                   (_selector_stats.live_bytes(age) / M))
+             .left(SIZE_FORMAT_W(7) " -> " SIZE_FORMAT,
+                   previous->_selector_stats.small(age).npages_candidates(),
+                   _selector_stats.small(age).npages_candidates())
+             .left(SIZE_FORMAT_W(7) " -> " SIZE_FORMAT,
+                   previous->_selector_stats.medium(age).npages_candidates(),
+                   _selector_stats.medium(age).npages_candidates())
+             .left(SIZE_FORMAT_W(7) " -> " SIZE_FORMAT,
+                   previous->_selector_stats.large(age).npages_candidates(),
+                   _selector_stats.large(age).npages_candidates())
+             .end());
   }
 }
 
