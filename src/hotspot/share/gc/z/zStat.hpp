@@ -532,7 +532,7 @@ public:
   void at_relocate_end(size_t small_in_place_count, size_t medium_in_place_count);
 
   void print_page_summary() const;
-  void print_age_table(const ZStatRelocation* const previous) const;
+  void print_age_table(const ZStatRelocation* previous) const;
 };
 
 //

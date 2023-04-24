@@ -1553,7 +1553,7 @@ void ZStatRelocation::print_page_summary() const {
   lt.print("Forwarding Usage: " SIZE_FORMAT "M", _forwarding_usage / M);
 }
 
-void ZStatRelocation::print_age_table(const ZStatRelocation* const previous) const {
+void ZStatRelocation::print_age_table(const ZStatRelocation* previous) const {
   LogTarget(Info, gc, reloc) lt;
 
   if (!_selector_stats.has_relocatable_pages() || !lt.is_enabled()) {
