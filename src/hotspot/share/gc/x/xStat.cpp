@@ -1239,7 +1239,7 @@ void XStatRelocation::print(const char* name,
   log_info(gc, reloc)("%s Pages: " SIZE_FORMAT " / " SIZE_FORMAT "M, Empty: " SIZE_FORMAT "M, "
                       "Relocated: " SIZE_FORMAT "M, In-Place: " SIZE_FORMAT,
                       name,
-                      selector_group.npages(),
+                      selector_group.npages_candidates(),
                       selector_group.total() / M,
                       selector_group.empty() / M,
                       selector_group.relocate() / M,

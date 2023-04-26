@@ -29,8 +29,8 @@
 #include "gc/x/xArray.inline.hpp"
 #include "gc/x/xPage.inline.hpp"
 
-inline size_t XRelocationSetSelectorGroupStats::npages() const {
-  return _npages;
+inline size_t XRelocationSetSelectorGroupStats::npages_candidates() const {
+  return _npages_candidates;
 }
 
 inline size_t XRelocationSetSelectorGroupStats::total() const {
@@ -43,6 +43,10 @@ inline size_t XRelocationSetSelectorGroupStats::live() const {
 
 inline size_t XRelocationSetSelectorGroupStats::empty() const {
   return _empty;
+}
+
+inline size_t XRelocationSetSelectorGroupStats::npages_selected() const {
+  return _npages_selected;
 }
 
 inline size_t XRelocationSetSelectorGroupStats::relocate() const {
@@ -71,7 +75,7 @@ inline void XRelocationSetSelectorGroup::register_live_page(XPage* page) {
     _live_pages.append(page);
   }
 
-  _stats._npages++;
+  _stats._npages_candidates++;
   _stats._total += size;
   _stats._live += live;
 }
@@ -79,7 +83,7 @@ inline void XRelocationSetSelectorGroup::register_live_page(XPage* page) {
 inline void XRelocationSetSelectorGroup::register_empty_page(XPage* page) {
   const size_t size = page->size();
 
-  _stats._npages++;
+  _stats._npages_candidates++;
   _stats._total += size;
   _stats._empty += size;
 }

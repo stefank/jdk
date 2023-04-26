@@ -33,19 +33,25 @@ class XRelocationSetSelectorGroupStats {
   friend class XRelocationSetSelectorGroup;
 
 private:
-  size_t _npages;
+  // Candidate set
+  size_t _npages_candidates;
   size_t _total;
   size_t _live;
   size_t _empty;
+
+  // Selected set
+  size_t _npages_selected;
   size_t _relocate;
 
 public:
   XRelocationSetSelectorGroupStats();
 
-  size_t npages() const;
+  size_t npages_candidates() const;
   size_t total() const;
   size_t live() const;
   size_t empty() const;
+
+  size_t npages_selected() const;
   size_t relocate() const;
 };
 

@@ -34,10 +34,11 @@
 #include "utilities/powerOfTwo.hpp"
 
 XRelocationSetSelectorGroupStats::XRelocationSetSelectorGroupStats() :
-    _npages(0),
+    _npages_candidates(0),
     _total(0),
     _live(0),
     _empty(0),
+    _npages_selected(0),
     _relocate(0) {}
 
 XRelocationSetSelectorGroup::XRelocationSetSelectorGroup(const char* name,
@@ -111,6 +112,7 @@ void XRelocationSetSelectorGroup::select_inner() {
   const int npages = _live_pages.length();
   int selected_from = 0;
   int selected_to = 0;
+  size_t npages_selected = 0;
   size_t selected_live_bytes = 0;
   size_t selected_forwarding_entries = 0;
   size_t from_live_bytes = 0;
@@ -141,6 +143,7 @@ void XRelocationSetSelectorGroup::select_inner() {
       selected_from = from;
       selected_to = to;
       selected_live_bytes = from_live_bytes;
+      npages_selected += 1;
       selected_forwarding_entries = from_forwarding_entries;
     }
 
@@ -156,6 +159,7 @@ void XRelocationSetSelectorGroup::select_inner() {
 
   // Update statistics
   _stats._relocate = selected_live_bytes;
+  _stats._npages_selected = npages_selected;
 
   log_trace(gc, reloc)("Relocation Set (%s Pages): %d->%d, %d skipped, " SIZE_FORMAT " forwarding entries",
                        _name, selected_from, selected_to, npages - selected_from, selected_forwarding_entries);
@@ -173,7 +177,7 @@ void XRelocationSetSelectorGroup::select() {
   }
 
   // Send event
-  event.commit(_page_type, _stats.npages(), _stats.total(), _stats.empty(), -1 /* selected */, _stats.relocate());
+  event.commit(_page_type, _stats.npages_candidates(), _stats.total(), _stats.empty(), _stats.npages_selected(), _stats.relocate());
 }
 
 XRelocationSetSelector::XRelocationSetSelector() :
