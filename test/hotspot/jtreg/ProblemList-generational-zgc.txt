@@ -39,10 +39,10 @@ serviceability/sa/ClhsdbDumpclass.java                        8000000   generic-
 serviceability/sa/ClhsdbDumpheap.java                         8000000   generic-all
 serviceability/sa/ClhsdbField.java                            8000000   generic-all
 serviceability/sa/ClhsdbFindPC.java#apa                       8000000   generic-all
-serviceability/sa/ClhsdbFindPC.java#xcomp-core                8000000   generic-all
 serviceability/sa/ClhsdbFindPC.java#no-xcomp-core             8000000   generic-all
-serviceability/sa/ClhsdbFindPC.java#xcomp-process             8000000   generic-all
 serviceability/sa/ClhsdbFindPC.java#no-xcomp-process          8000000   generic-all
+serviceability/sa/ClhsdbFindPC.java#xcomp-core                8000000   generic-all
+serviceability/sa/ClhsdbFindPC.java#xcomp-process             8000000   generic-all
 serviceability/sa/ClhsdbFlags.java                            8000000   generic-all
 serviceability/sa/ClhsdbHistory.java                          8000000   generic-all
 serviceability/sa/ClhsdbInspect.java                          8000000   generic-all
@@ -54,6 +54,8 @@ serviceability/sa/ClhsdbJstackXcompStress.java                8000000   generic-
 serviceability/sa/ClhsdbLauncher.java                         8000000   generic-all
 serviceability/sa/ClhsdbLongConstant.java                     8000000   generic-all
 serviceability/sa/ClhsdbPmap.java                             8000000   generic-all
+serviceability/sa/ClhsdbPmap.java#core                        8000000   generic-all
+serviceability/sa/ClhsdbPmap.java#process                     8000000   generic-all
 serviceability/sa/ClhsdbPrintAll.java                         8000000   generic-all
 serviceability/sa/ClhsdbPrintAs.java                          8000000   generic-all
 serviceability/sa/ClhsdbPrintStatics.java                     8000000   generic-all
@@ -90,12 +92,14 @@ serviceability/sa/TestJhsdbJstackLock.java                    8000000   generic-
 serviceability/sa/TestJhsdbJstackMixed.java                   8000000   generic-all
 serviceability/sa/TestJmapCore.java                           8000000   generic-all
 serviceability/sa/TestJmapCoreMetaspace.java                  8000000   generic-all
+serviceability/sa/TestObjectAlignment.java                    8000000   generic-all
 serviceability/sa/TestObjectMonitorIterate.java               8000000   generic-all
 serviceability/sa/TestPrintMdo.java                           8000000   generic-all
 serviceability/sa/TestRevPtrsForInvokeDynamic.java            8000000   generic-all
 serviceability/sa/TestSysProps.java                           8000000   generic-all
 serviceability/sa/TestType.java                               8000000   generic-all
 serviceability/sa/TestUniverse.java                           8000000   generic-all
+serviceability/sa/UniqueVtableTest.java                       8000000   generic-all
 serviceability/sa/jmap-hprof/JMapHProfLargeHeapProc.java      8000000   generic-all
 serviceability/sa/jmap-hprof/JMapHProfLargeHeapTest.java      8000000   generic-all
 serviceability/sa/sadebugd/ClhsdbAttachToDebugServer.java     8000000   generic-all
