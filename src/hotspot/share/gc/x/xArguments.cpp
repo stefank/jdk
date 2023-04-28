@@ -32,6 +32,11 @@
 #include "runtime/globals_extension.hpp"
 #include "runtime/java.hpp"
 
+void XArguments::initialize_alignments() {
+  SpaceAlignment = XGranuleSize;
+  HeapAlignment = SpaceAlignment;
+}
+
 void XArguments::initialize() {
   // Check mark stack size
   const size_t mark_stack_space_limit = XAddressSpaceLimit::mark_stack();

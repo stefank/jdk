@@ -26,15 +26,16 @@
 #include "gc/x/xArguments.hpp"
 #include "gc/z/shared/zSharedArguments.hpp"
 #include "gc/z/zArguments.hpp"
-// FIXME: Move to shared?
-#include "gc/z/zGlobals.hpp"
 #include "runtime/globals.hpp"
 #include "runtime/globals_extension.hpp"
 #include "runtime/java.hpp"
 
 void ZSharedArguments::initialize_alignments() {
-  SpaceAlignment = ZGranuleSize;
-  HeapAlignment = SpaceAlignment;
+  if (ZGenerational) {
+    ZArguments::initialize_alignments();
+  } else {
+    XArguments::initialize_alignments();
+  }
 }
 
 void ZSharedArguments::initialize() {

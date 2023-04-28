@@ -33,6 +33,7 @@ private:
   static void select_max_gc_threads();
 
 public:
+  static void initialize_alignments();
   static void initialize();
   static size_t heap_virtual_to_physical_ratio();
   static CollectedHeap* create_heap();

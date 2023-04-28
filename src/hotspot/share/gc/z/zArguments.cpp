@@ -32,6 +32,11 @@
 #include "runtime/globals_extension.hpp"
 #include "runtime/java.hpp"
 
+void ZArguments::initialize_alignments() {
+  SpaceAlignment = ZGranuleSize;
+  HeapAlignment = SpaceAlignment;
+}
+
 void ZArguments::select_max_gc_threads() {
   // Select number of parallel threads
   if (FLAG_IS_DEFAULT(ParallelGCThreads)) {
