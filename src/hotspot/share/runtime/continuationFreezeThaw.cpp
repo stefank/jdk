@@ -1403,7 +1403,7 @@ stackChunkOop Freeze<ConfigT>::allocate_chunk(size_t stack_size) {
     }
     assert(!chunk->requires_barriers(), "ZGC always allocates in the young generation");
     _barriers = false;
-   } else
+  } else
 #endif
 #if INCLUDE_SHENANDOAHGC
   if (UseShenandoahGC) {
