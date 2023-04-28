@@ -33,6 +33,7 @@ import sun.jvm.hotspot.gc.serial.*;
 import sun.jvm.hotspot.gc.shenandoah.*;
 import sun.jvm.hotspot.gc.shared.*;
 import sun.jvm.hotspot.gc.x.*;
+import sun.jvm.hotspot.gc.z.*;
 import sun.jvm.hotspot.debugger.JVMDebugger;
 import sun.jvm.hotspot.memory.*;
 import sun.jvm.hotspot.oops.*;
@@ -145,6 +146,9 @@ public class HeapSummary extends Tool {
          printSpace(eh.space());
       } else if (heap instanceof XCollectedHeap) {
          XCollectedHeap zheap = (XCollectedHeap) heap;
+         zheap.printOn(System.out);
+      } else if (heap instanceof ZCollectedHeap) {
+         ZCollectedHeap zheap = (ZCollectedHeap) heap;
          zheap.printOn(System.out);
       } else {
          throw new RuntimeException("unknown CollectedHeap type : " + heap.getClass());
