@@ -52,6 +52,10 @@ void XArguments::initialize() {
     FLAG_SET_DEFAULT(UseNUMA, true);
   }
 
+  if (FLAG_IS_DEFAULT(ZFragmentationLimit)) {
+    FLAG_SET_DEFAULT(ZFragmentationLimit, 25.0);
+  }
+
   // Select number of parallel threads
   if (FLAG_IS_DEFAULT(ParallelGCThreads)) {
     FLAG_SET_DEFAULT(ParallelGCThreads, XHeuristics::nparallel_workers());

@@ -136,6 +136,10 @@ void ZArguments::initialize() {
     FLAG_SET_ERGO_IF_DEFAULT(SoftMaxHeapSize, MaxHeapSize * 90 / 100);
   }
 
+  if (FLAG_IS_DEFAULT(ZFragmentationLimit)) {
+    FLAG_SET_DEFAULT(ZFragmentationLimit, 5.0);
+  }
+
   if (!FLAG_IS_DEFAULT(ZTenuringThreshold) && ZTenuringThreshold != -1) {
     FLAG_SET_ERGO_IF_DEFAULT(MaxTenuringThreshold, ZTenuringThreshold);
     if (MaxTenuringThreshold == 0) {
