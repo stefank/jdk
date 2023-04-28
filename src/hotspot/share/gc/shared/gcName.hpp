@@ -37,7 +37,7 @@ enum GCName {
   G1Full,
   ZMinor,
   ZMajor,
-  Z, // Support for the ZLegacy mode
+  Z, // Support for the legacy, single-gen mode
   Shenandoah,
   NA,
   GCNameEndSentinel
