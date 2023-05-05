@@ -106,7 +106,7 @@ class JavaThread;
 
 class Thread: public ThreadShadow {
   friend class VMError;
-  friend class VMErrorCallbackMark;
+  friend class VMErrorCallback;
   friend class VMStructs;
   friend class JVMCIVMStructs;
  private:

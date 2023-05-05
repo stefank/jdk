@@ -214,26 +214,22 @@ public:
 
 };
 
-class VMErrorCallback {
+class VMErrorCallback : public StackObj {
   friend class VMError;
-  friend class VMErrorCallbackMark;
 
+  // Current thread
+  Thread* const    _current;
   // Link through all callbacks active on a thread
   VMErrorCallback* _next;
 
   // Called by VMError reporting
   virtual void call(outputStream* st) = 0;
 
-public:
-  VMErrorCallback() : _next(nullptr) {}
-};
-
-class VMErrorCallbackMark : public StackObj {
-  Thread* _thread;
-
-public:
-  VMErrorCallbackMark(VMErrorCallback* callback);
-  ~VMErrorCallbackMark();
+protected:
+  // Registers the callback on the current thread
+  VMErrorCallback();
+  // Deregister the callback from the thread
+  ~VMErrorCallback();
 };
 
 #endif // SHARE_UTILITIES_VMERROR_HPP

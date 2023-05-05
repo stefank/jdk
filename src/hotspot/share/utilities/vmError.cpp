@@ -1905,13 +1905,13 @@ void VMError::controlled_crash(int how) {
 }
 #endif // !ASSERT
 
-VMErrorCallbackMark::VMErrorCallbackMark(VMErrorCallback* callback)
-  : _thread(Thread::current()) {
-  callback->_next = _thread->_vm_error_callbacks;
-  _thread->_vm_error_callbacks = callback;
+VMErrorCallback::VMErrorCallback()
+  : _current(Thread::current()),
+    _next(_current->_vm_error_callbacks) {
+  _current->_vm_error_callbacks = this;
 }
 
-VMErrorCallbackMark::~VMErrorCallbackMark() {
-  assert(_thread->_vm_error_callbacks != nullptr, "Popped too far");
-  _thread->_vm_error_callbacks = _thread->_vm_error_callbacks->_next;
+VMErrorCallback::~VMErrorCallback() {
+  assert(_current->_vm_error_callbacks != nullptr, "Popped too far");
+  _current->_vm_error_callbacks = _current->_vm_error_callbacks->_next;
 }
