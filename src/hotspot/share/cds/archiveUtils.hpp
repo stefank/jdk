@@ -184,8 +184,8 @@ public:
     _dump_region = r;
   }
 
-  void do_ptr(void** p) {
-    _dump_region->append_intptr_t((intptr_t)*p, true);
+  void do_ptr(void* p) {
+    _dump_region->append_intptr_t(*(intptr_t*)p, true);
   }
 
   void do_u4(u4* p) {
@@ -223,7 +223,7 @@ private:
 public:
   ReadClosure(intptr_t** ptr_array) { _ptr_array = ptr_array; }
 
-  void do_ptr(void** p);
+  void do_ptr(void* p);
   void do_u4(u4* p);
   void do_int(int* p);
   void do_bool(bool *p);

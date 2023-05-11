@@ -288,12 +288,12 @@ void WriteClosure::do_region(u_char* start, size_t size) {
   }
 }
 
-void ReadClosure::do_ptr(void** p) {
-  assert(*p == nullptr, "initializing previous initialized pointer.");
+void ReadClosure::do_ptr(void* p) {
+  assert(*(intptr_t*)p == 0, "initializing previous initialized pointer.");
   intptr_t obj = nextPtr();
   assert((intptr_t)obj >= 0 || (intptr_t)obj < -100,
          "hit tag while initializing ptrs.");
-  *p = (void*)obj;
+  *(intptr_t*)p = (intptr_t)obj;
 }
 
 void ReadClosure::do_u4(u4* p) {

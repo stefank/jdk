@@ -336,7 +336,7 @@ public:
   virtual bool reading() const = 0;
 
   // Read/write the void pointer pointed to by p.
-  virtual void do_ptr(void** p) = 0;
+  virtual void do_ptr(void* p) = 0;
 
   // Read/write the 32-bit unsigned integer pointed to by p.
   virtual void do_u4(u4* p) = 0;
@@ -362,9 +362,6 @@ public:
   bool writing() {
     return !reading();
   }
-
-  // Useful alias
-  template <typename T> void do_ptr(T** p) { do_ptr((void**)p); }
 };
 
 class SymbolClosure : public StackObj {
