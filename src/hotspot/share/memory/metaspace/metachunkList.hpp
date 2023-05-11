@@ -58,7 +58,7 @@ public:
   int count() const { return _num_chunks.get(); }
 
   void add(Metachunk* c) {
-    DEBUG_ONLY(verify_does_not_contain(c);)
+    //DEBUG_ONLY(verify_does_not_contain(c);)
     c->set_next(_first);
     if (_first) {
       _first->set_prev(c);

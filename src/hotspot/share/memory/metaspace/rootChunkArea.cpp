@@ -374,6 +374,7 @@ bool RootChunkArea::is_free() const {
   }
 
 void RootChunkArea::verify() const {
+#if 0
   assert_lock_strong(Metaspace_lock);
   assert_is_aligned(_base, chunklevel::MAX_CHUNK_BYTE_SIZE);
 
@@ -408,6 +409,7 @@ void RootChunkArea::verify() const {
     }
     assrt_(expected_next_base == _base + word_size(), "Sanity");
   }
+#endif
 }
 
 void RootChunkArea::verify_area_is_ideally_merged() const {

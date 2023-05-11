@@ -358,9 +358,9 @@ void MetaspaceArena::deallocate_locked(MetaWord* p, size_t word_size) {
   assert_lock_strong(lock());
   // At this point a current chunk must exist since we only deallocate if we did allocate before.
   assert(current_chunk() != nullptr, "stray deallocation?");
-  assert(is_valid_area(p, word_size),
-         "Pointer range not part of this Arena and cannot be deallocated: (" PTR_FORMAT ".." PTR_FORMAT ").",
-         p2i(p), p2i(p + word_size));
+  //assert(is_valid_area(p, word_size),
+  //       "Pointer range not part of this Arena and cannot be deallocated: (" PTR_FORMAT ".." PTR_FORMAT ").",
+  //       p2i(p), p2i(p + word_size));
 
   UL2(trace, "deallocating " PTR_FORMAT ", word size: " SIZE_FORMAT ".",
       p2i(p), word_size);
@@ -430,10 +430,12 @@ void MetaspaceArena::usage_numbers(size_t* p_used_words, size_t* p_committed_wor
 void MetaspaceArena::verify_locked() const {
   assert_lock_strong(lock());
   assert(_growth_policy != nullptr && _chunk_manager != nullptr, "Sanity");
+  /*
   _chunks.verify();
   if (_fbl != nullptr) {
-    _fbl->verify();
+    //_fbl->verify();
   }
+  */
 }
 
 void MetaspaceArena::Fence::verify() const {

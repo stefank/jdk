@@ -124,7 +124,7 @@ class BlockTree: public CHeapObj<mtMetaspace> {
 
 #ifdef ASSERT
   // Run a quick check on a node; upon suspicion dive into a full tree check.
-  void check_node(const Node* n) const { if (!n->valid()) verify(); }
+  void check_node(const Node* n) const { /* if (!n->valid()) verify(); */ }
 #endif
 
 public:

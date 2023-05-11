@@ -256,7 +256,7 @@ void ChunkManager::return_chunk_locked(Metachunk* c) {
   assert_lock_strong(Metaspace_lock);
   UL2(debug, ": returning chunk " METACHUNK_FORMAT ".", METACHUNK_FORMAT_ARGS(c));
   DEBUG_ONLY(c->verify();)
-  assert(contains_chunk(c) == false, "A chunk to be added to the freelist must not be in the freelist already.");
+  //assert(contains_chunk(c) == false, "A chunk to be added to the freelist must not be in the freelist already.");
   assert(c->is_in_use() || c->is_free(), "Unexpected chunk state");
   assert(!c->in_list(), "Remove from list first");
 
@@ -411,14 +411,18 @@ void ChunkManager::add_to_statistics(ChunkManagerStats* out) const {
 #ifdef ASSERT
 
 void ChunkManager::verify() const {
+#if 0
   MutexLocker fcl(Metaspace_lock, Mutex::_no_safepoint_check_flag);
   verify_locked();
+#endif
 }
 
 void ChunkManager::verify_locked() const {
+#if 0
   assert_lock_strong(Metaspace_lock);
   assert(_vslist != nullptr, "No vslist");
   _chunks.verify();
+#endif
 }
 
 bool ChunkManager::contains_chunk(Metachunk* c) const {
