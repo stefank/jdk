@@ -411,21 +411,23 @@ void RootChunkArea::verify() const {
 }
 
 void RootChunkArea::verify_area_is_ideally_merged() const {
-  SOMETIMES(assert_lock_strong(Metaspace_lock);)
-  int num_chunk = 0;
-  for (const Metachunk* c = _first_chunk; c != nullptr; c = c->next_in_vs()) {
-    if (!c->is_root_chunk() && c->is_free()) {
-      // If a chunk is free, it must not have a buddy which is also free, because
-      // those chunks should have been merged.
-      // In other words, a buddy shall be either in-use or splintered
-      // (which in turn would mean part of it are in use).
-      Metachunk* const buddy = c->is_leader() ? c->next_in_vs() : c->prev_in_vs();
-      assrt_(buddy->is_in_use() || buddy->level() > c->level(),
-             "Chunk No. %d " METACHUNK_FORMAT " : missed merge opportunity with neighbor " METACHUNK_FORMAT ".",
-             num_chunk, METACHUNK_FORMAT_ARGS(c), METACHUNK_FORMAT_ARGS(buddy));
+  SOMETIMES(
+    assert_lock_strong(Metaspace_lock);
+    int num_chunk = 0;
+    for (const Metachunk* c = _first_chunk; c != nullptr; c = c->next_in_vs()) {
+      if (!c->is_root_chunk() && c->is_free()) {
+        // If a chunk is free, it must not have a buddy which is also free, because
+        // those chunks should have been merged.
+        // In other words, a buddy shall be either in-use or splintered
+        // (which in turn would mean part of it are in use).
+        Metachunk* const buddy = c->is_leader() ? c->next_in_vs() : c->prev_in_vs();
+        assrt_(buddy->is_in_use() || buddy->level() > c->level(),
+            "Chunk No. %d " METACHUNK_FORMAT " : missed merge opportunity with neighbor " METACHUNK_FORMAT ".",
+            num_chunk, METACHUNK_FORMAT_ARGS(c), METACHUNK_FORMAT_ARGS(buddy));
+      }
+      num_chunk++;
     }
-    num_chunk++;
-  }
+  )
 }
 
 #endif

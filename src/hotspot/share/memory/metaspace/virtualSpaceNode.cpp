@@ -443,7 +443,7 @@ void VirtualSpaceNode::verify_locked() const {
 
   assert(committed_words() <= word_size(), "Sanity");
   assert_is_aligned(committed_words(), Settings::commit_granule_words());
-  _root_chunk_area_lut.verify();
+  SOMETIMES(_root_chunk_area_lut.verify();)
 }
 
 #endif
