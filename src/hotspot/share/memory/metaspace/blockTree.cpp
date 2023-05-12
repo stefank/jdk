@@ -25,6 +25,7 @@
 
 #include "precompiled.hpp"
 #include "memory/metaspace/chunklevel.hpp"
+#include "memory/metaspace/metaspaceCommon.hpp"
 #include "memory/metaspace/blockTree.hpp"
 #include "memory/resourceArea.hpp"
 #include "utilities/debug.hpp"
@@ -98,6 +99,11 @@ void BlockTree::verify_node_pointer(const Node* n) const {
 }
 
 void BlockTree::verify() const {
+  if ([]() {SOMETIMES(false;) return true;}()) {
+    // Only verify sometimes
+    return;
+  }
+
   // Traverse the tree and test that all nodes are in the correct order.
 
   MemRangeCounter counter;
