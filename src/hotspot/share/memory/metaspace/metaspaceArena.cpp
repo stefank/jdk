@@ -368,7 +368,7 @@ void MetaspaceArena::deallocate_locked(MetaWord* p, size_t word_size) {
   size_t raw_word_size = get_raw_word_size_for_requested_word_size(word_size);
   add_allocation_to_fbl(p, raw_word_size);
 
-  DEBUG_ONLY(verify_locked();)
+  DEBUG_ONLY(SOMETIMES(verify_locked();))
 }
 
 // Prematurely returns a metaspace allocation to the _block_freelists because it is not

@@ -418,7 +418,7 @@ void ChunkManager::verify() const {
 void ChunkManager::verify_locked() const {
   assert_lock_strong(Metaspace_lock);
   assert(_vslist != nullptr, "No vslist");
-  _chunks.verify();
+  SOMETIMES(_chunks.verify();)
 }
 
 bool ChunkManager::contains_chunk(Metachunk* c) const {

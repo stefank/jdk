@@ -139,7 +139,7 @@ void RootChunkArea::split(chunklevel_t target_level, Metachunk* c, FreeChunkList
 
   assert(c->level() == target_level, "Sanity");
 
-  DEBUG_ONLY(verify();)
+  DEBUG_ONLY(SOMETIMES(verify();))
   DEBUG_ONLY(c->verify();)
 }
 
@@ -275,7 +275,7 @@ Metachunk* RootChunkArea::merge(Metachunk* c, FreeChunkListVector* freelists) {
   } while (!stop);
 
 #ifdef ASSERT
-  verify();
+  SOMETIMES(verify();)
   if (result != nullptr) {
     result->verify();
   }
