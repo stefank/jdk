@@ -39,19 +39,21 @@ using ZHeapIteratorBitMaps = ZGranuleMap<ZHeapIteratorBitMap*>;
 using ZHeapIteratorBitMapsIterator = ZGranuleMapIterator<ZHeapIteratorBitMap*, false /* Parallel */>;
 using ZHeapIteratorQueue = OverflowTaskQueue<oop, mtGC>;
 using ZHeapIteratorQueues = GenericTaskQueueSet<ZHeapIteratorQueue, mtGC>;
-using ZHeapIteratorArrayQueue = OverflowTaskQueue<ObjArrayTask, mtGC>;
-using ZHeapIteratorArrayQueues = GenericTaskQueueSet<ZHeapIteratorArrayQueue, mtGC>;
+using ZHeapIteratorArrayChunkQueue = OverflowTaskQueue<ObjArrayTask, mtGC>;
+using ZHeapIteratorArrayChunkQueues = GenericTaskQueueSet<ZHeapIteratorArrayChunkQueue, mtGC>;
 
 class ZHeapIterator : public ParallelObjectIteratorImpl {
-  friend class ZHeapIteratorContext;
-  friend class ZHeapIteratorRootUncoloredOopClosure;
+  friend class ZHeapIteratorCLDOopClosure;
+  template <bool Weak> friend class ZHeapIteratorColoredRootOopClosure;
+  template <bool VisitReferents> friend class ZHeapIteratorOopClosure;
+  friend class ZHeapIteratorUncoloredRootOopClosure;
 
 private:
   const bool                    _visit_weaks;
   ZHeapIteratorBitMaps          _bitmaps;
   ZLock                         _bitmaps_lock;
   ZHeapIteratorQueues           _queues;
-  ZHeapIteratorArrayQueues      _array_queues;
+  ZHeapIteratorArrayChunkQueues _array_chunk_queues;
   ZRootsIteratorStrongColored   _roots_colored;
   ZRootsIteratorStrongUncolored _roots_uncolored;
   ZRootsIteratorWeakColored     _roots_weak_colored;
@@ -81,6 +83,9 @@ private:
 
   template <bool VisitWeaks>
   void steal(const ZHeapIteratorContext& context);
+
+  bool steal(const ZHeapIteratorContext& context, oop& obj);
+  bool steal_array_chunk(const ZHeapIteratorContext& context, ObjArrayTask& array);
 
   template <bool VisitWeaks>
   void drain_and_steal(const ZHeapIteratorContext& context);
