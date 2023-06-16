@@ -87,8 +87,7 @@ public:
     _object_cl->do_object(obj);
   }
 
-  void visit_and_push(oop obj) const {
-    visit_object(obj);
+  void push(oop obj) const {
     _queue->push(obj);
   }
 
@@ -132,9 +131,7 @@ public:
   virtual void do_oop(oop* p) {
     _context.visit_field(nullptr, p);
     const oop obj = load_oop(p);
-    if (_iter->mark_object(obj)) {
-      _context.visit_and_push(obj);
-    }
+    _iter->mark_visit_and_push(_context, obj);
   }
 
   virtual void do_oop(narrowOop* p) {
@@ -162,9 +159,7 @@ public:
   virtual void do_oop(oop* p) {
     _context.visit_field(nullptr, p);
     const oop obj = load_oop(p);
-    if (_iter->mark_object(obj)) {
-      _context.visit_and_push(obj);
-    }
+    _iter->mark_visit_and_push(_context, obj);
   }
 
   virtual void do_oop(narrowOop* p) {
@@ -190,9 +185,7 @@ public:
 
   virtual void do_oop(oop* p) {
     const oop obj = load_oop(p);
-    if (_iter->mark_object(obj)) {
-      _context.visit_and_push(obj);
-    }
+    _iter->mark_visit_and_push(_context, obj);
   }
 
   virtual void do_oop(narrowOop* p) {
@@ -233,9 +226,7 @@ public:
   virtual void do_oop(oop* p) {
     _context.visit_field(_base, p);
     const oop obj = load_oop(p);
-    if (_iter->mark_object(obj)) {
-      _context.visit_and_push(obj);
-    }
+    _iter->mark_visit_and_push(_context, obj);
   }
 
   virtual void do_oop(narrowOop* p) {
@@ -261,8 +252,11 @@ public:
   virtual void do_method(Method* m) {}
 };
 
-ZHeapIterator::ZHeapIterator(uint nworkers, bool visit_weaks)
+ZHeapIterator::ZHeapIterator(uint nworkers,
+                             bool visit_weaks,
+                             ObjectVisitLocation object_visit_location)
   : _visit_weaks(visit_weaks),
+    _object_visit_location(object_visit_location),
     _bitmaps(ZAddressOffsetMax),
     _bitmaps_lock(),
     _queues(nworkers),
@@ -331,6 +325,23 @@ ZHeapIteratorBitMap* ZHeapIterator::object_bitmap(oop obj) {
   }
 
   return bitmap;
+}
+
+bool ZHeapIterator::should_visit_object_at_mark() const {
+  return _object_visit_location == ObjectVisitLocation::AtMark;
+}
+
+bool ZHeapIterator::should_visit_object_at_follow() const {
+  return _object_visit_location == ObjectVisitLocation::AtFollow;
+}
+
+void ZHeapIterator::mark_visit_and_push(const ZHeapIteratorContext& context, oop obj) {
+  if (mark_object(obj)) {
+    if (should_visit_object_at_mark()) {
+      context.visit_object(obj);
+    }
+    context.push(obj);
+  }
 }
 
 bool ZHeapIterator::mark_object(oop obj) {
@@ -455,13 +466,21 @@ void ZHeapIterator::follow(const ZHeapIteratorContext& context, oop obj) {
 }
 
 template <bool VisitWeaks>
+void ZHeapIterator::process(const ZHeapIteratorContext& context, oop obj) {
+  if (should_visit_object_at_follow()) {
+    context.visit_object(obj);
+  }
+  follow<VisitWeaks>(context, obj);
+}
+
+template <bool VisitWeaks>
 void ZHeapIterator::drain(const ZHeapIteratorContext& context) {
   ObjArrayTask array;
   oop obj;
 
   do {
     while (context.pop(obj)) {
-      follow<VisitWeaks>(context, obj);
+      process<VisitWeaks>(context, obj);
     }
 
     if (context.pop_array_chunk(array)) {
@@ -478,7 +497,7 @@ void ZHeapIterator::steal(const ZHeapIteratorContext& context) {
   if (steal_array_chunk(context, array)) {
     follow_array_chunk(context, array);
   } else if (steal(context, obj)) {
-    follow<VisitWeaks>(context, obj);
+    process<VisitWeaks>(context, obj);
   }
 }
 

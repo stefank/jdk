@@ -48,8 +48,19 @@ class ZHeapIterator : public ParallelObjectIteratorImpl {
   template <bool VisitReferents> friend class ZHeapIteratorOopClosure;
   friend class ZHeapIteratorUncoloredRootOopClosure;
 
+public:
+  enum class ObjectVisitLocation {
+    // Verification wants to visit objects as soon as they get marked.
+    AtMark,
+    // Non-GC visitors need to delay the visiting to after the root scanning,
+    // to prevent lock order problems between the root iterator and the passed
+    // in object closures.
+    AtFollow
+  };
+
 private:
   const bool                    _visit_weaks;
+  const ObjectVisitLocation     _object_visit_location;
   ZHeapIteratorBitMaps          _bitmaps;
   ZLock                         _bitmaps_lock;
   ZHeapIteratorQueues           _queues;
@@ -60,6 +71,11 @@ private:
   TaskTerminator                _terminator;
 
   ZHeapIteratorBitMap* object_bitmap(oop obj);
+
+  bool should_visit_object_at_mark() const;
+  bool should_visit_object_at_follow() const;
+
+  void mark_visit_and_push(const ZHeapIteratorContext& context, oop obj);
 
   bool mark_object(oop obj);
 
@@ -79,6 +95,9 @@ private:
   void follow(const ZHeapIteratorContext& context, oop obj);
 
   template <bool VisitWeaks>
+  void process(const ZHeapIteratorContext& context, oop obj);
+
+  template <bool VisitWeaks>
   void drain(const ZHeapIteratorContext& context);
 
   template <bool VisitWeaks>
@@ -94,7 +113,7 @@ private:
   void object_iterate_inner(const ZHeapIteratorContext& context);
 
 public:
-  ZHeapIterator(uint nworkers, bool visit_weaks);
+  ZHeapIterator(uint nworkers, bool visit_weaks, ObjectVisitLocation);
   virtual ~ZHeapIterator();
 
   virtual void object_iterate(ObjectClosure* object_cl, uint worker_id);
