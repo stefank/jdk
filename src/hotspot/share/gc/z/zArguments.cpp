@@ -31,6 +31,9 @@
 #include "runtime/globals.hpp"
 #include "runtime/globals_extension.hpp"
 #include "runtime/java.hpp"
+#ifdef LINUX
+#include "sys/prctl.h"
+#endif
 
 void ZArguments::initialize_alignments() {
   SpaceAlignment = ZGranuleSize;
@@ -102,6 +105,17 @@ void ZArguments::select_max_gc_threads() {
   } else if (ZOldGCThreads == 0) {
     vm_exit_during_initialization("The flag -XX:ZOldGCThreads can't be lower than 1");
   }
+
+  #ifdef LINUX
+  #ifndef PR_SET_THP_DISABLE
+  #define PR_SET_THP_DISABLE 41
+  #endif
+  int ret = prctl(PR_SET_THP_DISABLE, 1, 0, 0, 0);
+  if (ret == -1) {
+    perror("prctl failed\n");
+    os::exit(-1);
+  }
+  #endif
 }
 
 void ZArguments::initialize() {
