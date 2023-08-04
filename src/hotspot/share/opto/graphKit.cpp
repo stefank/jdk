@@ -3779,25 +3779,29 @@ Node* GraphKit::new_array(Node* klass_node,     // array klass (maybe variable)
   // The rounding mask is strength-reduced, if possible.
   int round_mask = MinObjAlignmentInBytes - 1;
   Node* header_size = nullptr;
+  Node* rounded_header_size = nullptr;
   int   header_size_min  = arrayOopDesc::base_offset_in_bytes(T_BYTE);
   // (T_BYTE has the weakest alignment and size restrictions...)
   if (layout_is_con) {
     int       hsize  = Klass::layout_helper_header_size(layout_con);
     int       eshift = Klass::layout_helper_log2_element_size(layout_con);
     BasicType etype  = Klass::layout_helper_element_type(layout_con);
+    header_size_min  = hsize;
+    header_size      = intcon(hsize);
+    // Rounded size
     if ((round_mask & ~right_n_bits(eshift)) == 0)
       round_mask = 0;  // strength-reduce it if it goes away completely
     assert((hsize & right_n_bits(eshift)) == 0, "hsize is pre-rounded");
     assert(header_size_min <= hsize, "generic minimum is smallest");
-    header_size_min = hsize;
-    header_size = intcon(hsize + round_mask);
+    rounded_header_size = intcon(hsize + round_mask);
   } else {
     Node* hss   = intcon(Klass::_lh_header_size_shift);
     Node* hsm   = intcon(Klass::_lh_header_size_mask);
-    Node* hsize = _gvn.transform( new URShiftINode(layout_val, hss) );
-    hsize       = _gvn.transform( new AndINode(hsize, hsm) );
+    header_size = _gvn.transform( new URShiftINode(layout_val, hss) );
+    header_size = _gvn.transform( new AndINode(header_size, hsm) );
+    // Rounded size
     Node* mask  = intcon(round_mask);
-    header_size = _gvn.transform( new AddINode(hsize, mask) );
+    rounded_header_size = _gvn.transform( new AddINode(header_size, mask) );
   }
 
   Node* elem_shift = nullptr;
@@ -3815,6 +3819,7 @@ Node* GraphKit::new_array(Node* klass_node,     // array klass (maybe variable)
   // Transition to native address size for all offset calculations:
   Node* lengthx = ConvI2X(length);
   Node* headerx = ConvI2X(header_size);
+  Node* rounded_headerx = ConvI2X(rounded_header_size);
 #ifdef _LP64
   { const TypeInt* tilen = _gvn.find_int_type(length);
     if (tilen != nullptr && tilen->_lo < 0) {
@@ -3857,15 +3862,19 @@ Node* GraphKit::new_array(Node* klass_node,     // array klass (maybe variable)
   if (elem_shift != nullptr)
     abody     = _gvn.transform( new LShiftXNode(lengthx, elem_shift) );
   Node* size  = _gvn.transform( new AddXNode(headerx, abody) );
+  Node* rounded_size;
   if (round_mask != 0) {
     Node* mask = MakeConX(~round_mask);
-    size       = _gvn.transform( new AndXNode(size, mask) );
+    rounded_size = _gvn.transform( new AddXNode(rounded_headerx, abody) );
+    rounded_size = _gvn.transform( new AndXNode(rounded_size, mask) );
+  } else {
+    Node* size = _gvn.transform( new AddXNode(headerx, abody) );
   }
   // else if round_mask == 0, the size computation is self-rounding
 
   if (return_size_val != nullptr) {
     // This is the size
-    (*return_size_val) = size;
+    (*return_size_val) = UseNewCode ? size : rounded_size;
   }
 
   // Now generate allocation code
@@ -3893,7 +3902,7 @@ Node* GraphKit::new_array(Node* klass_node,     // array klass (maybe variable)
   AllocateArrayNode* alloc
     = new AllocateArrayNode(C, AllocateArrayNode::alloc_type(TypeInt::INT),
                             control(), mem, i_o(),
-                            size, klass_node,
+                            rounded_size, klass_node,
                             initial_slow_test,
                             length, valid_length_test);
 
