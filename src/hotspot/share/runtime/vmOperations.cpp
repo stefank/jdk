@@ -265,6 +265,100 @@ void VM_ThreadDump::doit_epilogue() {
   }
 }
 
+// Hash table of void* to a list of ObjectMonitor* owned by the JavaThread.
+// The JavaThread's owner key is either a JavaThread* or a stack lock
+// address in the JavaThread so we use "void*".
+//
+class ObjectMonitorsDump : public MonitorClosure, public ObjectMonitorsView {
+ private:
+  static unsigned int ptr_hash(void* const& s1) {
+    // 2654435761 = 2^32 * Phi (golden ratio)
+    return (unsigned int)(((uint32_t)(uintptr_t)s1) * 2654435761u);
+  }
+
+ private:
+  class ObjectMonitorLinkedList :
+    public LinkedListImpl<ObjectMonitor*,
+                          AnyObj::C_HEAP, mtThread,
+                          AllocFailStrategy::RETURN_NULL> {};
+
+  // ResourceHashtable SIZE is specified at compile time so we
+  // use 1031 which is the first prime after 1024.
+  typedef ResourceHashtable<void*, ObjectMonitorLinkedList*, 1031, AnyObj::C_HEAP, mtThread,
+                            &ObjectMonitorsDump::ptr_hash> PtrTable;
+  PtrTable* _ptrs;
+  size_t _key_count;
+  size_t _om_count;
+
+  void add_list(void* key, ObjectMonitorLinkedList* list) {
+    _ptrs->put(key, list);
+    _key_count++;
+  }
+
+  ObjectMonitorLinkedList* get_list(void* key) {
+    ObjectMonitorLinkedList** listpp = _ptrs->get(key);
+    return (listpp == nullptr) ? nullptr : *listpp;
+  }
+
+  void add(ObjectMonitor* monitor) {
+    // The caller is interested in the owned ObjectMonitors. This does
+    // not include when owner is set to a stack-lock address in thread.
+    // This also does not capture unowned ObjectMonitors that cannot be
+    // deflated because of a waiter.
+    void* key = monitor->owner();
+
+    ObjectMonitorLinkedList* list = get_list(key);
+    if (list == nullptr) {
+      // Create new list and add it to the hash table:
+      list = new (mtThread) ObjectMonitorLinkedList;
+      _ptrs->put(key, list);
+      _key_count++;
+    }
+
+    assert(list->find(monitor) == nullptr, "Should not contain duplicates");
+    list->add(monitor);  // Add the ObjectMonitor to the list.
+    _om_count++;
+  }
+
+ public:
+  // ResourceHashtable is passed to various functions and populated in
+  // different places so we allocate it using C_HEAP to make it immune
+  // from any ResourceMarks that happen to be in the code paths.
+  ObjectMonitorsDump() : _ptrs(new (mtThread) PtrTable), _key_count(0), _om_count(0) {}
+
+  ~ObjectMonitorsDump() {
+    class CleanupObjectMonitorsDump: StackObj {
+     public:
+      bool do_entry(void*& key, ObjectMonitorLinkedList*& list) {
+        list->clear();  // clear the LinkListNodes
+        delete list;    // then delete the LinkedList
+        return true;
+      }
+    } cleanup;
+
+    _ptrs->unlink(&cleanup);  // cleanup the LinkedLists
+    delete _ptrs;             // then delete the hash table
+  }
+
+  // Implements MonitorClosure used to collect all monitors in the system
+  void do_monitor(ObjectMonitor* monitor) {
+    add(monitor);
+  }
+
+  // Implements the ObjectMonitorsView interface
+  void visit(MonitorClosure* closure, JavaThread* thread) {
+    ObjectMonitorLinkedList* list = get_list(thread);
+    LinkedListIterator<ObjectMonitor*> iter(list->head());
+    while (!iter.is_empty()) {
+      ObjectMonitor* monitor = *iter.next();
+      closure->do_monitor(monitor);
+    }
+  }
+
+  size_t key_count() { return _key_count; }
+  size_t om_count() { return _om_count; }
+};
+
 void VM_ThreadDump::doit() {
   ResourceMark rm;
 
@@ -279,16 +373,16 @@ void VM_ThreadDump::doit() {
     concurrent_locks.dump_at_safepoint();
   }
 
-  ObjectMonitorsHashtable table;
-  ObjectMonitorsHashtable* tablep = nullptr;
+  ObjectMonitorsDump object_monitors;
   if (_with_locked_monitors) {
     // The caller wants locked monitor information and that's expensive to gather
-    // when there are a lot of inflated monitors. So we deflate idle monitors and
-    // gather information about owned monitors at the same time.
-    tablep = &table;
-    while (ObjectSynchronizer::deflate_idle_monitors(tablep) > 0) {
+    // when there are a lot of inflated monitors. So we deflate idle monitors.
+    while (ObjectSynchronizer::deflate_idle_monitors() > 0) {
       ; /* empty */
     }
+
+    // Gather information about owned monitors.
+    ObjectSynchronizer::monitors_iterate(&object_monitors);
   }
 
   if (_num_threads == 0) {
@@ -305,7 +399,7 @@ void VM_ThreadDump::doit() {
       if (_with_locked_synchronizers) {
         tcl = concurrent_locks.thread_concurrent_locks(jt);
       }
-      snapshot_thread(jt, tcl, tablep);
+      snapshot_thread(jt, tcl, &object_monitors);
     }
   } else {
     // Snapshot threads in the given _threads array
@@ -340,15 +434,15 @@ void VM_ThreadDump::doit() {
       if (_with_locked_synchronizers) {
         tcl = concurrent_locks.thread_concurrent_locks(jt);
       }
-      snapshot_thread(jt, tcl, tablep);
+      snapshot_thread(jt, tcl, &object_monitors);
     }
   }
 }
 
 void VM_ThreadDump::snapshot_thread(JavaThread* java_thread, ThreadConcurrentLocks* tcl,
-                                    ObjectMonitorsHashtable* table) {
+                                    ObjectMonitorsDump* dump) {
   ThreadSnapshot* snapshot = _result->add_thread_snapshot(java_thread);
-  snapshot->dump_stack_at_safepoint(_max_depth, _with_locked_monitors, table, false);
+  snapshot->dump_stack_at_safepoint(_max_depth, _with_locked_monitors, dump, false);
   snapshot->set_concurrent_locks(tcl);
 }
 

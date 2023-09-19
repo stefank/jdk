@@ -83,45 +83,6 @@ ObjectMonitor* ObjectSynchronizer::read_monitor(Thread* current, oop obj, markWo
   return LightweightSynchronizer::read_monitor(current, obj);
 }
 
-class ObjectMonitorsHashtable::PtrList :
-  public LinkedListImpl<ObjectMonitor*,
-                        AnyObj::C_HEAP, mtThread,
-                        AllocFailStrategy::RETURN_NULL> {};
-
-class CleanupObjectMonitorsHashtable: StackObj {
- public:
-  bool do_entry(void*& key, ObjectMonitorsHashtable::PtrList*& list) {
-    list->clear();  // clear the LinkListNodes
-    delete list;    // then delete the LinkedList
-    return true;
-  }
-};
-
-ObjectMonitorsHashtable::~ObjectMonitorsHashtable() {
-  CleanupObjectMonitorsHashtable cleanup;
-  _ptrs->unlink(&cleanup);  // cleanup the LinkedLists
-  delete _ptrs;             // then delete the hash table
-}
-
-void ObjectMonitorsHashtable::add_entry(void* key, ObjectMonitor* om) {
-  ObjectMonitorsHashtable::PtrList* list = get_entry(key);
-  if (list == nullptr) {
-    // Create new list and add it to the hash table:
-    list = new (mtThread) ObjectMonitorsHashtable::PtrList;
-    add_entry(key, list);
-  }
-  list->add(om);  // Add the ObjectMonitor to the list.
-  _om_count++;
-}
-
-bool ObjectMonitorsHashtable::has_entry(void* key, ObjectMonitor* om) {
-  ObjectMonitorsHashtable::PtrList* list = get_entry(key);
-  if (list == nullptr || list->find(om) == nullptr) {
-    return false;
-  }
-  return true;
-}
-
 void MonitorList::add(ObjectMonitor* m) {
   ObjectMonitor* head;
   do {
@@ -1106,17 +1067,16 @@ void ObjectSynchronizer::monitors_iterate(MonitorClosure* closure, JavaThread* t
   }
 }
 
-// This version of monitors_iterate() works with the specified linked list.
+// This version of monitors_iterate() works with the in-use monitor list.
 //
-void ObjectSynchronizer::monitors_iterate(MonitorClosure* closure,
-                                          ObjectMonitorsHashtable::PtrList* list,
-                                          JavaThread* thread) {
-  typedef LinkedListIterator<ObjectMonitor*> ObjectMonitorIterator;
-  ObjectMonitorIterator iter(list->head());
-  while (!iter.is_empty()) {
-    ObjectMonitor* mid = *iter.next();
-    // Owner set to a stack-lock address in thread should never be seen here:
-    assert(mid->owner() == thread, "must be");
+void ObjectSynchronizer::monitors_iterate(MonitorClosure* closure) {
+  // This ensures that the object doesn't die or that we race with
+  // the monitor deflation thread to deflate the visited monitors.
+  assert(SafepointSynchronize::is_at_safepoint(), "Unexpected context");
+
+  MonitorList::Iterator iter = _in_use_list.iterator();
+  while (iter.has_next()) {
+    ObjectMonitor* mid = iter.next();
     if (!mid->is_being_async_deflated() && mid->object_peek() != nullptr) {
       // Only process with closure if the object is set.
 
@@ -1510,16 +1470,8 @@ void ObjectSynchronizer::chk_for_block_req(JavaThread* current, const char* op_n
 // Walk the in-use list and deflate (at most MonitorDeflationMax) idle
 // ObjectMonitors. Returns the number of deflated ObjectMonitors.
 //
-// If table != nullptr, we gather owned ObjectMonitors indexed by the
-// owner in the table. Please note that ObjectMonitors where the owner
-// is set to a stack-lock address are NOT associated with the JavaThread
-// that holds that stack-lock. All of the current consumers of
-// ObjectMonitorsHashtable info only care about JNI locked monitors and
-// those do not have the owner set to a stack-lock address.
-//
 size_t ObjectSynchronizer::deflate_monitor_list(Thread* current, LogStream* ls,
-                                                elapsedTimer* timer_p,
-                                                ObjectMonitorsHashtable* table) {
+                                                elapsedTimer* timer_p) {
   MonitorList::Iterator iter = _in_use_list.iterator();
   size_t deflated_count = 0;
 
@@ -1530,18 +1482,6 @@ size_t ObjectSynchronizer::deflate_monitor_list(Thread* current, LogStream* ls,
     ObjectMonitor* mid = iter.next();
     if (mid->deflate_monitor(current)) {
       deflated_count++;
-    } else if (table != nullptr) {
-      // The caller is interested in the owned ObjectMonitors. This does
-      // not include when owner is set to a stack-lock address in thread.
-      // This also does not capture unowned ObjectMonitors that cannot be
-      // deflated because of a waiter.
-      void* key = mid->owner();
-      // Since deflate_idle_monitors() and deflate_monitor_list() can be
-      // called more than once, we have to make sure the entry has not
-      // already been added.
-      if (key != nullptr && !table->has_entry(key, mid)) {
-        table->add_entry(key, mid);
-      }
     }
 
     if (current->is_Java_thread()) {
@@ -1592,7 +1532,7 @@ static size_t delete_monitors(Thread* current, GrowableArray<ObjectMonitor*>* de
 // This function is called by the MonitorDeflationThread to deflate
 // ObjectMonitors. It is also called via do_final_audit_and_print_stats()
 // and VM_ThreadDump::doit() by the VMThread.
-size_t ObjectSynchronizer::deflate_idle_monitors(ObjectMonitorsHashtable* table) {
+size_t ObjectSynchronizer::deflate_idle_monitors() {
   Thread* current = Thread::current();
   if (current->is_Java_thread()) {
     // The async deflation request has been processed.
@@ -1617,7 +1557,7 @@ size_t ObjectSynchronizer::deflate_idle_monitors(ObjectMonitorsHashtable* table)
   }
 
   // Deflate some idle ObjectMonitors.
-  size_t deflated_count = deflate_monitor_list(current, ls, &timer, table);
+  size_t deflated_count = deflate_monitor_list(current, ls, &timer);
   size_t unlinked_count = 0;
   size_t deleted_count = 0;
   if (deflated_count > 0 || is_final_audit()) {
@@ -1716,10 +1656,6 @@ size_t ObjectSynchronizer::deflate_idle_monitors(ObjectMonitorsHashtable* table)
     }
     ls->print_cr("end deflating: in_use_list stats: ceiling=" SIZE_FORMAT ", count=" SIZE_FORMAT ", max=" SIZE_FORMAT,
                  in_use_list_ceiling(), _in_use_list.count(), _in_use_list.max());
-    if (table != nullptr) {
-      ls->print_cr("ObjectMonitorsHashtable: key_count=" SIZE_FORMAT ", om_count=" SIZE_FORMAT,
-                   table->key_count(), table->om_count());
-    }
   }
 
   OM_PERFDATA_OP(MonExtant, set_value(_in_use_list.count()));
@@ -1829,7 +1765,7 @@ void ObjectSynchronizer::do_final_audit_and_print_stats() {
     // Do deflations in order to reduce the in-use monitor population
     // that is reported by ObjectSynchronizer::log_in_use_monitor_details()
     // which is called by ObjectSynchronizer::audit_and_print_stats().
-    while (deflate_idle_monitors(/* ObjectMonitorsHashtable is not needed here */ nullptr) > 0) {
+    while (deflate_idle_monitors() > 0) {
       ; // empty
     }
     // The other audit_and_print_stats() call is done at the Debug
