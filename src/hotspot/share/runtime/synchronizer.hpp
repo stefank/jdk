@@ -170,7 +170,7 @@ class ObjectSynchronizer : AllStatic {
   static void chk_in_use_entry(ObjectMonitor* n, outputStream* out,
                                int* error_cnt_p);
   static void do_final_audit_and_print_stats();
-  static void log_in_use_monitor_details(outputStream* out);
+  static void log_in_use_monitor_details(outputStream* out, bool detailed);
 
  private:
   friend class SynchronizerTest;

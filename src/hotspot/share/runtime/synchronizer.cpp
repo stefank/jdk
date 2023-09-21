@@ -1752,9 +1752,9 @@ void ObjectSynchronizer::do_final_audit_and_print_stats() {
     // Do deflations in order to reduce the in-use monitor population
     // that is reported by ObjectSynchronizer::log_in_use_monitor_details()
     // which is called by ObjectSynchronizer::audit_and_print_stats().
-    while (deflate_idle_monitors() > 0) {
-      ; // empty
-    }
+    //while (deflate_idle_monitors() > 0) {
+    //  ; // empty
+    //}
     // The other audit_and_print_stats() call is done at the Debug
     // level at a safepoint in SafepointSynchronize::do_cleanup_tasks.
     audit_and_print_stats(true /* on_exit */);
@@ -1803,7 +1803,8 @@ void ObjectSynchronizer::audit_and_print_stats(bool on_exit) {
     // When exiting this log output is at the Info level. When called
     // at a safepoint, this log output is at the Trace level since
     // there can be a lot of it.
-    log_in_use_monitor_details(ls);
+    const bool detailed = (!on_exit && log_is_enabled(Trace, monitorinflation));
+    log_in_use_monitor_details(ls, detailed);
   }
 
   ls->flush();
@@ -1822,7 +1823,9 @@ void ObjectSynchronizer::chk_in_use_list(outputStream* out, int *error_cnt_p) {
   MonitorList::Iterator iter = _in_use_list.iterator();
   while (iter.has_next()) {
     ObjectMonitor* mid = iter.next();
-    chk_in_use_entry(mid, out, error_cnt_p);
+    if (mid->has_owner()) {
+      chk_in_use_entry(mid, out, error_cnt_p);
+    }
     ck_in_use_count++;
   }
 
@@ -1889,7 +1892,7 @@ void ObjectSynchronizer::chk_in_use_entry(ObjectMonitor* n, outputStream* out,
 // Log details about ObjectMonitors on the in_use_list. The 'BHL'
 // flags indicate why the entry is in-use, 'object' and 'object type'
 // indicate the associated object and its type.
-void ObjectSynchronizer::log_in_use_monitor_details(outputStream* out) {
+void ObjectSynchronizer::log_in_use_monitor_details(outputStream* out, bool detailed) {
   stringStream ss;
   if (_in_use_list.count() > 0) {
     out->print_cr("In-use monitor info:");
@@ -1900,17 +1903,19 @@ void ObjectSynchronizer::log_in_use_monitor_details(outputStream* out) {
     MonitorList::Iterator iter = _in_use_list.iterator();
     while (iter.has_next()) {
       ObjectMonitor* mid = iter.next();
-      const oop obj = mid->object_peek();
-      const intptr_t hash = LockingMode == LM_LIGHTWEIGHT ? mid->hash_lightweight() : mid->header().hash();
-      ResourceMark rm;
-      out->print(INTPTR_FORMAT "  %d%d%d  " INTPTR_FORMAT "  %s", p2i(mid),
-                 mid->is_busy(), hash != 0, mid->owner() != nullptr,
-                 p2i(obj), obj == nullptr ? "" : obj->klass()->external_name());
-      if (mid->is_busy()) {
-        out->print(" (%s)", mid->is_busy_to_string(&ss));
-        ss.reset();
+      if (detailed || mid->is_busy()) {
+        const oop obj = mid->object_peek();
+        const intptr_t hash = LockingMode == LM_LIGHTWEIGHT ? mid->hash_lightweight() : mid->header().hash();
+        ResourceMark rm;
+        out->print(INTPTR_FORMAT "  %d%d%d  " INTPTR_FORMAT "  %s", p2i(mid),
+            mid->is_busy(), hash != 0, mid->owner() != nullptr,
+            p2i(obj), obj == nullptr ? "" : obj->klass()->external_name());
+        if (mid->is_busy()) {
+          out->print(" (%s)", mid->is_busy_to_string(&ss));
+          ss.reset();
+        }
+        out->cr();
       }
-      out->cr();
     }
   }
 
