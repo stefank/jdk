@@ -2044,10 +2044,6 @@ class ObjectMonitorWorld : public CHeapObj<mtThread> {
     }
 
     bool is_dead(ObjectMonitor** value) {
-      oop woop = (*value)->object_peek();
-      if (woop == nullptr) {
-        return true;
-      }
       return false;
     }
   };
@@ -2072,7 +2068,7 @@ class ObjectMonitorWorld : public CHeapObj<mtThread> {
   };
 
 public:
-  ObjectMonitorWorld() : _table(new ConcurrentTable()) {}
+  ObjectMonitorWorld() : _table(new ConcurrentTable(ConcurrentTable::DEFAULT_MAX_SIZE_LOG2)) {}
 
   void verify_monitor_get_result(oop obj, ObjectMonitor* monitor) {
 #ifdef ASSERT
