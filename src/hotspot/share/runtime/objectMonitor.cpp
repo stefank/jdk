@@ -681,7 +681,7 @@ const char* ObjectMonitor::is_busy_to_string(stringStream* ss) {
   if (contentions() > 0) {
     ss->print("contentions=%d, ", contentions());
   } else {
-    ss->print("contentions=0");
+    ss->print("contentions=0, ");
   }
   if (!owner_is_DEFLATER_MARKER()) {
     ss->print("owner=" INTPTR_FORMAT, p2i(owner_raw()));
