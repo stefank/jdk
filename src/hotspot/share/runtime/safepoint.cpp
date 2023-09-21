@@ -635,7 +635,7 @@ void SafepointSynchronize::do_cleanup_tasks() {
 
   assert(InlineCacheBuffer::is_empty(), "should have cleaned up ICBuffer");
 
-  if (log_is_enabled(Debug, monitorinflation)) {
+  if (log_is_enabled(Trace, monitorinflation)) {
     // The VMThread calls do_final_audit_and_print_stats() which calls
     // audit_and_print_stats() at the Info level at VM exit time.
     ObjectSynchronizer::audit_and_print_stats(false /* on_exit */);

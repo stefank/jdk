@@ -290,6 +290,8 @@ class ObjectMonitorsDump : public MonitorClosure, public ObjectMonitorsView {
   size_t _key_count;
   size_t _om_count;
 
+//  GrowableArrayCHeap<ObjectMonitor*, mtThread> _array;
+
   void add_list(void* key, ObjectMonitorLinkedList* list) {
     _ptrs->put(key, list);
     _key_count++;
@@ -301,10 +303,6 @@ class ObjectMonitorsDump : public MonitorClosure, public ObjectMonitorsView {
   }
 
   void add(ObjectMonitor* monitor) {
-    // The caller is interested in the owned ObjectMonitors. This does
-    // not include when owner is set to a stack-lock address in thread.
-    // This also does not capture unowned ObjectMonitors that cannot be
-    // deflated because of a waiter.
     void* key = monitor->owner();
 
     ObjectMonitorLinkedList* list = get_list(key);
@@ -342,13 +340,35 @@ class ObjectMonitorsDump : public MonitorClosure, public ObjectMonitorsView {
 
   // Implements MonitorClosure used to collect all monitors in the system
   void do_monitor(ObjectMonitor* monitor) {
+    // The caller is interested in the owned ObjectMonitors. This does
+    // not include when owner is set to a stack-lock address in thread.
+    // This also does not capture unowned ObjectMonitors that cannot be
+    // deflated because of a waiter.
+
+    if (monitor->is_owner_anonymous()) {
+      // There's no need to collect anonymous owned monitors
+      // because the callers of this code is only interested
+      // in JNI owned monitors.
+      return;
+    }
+
     add(monitor);
+    //_array.push(monitor);
   }
 
   // Implements the ObjectMonitorsView interface
   void visit(MonitorClosure* closure, JavaThread* thread) {
+#if 0
+    log_info(vmoperation)("Monitors: %d", _array.length());
+    for (int i = 0; i < _array.length(); i++) {
+      ObjectMonitor* monitor = _array.at(i);
+      if (monitor->owner() == thread) {
+        closure->do_monitor(monitor);
+      }
+    }
+#endif
     ObjectMonitorLinkedList* list = get_list(thread);
-    LinkedListIterator<ObjectMonitor*> iter(list->head());
+    LinkedListIterator<ObjectMonitor*> iter(list != nullptr ? list->head() : nullptr);
     while (!iter.is_empty()) {
       ObjectMonitor* monitor = *iter.next();
       closure->do_monitor(monitor);
@@ -360,6 +380,11 @@ class ObjectMonitorsDump : public MonitorClosure, public ObjectMonitorsView {
 };
 
 void VM_ThreadDump::doit() {
+  Ticks start = Ticks::now();
+  Ticks mi_start;
+  Ticks mi_end;
+  size_t monitors_count = ObjectSynchronizer::in_use_list_count();
+
   ResourceMark rm;
 
   // Set the hazard ptr in the originating thread to protect the
@@ -373,17 +398,20 @@ void VM_ThreadDump::doit() {
     concurrent_locks.dump_at_safepoint();
   }
 
+
   ObjectMonitorsDump object_monitors;
+  mi_start = Ticks::now();
   if (_with_locked_monitors) {
     // The caller wants locked monitor information and that's expensive to gather
     // when there are a lot of inflated monitors. So we deflate idle monitors.
-    while (ObjectSynchronizer::deflate_idle_monitors() > 0) {
-      ; /* empty */
-    }
+    //while (ObjectSynchronizer::deflate_idle_monitors() > 0) {
+    //  ; /* empty */
+    //}
 
     // Gather information about owned monitors.
     ObjectSynchronizer::monitors_iterate(&object_monitors);
   }
+  mi_end = Ticks::now();
 
   if (_num_threads == 0) {
     // Snapshot all live threads
@@ -437,6 +465,15 @@ void VM_ThreadDump::doit() {
       snapshot_thread(jt, tcl, &object_monitors);
     }
   }
+
+  Ticks end = Ticks::now();
+
+  log_info(monitorinflation)("VM_DumpThreads monitors: %zu dumped: %zu total: %.3f s dump: %.3f s process: %.3f s",
+      monitors_count,
+      object_monitors.om_count(),
+      (end - start).seconds(),
+      (mi_end - mi_start).seconds(),
+      (end - mi_end).seconds());
 }
 
 void VM_ThreadDump::snapshot_thread(JavaThread* java_thread, ThreadConcurrentLocks* tcl,

@@ -1044,16 +1044,13 @@ JavaThread* ObjectSynchronizer::get_lock_owner(ThreadsList * t_list, Handle h_ob
 //
 // This version of monitors_iterate() works with the in-use monitor list.
 //
-void ObjectSynchronizer::monitors_iterate(MonitorClosure* closure, JavaThread* thread) {
+template <typename OwnerPredicate>
+void ObjectSynchronizer::monitors_iterate_impl(MonitorClosure* closure, OwnerPredicate filter) {
   MonitorList::Iterator iter = _in_use_list.iterator();
   while (iter.has_next()) {
     ObjectMonitor* mid = iter.next();
-    if (mid->owner() != thread) {
-      // Not owned by the target thread and intentionally skips when owner
-      // is set to a stack-lock address in the target thread.
-      continue;
-    }
-    if (!mid->is_being_async_deflated() && mid->object_peek() != nullptr) {
+    if (mid->has_owner() && filter(mid->owner_raw())) {
+      assert(!mid->is_being_async_deflated() && mid->object_peek() != nullptr, "Unexpected");
       // Only process with closure if the object is set.
 
       // monitors_iterate() is only called at a safepoint or when the
@@ -1067,28 +1064,14 @@ void ObjectSynchronizer::monitors_iterate(MonitorClosure* closure, JavaThread* t
   }
 }
 
-// This version of monitors_iterate() works with the in-use monitor list.
-//
+void ObjectSynchronizer::monitors_iterate(MonitorClosure* closure, JavaThread* thread) {
+  auto thread_filter = [&](void* owner) { return owner == thread; };
+  return monitors_iterate_impl(closure, thread_filter);
+}
+
 void ObjectSynchronizer::monitors_iterate(MonitorClosure* closure) {
-  // This ensures that the object doesn't die or that we race with
-  // the monitor deflation thread to deflate the visited monitors.
-  assert(SafepointSynchronize::is_at_safepoint(), "Unexpected context");
-
-  MonitorList::Iterator iter = _in_use_list.iterator();
-  while (iter.has_next()) {
-    ObjectMonitor* mid = iter.next();
-    if (!mid->is_being_async_deflated() && mid->object_peek() != nullptr) {
-      // Only process with closure if the object is set.
-
-      // monitors_iterate() is only called at a safepoint or when the
-      // target thread is suspended or when the target thread is
-      // operating on itself. The current closures in use today are
-      // only interested in an owned ObjectMonitor and ownership
-      // cannot be dropped under the calling contexts so the
-      // ObjectMonitor cannot be async deflated.
-      closure->do_monitor(mid);
-    }
-  }
+  auto all_filter = [&](void* owner) { return true; };
+  return monitors_iterate_impl(closure, all_filter);
 }
 
 static bool monitors_used_above_threshold(MonitorList* list) {
@@ -1128,6 +1111,10 @@ static bool monitors_used_above_threshold(MonitorList* list) {
   }
 
   return false;
+}
+
+size_t ObjectSynchronizer::in_use_list_count() {
+  return _in_use_list.count();
 }
 
 size_t ObjectSynchronizer::in_use_list_ceiling() {
