@@ -2833,13 +2833,18 @@ void MacroAssembler::cmpxchg(Register addr, Register expected,
                              bool acquire, bool release,
                              bool weak,
                              Register result) {
-  if (result == noreg)  result = rscratch1;
+  assert(result != rscratch1, "This will clobber the result register");
+  if (result == noreg) { result = rscratch1; }
   BLOCK_COMMENT("cmpxchg {");
   if (UseLSE) {
     mov(result, expected);
     lse_cas(result, new_val, addr, size, acquire, release, /*not_pair*/ true);
     compare_eq(result, expected, size);
   } else {
+    assert(rscratch1 != addr, "Are you sure you want to clobber this register?");
+    assert(rscratch1 != expected, "Are you sure you want to clobber this register?");
+    assert(rscratch1 != new_val, "Are you sure you want to clobber this register?");
+
     Label retry_load, done;
     prfm(Address(addr), PSTL1STRM);
     bind(retry_load);
@@ -6316,26 +6321,39 @@ void MacroAssembler::double_move(VMRegPair src, VMRegPair dst, Register tmp) {
 void MacroAssembler::lightweight_lock(Register obj, Register hdr, Register t1, Register t2, Label& slow) {
   assert(LockingMode == LM_LIGHTWEIGHT, "only used with new lightweight locking");
   assert_different_registers(obj, hdr, t1, t2);
+  Label success, retry;
+
+  Register top;
+  Register new_val;
+
+  // cmpxchg clobbers rscratch1
+  if (t1 == rscratch1) {
+    top = t1;
+    new_val = t2;
+  } else {
+    top = t2;
+    new_val = t1;
+  }
 
   // Check if we would have space on lock-stack for the object.
-  ldrw(t1, Address(rthread, JavaThread::lock_stack_top_offset()));
-  cmpw(t1, (unsigned)LockStack::end_offset() - 1);
+  ldrw(top, Address(rthread, JavaThread::lock_stack_top_offset()));
+  cmpw(top, (unsigned)LockStack::end_offset() - 1);
   br(Assembler::GT, slow);
 
   // Load (object->mark() | 1) into hdr
   orr(hdr, hdr, markWord::unlocked_value);
   // Clear lock-bits, into t2
-  eor(t2, hdr, markWord::unlocked_value);
+  eor(new_val, hdr, markWord::unlocked_value);
   // Try to swing header from unlocked to locked
-  cmpxchg(/*addr*/ obj, /*expected*/ hdr, /*new*/ t2, Assembler::xword,
-          /*acquire*/ true, /*release*/ true, /*weak*/ false, t1);
+  cmpxchg(/*addr*/ obj, /*expected*/ hdr, /*new*/ new_val, Assembler::xword,
+          /*acquire*/ true, /*release*/ true, /*weak*/ false, noreg);
   br(Assembler::NE, slow);
 
   // After successful lock, push object on lock-stack
-  ldrw(t1, Address(rthread, JavaThread::lock_stack_top_offset()));
-  str(obj, Address(rthread, t1));
-  addw(t1, t1, oopSize);
-  strw(t1, Address(rthread, JavaThread::lock_stack_top_offset()));
+  ldrw(top, Address(rthread, JavaThread::lock_stack_top_offset()));
+  str(obj, Address(rthread, top));
+  addw(top, top, oopSize);
+  strw(top, Address(rthread, JavaThread::lock_stack_top_offset()));
 }
 
 // Implements lightweight-unlocking.
@@ -6383,12 +6401,20 @@ void MacroAssembler::lightweight_unlock(Register obj, Register hdr, Register t1,
   }
 #endif
 
+  Register new_val;
+  if (t1 == rscratch1) {
+    // rscratch1 is clobbered by cmpxchg
+    new_val = t2;
+  } else {
+    new_val = t1;
+  }
+
   // Load the new header (unlocked) into t1
-  orr(t1, hdr, markWord::unlocked_value);
+  orr(new_val, hdr, markWord::unlocked_value);
 
   // Try to swing header from locked to unlocked
-  cmpxchg(obj, hdr, t1, Assembler::xword,
-          /*acquire*/ true, /*release*/ true, /*weak*/ false, t2);
+  cmpxchg(obj, hdr, new_val, Assembler::xword,
+          /*acquire*/ true, /*release*/ true, /*weak*/ false, noreg);
   br(Assembler::NE, slow);
 
   // After successful unlock, pop object from lock-stack

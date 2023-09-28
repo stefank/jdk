@@ -55,7 +55,7 @@ void C2_MacroAssembler::fast_lock(Register objectReg, Register boxReg, Register 
   Label object_has_monitor;
   Label count, no_count;
 
-  assert_different_registers(oop, box, tmp, disp_hdr);
+  assert_different_registers(oop, box, tmp, disp_hdr, rscratch1, rscratch2);
 
   // Load markWord from object into displaced_header.
   ldr(disp_hdr, Address(oop, oopDesc::mark_offset_in_bytes()));
@@ -117,7 +117,7 @@ void C2_MacroAssembler::fast_lock(Register objectReg, Register boxReg, Register 
   // Try to CAS m->owner from NULL to current thread.
   add(tmp, disp_hdr, (in_bytes(ObjectMonitor::owner_offset())-markWord::monitor_value));
   cmpxchg(tmp, zr, rthread, Assembler::xword, /*acquire*/ true,
-          /*release*/ true, /*weak*/ false, rscratch1); // Sets flags for result
+          /*release*/ true, /*weak*/ false, rscratch2); // Sets flags for result
 
   if (LockingMode != LM_LIGHTWEIGHT) {
     // Store a non-null value into the box to avoid looking like a re-entrant
@@ -129,7 +129,7 @@ void C2_MacroAssembler::fast_lock(Register objectReg, Register boxReg, Register 
   }
   br(Assembler::EQ, cont); // CAS success means locking succeeded
 
-  cmp(rscratch1, rthread);
+  cmp(rscratch2, rthread);
   br(Assembler::NE, cont); // Check for recursive locking
 
   // Recursive lock case
@@ -157,7 +157,7 @@ void C2_MacroAssembler::fast_unlock(Register objectReg, Register boxReg, Registe
   Label object_has_monitor;
   Label count, no_count;
 
-  assert_different_registers(oop, box, tmp, disp_hdr);
+  assert_different_registers(oop, box, tmp, disp_hdr, rscratch1);
 
   if (LockingMode == LM_LEGACY) {
     // Find the lock address and load the displaced header from the stack.
