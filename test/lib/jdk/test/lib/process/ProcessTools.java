@@ -382,7 +382,7 @@ public final class ProcessTools {
      * @param command Arguments to pass to the java command.
      * @return The ProcessBuilder instance representing the java command.
      */
-    public static ProcessBuilder createJavaProcessBuilder(List<String> command) {
+    private static ProcessBuilder createJavaProcessBuilder(List<String> command) {
         return createJavaProcessBuilder(command.toArray(String[]::new));
     }
 
@@ -512,8 +512,8 @@ public final class ProcessTools {
      * @param command Arguments to pass to the java command.
      * @return The ProcessBuilder instance representing the java command.
      */
-    public static ProcessBuilder createTestJvm(List<String> command) {
-        return createTestJvm(command.toArray(String[]::new));
+    public static ProcessBuilder createTestJavaProcessBuilder(List<String> command) {
+        return createTestJavaProcessBuilder(command.toArray(String[]::new));
     }
 
     /**
@@ -527,8 +527,18 @@ public final class ProcessTools {
      * @param command Arguments to pass to the java command.
      * @return The ProcessBuilder instance representing the java command.
      */
-    public static ProcessBuilder createTestJvm(String... command) {
+    public static ProcessBuilder createTestJavaProcessBuilder(String... command) {
         return createJavaProcessBuilder(Utils.prependTestJavaOpts(command));
+    }
+
+    /** comments */
+    public static ProcessBuilder createLimitedTestJavaProcessBuilder(List<String> command) {
+        return createLimitedTestJavaProcessBuilder(command.toArray(String[]::new));
+    }
+
+    /** comments */
+    public static ProcessBuilder createLimitedTestJavaProcessBuilder(String... command) {
+        return createJavaProcessBuilder(command);
     }
 
     /**
@@ -561,18 +571,9 @@ public final class ProcessTools {
      * @param cmds User specified arguments.
      * @return The output from the process.
      */
-    public static OutputAnalyzer executeTestJvm(String... cmds) throws Exception {
-        ProcessBuilder pb = createTestJvm(cmds);
-        return executeProcess(pb);
-    }
-
-    /**
-     * @param cmds User specified arguments.
-     * @return The output from the process.
-     * @see #executeTestJvm(String...)
-     */
     public static OutputAnalyzer executeTestJava(String... cmds) throws Exception {
-        return executeTestJvm(cmds);
+        ProcessBuilder pb = createTestJavaProcessBuilder(cmds);
+        return executeProcess(pb);
     }
 
     /**
