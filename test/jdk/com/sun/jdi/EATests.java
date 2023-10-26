@@ -213,6 +213,7 @@ class EATestsTarget {
         new EARelockingNestedInflated_02Target()                                            .run();
         new EARelockingArgEscapeLWLockedInCalleeFrameTarget()                               .run();
         new EARelockingArgEscapeLWLockedInCalleeFrame_2Target()                             .run();
+        new EARelockingArgEscapeLWLockedInCalleeFrame_3Target()                             .run();
         new EAGetOwnedMonitorsTarget()                                                      .run();
         new EAEntryCountTarget()                                                            .run();
         new EARelockingObjectCurrentlyWaitingOnTarget()                                     .run();
@@ -330,6 +331,7 @@ public class EATests extends TestScaffold {
         new EARelockingNestedInflated_02()                                            .run(this);
         new EARelockingArgEscapeLWLockedInCalleeFrame()                               .run(this);
         new EARelockingArgEscapeLWLockedInCalleeFrame_2()                             .run(this);
+        new EARelockingArgEscapeLWLockedInCalleeFrame_3()                             .run(this);
         new EAGetOwnedMonitors()                                                      .run(this);
         new EAEntryCount()                                                            .run(this);
         new EARelockingObjectCurrentlyWaitingOn()                                     .run(this);
@@ -1888,6 +1890,48 @@ class EARelockingArgEscapeLWLockedInCalleeFrame_2Target extends EATestCaseBaseTa
         synchronized (l1) {                   // eliminated
             synchronized (l2) {               // eliminated
                 l1.dontinline_sync_method(this);  // l1 escapes
+            }
+        }
+        iResult = l2.x + l2.y;
+    }
+
+    @Override
+    public int getExpectedIResult() {
+        return 6;
+    }
+}
+
+/////////////////////////////////////////////////////////////////////////////
+
+/**
+ * Similar to {@link EARelockingArgEscapeLWLockedInCalleeFrame}.
+ * This pattern matches a regression in the implementation.
+ */
+class EARelockingArgEscapeLWLockedInCalleeFrame_3 extends EATestCaseBaseDebugger {
+
+    public void runTestCase() throws Exception {
+        BreakpointEvent bpe = resumeTo(TARGET_TESTCASE_BASE_NAME, "dontinline_brkpt", "()V");
+        printStack(bpe.thread());
+        @SuppressWarnings("unused")
+        ObjectReference o = getLocalRef(bpe.thread().frame(2), XYVAL_NAME, "l1");
+    }
+}
+
+class EARelockingArgEscapeLWLockedInCalleeFrame_3Target extends EATestCaseBaseTarget {
+
+    @Override
+    public void setUp() {
+        super.setUp();
+        testMethodDepth = 2;
+    }
+
+    public void dontinline_testMethod() {
+        XYVal l1 = new XYVal(1, 1);
+        XYVal l2 = new XYVal(4, 2);
+        XYVal l3 = new XYVal(5, 3);
+        synchronized (l1) {
+            synchronized (l2) {
+                l3.dontinline_sync_method(this);
             }
         }
         iResult = l2.x + l2.y;
