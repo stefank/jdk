@@ -370,6 +370,12 @@ class ObjectMonitorsDump : public MonitorClosure, public ObjectMonitorsView {
 };
 
 void VM_ThreadDump::doit() {
+  // FIXME: Temporary debugging to evaluate performance. Will be removed.
+  Ticks start = Ticks::now();
+  Ticks mi_start;
+  Ticks mi_end;
+  size_t monitors_count = ObjectSynchronizer::in_use_list_count();
+
   ResourceMark rm;
 
   // Set the hazard ptr in the originating thread to protect the
@@ -384,6 +390,7 @@ void VM_ThreadDump::doit() {
   }
 
   ObjectMonitorsDump object_monitors;
+  mi_start = Ticks::now();
   if (_with_locked_monitors) {
     // Gather information about owned monitors.
     ObjectSynchronizer::monitors_iterate(&object_monitors);
@@ -394,11 +401,11 @@ void VM_ThreadDump::doit() {
     //
     // The limit has been arbitrarily chosen to be were the iteration started
     // to take more then a few milliseconds.
-    size_t monitors_count = ObjectSynchronizer::in_use_list_count();
     if (monitors_count > 100000) {
       ObjectSynchronizer::request_deflate_idle_monitors();
     }
   }
+  mi_end = Ticks::now();
 
   if (_num_threads == 0) {
     // Snapshot all live threads
@@ -452,6 +459,15 @@ void VM_ThreadDump::doit() {
       snapshot_thread(jt, tcl, &object_monitors);
     }
   }
+
+  Ticks end = Ticks::now();
+
+  log_info(monitorinflation)("VM_DumpThreads monitors: %zu dumped: %zu total: %.3f s dump: %.3f s process: %.3f s",
+      monitors_count,
+      object_monitors.om_count(),
+      (end - start).seconds(),
+      (mi_end - mi_start).seconds(),
+      (end - mi_end).seconds());
 }
 
 void VM_ThreadDump::snapshot_thread(JavaThread* java_thread, ThreadConcurrentLocks* tcl,
