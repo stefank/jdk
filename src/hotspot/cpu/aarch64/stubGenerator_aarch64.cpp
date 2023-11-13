@@ -8567,3 +8567,15 @@ DEFAULT_ATOMIC_OP(cmpxchg, 8, _seq_cst)
 #undef DEFAULT_ATOMIC_OP
 
 #endif // LINUX
+
+static_assert(different_registers(r1, r2), "1");
+static_assert(different_registers(r1, r2, r3), "2");
+static_assert(different_registers(r1, r2, r3, r4), "3");
+static_assert(!different_registers(r1, r1), "4");
+static_assert(!different_registers(r1, r2, r3, r1), "5");
+static_assert(!different_registers(r1, r2, r3, r2), "6");
+static_assert(!different_registers(r1, r2, r3, r3), "7");
+static_assert(!different_registers(r1, r2, r3, r4, r1), "8");
+static_assert(!different_registers(r1, r2, r3, r4, r2), "9");
+static_assert(!different_registers(r1, r2, r3, r4, r3), "10");
+static_assert(!different_registers(r1, r2, r3, r4, r4), "11");
