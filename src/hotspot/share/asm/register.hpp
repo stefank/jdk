@@ -260,24 +260,15 @@ inline constexpr bool different_registers(AbstractRegSet<R> allocated_regs, R fi
 
 template<typename R, typename... Rx>
 inline constexpr bool different_registers(AbstractRegSet<R> allocated_regs, R first_register, Rx... more_registers) {
-  if (allocated_regs.contains(first_register))
+  if (!different_registers(allocated_regs, first_register)) {
     return false;
+  }
   return different_registers(allocated_regs + first_register, more_registers...);
 }
 
 template<typename R, typename... Rx>
 inline constexpr bool different_registers(R first_register, Rx... more_registers) {
   return different_registers(AbstractRegSet<R>(first_register), more_registers...);
-}
-
-template<typename R, typename... Rx>
-inline constexpr bool different_registers(R reg1, R reg2) {
-  return reg1 != reg2;
-}
-
-template<typename R, typename... Rx>
-inline constexpr bool different_registers(R reg1, R reg2, R reg3) {
-  return reg1 != reg2 && reg2 != reg3 && reg1 != reg3;
 }
 
 template<typename R, typename... Rx>
