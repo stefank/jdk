@@ -86,21 +86,11 @@ size_t MonitorList::max() const {
   return Atomic::load(&_max);
 }
 
-class ObjectMonitorDeflationSafepointer : public StackObj {
-  JavaThread* const                    _current;
-  ObjectMonitorDeflationLogging* const _log;
-
-public:
-  ObjectMonitorDeflationSafepointer(JavaThread* current, ObjectMonitorDeflationLogging* log)
-    : _current(current), _log(log) {}
-
-  void block_for_safepoint(const char* op_name, const char* count_name, size_t counter);
-};
-
 // Walk the in-use list and unlink (at most MonitorDeflationMax) deflated
 // ObjectMonitors. Returns the number of unlinked ObjectMonitors.
-size_t MonitorList::unlink_deflated(GrowableArray<ObjectMonitor*>* unlinked_list,
-                                    ObjectMonitorDeflationSafepointer* safepointer) {
+size_t MonitorList::unlink_deflated(JavaThread* current,
+                                    GrowableArray<ObjectMonitor*>* unlinked_list,
+                                    ObjectMonitorDeflationLogging* log) {
   size_t unlinked_count = 0;
   ObjectMonitor* prev = nullptr;
   ObjectMonitor* head = Atomic::load_acquire(&_head);
@@ -143,7 +133,7 @@ size_t MonitorList::unlink_deflated(GrowableArray<ObjectMonitor*>* unlinked_list
     }
 
     // Must check for a safepoint/handshake and honor it.
-    safepointer->block_for_safepoint("unlinking", "unlinked_count", unlinked_count);
+    ObjectSynchronizer::block_for_safepoint(current, "unlinking", "unlinked_count", unlinked_count, log);
   }
   Atomic::sub(&_count, unlinked_count);
   return unlinked_count;
@@ -1516,7 +1506,7 @@ ObjectMonitor* ObjectSynchronizer::inflate(Thread* current, oop object,
 // Walk the in-use list and deflate (at most MonitorDeflationMax) idle
 // ObjectMonitors. Returns the number of deflated ObjectMonitors.
 //
-size_t ObjectSynchronizer::deflate_monitor_list(ObjectMonitorDeflationSafepointer* safepointer) {
+size_t ObjectSynchronizer::deflate_monitor_list(JavaThread* current, ObjectMonitorDeflationLogging* log) {
   MonitorList::Iterator iter = _in_use_list.iterator();
   size_t deflated_count = 0;
 
@@ -1530,7 +1520,7 @@ size_t ObjectSynchronizer::deflate_monitor_list(ObjectMonitorDeflationSafepointe
     }
 
     // Must check for a safepoint/handshake and honor it.
-    safepointer->block_for_safepoint("deflation", "deflated_count", deflated_count);
+    block_for_safepoint(current, "deflation", "deflated_count", deflated_count, log);
   }
 
   return deflated_count;
@@ -1663,20 +1653,22 @@ public:
   }
 };
 
-void ObjectMonitorDeflationSafepointer::block_for_safepoint(const char* op_name, const char* count_name, size_t counter) {
-  if (!SafepointMechanism::should_process(_current)) {
-    return;
-  }
+void ObjectSynchronizer::block_for_safepoint(JavaThread* current, const char* op_name,
+                                             const char* cnt_name, size_t cnt,
+                                             ObjectMonitorDeflationLogging* log) {
+    if (!SafepointMechanism::should_process(current)) {
+      return;
+    }
 
-  // A safepoint/handshake has started.
-  _log->before_block_for_safepoint(op_name, count_name, counter);
+    // A safepoint/handshake has started.
+    log->before_block_for_safepoint(op_name, cnt_name, cnt);
 
-  {
-    // Honor block request.
-    ThreadBlockInVM tbivm(_current);
-  }
+    {
+      // Honor block request.
+      ThreadBlockInVM tbivm(current);
+    }
 
-  _log->after_block_for_safepoint(op_name);
+    log->after_block_for_safepoint(op_name);
 }
 
 // This function is called by the MonitorDeflationThread to deflate
@@ -1690,12 +1682,11 @@ size_t ObjectSynchronizer::deflate_idle_monitors() {
   set_is_async_deflation_requested(false);
 
   ObjectMonitorDeflationLogging log;
-  ObjectMonitorDeflationSafepointer safepointer(current, &log);
 
   log.begin();
 
   // Deflate some idle ObjectMonitors.
-  size_t deflated_count = deflate_monitor_list(&safepointer);
+  size_t deflated_count = deflate_monitor_list(current, &log);
 
   // Unlink the deflated ObjectMonitors from the in-use list.
   size_t unlinked_count = 0;
@@ -1703,7 +1694,7 @@ size_t ObjectSynchronizer::deflate_idle_monitors() {
   if (deflated_count > 0) {
     ResourceMark rm(current);
     GrowableArray<ObjectMonitor*> delete_list((int)deflated_count);
-    unlinked_count = _in_use_list.unlink_deflated(&delete_list, &safepointer);
+    unlinked_count = _in_use_list.unlink_deflated(current, &delete_list, &log);
 
     log.before_handshake(unlinked_count);
 
