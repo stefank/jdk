@@ -261,6 +261,8 @@ ObjectMonitor::ObjectMonitor(oop object) :
   _object(_oop_storage, object),
   _owner(nullptr),
   _previous_owner_tid(0),
+  _next_jni_om(nullptr),
+  _jni_recursions(0),
   _next_om(nullptr),
   _recursions(0),
   _EntryList(nullptr),

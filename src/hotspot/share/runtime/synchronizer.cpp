@@ -657,6 +657,7 @@ void ObjectSynchronizer::jni_enter(Handle obj, JavaThread* current) {
   while (true) {
     ObjectMonitor* monitor = inflate(current, obj(), inflate_cause_jni_enter);
     if (monitor->enter(current)) {
+      current->register_jni_monitor_enter(monitor);
       current->inc_held_monitor_count(1, true);
       break;
     }
@@ -675,6 +676,7 @@ void ObjectSynchronizer::jni_exit(oop obj, TRAPS) {
   // intentionally do not use CHECK on check_owner because we must exit the
   // monitor even if an exception was already pending.
   if (monitor->check_owner(THREAD)) {
+    current->register_jni_monitor_exit(monitor);
     monitor->exit(current);
     current->dec_held_monitor_count(1, true);
   }

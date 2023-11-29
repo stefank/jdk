@@ -30,8 +30,6 @@
 #include "runtime/vmOperation.hpp"
 #include "runtime/threadSMR.hpp"
 
-class ObjectMonitorsView;
-
 // A hodge podge of commonly used VM Operations
 
 class VM_EmptyOperation : public VM_Operation {
@@ -203,8 +201,7 @@ class VM_ThreadDump : public VM_Operation {
   bool                           _with_locked_monitors;
   bool                           _with_locked_synchronizers;
 
-  void snapshot_thread(JavaThread* java_thread, ThreadConcurrentLocks* tcl,
-                       ObjectMonitorsView* monitors);
+  void snapshot_thread(JavaThread* java_thread, ThreadConcurrentLocks* tcl);
 
  public:
   VM_ThreadDump(ThreadDumpResult* result,

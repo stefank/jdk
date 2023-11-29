@@ -193,7 +193,16 @@ class JavaThread: public Thread {
   void push_jni_handle_block();
   void pop_jni_handle_block();
 
+  void register_jni_monitor_enter(ObjectMonitor* monitor);
+  void register_jni_monitor_exit(ObjectMonitor* monitor);
+  bool is_jni_monitor_locked(ObjectMonitor* monitor) const;
+  bool remove_jni_monitor_locked(ObjectMonitor* monitor);
+  void do_jni_monitors(MonitorClosure* closure);
+
  private:
+
+  ObjectMonitor* _jni_monitors_head;
+
   MonitorChunk* _monitor_chunks;              // Contains the off stack monitors
                                               // allocated during deoptimization
                                               // and by JNI_MonitorEnter/Exit

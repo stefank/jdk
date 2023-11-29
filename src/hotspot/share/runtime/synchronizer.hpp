@@ -210,11 +210,4 @@ class ObjectLocker : public StackObj {
   void notify_all(TRAPS)  { ObjectSynchronizer::notifyall(_obj, CHECK); }
 };
 
-// Interface to visit monitors
-class ObjectMonitorsView {
-public:
-  // Visit monitors that belong to the given thread
-  virtual void visit(MonitorClosure* closure, JavaThread* thread) = 0;
-};
-
 #endif // SHARE_RUNTIME_SYNCHRONIZER_HPP

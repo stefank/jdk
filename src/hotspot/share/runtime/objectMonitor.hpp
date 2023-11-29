@@ -163,12 +163,15 @@ private:
 
   void* volatile _owner;            // pointer to owning thread OR BasicLock
   volatile uint64_t _previous_owner_tid;  // thread id of the previous owner of the monitor
+  ObjectMonitor* _next_jni_om;      // JavaThread's locked JNI monitors head
+  volatile intx _jni_recursions;    // recursion count, 0 for first entry
   // Separate _owner and _next_om on different cache lines since
   // both can have busy multi-threaded access. _previous_owner_tid is only
   // changed by ObjectMonitor::exit() so it is a good choice to share the
   // cache line with _owner.
-  DEFINE_PAD_MINUS_SIZE(1, OM_CACHE_LINE_SIZE, sizeof(void* volatile) +
-                        sizeof(volatile uint64_t));
+  DEFINE_PAD_MINUS_SIZE(1, OM_CACHE_LINE_SIZE, sizeof(_owner) +
+                        sizeof(_previous_owner_tid) + sizeof(_next_jni_om) +
+                        sizeof(_jni_recursions));
   ObjectMonitor* _next_om;          // Next ObjectMonitor* linkage
   volatile intx _recursions;        // recursion count, 0 for first entry
   ObjectWaiter* volatile _EntryList;  // Threads blocked on entry or reentry.
@@ -293,6 +296,12 @@ private:
   ObjectMonitor* next_om() const;
   // Simply set _next_om field to new_value.
   void set_next_om(ObjectMonitor* new_value);
+
+  ObjectMonitor* next_jni_om() const                                   { return _next_jni_om; }
+  void set_next_jni_om(ObjectMonitor* new_value)                       { _next_jni_om = new_value; }
+  intx jni_recursions() const                                          { return _jni_recursions; }
+  void inc_jni_recursions()                                            { _jni_recursions += 1; }
+  void dec_jni_recursions()                                            { _jni_recursions -= 1; }
 
   int       waiters() const;
 

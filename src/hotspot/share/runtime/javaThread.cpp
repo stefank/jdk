@@ -72,6 +72,7 @@
 #include "runtime/jniHandles.inline.hpp"
 #include "runtime/lockStack.inline.hpp"
 #include "runtime/mutexLocker.hpp"
+#include "runtime/objectMonitor.inline.hpp"
 #include "runtime/orderAccess.hpp"
 #include "runtime/os.inline.hpp"
 #include "runtime/osThread.hpp"
@@ -421,6 +422,7 @@ JavaThread::JavaThread() :
   _free_handle_block(nullptr),
   _Stalled(0),
 
+  _jni_monitors_head(nullptr),
   _monitor_chunks(nullptr),
 
   _suspend_flags(0),
@@ -1339,6 +1341,63 @@ void JavaThread::pop_jni_handle_block() {
   set_active_handles(new_handles);
   old_handles->set_pop_frame_link(nullptr);
   JNIHandleBlock::release_block(old_handles, this);
+}
+
+bool JavaThread::is_jni_monitor_locked(ObjectMonitor* monitor) const {
+  for (ObjectMonitor* m = _jni_monitors_head; m != nullptr; m = m->next_jni_om()) {
+    if (m == monitor) {
+      return true;
+    }
+  }
+  return false;
+}
+
+bool JavaThread::remove_jni_monitor_locked(ObjectMonitor* monitor) {
+  ObjectMonitor* prev = nullptr;
+  for (ObjectMonitor* m = _jni_monitors_head; m != nullptr; m = m->next_jni_om()) {
+    if (m == monitor) {
+      // Found - now unlink
+      if (prev == nullptr) {
+        _jni_monitors_head = m->next_jni_om();
+      } else {
+        prev = m->next_jni_om();
+      }
+      return true;
+    }
+    prev = m;
+  }
+
+  return false;
+}
+
+void JavaThread::register_jni_monitor_enter(ObjectMonitor* monitor) {
+  assert(monitor->owner() == this, "Unexpected owner");
+
+  if (!is_jni_monitor_locked(monitor)) {
+    assert(monitor->jni_recursions() == 0, "Inconsistent recursion value");
+    monitor->set_next_jni_om(_jni_monitors_head);
+    _jni_monitors_head = monitor;
+  } else {
+    monitor->inc_jni_recursions();
+  }
+}
+
+void JavaThread::register_jni_monitor_exit(ObjectMonitor* monitor) {
+  assert(monitor->owner() == this, "Unexpected owner");
+  assert(is_jni_monitor_locked(monitor), "Unmatched enter and exit");
+
+  if (monitor->jni_recursions() == 0) {
+    const bool removed = remove_jni_monitor_locked(monitor);
+    assert(removed, "Should have been removed");
+  } else {
+    monitor->dec_jni_recursions();
+  }
+}
+
+void JavaThread::do_jni_monitors(MonitorClosure* closure) {
+  for (ObjectMonitor* m = _jni_monitors_head; m != nullptr; m = m->next_jni_om()) {
+    closure->do_monitor(m);
+  }
 }
 
 void JavaThread::oops_do_no_frames(OopClosure* f, CodeBlobClosure* cf) {

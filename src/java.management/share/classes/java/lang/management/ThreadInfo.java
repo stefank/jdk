@@ -649,6 +649,23 @@ public class ThreadInfo {
            sb.append('\n');
        }
 
+       int jniLockedMonitorsCount = 0;
+       for (MonitorInfo mi : lockedMonitors) {
+           if (mi.getLockedStackDepth() == -1) {
+               jniLockedMonitorsCount++;
+           }
+       }
+       if (jniLockedMonitorsCount > 0) {
+           sb.append("\n\tJNI locked monitors = " + jniLockedMonitorsCount);
+           sb.append('\n');
+           for (MonitorInfo mi : lockedMonitors) {
+               if (mi.getLockedStackDepth() == -1) {
+                   sb.append("\t- " + mi);
+                   sb.append("\n");
+               }
+           }
+       }
+
        LockInfo[] locks = getLockedSynchronizers();
        if (locks.length > 0) {
            sb.append("\n\tNumber of locked synchronizers = " + locks.length);
