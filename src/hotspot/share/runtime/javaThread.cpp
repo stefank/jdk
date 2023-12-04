@@ -1360,7 +1360,7 @@ bool JavaThread::remove_jni_monitor_locked(ObjectMonitor* monitor) {
       if (prev == nullptr) {
         _jni_monitors_head = m->next_jni_om();
       } else {
-        prev = m->next_jni_om();
+        prev->set_next_jni_om(m->next_jni_om());
       }
       return true;
     }
