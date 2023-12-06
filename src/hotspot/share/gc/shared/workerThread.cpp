@@ -40,22 +40,15 @@ WorkerTaskDispatcher::WorkerTaskDispatcher() :
     _end_semaphore() {}
 
 void WorkerTaskDispatcher::coordinator_distribute_task(WorkerTask* task, uint num_workers) {
-  bool use_caller = task->caller_can_run();
-  uint num_worker_tasks = use_caller ? (num_workers - 1) : num_workers;
-
   // No workers are allowed to read the state variables until they have been signaled.
   _task = task;
   _not_finished = num_workers;
 
-  // Dispatch tasks to workers.
-  if (num_worker_tasks > 0) {
-    _start_semaphore.signal(num_worker_tasks);
-  }
+  // Dispatch 'num_workers' number of tasks.
+  _start_semaphore.signal(num_workers);
 
   // If possible, execute tasks in caller.
-  if (use_caller) {
-    caller_run_task();
-  }
+  coordinator_run_tasks();
 
   // Wait for the last worker to signal the coordinator.
   _end_semaphore.wait();
@@ -66,21 +59,25 @@ void WorkerTaskDispatcher::coordinator_distribute_task(WorkerTask* task, uint nu
   _started = 0;
 }
 
-void WorkerTaskDispatcher::caller_run_task() {
-  // Run at least one task in the caller.
-  // Then see if we have other tasks that caller can run.
-  do {
-    internal_run_task(false);
-  } while (_start_semaphore.trywait());
+void WorkerTaskDispatcher::coordinator_run_tasks() {
+  // Run tasks from caller thread if the task allows it.
+  if (_task->caller_can_run()) {
+    while (_start_semaphore.trywait()) {
+      // Caller is responsible for setting up the GCId.
+      run_task(false /* is_worker */);
+    }
+  }
 }
 
 void WorkerTaskDispatcher::worker_run_task() {
   // Wait for the coordinator to dispatch a task.
   _start_semaphore.wait();
-  internal_run_task(true);
+  
+  GCIdMark gc_id_mark(_task->gc_id());
+  run_task(true /* is_worker */);
 }
 
-void WorkerTaskDispatcher::internal_run_task(bool is_worker) {
+void WorkerTaskDispatcher::run_task(bool is_worker) {
   // Get and set worker id.
   const uint worker_id = Atomic::fetch_then_add(&_started, 1u);
   if (is_worker) {
@@ -88,12 +85,7 @@ void WorkerTaskDispatcher::internal_run_task(bool is_worker) {
   }
 
   // Run task.
-  if (is_worker || Thread::current()->is_Named_thread()) {
-    GCIdMark gc_id_mark(_task->gc_id());
-    _task->work(worker_id);
-  } else {
-    _task->work(worker_id);
-  }
+  _task->work(worker_id);
 
   // Mark that the worker is done with the task.
   // The worker is not allowed to read the state variables after this line.
@@ -199,6 +191,12 @@ void WorkerThreads::clear_indirectly_suspendible_threads() {
 }
 
 void WorkerThreads::run_task(WorkerTask* task) {
+  // Special-case for task when we have one worker
+  if (_active_workers == 1 && task->caller_can_run()) {
+    task->work(0);
+    return;
+  }
+
   set_indirectly_suspendible_threads();
   _dispatcher.coordinator_distribute_task(task, _active_workers);
   clear_indirectly_suspendible_threads();

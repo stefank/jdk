@@ -24,9 +24,12 @@
 #include "precompiled.hpp"
 #include "gc/shared/workerThread.hpp"
 #include "memory/universe.hpp"
+#include "runtime/atomic.hpp"
+#include "runtime/os.hpp"
+#include "runtime/thread.hpp"
 #include "utilities/spinYield.hpp"
+#include "utilities/numberSeq.hpp"
 #include "unittest.hpp"
-
 
 class ParallelTask : public WorkerTask {
 protected:
@@ -38,13 +41,12 @@ protected:
 
 public:
   ParallelTask(int expected_workers, bool can_caller_execute) :
-    WorkerTask("Parallel Task", can_caller_execute),
-    _expected_workers(expected_workers),
-    _actual_workers(0),
-    _actual_ids_bitset(0),
-    _caller_thread(Thread::current()),
-    _seen_caller(false)
-    {};
+      WorkerTask("Parallel Task", can_caller_execute),
+      _expected_workers(expected_workers),
+      _actual_workers(0),
+      _actual_ids_bitset(0),
+      _caller_thread(Thread::current()),
+      _seen_caller(false) {}
 
   void record_worker(uint worker_id) {
     if (!_seen_caller && Thread::current() == _caller_thread) {
@@ -109,7 +111,6 @@ static void basic_run_with(WorkerThreads* workers, uint num_workers, bool caller
   }
 }
 
-
 TEST_VM(WorkerThreads, basic) {
   static const int TRIES = 1000;
   static const uint max_workers = MIN2(31, os::processor_count()); // ID bitmap limits the max CPU
@@ -162,7 +163,6 @@ TEST_VM(WorkerThreads, perf) {
 
   WorkerThreads* workers = new WorkerThreads("test", max_workers);
   workers->initialize_workers();
-
 
   tty->print_cr("Full parallelism:");
   workers->set_active_workers(max_workers);

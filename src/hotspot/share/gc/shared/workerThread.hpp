@@ -51,7 +51,7 @@ public:
 
   const char* name() const { return _name; }
   uint gc_id() const { return _gc_id; }
-  bool caller_can_run() { return _caller_can_run; }
+  bool caller_can_run() const { return _caller_can_run; }
 
   virtual void work(uint worker_id) = 0;
 };
@@ -69,6 +69,9 @@ class WorkerTaskDispatcher {
   // Semaphore used to notify the coordinator that all workers are done.
   Semaphore _end_semaphore;
 
+  // Runs a claimed task task from either worker or coordinator.
+  void run_task(bool is_worker);
+
 public:
   WorkerTaskDispatcher();
 
@@ -80,13 +83,11 @@ public:
 
   // Worker API.
 
+  // Runs available tasks from coordinator thread, if the task allows that.
+  void coordinator_run_tasks();
+
   // Waits for a task to become available to the worker and runs it.
-  void caller_run_task();
-
-  // Sees if there is a task and runs it.
   void worker_run_task();
-
-  void internal_run_task(bool is_worker);
 };
 
 // A set of worker threads to execute tasks
