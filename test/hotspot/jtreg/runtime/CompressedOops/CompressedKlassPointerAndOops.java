@@ -47,16 +47,12 @@ public class CompressedKlassPointerAndOops {
     }
 
     private static void runWithAlignment(int alignment) throws Exception {
-        ProcessBuilder pb;
-        OutputAnalyzer output;
-
-        pb = ProcessTools.createLimitedTestJavaProcessBuilder(
+        OutputAnalyzer output = ProcessTools.executeLimitedTestJava(
             "-XX:+UseCompressedClassPointers",
             "-XX:+UseCompressedOops",
             "-XX:ObjectAlignmentInBytes=" + alignment,
             "-version");
 
-        output = new OutputAnalyzer(pb.start());
         output.shouldHaveExitValue(0);
     }
 }

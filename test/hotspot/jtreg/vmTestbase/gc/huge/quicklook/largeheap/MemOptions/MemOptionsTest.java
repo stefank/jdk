@@ -35,7 +35,6 @@
 
 package gc.huge.quicklook.largeheap.MemOptions;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 
@@ -53,13 +52,13 @@ import jdk.test.lib.process.ProcessTools;
  * InitZeroHeapSize
  */
 public class MemOptionsTest {
-    public static void main(String args[]) throws IOException {
+    public static void main(String args[]) throws Exception {
         new MemOptionsTest().test();
     }
 
     private final ArrayList<String> failed = new ArrayList<>();
 
-    public void test() throws IOException {
+    public void test() throws Exception {
         positive("Maximum heap size within 32-bit address range", "-Xmx2G");
         positive("Maximum heap size at 32-bit address range", "-Xmx4G");
         positive("Maximum heap size outside 32-bit address range", "-Xmx5G");
@@ -88,26 +87,24 @@ public class MemOptionsTest {
         }
     }
 
-    private void positive(String name, String... opts) throws IOException {
+    private void positive(String name, String... opts) throws Exception {
         System.out.println(name);
         var cmd = new ArrayList<String>();
         Collections.addAll(cmd, opts);
         cmd.add(MemStat.class.getName());
-        var pb = ProcessTools.createTestJavaProcessBuilder(cmd);
-        var output = new OutputAnalyzer(pb.start());
+        var output = ProcessTools.executeTestJava(cmd);
         if (output.getExitValue() != 0) {
             output.reportDiagnosticSummary();
             failed.add(name);
         }
     }
 
-    private void negative(String name, String... opts) throws IOException {
+    private void negative(String name, String... opts) throws Exception {
         System.out.println(name);
         var cmd = new ArrayList<String>();
         Collections.addAll(cmd, opts);
         cmd.add(MemStat.class.getName());
-        var pb = ProcessTools.createTestJavaProcessBuilder(cmd);
-        var output = new OutputAnalyzer(pb.start());
+        var output = ProcessTools.executeTestJava(cmd);
         if (output.getExitValue() == 0) {
             output.reportDiagnosticSummary();
             failed.add(name);

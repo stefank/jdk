@@ -66,15 +66,13 @@ public class JarDirTest extends CtwTest {
         String path = "jars";
         Files.createDirectory(Paths.get(path));
 
-        ProcessBuilder pb = createJarProcessBuilder("cf", "jars/foo.jar",
+        OutputAnalyzer output = executeJar("cf", "jars/foo.jar",
                 "Foo.class", "Bar.class");
-        OutputAnalyzer output = new OutputAnalyzer(pb.start());
         dump(output, "ctw-foo.jar");
         output.shouldHaveExitValue(0);
 
-        pb = createJarProcessBuilder("cf", "jars/bar.jar", "Foo.class",
+        output = executeJar("cf", "jars/bar.jar", "Foo.class",
                 "Bar.class");
-        output = new OutputAnalyzer(pb.start());
         dump(output, "ctw-bar.jar");
         output.shouldHaveExitValue(0);
     }

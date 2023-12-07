@@ -39,8 +39,7 @@ import jdk.test.lib.process.OutputAnalyzer;
 
 public class PerfMemDestroy {
     public static void main(String args[]) throws Throwable {
-        ProcessBuilder pb = ProcessTools.createLimitedTestJavaProcessBuilder("-XX:+PerfAllowAtExitRegistration", "-version");
-        OutputAnalyzer output = new OutputAnalyzer(pb.start());
+        OutputAnalyzer output = ProcessTools.executeLimitedTestJava("-XX:+PerfAllowAtExitRegistration", "-version");
         output.shouldHaveExitValue(0);
     }
 }

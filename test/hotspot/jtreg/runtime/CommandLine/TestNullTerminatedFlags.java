@@ -57,11 +57,10 @@ public class TestNullTerminatedFlags {
     public static void main(String args[]) throws Exception{
         for (String option : options) {
             String testOption = option + "junk";
-            ProcessBuilder pb =
-                ProcessTools.createLimitedTestJavaProcessBuilder(testOption, "-version");
-            new OutputAnalyzer(pb.start())
-                    .shouldContain("Unrecognized option: " + testOption)
-                    .shouldHaveExitValue(1);
+            OutputAnalyzer output =
+                ProcessTools.executeLimitedTestJava(testOption, "-version");
+            output.shouldContain("Unrecognized option: " + testOption)
+                  .shouldHaveExitValue(1);
         }
     }
 }

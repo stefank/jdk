@@ -45,14 +45,13 @@ public class Testjsig {
         // Get the JDK, library and class path properties
         String libpath = System.getProperty("java.library.path");
 
-        // Create a new java process for the TestJNI Java/JNI test
-        ProcessBuilder pb = ProcessTools.createLimitedTestJavaProcessBuilder(
+        // Start a new java process for the TestJNI Java/JNI test
+        OutputAnalyzer output = ProcessTools.executeLimitedTestJava(
             "-Djava.library.path=" + libpath + ":.",
             "TestJNI",
             "100");
 
-        // Start the process and check the output
-        OutputAnalyzer output = new OutputAnalyzer(pb.start());
+        // Check the output
         output.shouldHaveExitValue(0);
         output.shouldContain("old handler");
     }

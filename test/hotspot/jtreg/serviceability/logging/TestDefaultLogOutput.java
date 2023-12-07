@@ -36,8 +36,7 @@ import jdk.test.lib.process.OutputAnalyzer;
 public class TestDefaultLogOutput {
 
     public static void main(String[] args) throws Exception {
-        ProcessBuilder pb = ProcessTools.createLimitedTestJavaProcessBuilder("-Xlog:badTag");
-        OutputAnalyzer output = new OutputAnalyzer(pb.start());
+        OutputAnalyzer output = ProcessTools.executeLimitedTestJava("-Xlog:badTag");
         output.stdoutShouldMatch("\\[error *\\]\\[logging *\\]");
         output.shouldHaveExitValue(1);
     }

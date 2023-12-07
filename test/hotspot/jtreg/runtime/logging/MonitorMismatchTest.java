@@ -40,20 +40,18 @@ public class MonitorMismatchTest {
 
     public static void main(String... args) throws Exception {
         // monitormismatch should turn on.
-        ProcessBuilder pb = ProcessTools.createLimitedTestJavaProcessBuilder("-Xcomp",
-                                                                             "-XX:+TieredCompilation",
-                                                                             "-Xlog:monitormismatch=info",
-                                                                             "MonitorMismatchHelper");
-        OutputAnalyzer o = new OutputAnalyzer(pb.start());
+        OutputAnalyzer o = ProcessTools.executeLimitedTestJava("-Xcomp",
+                                                               "-XX:+TieredCompilation",
+                                                               "-Xlog:monitormismatch=info",
+                                                               "MonitorMismatchHelper");
         o.shouldHaveExitValue(0);
         o.shouldContain("[monitormismatch] Monitor mismatch in method");
 
         // monitormismatch should turn off.
-        pb = ProcessTools.createLimitedTestJavaProcessBuilder("-Xcomp",
-                                                              "-XX:+TieredCompilation",
-                                                              "-Xlog:monitormismatch=off",
-                                                              "MonitorMismatchHelper");
-        o = new OutputAnalyzer(pb.start());
+        o = ProcessTools.executeLimitedTestJava("-Xcomp",
+                                                "-XX:+TieredCompilation",
+                                                "-Xlog:monitormismatch=off",
+                                                "MonitorMismatchHelper");
         o.shouldHaveExitValue(0);
         o.shouldNotContain("[monitormismatch]");
     };

@@ -136,8 +136,7 @@ public class TestDwarf {
     private static final String NO_DECODER_PATTERN ="[CV][\\s\\t]+\\[([a-zA-Z0-9_.]+)\\+0x.+].*\\([a-zA-Z0-9_.]+\\.[a-z]+:[1-9][0-9]*\\)";
 
     private static void runAndCheck(Flags flags, DwarfConstraint... constraints) throws Exception {
-        OutputAnalyzer crashOut;
-        crashOut = ProcessTools.executeProcess(ProcessTools.createTestJavaProcessBuilder(flags.getFlags()));
+        OutputAnalyzer crashOut = ProcessTools.executeTestJava(flags.getFlags());
         String crashOutputString = crashOut.getOutput();
         Asserts.assertNotEquals(crashOut.getExitValue(), 0, "Crash JVM should not exit gracefully");
         System.out.println(crashOutputString);

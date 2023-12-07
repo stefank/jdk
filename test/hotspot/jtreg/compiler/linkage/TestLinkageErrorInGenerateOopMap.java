@@ -41,7 +41,7 @@ public class TestLinkageErrorInGenerateOopMap {
     public static void main(String args[]) throws Exception {
         if (args.length == 0) {
             // Spawn new VM instance to execute test
-            ProcessBuilder pb = ProcessTools.createLimitedTestJavaProcessBuilder(
+            OutputAnalyzer out = ProcessTools.executeLimitedTestJava(
                     "-XX:+UnlockDiagnosticVMOptions",
                     "-XX:-BytecodeVerificationRemote",
                     "-XX:-BytecodeVerificationLocal",
@@ -51,7 +51,6 @@ public class TestLinkageErrorInGenerateOopMap {
                     "-Xmx64m",
                     TestLinkageErrorInGenerateOopMap.class.getName(),
                     "run");
-            OutputAnalyzer out = new OutputAnalyzer(pb.start());
             if (out.getExitValue() != 0) {
                 // OSR compilation should exit with an error during OopMap verification
                 // because a LinkageError cannot be thrown from a compiler thread.

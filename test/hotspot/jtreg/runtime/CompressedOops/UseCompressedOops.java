@@ -189,7 +189,6 @@ public class UseCompressedOops {
 
         args.add("-version");
 
-        ProcessBuilder pb = ProcessTools.createLimitedTestJavaProcessBuilder(args);
-        return new OutputAnalyzer(pb.start());
+        return ProcessTools.executeLimitedTestJava(args);
     }
 }

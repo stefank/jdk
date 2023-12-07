@@ -46,13 +46,12 @@ public class Test {
     private static String REGEXP = "^(CodeCache|(CodeHeap.*)): size=\\d+Kb used=\\d+Kb max_used=\\d+Kb free=\\d+Kb";
 
     public static void main(String[] args) throws Exception {
-        var pb = ProcessTools.createTestJavaProcessBuilder(
+        var output = ProcessTools.executeTestJava(
                 "-XX:-PrintCodeCache",
                 "-XX:+PrintCodeCacheOnCompilation",
                 "-XX:-Inline",
                 "-Xcomp",
                 PrintOnCall.class.getName());
-        var output = new OutputAnalyzer(pb.start());
         output.shouldHaveExitValue(0);
         output.stdoutShouldMatch(REGEXP);
     }

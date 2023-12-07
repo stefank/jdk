@@ -42,28 +42,21 @@ public final class OutputAnalyzer {
 
     private static final String deprecatedmsg = ".* VM warning:.* deprecated.*";
 
-    private final OutputBuffer buffer;
+    private String stdout;
+    private String stderr;
+    private int exitValue;
+
     /**
-     * Create an OutputAnalyzer, a utility class for verifying output and exit
-     * value from a Process
+     * Create an OutputAnalyzer, a utility class for verifying output
      *
-     * @param process Process to analyze
-     * @param cs The charset used to convert stdout/stderr from bytes to chars
-     *           or null for the default charset.
-     * @throws IOException If an I/O error occurs.
+     * @param stdout stdout buffer to analyze
+     * @param stderr stderr buffer to analyze
+     * @param stderr exitValue result to analyze
      */
-    public OutputAnalyzer(Process process, Charset cs) throws IOException {
-        buffer = OutputBuffer.of(process, cs);
-    }
-    /**
-     * Create an OutputAnalyzer, a utility class for verifying output and exit
-     * value from a Process
-     *
-     * @param process Process to analyze
-     * @throws IOException If an I/O error occurs.
-     */
-    public OutputAnalyzer(Process process) throws IOException {
-        buffer = OutputBuffer.of(process);
+    public OutputAnalyzer(String stdout, String stderr, int exitValue) {
+        this.stdout = stdout;
+        this.stderr = stderr;
+        this.exitValue = exitValue;
     }
 
     /**
@@ -72,7 +65,7 @@ public final class OutputAnalyzer {
      * @param buf String buffer to analyze
      */
     public OutputAnalyzer(String buf) {
-        buffer = OutputBuffer.of(buf, buf);
+        this(buf, buf);
     }
 
     /**
@@ -91,19 +84,7 @@ public final class OutputAnalyzer {
      * @param stderr stderr buffer to analyze
      */
     public OutputAnalyzer(String stdout, String stderr) {
-        buffer = OutputBuffer.of(stdout, stderr);
-    }
-
-    /**
-     * Create an OutputAnalyzer, a utility class for verifying output
-     *
-     * @param stdout stdout buffer to analyze
-     * @param stderr stderr buffer to analyze
-     * @param stderr exitValue result to analyze
-     */
-    public OutputAnalyzer(String stdout, String stderr, int exitValue)
-    {
-        buffer = OutputBuffer.of(stdout, stderr, exitValue);
+        this(stdout, stderr, -1);
     }
 
     /**
@@ -581,7 +562,7 @@ public final class OutputAnalyzer {
      * @return Content of the stdout buffer
      */
     public String getStdout() {
-        return buffer.getStdout();
+        return stdout;
     }
 
     /**
@@ -590,7 +571,7 @@ public final class OutputAnalyzer {
      * @return Content of the stderr buffer
      */
     public String getStderr() {
-        return buffer.getStderr();
+        return stderr;
     }
 
     /**
@@ -599,16 +580,7 @@ public final class OutputAnalyzer {
      * @return Process exit value
      */
     public int getExitValue() {
-        return buffer.getExitValue();
-    }
-
-    /**
-     * Get the process' pid
-     *
-     * @return pid
-     */
-    public long pid() {
-        return buffer.pid();
+        return exitValue;
     }
 
     /**
@@ -640,8 +612,6 @@ public final class OutputAnalyzer {
      * @throws RuntimeException If the stdout and stderr are not empty
      */
     public OutputAnalyzer shouldBeEmptyIgnoreVMWarnings() {
-        String stdout = getStdout();
-        String stderr = getStderr();
         if (!stdout.isEmpty()) {
             reportDiagnosticSummary();
             throw new RuntimeException("stdout was not empty");
@@ -661,8 +631,8 @@ public final class OutputAnalyzer {
      * @throws RuntimeException If the pattern was not found
      */
     public OutputAnalyzer stderrShouldMatchIgnoreVMWarnings(String pattern) {
-        String stderr = getStderr().replaceAll(jvmwarningmsg + "\\R", "");
-        Matcher matcher = Pattern.compile(pattern, Pattern.MULTILINE).matcher(stderr);
+        String s = getStderr().replaceAll(jvmwarningmsg + "\\R", "");
+        Matcher matcher = Pattern.compile(pattern, Pattern.MULTILINE).matcher(s);
         if (!matcher.find()) {
             reportDiagnosticSummary();
             throw new RuntimeException("'" + pattern

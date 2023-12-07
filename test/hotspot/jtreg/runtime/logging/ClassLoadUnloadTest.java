@@ -74,8 +74,7 @@ public class ClassLoadUnloadTest {
         Collections.addAll(argsList, args);
         Collections.addAll(argsList, "-Xmn8m", "-Xbootclasspath/a:.", "-XX:+UnlockDiagnosticVMOptions",
                            "-XX:+WhiteBoxAPI", "-XX:+ClassUnloading", ClassUnloadTestMain.class.getName());
-        ProcessBuilder pb = ProcessTools.createLimitedTestJavaProcessBuilder(argsList);
-        OutputAnalyzer output = new OutputAnalyzer(pb.start());
+        OutputAnalyzer output = ProcessTools.executeLimitedTestJava(argsList);
         output.shouldHaveExitValue(0);
         return output;
     }

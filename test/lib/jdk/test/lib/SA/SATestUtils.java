@@ -24,6 +24,8 @@ package jdk.test.lib.SA;
 
 import jdk.test.lib.JDKToolLauncher;
 import jdk.test.lib.Platform;
+import jdk.test.lib.process.OutputAnalyzer;
+import jdk.test.lib.process.ProcessTools;
 import jtreg.SkippedException;
 
 import java.io.IOException;
@@ -35,6 +37,7 @@ import java.security.PrivilegedExceptionAction;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 import java.util.List;
 
 public class SATestUtils {
@@ -47,6 +50,41 @@ public class SATestUtils {
             cmdStringList = addPrivileges(cmdStringList);
         }
         return new ProcessBuilder(cmdStringList);
+    }
+
+    /**
+     * Execute tool with privileges (sudo) if needed.
+     */
+    public static OutputAnalyzer execute(JDKToolLauncher launcher, boolean printCommand) throws Exception {
+        ProcessBuilder pb = createProcessBuilder(launcher);
+        if (printCommand) {
+           System.out.println(pb.command().stream().collect(Collectors.joining(" ")));
+        }
+        return ProcessTools.executeProcess(pb);
+    }
+
+    /**
+     * Execute tool with privileges (sudo) if needed.
+     */
+    public static OutputAnalyzer execute(JDKToolLauncher launcher) throws Exception {
+        return execute(launcher, false);
+    }
+
+    /**
+     * Creates a "limited" test java ProcessBuilder, adding privileges (sudo) if needed.
+     */
+    public static ProcessBuilder createLimitedTestJavaProcessBuilder(String... args) {
+        ProcessBuilder pb = new ProcessBuilder(args);
+        SATestUtils.addPrivilegesIfNeeded(pb);
+        return pb;
+    }
+
+    /**
+     * Executes a "limited" test java ProcessBuilder, adding privileges (sudo) if needed.
+     */
+    public static OutputAnalyzer executeLimitedTestJava(String... args) throws Exception {
+        ProcessBuilder pb = createLimitedTestJavaProcessBuilder(args);
+        return ProcessTools.executeProcess(pb);
     }
 
     /**

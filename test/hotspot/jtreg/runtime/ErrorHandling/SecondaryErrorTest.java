@@ -80,7 +80,7 @@ public class SecondaryErrorTest {
     // We also check, optionally, that +ErrorLogSecondaryErrorDetails produces callstacks for
     // the secondary error.
 
-    ProcessBuilder pb = ProcessTools.createLimitedTestJavaProcessBuilder(
+    OutputAnalyzer output_detail = ProcessTools.executeLimitedTestJava(
         "-XX:+UnlockDiagnosticVMOptions",
         "-Xmx100M",
         "-XX:-CreateCoredumpOnCrash",
@@ -88,8 +88,6 @@ public class SecondaryErrorTest {
         "-XX:TestCrashInErrorHandler=14",
         "-XX:" + (with_callstacks ? "+" : "-") + "ErrorLogSecondaryErrorDetails",
         "-version");
-
-    OutputAnalyzer output_detail = new OutputAnalyzer(pb.start());
 
     // we should have crashed with a SIGFPE
     output_detail.shouldMatch("# A fatal error has been detected by the Java Runtime Environment:.*");

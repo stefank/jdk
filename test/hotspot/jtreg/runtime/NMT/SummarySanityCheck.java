@@ -47,11 +47,8 @@ public class SummarySanityCheck {
     // Grab my own PID
     String pid = Long.toString(ProcessTools.getProcessId());
 
-    ProcessBuilder pb = new ProcessBuilder();
-
     // Run  'jcmd <pid> VM.native_memory summary scale=KB'
-    pb.command(new String[] { JDKToolFinder.getJDKTool("jcmd"), pid, "VM.native_memory", "summary", "scale=KB"});
-    OutputAnalyzer output = new OutputAnalyzer(pb.start());
+    OutputAnalyzer output = ProcessTools.executeProcess(JDKToolFinder.getJDKTool("jcmd"), pid, "VM.native_memory", "summary", "scale=KB");
 
     jcmdout = output.getOutput();
     // Split by '-' to get the 'groups'

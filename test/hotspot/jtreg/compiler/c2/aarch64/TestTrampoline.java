@@ -57,8 +57,7 @@ public class TestTrampoline {
         command.add("-XX:ReservedCodeCacheSize=130M");
         command.add("-XX:+SegmentedCodeCache");
         command.add(testClassName);
-        ProcessBuilder pb = ProcessTools.createLimitedTestJavaProcessBuilder(command);
-        OutputAnalyzer analyzer = new OutputAnalyzer(pb.start());
+        OutputAnalyzer analyzer = ProcessTools.executeLimitedTestJava(command);
         analyzer.shouldHaveExitValue(0);
         System.out.println(analyzer.getOutput());
         checkOutput(analyzer);

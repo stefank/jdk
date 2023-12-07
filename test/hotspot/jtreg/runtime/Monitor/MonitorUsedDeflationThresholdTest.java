@@ -73,7 +73,7 @@ public class MonitorUsedDeflationThresholdTest {
     public static void main(String[] args) throws Exception {
         if (args.length == 0) {
             // Without args we invoke the test in a java sub-process:
-            ProcessBuilder pb = ProcessTools.createLimitedTestJavaProcessBuilder(
+            OutputAnalyzer output_detail = ProcessTools.executeLimitedTestJava(
                 // Test doesn't need much Java heap:
                 "-Xmx100M",
                 // AvgMonitorsPerThreadEstimate == 1 means we'll start with
@@ -99,7 +99,6 @@ public class MonitorUsedDeflationThresholdTest {
                 // we should hit NoAsyncDeflationProgressMax at least 3 times.
                 "MonitorUsedDeflationThresholdTest", "33");
 
-            OutputAnalyzer output_detail = new OutputAnalyzer(pb.start());
             output_detail.shouldHaveExitValue(0);
 
             // This mesg means:

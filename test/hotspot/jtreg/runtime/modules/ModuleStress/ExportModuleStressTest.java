@@ -71,10 +71,9 @@ public class ExportModuleStressTest {
 
         // Sanity check that the test, jdk.test/test/Main.java
         // runs without error.
-        ProcessBuilder pb = ProcessTools.createLimitedTestJavaProcessBuilder(
+        OutputAnalyzer output = ProcessTools.executeLimitedTestJava(
             "-p", MODS_DIR.toString(),
             "-m", "jdk.test/test.Main");
-        OutputAnalyzer output = new OutputAnalyzer(pb.start());
         output.shouldContain("failed: 0")
               .shouldHaveExitValue(0);
     }

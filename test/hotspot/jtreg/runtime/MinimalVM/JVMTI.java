@@ -36,11 +36,10 @@ import jdk.test.lib.process.ProcessTools;
 public class JVMTI {
 
     public static void main(String args[]) throws Exception {
-        ProcessBuilder pb = ProcessTools.createLimitedTestJavaProcessBuilder(
-                "-minimal",
-                "-agentlib:jdwp=server=y,transport=dt_socket,address=5000,suspend=n",
-                "-version");
-        new OutputAnalyzer(pb.start())
+        ProcessTools.executeLimitedTestJava(
+            "-minimal",
+            "-agentlib:jdwp=server=y,transport=dt_socket,address=5000,suspend=n",
+            "-version")
                 .shouldContain("Debugging agents are not supported in this VM")
                 .shouldHaveExitValue(1);
 

@@ -43,10 +43,9 @@ public class TestEscapeCondy {
     public static void main(String args[]) throws Throwable {
         // 1. Test escape analysis of a method that contains
         //    a ldc instruction of a condy whose return type is an array of boolean
-        ProcessBuilder pb = ProcessTools.createLimitedTestJavaProcessBuilder(
+        OutputAnalyzer oa = ProcessTools.executeLimitedTestJava(
              "-XX:CompileCommand=dontinline,runtime.condy.TestEscapeThroughInvokeWithCondy::create",
              "runtime.condy.TestEscapeThroughInvokeWithCondy");
-        OutputAnalyzer oa = new OutputAnalyzer(pb.start());
         oa.shouldContain("Test has successfully analyzed ldc bytecode within method create");
         oa.shouldHaveExitValue(0);
     }

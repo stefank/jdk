@@ -72,12 +72,11 @@ public class ModuleStressGC {
         // Check that jdk.test/test.MainGC walks module jdk.test's
         // reads list and walks the exports list for package test,
         // defined in module jdk.test, during a GC.
-        ProcessBuilder pb = ProcessTools.createLimitedTestJavaProcessBuilder(
+        OutputAnalyzer oa = ProcessTools.executeLimitedTestJava(
             "-Xmx128m",
             "-Xlog:module=trace",
             "-p", MODS_DIR.toString(),
             "-m", "jdk.test/test.MainGC");
-        OutputAnalyzer oa = new OutputAnalyzer(pb.start());
         oa.shouldContain("package test defined in module jdk.test, exports list being walked")
           .shouldContain("module jdk.test reads list being walked")
           .shouldHaveExitValue(0);

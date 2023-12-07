@@ -45,20 +45,17 @@ public class JcmdWithNMTDisabled {
     // This test explicitly needs to be run with the exact command lines below, not passing on
     // arguments from the parent VM is a conscious choice to avoid NMT being turned on.
     if (args.length > 0) {
-      ProcessBuilder pb;
       OutputAnalyzer output;
       String testjdkPath = System.getProperty("test.jdk");
 
       // First run without enabling NMT (not in debug, where NMT is by default on)
       if (!Platform.isDebugBuild()) {
-        pb = ProcessTools.createLimitedTestJavaProcessBuilder("-Dtest.jdk=" + testjdkPath, "JcmdWithNMTDisabled");
-        output = new OutputAnalyzer(pb.start());
+        output = ProcessTools.executeLimitedTestJava("-Dtest.jdk=" + testjdkPath, "JcmdWithNMTDisabled");
         output.shouldHaveExitValue(0);
       }
 
       // Then run with explicitly disabling NMT, should not be any difference
-      pb = ProcessTools.createLimitedTestJavaProcessBuilder("-Dtest.jdk=" + testjdkPath, "-XX:NativeMemoryTracking=off", "JcmdWithNMTDisabled");
-      output = new OutputAnalyzer(pb.start());
+      output = ProcessTools.executeLimitedTestJava("-Dtest.jdk=" + testjdkPath, "-XX:NativeMemoryTracking=off", "JcmdWithNMTDisabled");
       output.shouldHaveExitValue(0);
 
       return;
@@ -77,9 +74,7 @@ public class JcmdWithNMTDisabled {
 
   // Helper method for invoking different jcmd calls, all should fail with the same message saying NMT is not enabled
   public static void jcmdCommand(String command) throws Exception {
-
-    pb.command(new String[] { JDKToolFinder.getJDKTool("jcmd"), pid, "VM.native_memory", command});
-    OutputAnalyzer output = new OutputAnalyzer(pb.start());
+    OutputAnalyzer output = ProcessTools.executeProcess(JDKToolFinder.getJDKTool("jcmd"), pid, "VM.native_memory", command);
 
     // Verify that jcmd reports that NMT is not enabled
     output.shouldContain("Native memory tracking is not enabled");

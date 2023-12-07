@@ -47,14 +47,12 @@ import static jdk.test.lib.Asserts.assertEquals;
 
 public class MHInlineTest {
     public static void main(String[] args) throws Exception {
-        ProcessBuilder pb = ProcessTools.createLimitedTestJavaProcessBuilder(
+        OutputAnalyzer analyzer = ProcessTools.executeLimitedTestJava(
                 "-XX:+IgnoreUnrecognizedVMOptions", "-showversion",
                 "-XX:-TieredCompilation", "-Xbatch",
                 "-XX:+PrintCompilation", "-XX:+UnlockDiagnosticVMOptions", "-XX:+PrintInlining",
                 "-XX:CompileCommand=dontinline,compiler.jsr292.MHInlineTest::test*",
                  Launcher.class.getName());
-
-        OutputAnalyzer analyzer = new OutputAnalyzer(pb.start());
 
         analyzer.shouldHaveExitValue(0);
 

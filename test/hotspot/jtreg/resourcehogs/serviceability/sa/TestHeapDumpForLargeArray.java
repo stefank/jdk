@@ -59,11 +59,8 @@ public class TestHeapDumpForLargeArray {
         launcher.addToolArg("--pid");
         launcher.addToolArg(Long.toString(lingeredAppPid));
 
-        ProcessBuilder processBuilder = SATestUtils.createProcessBuilder(launcher);
-        System.out.println(
-            processBuilder.command().stream().collect(Collectors.joining(" ")));
+        OutputAnalyzer SAOutput = SATestUtils.execute(launcher, true);
 
-        OutputAnalyzer SAOutput = ProcessTools.executeProcess(processBuilder);
         SAOutput.shouldHaveExitValue(0);
         SAOutput.shouldNotContain("Heap segment size overflow");
         SAOutput.shouldContain("truncating to");

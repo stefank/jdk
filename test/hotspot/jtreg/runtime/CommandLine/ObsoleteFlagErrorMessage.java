@@ -41,18 +41,16 @@ public class ObsoleteFlagErrorMessage {
     String flag = "DummyObsoleteTestFlag";
 
     // Case 1: Newly obsolete flags with extra junk appended should not be treated as newly obsolete (8060449)
-    ProcessBuilder pb = ProcessTools.createLimitedTestJavaProcessBuilder(
+    OutputAnalyzer output = ProcessTools.executeLimitedTestJava(
         "-XX:" + flag + "PlusJunk", "-version");
 
-    OutputAnalyzer output = new OutputAnalyzer(pb.start());
     output.shouldContain("Unrecognized VM option '" + flag + "PlusJunk'"); // Must identify bad option.
     output.shouldHaveExitValue(1);
 
     // Case 2: Newly obsolete flags should be recognized as newly obsolete (8073989)
-    ProcessBuilder pb2 = ProcessTools.createLimitedTestJavaProcessBuilder(
+    OutputAnalyzer output2 = ProcessTools.executeLimitedTestJava(
         "-XX:+" + flag, "-version");
 
-    OutputAnalyzer output2 = new OutputAnalyzer(pb2.start());
     output2.shouldHaveExitValue(0);
     output2.shouldContain("Ignoring option").shouldContain("support was removed");
     output2.shouldContain(flag);

@@ -48,13 +48,9 @@ import jdk.test.lib.process.ProcessTools;
 public class VeryEarlyAssertTest {
 
   public static void main(String[] args) throws Exception {
-
-
-    ProcessBuilder pb = ProcessTools.createLimitedTestJavaProcessBuilder("-version");
+    OutputAnalyzer output_detail = ProcessTools.executeLimitedTestJava("-version");
     Map<String, String> env = pb.environment();
     env.put("HOTSPOT_FATAL_ERROR_DURING_DYNAMIC_INITIALIZATION", "1");
-
-    OutputAnalyzer output_detail = new OutputAnalyzer(pb.start());
 
     // we should have crashed with an assert with a specific message:
     output_detail.shouldMatch("# A fatal error has been detected by the Java Runtime Environment:.*");
@@ -75,7 +71,5 @@ public class VeryEarlyAssertTest {
     HsErrFileUtils.checkHsErrFileContent(hs_err_file, pattern, null, false /* check end marker */, true /* verbose */);
 
     System.out.println("OK.");
-
   }
-
 }

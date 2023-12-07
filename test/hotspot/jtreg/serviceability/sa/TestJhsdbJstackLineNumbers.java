@@ -108,11 +108,7 @@ public class TestJhsdbJstackLineNumbers {
             }
         }
 
-        ProcessBuilder processBuilder = SATestUtils.createProcessBuilder(launcher);
-        System.out.println(processBuilder.command().stream().collect(Collectors.joining(" ")));
-        OutputAnalyzer output = ProcessTools.executeProcess(processBuilder);
-
-        return output;
+        return SATestUtils.execute(launcher, true);
     }
 
     public static void runTest(long pid) throws Exception {

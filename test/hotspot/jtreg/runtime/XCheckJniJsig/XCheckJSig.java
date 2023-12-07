@@ -64,14 +64,14 @@ public class XCheckJSig {
         ProcessBuilder pb = ProcessTools.createLimitedTestJavaProcessBuilder("-Xcheck:jni", "-version");
         Map<String, String> env = pb.environment();
         env.put(env_var, libjsig);
-        OutputAnalyzer output = new OutputAnalyzer(pb.start());
+        OutputAnalyzer output = ProcessTools.executeProcess(pb);
         output.shouldNotContain("libjsig is activated");
         output.shouldHaveExitValue(0);
 
         pb = ProcessTools.createLimitedTestJavaProcessBuilder("-Xcheck:jni", "-verbose:jni", "-version");
         env = pb.environment();
         env.put(env_var, libjsig);
-        output = new OutputAnalyzer(pb.start());
+        output = ProcessTools.executeProcess(pb);
         output.shouldContain("libjsig is activated");
         output.shouldHaveExitValue(0);
     }

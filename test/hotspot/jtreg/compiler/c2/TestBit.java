@@ -49,8 +49,7 @@ public class TestBit {
             "-XX:CompileCommand=compileonly," + className + "::tst*",
             className, testName};
 
-        ProcessBuilder pb = ProcessTools.createLimitedTestJavaProcessBuilder(procArgs);
-        OutputAnalyzer output = new OutputAnalyzer(pb.start());
+        OutputAnalyzer output = ProcessTools.executeLimitedTestJava(procArgs);
 
         String expectedTestBitInstruction =
             "ppc64le".equals(System.getProperty("os.arch")) ? "ANDI" :

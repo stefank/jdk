@@ -241,7 +241,7 @@ public class TestJFREvents {
         pb.environment().put(TEST_ENV_VARIABLE, TEST_ENV_VALUE);
 
         System.out.println("[COMMAND]\n" + Utils.getCommandLine(pb));
-        OutputAnalyzer out = new OutputAnalyzer(pb.start());
+        OutputAnalyzer out = ProcessTools.executeProcess(pb);
         System.out.println("[STDERR]\n" + out.getStderr());
         System.out.println("[STDOUT]\n" + out.getStdout());
 

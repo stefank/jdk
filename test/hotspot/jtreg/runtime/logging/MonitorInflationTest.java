@@ -36,28 +36,26 @@ import jdk.test.lib.process.OutputAnalyzer;
 import jdk.test.lib.process.ProcessTools;
 
 public class MonitorInflationTest {
-    static void analyzeOutputOn(ProcessBuilder pb) throws Exception {
-        OutputAnalyzer output = new OutputAnalyzer(pb.start());
+    static void analyzeOutputOn(OutputAnalyzer output) throws Exception {
         output.shouldContain("inflate(has_locker):");
         output.shouldContain("type='MonitorInflationTest$Waiter'");
         output.shouldContain("I've been waiting.");
         output.shouldHaveExitValue(0);
     }
 
-    static void analyzeOutputOff(ProcessBuilder pb) throws Exception {
-        OutputAnalyzer output = new OutputAnalyzer(pb.start());
+    static void analyzeOutputOff(OutputAnalyzer output) throws Exception {
         output.shouldNotContain("[monitorinflation]");
         output.shouldHaveExitValue(0);
     }
 
     public static void main(String[] args) throws Exception {
-        ProcessBuilder pb = ProcessTools.createLimitedTestJavaProcessBuilder("-Xlog:monitorinflation=trace",
-                                                                             InnerClass.class.getName());
-        analyzeOutputOn(pb);
+        OutputAnalyzer output = ProcessTools.executeLimitedTestJava("-Xlog:monitorinflation=trace",
+                                                                    InnerClass.class.getName());
+        analyzeOutputOn(output);
 
-        pb = ProcessTools.createLimitedTestJavaProcessBuilder("-Xlog:monitorinflation=off",
-                                                              InnerClass.class.getName());
-        analyzeOutputOff(pb);
+        output = ProcessTools.executeLimitedTestJava("-Xlog:monitorinflation=off",
+                                                     InnerClass.class.getName());
+        analyzeOutputOff(output);
     }
 
     public static class Waiter {

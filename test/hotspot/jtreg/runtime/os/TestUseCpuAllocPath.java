@@ -41,13 +41,12 @@ public class TestUseCpuAllocPath {
     static final String SUCCESS_STRING = "active_processor_count: using dynamic path (forced)";
 
     public static void main(String[] args) throws Exception {
-        ProcessBuilder pb =
-            ProcessTools.createLimitedTestJavaProcessBuilder("-Xlog:os=trace",
-                                                             "-XX:+UnlockDiagnosticVMOptions",
-                                                             "-XX:+UseCpuAllocPath",
-                                                             "-version");
+        OutputAnalyzer output =
+            ProcessTools.executeLimitedTestJava("-Xlog:os=trace",
+                                                "-XX:+UnlockDiagnosticVMOptions",
+                                                "-XX:+UseCpuAllocPath",
+                                                "-version");
 
-        OutputAnalyzer output = new OutputAnalyzer(pb.start());
         output.shouldHaveExitValue(0);
         output.shouldContain(SUCCESS_STRING);
     }

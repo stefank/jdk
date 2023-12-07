@@ -179,9 +179,8 @@ public class THPsInThreadStackPreventionTest {
         switch (args[0]) {
             case "PATCH-ENABLED": {
                 finalargs.add(TestMain.class.getName());
-                ProcessBuilder pb = ProcessTools.createLimitedTestJavaProcessBuilder(finalargs);
+                OutputAnalyzer output = ProcessTools.executeLimitedTestJava(finalargs);
 
-                OutputAnalyzer output = new OutputAnalyzer(pb.start());
                 output.shouldHaveExitValue(0);
 
                 // this line indicates the mitigation is active:
@@ -216,8 +215,7 @@ public class THPsInThreadStackPreventionTest {
                 finalargs.add("-XX:-THPStackMitigation");
 
                 finalargs.add(TestMain.class.getName());
-                ProcessBuilder pb = ProcessTools.createLimitedTestJavaProcessBuilder(finalargs);
-                OutputAnalyzer output = new OutputAnalyzer(pb.start());
+                OutputAnalyzer output = ProcessTools.executeLimitedTestJava(finalargs);
 
                 output.shouldHaveExitValue(0);
 

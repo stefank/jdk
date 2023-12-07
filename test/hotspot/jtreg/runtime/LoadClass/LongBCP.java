@@ -70,10 +70,9 @@ public class LongBCP {
         CompilerUtils.compile(sourceDir, destDir);
 
         String bootCP = "-Xbootclasspath/a:" + destDir.toString();
-        ProcessBuilder pb = ProcessTools.createLimitedTestJavaProcessBuilder(
+        OutputAnalyzer output = ProcessTools.executeLimitedTestJava(
             bootCP, "Hello");
 
-        OutputAnalyzer output = new OutputAnalyzer(pb.start());
         output.shouldContain("Hello World")
               .shouldHaveExitValue(0);
 
@@ -82,10 +81,9 @@ public class LongBCP {
         CompilerUtils.compile(sourceDir, destDir);
 
         bootCP = "-Xbootclasspath/a:" + destDir.toString();
-        pb = ProcessTools.createLimitedTestJavaProcessBuilder(
+        output = ProcessTools.executeLimitedTestJava(
             bootCP, "Hello");
 
-        output = new OutputAnalyzer(pb.start());
         output.shouldContain("Hello World")
               .shouldHaveExitValue(0);
 
@@ -97,10 +95,9 @@ public class LongBCP {
 
         // run with long bootclasspath to hello.jar
         bootCP = "-Xbootclasspath/a:" + helloJar;
-        pb = ProcessTools.createLimitedTestJavaProcessBuilder(
+        output = ProcessTools.executeLimitedTestJava(
             bootCP, "Hello");
 
-        output = new OutputAnalyzer(pb.start());
         output.shouldContain("Hello World")
               .shouldHaveExitValue(0);
 
@@ -122,10 +119,9 @@ public class LongBCP {
         CompilerUtils.compile(sourceDir, destDir);
 
         bootCP = "-Xbootclasspath/a:" + destDir.toString();
-        pb = ProcessTools.createLimitedTestJavaProcessBuilder(
+        output = ProcessTools.executeLimitedTestJava(
             bootCP, "Hello");
 
-        output = new OutputAnalyzer(pb.start());
         output.shouldContain("Hello World")
               .shouldHaveExitValue(0);
 
@@ -139,9 +135,8 @@ public class LongBCP {
         Path jarPath = jarDir.resolve("hello.jar");
         Files.copy(Paths.get(helloJar), jarPath);
         bootCP = "-Xbootclasspath/a:" + jarPath.toString();
-        pb = ProcessTools.createLimitedTestJavaProcessBuilder(bootCP, "Hello");
+        output = ProcessTools.executeLimitedTestJava(bootCP, "Hello");
 
-        output = new OutputAnalyzer(pb.start());
         output.shouldContain("Hello World")
               .shouldHaveExitValue(0);
 
@@ -151,10 +146,9 @@ public class LongBCP {
         CompilerUtils.compile(sourceDir, destDir);
 
         bootCP = "-Xbootclasspath/a:" + destDir.toString();
-        pb = ProcessTools.createLimitedTestJavaProcessBuilder(
+        output = ProcessTools.executeLimitedTestJava(
             bootCP, "Hello");
 
-        output = new OutputAnalyzer(pb.start());
         output.shouldContain("Hello World")
               .shouldHaveExitValue(0);
     }

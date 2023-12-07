@@ -89,7 +89,7 @@ import java.util.List;
 
 public class MallocLimitTest {
 
-    private static ProcessBuilder processBuilderWithSetting(String... extraSettings) {
+    private static OutputAnalyzer executeWithSetting(String... extraSettings) throws Exception {
         List<String> args = new ArrayList<>();
         args.add("-XX:+UnlockDiagnosticVMOptions"); // MallocLimit is diagnostic
         args.add("-Xmx64m");
@@ -98,47 +98,41 @@ public class MallocLimitTest {
         args.add("-XX:NativeMemoryTracking=summary");
         args.addAll(Arrays.asList(extraSettings));
         args.add("-version");
-        ProcessBuilder pb = ProcessTools.createLimitedTestJavaProcessBuilder(args);
-        return pb;
+        return ProcessTools.executeLimitedTestJava(args);
     }
 
-    private static void testGlobalLimitFatal() throws IOException {
-        ProcessBuilder pb = processBuilderWithSetting("-XX:MallocLimit=1m");
-        OutputAnalyzer output = new OutputAnalyzer(pb.start());
+    private static void testGlobalLimitFatal() throws Exception {
+        OutputAnalyzer output = executeWithSetting("-XX:MallocLimit=1m");
         output.shouldNotHaveExitValue(0);
         output.shouldContain("[nmt] MallocLimit: total limit: 1024K (fatal)");
         output.shouldMatch("#  fatal error: MallocLimit: reached global limit \\(triggering allocation size: \\d+[BKM], allocated so far: \\d+[BKM], limit: 1024K\\)");
     }
 
-    private static void testGlobalLimitOOM() throws IOException {
-        ProcessBuilder pb = processBuilderWithSetting("-XX:MallocLimit=1m:oom");
-        OutputAnalyzer output = new OutputAnalyzer(pb.start());
+    private static void testGlobalLimitOOM() throws Exception {
+        OutputAnalyzer output = executeWithSetting("-XX:MallocLimit=1m:oom");
         output.shouldNotHaveExitValue(0);
         output.shouldContain("[nmt] MallocLimit: total limit: 1024K (oom)");
         output.shouldMatch(".*\\[warning\\]\\[nmt\\] MallocLimit: reached global limit \\(triggering allocation size: \\d+[BKM], allocated so far: \\d+[BKM], limit: 1024K\\)");
         // The rest is fuzzy. We may get SIGSEGV or a native OOM message, depending on how the failing allocation was handled.
     }
 
-    private static void testCompilerLimitFatal() throws IOException {
-        ProcessBuilder pb = processBuilderWithSetting("-XX:MallocLimit=compiler:1234k", "-Xcomp");
-        OutputAnalyzer output = new OutputAnalyzer(pb.start());
+    private static void testCompilerLimitFatal() throws Exception {
+        OutputAnalyzer output = executeWithSetting("-XX:MallocLimit=compiler:1234k", "-Xcomp");
         output.shouldNotHaveExitValue(0);
         output.shouldContain("[nmt] MallocLimit: category \"mtCompiler\" limit: 1234K (fatal)");
         output.shouldMatch("#  fatal error: MallocLimit: reached category \"mtCompiler\" limit \\(triggering allocation size: \\d+[BKM], allocated so far: \\d+[BKM], limit: 1234K\\)");
     }
 
-    private static void testCompilerLimitOOM() throws IOException {
-        ProcessBuilder pb = processBuilderWithSetting("-XX:MallocLimit=compiler:1234k:oom", "-Xcomp");
-        OutputAnalyzer output = new OutputAnalyzer(pb.start());
+    private static void testCompilerLimitOOM() throws Exception {
+        OutputAnalyzer output = executeWithSetting("-XX:MallocLimit=compiler:1234k:oom", "-Xcomp");
         output.shouldNotHaveExitValue(0);
         output.shouldContain("[nmt] MallocLimit: category \"mtCompiler\" limit: 1234K (oom)");
         output.shouldMatch(".*\\[warning\\]\\[nmt\\] MallocLimit: reached category \"mtCompiler\" limit \\(triggering allocation size: \\d+[BKM], allocated so far: \\d+[BKM], limit: 1234K\\)");
         // The rest is fuzzy. We may get SIGSEGV or a native OOM message, depending on how the failing allocation was handled.
     }
 
-    private static void testMultiLimit() throws IOException {
-        ProcessBuilder pb = processBuilderWithSetting("-XX:MallocLimit=other:2g,compiler:1g:oom,internal:1k");
-        OutputAnalyzer output = new OutputAnalyzer(pb.start());
+    private static void testMultiLimit() throws Exception {
+        OutputAnalyzer output = executeWithSetting("-XX:MallocLimit=other:2g,compiler:1g:oom,internal:1k");
         output.shouldNotHaveExitValue(0);
         output.shouldContain("[nmt] MallocLimit: category \"mtCompiler\" limit: 1024M (oom)");
         output.shouldContain("[nmt] MallocLimit: category \"mtInternal\" limit: 1024B (fatal)");
@@ -146,10 +140,9 @@ public class MallocLimitTest {
         output.shouldMatch("#  fatal error: MallocLimit: reached category \"mtInternal\" limit \\(triggering allocation size: \\d+[BKM], allocated so far: \\d+[BKM], limit: 1024B\\)");
     }
 
-    private static void testLimitWithoutNmt() throws IOException {
-        ProcessBuilder pb = processBuilderWithSetting("-XX:NativeMemoryTracking=off", // overrides "summary" from processBuilderWithSetting()
+    private static void testLimitWithoutNmt() throws Exception {
+        OutputAnalyzer output = executeWithSetting("-XX:NativeMemoryTracking=off", // overrides "summary" from processBuilderWithSetting()
                 "-XX:MallocLimit=3g");
-        OutputAnalyzer output = new OutputAnalyzer(pb.start());
         output.reportDiagnosticSummary();
         output.shouldHaveExitValue(0); // Not a fatal error, just a warning
         output.shouldContain("MallocLimit will be ignored since NMT is disabled");

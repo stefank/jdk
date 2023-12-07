@@ -93,8 +93,7 @@ public class TestJcmd {
     // Run "jcmd -l", find the target process.
     private static long testJcmdGetPid(String className) throws Exception {
         System.out.println("TestCase: testJcmdGetPid()");
-        ProcessBuilder pb = new ProcessBuilder(JDKToolFinder.getJDKTool("jcmd"), "-l");
-        OutputAnalyzer out = new OutputAnalyzer(pb.start())
+        OutputAnalyzer out = ProcessTools.executeProcess(JDKToolFinder.getJDKTool("jcmd"), "-l")
             .shouldHaveExitValue(0);
 
         System.out.println("------------------ jcmd -l output: ");
@@ -116,8 +115,7 @@ public class TestJcmd {
 
     private static void testJcmdHelp(long pid) throws Exception {
         System.out.println("TestCase: testJcmdHelp()");
-        ProcessBuilder pb = new ProcessBuilder(JDKToolFinder.getJDKTool("jcmd"), "" + pid, "help");
-        OutputAnalyzer out = new OutputAnalyzer(pb.start())
+        OutputAnalyzer out = ProcessTools.executeProcess(JDKToolFinder.getJDKTool("jcmd"), "" + pid, "help")
             .shouldHaveExitValue(0)
             .shouldContain("JFR.start")
             .shouldContain("VM.version");
@@ -125,8 +123,7 @@ public class TestJcmd {
 
     private static void testVmInfo(long pid) throws Exception {
         System.out.println("TestCase: testVmInfo()");
-        ProcessBuilder pb = new ProcessBuilder(JDKToolFinder.getJDKTool("jcmd"), "" + pid, "VM.info");
-        OutputAnalyzer out = new OutputAnalyzer(pb.start())
+        OutputAnalyzer out = ProcessTools.executeProcess(JDKToolFinder.getJDKTool("jcmd"), "" + pid, "VM.info");
             .shouldHaveExitValue(0)
             .shouldContain("vm_info")
             .shouldContain("VM Arguments");
@@ -196,8 +193,7 @@ public class TestJcmd {
 
     // -u for userId, -g for groupId
     private static String getId(String param) throws Exception {
-        ProcessBuilder pb = new ProcessBuilder("id", param);
-        OutputAnalyzer out = new OutputAnalyzer(pb.start())
+        OutputAnalyzer out = ProcessTools.executeProcess("id", param)
             .shouldHaveExitValue(0);
         String result = out.asLines().get(0);
         System.out.println("getId() " + param + " returning: " + result);
@@ -210,8 +206,7 @@ public class TestJcmd {
             return null;
         }
         try {
-            ProcessBuilder pb = new ProcessBuilder(Container.ENGINE_COMMAND, "--version");
-            OutputAnalyzer out = new OutputAnalyzer(pb.start())
+            OutputAnalyzer out = ProcessTools.executeProcess(Container.ENGINE_COMMAND, "--version")
                 .shouldHaveExitValue(0);
             String result = out.asLines().get(0);
             System.out.println(Container.ENGINE_COMMAND + " --version returning: " + result);

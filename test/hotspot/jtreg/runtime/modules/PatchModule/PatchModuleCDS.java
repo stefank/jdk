@@ -44,17 +44,16 @@ public class PatchModuleCDS {
 
         // Case 1: Test that --patch-module and -Xshare:dump are compatible
         String filename = "patch_module.jsa";
-        ProcessBuilder pb = ProcessTools.createLimitedTestJavaProcessBuilder(
+        ProcessTools.executeLimitedTestJava(
             "-XX:+UnlockDiagnosticVMOptions",
             "-XX:SharedArchiveFile=" + filename,
             "-Xshare:dump",
             "--patch-module=java.naming=no/such/directory",
             "-Xlog:class+path=info",
-            "-version");
-        new OutputAnalyzer(pb.start())
-            // --patch-module is not supported during CDS dumping
-            .shouldNotHaveExitValue(0)
-            .shouldContain("Cannot use the following option when dumping the shared archive: --patch-module");
+            "-version")
+                // --patch-module is not supported during CDS dumping
+                .shouldNotHaveExitValue(0)
+                .shouldContain("Cannot use the following option when dumping the shared archive: --patch-module");
 
         // Case 2: Test that directory in --patch-module is supported for CDS dumping
         // Create a class file in the module java.base.
@@ -69,45 +68,42 @@ public class PatchModuleCDS {
              InMemoryJavaCompiler.compile("javax.naming.spi.NamingManager", source, "--patch-module=java.naming"),
              System.getProperty("test.classes"));
 
-        pb = ProcessTools.createLimitedTestJavaProcessBuilder(
+        ProcessTools.executeLimitedTestJava(
             "-XX:+UnlockDiagnosticVMOptions",
             "-XX:SharedArchiveFile=" + filename,
             "-Xshare:dump",
             "--patch-module=java.naming=" + System.getProperty("test.classes"),
             "-Xlog:class+path=info",
-            "-version");
-        new OutputAnalyzer(pb.start())
-            // --patch-module is not supported during CDS dumping
-            .shouldNotHaveExitValue(0)
-            .shouldContain("Cannot use the following option when dumping the shared archive: --patch-module");
+            "-version")
+                // --patch-module is not supported during CDS dumping
+                .shouldNotHaveExitValue(0)
+                .shouldContain("Cannot use the following option when dumping the shared archive: --patch-module");
 
         // Case 3a: Test CDS dumping with jar file in --patch-module
         BasicJarBuilder.build("javanaming", "javax/naming/spi/NamingManager");
         String moduleJar = BasicJarBuilder.getTestJar("javanaming.jar");
-        pb = ProcessTools.createLimitedTestJavaProcessBuilder(
+        ProcessTools.executeLimitedTestJava(
             "-XX:+UnlockDiagnosticVMOptions",
             "-XX:SharedArchiveFile=" + filename,
             "-Xshare:dump",
             "--patch-module=java.naming=" + moduleJar,
             "-Xlog:class+load",
             "-Xlog:class+path=info",
-            "PatchModuleMain", "javax.naming.spi.NamingManager");
-        new OutputAnalyzer(pb.start())
-            // --patch-module is not supported during CDS dumping
-            .shouldNotHaveExitValue(0)
-            .shouldContain("Cannot use the following option when dumping the shared archive: --patch-module");
+            "PatchModuleMain", "javax.naming.spi.NamingManager")
+                // --patch-module is not supported during CDS dumping
+                .shouldNotHaveExitValue(0)
+                .shouldContain("Cannot use the following option when dumping the shared archive: --patch-module");
 
         // Case 3b: Test CDS run with jar file in --patch-module
-        pb = ProcessTools.createLimitedTestJavaProcessBuilder(
+        ProcessTools.executeLimitedTestJava(
             "-XX:+UnlockDiagnosticVMOptions",
             "-XX:SharedArchiveFile=" + filename,
             "-Xshare:auto",
             "--patch-module=java.naming=" + moduleJar,
             "-Xlog:class+load",
             "-Xlog:class+path=info",
-            "PatchModuleMain", "javax.naming.spi.NamingManager");
-        new OutputAnalyzer(pb.start())
-            .shouldContain("I pass!")
-            .shouldHaveExitValue(0);
+            "PatchModuleMain", "javax.naming.spi.NamingManager")
+                .shouldContain("I pass!")
+                .shouldHaveExitValue(0);
     }
 }

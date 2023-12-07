@@ -28,7 +28,7 @@ import jdk.test.lib.process.ProcessTools;
 
 public class NMTTestUtils {
 
-    public static OutputAnalyzer startJcmdVMNativeMemory(String... additional_args) throws Exception {
+    public static OutputAnalyzer executeJcmdVMNativeMemory(String... additional_args) throws Exception {
         if (additional_args == null) {
             additional_args = new String[] {};
         }
@@ -37,18 +37,15 @@ public class NMTTestUtils {
         fullargs[1] = Long.toString(ProcessTools.getProcessId());
         fullargs[2] = "VM.native_memory";
         System.arraycopy(additional_args, 0, fullargs, 3, additional_args.length);
-        ProcessBuilder pb = new ProcessBuilder();
-        pb.command(fullargs);
-        OutputAnalyzer output = new OutputAnalyzer(pb.start());
-        return output;
+        return ProcessTools.executeProcess(fullargs);
     }
 
-    public static OutputAnalyzer startJcmdVMNativeMemoryDetail(String... additional_args) throws Exception {
-        return startJcmdVMNativeMemory("detail");
+    public static OutputAnalyzer executeJcmdVMNativeMemoryDetail(String... additional_args) throws Exception {
+        return executeJcmdVMNativeMemory("detail");
     }
 
     public static void runJcmdSummaryReportAndCheckOutput(String[] additional_args, String[] pattern, boolean verbose) throws Exception {
-        OutputAnalyzer output = startJcmdVMNativeMemory(additional_args);
+        OutputAnalyzer output = executeJcmdVMNativeMemory(additional_args);
         output.stdoutShouldContainMultiLinePattern(pattern, true);
     }
 

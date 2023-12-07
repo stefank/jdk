@@ -35,18 +35,16 @@ import jdk.test.lib.process.ProcessTools;
 
 public class FillerObjectLoadTest {
     public static void main(String... args) throws Exception {
-        ProcessBuilder pb = ProcessTools.createLimitedTestJavaProcessBuilder(
+        OutputAnalyzer analyzer = ProcessTools.executeLimitedTestJava(
                 "-XX:+IgnoreUnrecognizedVMOptions", "-XX:-UseCompressedClassPointers",
                 "-XX:+UnlockExperimentalVMOptions", "-XX:+UseEpsilonGC", "-Xshare:dump",
                 "-XX:SharedArchiveFile=" + TestCommon.getNewArchiveName());
-        OutputAnalyzer analyzer = new OutputAnalyzer(pb.start());
         analyzer.shouldHaveExitValue(0);
 
-        pb = ProcessTools.createLimitedTestJavaProcessBuilder(
+        analyzer = ProcessTools.executeLimitedTestJava(
                 "-XX:+IgnoreUnrecognizedVMOptions", "-XX:-UseCompressedClassPointers",
                 "-XX:TLABSize=2048", "-Xshare:dump",
                 "-XX:SharedArchiveFile=" + TestCommon.getNewArchiveName());
-        analyzer = new OutputAnalyzer(pb.start());
         analyzer.shouldHaveExitValue(0);
     }
 }

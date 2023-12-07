@@ -41,14 +41,12 @@ import java.util.regex.*;
 public class JcmdSummaryClass {
 
     public static void main(String args[]) throws Exception {
-        ProcessBuilder pb = new ProcessBuilder();
         OutputAnalyzer output;
         // Grab my own PID
         String pid = Long.toString(ProcessTools.getProcessId());
 
         // Run 'jcmd <pid> VM.native_memory baseline=true'
-        pb.command(new String[] { JDKToolFinder.getJDKTool("jcmd"), pid, "VM.native_memory"});
-        output = new OutputAnalyzer(pb.start());
+        output = ProcessTools.executeProcess(JDKToolFinder.getJDKTool("jcmd"), pid, "VM.native_memory");
 
         String classes_line = "classes #\\d+";
         String instance_array_classes_line = "instance classes #\\d+, array classes #\\d+";

@@ -32,6 +32,7 @@ import compiler.lib.ir_framework.test.TestVM;
 import jdk.test.lib.Platform;
 import jdk.test.lib.Utils;
 import jdk.test.lib.process.OutputAnalyzer;
+import jdk.test.lib.process.ProcessExecutor;
 import jdk.test.lib.process.ProcessTools;
 
 import java.util.*;
@@ -146,12 +147,15 @@ public class TestVMProcess {
     }
 
     private void start() {
+        long pid;
         ProcessBuilder process = ProcessTools.createLimitedTestJavaProcessBuilder(cmds);
         try {
             // Calls 'main' of TestVM to run all specified tests with commands 'cmds'.
             // Use executeProcess instead of executeTestJvm as we have already added the JTreg VM and
             // Java options in prepareTestVMFlags().
-            oa = ProcessTools.executeProcess(process);
+            ProcessExecutor executor = new ProcessExecutor(process);
+            pid = executor.pid();
+            oa = executor.waitForOutputAnalyzer();
         } catch (Exception e) {
             throw new TestFrameworkException("Error while executing Test VM", e);
         }
@@ -159,7 +163,7 @@ public class TestVMProcess {
         process.command().add(1, "-DReproduce=true"); // Add after "/path/to/bin/java" in order to rerun the test VM directly
         commandLine = "Command Line:" + System.lineSeparator() + String.join(" ", process.command())
                       + System.lineSeparator();
-        hotspotPidFileName = String.format("hotspot_pid%d.log", oa.pid());
+        hotspotPidFileName = String.format("hotspot_pid%d.log", pid);
         lastTestVMOutput = oa.getOutput();
     }
 

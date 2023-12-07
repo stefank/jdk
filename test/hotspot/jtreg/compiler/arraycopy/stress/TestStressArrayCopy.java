@@ -30,6 +30,7 @@ import java.util.Random;
 import jdk.test.lib.Platform;
 import jdk.test.lib.Utils;
 import jdk.test.lib.process.OutputAnalyzer;
+import jdk.test.lib.process.ProcessExecutor;
 import jdk.test.lib.process.ProcessTools;
 
 import jdk.test.whitebox.cpuinfo.CPUInfo;
@@ -166,27 +167,26 @@ public class TestStressArrayCopy {
             "compiler.arraycopy.stress.StressObjectArrayCopy",
         };
 
-        ArrayList<Fork> forks = new ArrayList<>();
+        ArrayList<ProcessExecutor> processes = new ArrayList<>();
         int jobs = 0;
 
         for (List<String> c : configs) {
             for (String className : classNames) {
                 // Start a new job
                 {
-                    ProcessBuilder pb = ProcessTools.createTestJavaProcessBuilder(mix(c, "-Xmx256m", className));
-                    Process p = pb.start();
-                    OutputAnalyzer oa = new OutputAnalyzer(p);
-                    forks.add(new Fork(p, oa));
+                    ProcessBuilder pb = ProcessTools.createTestJavaProcessBuilder(
+                            mix(c, "-Xmx256m", className));
+                    processes.add(new ProcessExecutor(pb));
                     jobs++;
                 }
 
                 // Wait for the completion of other jobs
                 while (jobs >= MAX_PARALLELISM) {
-                    Fork f = findDone(forks);
-                    if (f != null) {
-                        OutputAnalyzer oa = f.oa();
+                    ProcessExecutor p = findDone(processes);
+                    if (p != null) {
+                        OutputAnalyzer oa = p.getOutputAnalyzer();
                         oa.shouldHaveExitValue(0);
-                        forks.remove(f);
+                        processes.remove(p);
                         jobs--;
                     } else {
                         // Nothing is done, wait a little.
@@ -197,21 +197,20 @@ public class TestStressArrayCopy {
         }
 
         // Drain the rest
-        for (Fork f : forks) {
-            OutputAnalyzer oa = f.oa();
+        for (ProcessExecutor p : processes) {
+            OutputAnalyzer oa = p.waitForOutputAnalyzer();
             oa.shouldHaveExitValue(0);
         }
     }
 
-    private static Fork findDone(List<Fork> forks) {
-        for (Fork f : forks) {
-            if (!f.p().isAlive()) {
-                return f;
+    private static ProcessExecutor findDone(List<ProcessExecutor> processes) {
+        for (ProcessExecutor p : processes) {
+            if (!p.isAlive()) {
+                // Prepare the ProcessExecutor
+                p.waitFor();
+                return p;
             }
         }
         return null;
     }
-
-    private static record Fork(Process p, OutputAnalyzer oa) {};
-
 }

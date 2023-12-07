@@ -42,11 +42,10 @@ public class LoadClassNegative {
   public static void main(String args[]) throws Exception {
     String bootCP = "-Xbootclasspath/a:" + System.getProperty("test.src")
                        + File.separator + "dummy.jar";
-    ProcessBuilder pb = ProcessTools.createLimitedTestJavaProcessBuilder(
+    OutputAnalyzer output = ProcessTools.executeLimitedTestJava(
         bootCP,
         "TestForName");
 
-    OutputAnalyzer output = new OutputAnalyzer(pb.start());
     output.shouldContain("ClassNotFoundException");
     output.shouldHaveExitValue(0);
   }

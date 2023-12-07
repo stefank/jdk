@@ -93,15 +93,17 @@ public class TestUncaughtErrorInCompileMethod extends JVMCIServiceLocator {
             "-XX:+PrintWarnings",
             "-Xbootclasspath/a:.",
             TestUncaughtErrorInCompileMethod.class.getName(), "true");
-        Process p = pb.start();
-        OutputAnalyzer output = new OutputAnalyzer(p);
+        ProcessExecutor p = new ProcessExecutor(pb);
 
+        // TODO: Consider moving waitForProcess into ProcessExecutor
         if (!waitForProcess(p)) {
             // The subprocess might not enter JVMCI compilation.
             // Print the subprocess output and pass the test in this case.
-            System.out.println(output.getOutput());
+            System.out.println(p.getOutput());
             return;
         }
+
+        OutputAnalyzer output = p.getOutputAnalyzer();
 
         if (fatalError) {
             output.shouldContain("testing JVMCI fatal exception handling");
@@ -141,7 +143,7 @@ public class TestUncaughtErrorInCompileMethod extends JVMCIServiceLocator {
     /**
      * @return true if {@code p} exited on its own, false if it had to be destroyed
      */
-    private static boolean waitForProcess(Process p) {
+    private static boolean waitForProcess(ProcessExecutor p) {
         while (true) {
             try {
                 boolean exited = p.waitFor(10, TimeUnit.SECONDS);
@@ -154,6 +156,9 @@ public class TestUncaughtErrorInCompileMethod extends JVMCIServiceLocator {
                         Thread.sleep(1000);
                         p.destroyForcibly();
                     }
+
+                    // Make sure the processExecutor se that the process has exited
+                    p.waitFor();
                     return false;
                 }
                 return true;

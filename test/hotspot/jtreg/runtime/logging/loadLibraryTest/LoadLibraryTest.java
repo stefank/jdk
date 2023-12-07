@@ -118,7 +118,7 @@ public class LoadLibraryTest {
 
 
     public static void main(String... args) throws Exception {
-        ProcessBuilder pb = ProcessTools.createLimitedTestJavaProcessBuilder(
+        OutputAnalyzer output = ProcessTools.executeLimitedTestJava(
             "-Xbootclasspath/a:.", "-XX:+UnlockDiagnosticVMOptions",
             "-XX:+WhiteBoxAPI", "-Xmn8m", "-Xlog:library=info",
             "-Djava.library.path=" + System.getProperty("java.library.path"),
@@ -126,7 +126,6 @@ public class LoadLibraryTest {
             "-Xlog:class+loader+constraints",
             "LoadLibraryTest$LoadLibrary", System.getProperty("test.classes"));
 
-        OutputAnalyzer output = new OutputAnalyzer(pb.start());
         output.shouldHaveExitValue(0);
         output.shouldContain("Loaded library");
         output.shouldContain("Found Java_LoadLibraryTest_00024LoadLibraryClass_nTest__ in library");

@@ -54,9 +54,7 @@ public class TestOnSpinWaitNoneAArch64 {
         command.add(Launcher.class.getName());
 
         // Test C2 compiler
-        ProcessBuilder pb = ProcessTools.createLimitedTestJavaProcessBuilder(command);
-
-        OutputAnalyzer analyzer = new OutputAnalyzer(pb.start());
+        OutputAnalyzer analyzer = ProcessTools.executeLimitedTestJava(command);
 
         analyzer.shouldHaveExitValue(0);
 

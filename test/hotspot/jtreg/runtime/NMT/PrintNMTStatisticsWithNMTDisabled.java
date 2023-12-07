@@ -37,11 +37,10 @@ import jdk.test.lib.process.OutputAnalyzer;
 public class PrintNMTStatisticsWithNMTDisabled {
 
   public static void main(String args[]) throws Exception {
-    ProcessBuilder pb = ProcessTools.createLimitedTestJavaProcessBuilder(
+    OutputAnalyzer output = ProcessTools.executeLimitedTestJava(
       "-XX:+UnlockDiagnosticVMOptions",
       "-XX:+PrintNMTStatistics", "-XX:NativeMemoryTracking=off",
       "-version");
-    OutputAnalyzer output = new OutputAnalyzer(pb.start());
     output.shouldContain("warning: PrintNMTStatistics is disabled, because native memory tracking is not enabled");
     output.shouldHaveExitValue(0);
   }

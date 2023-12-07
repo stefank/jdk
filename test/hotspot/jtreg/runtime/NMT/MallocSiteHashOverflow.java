@@ -52,11 +52,9 @@ public class MallocSiteHashOverflow {
 
         // Grab my own PID
         String pid = Long.toString(ProcessTools.getProcessId());
-        ProcessBuilder pb = new ProcessBuilder();
 
         // Verify that current tracking level is "detail"
-        pb.command(new String[] { JDKToolFinder.getJDKTool("jcmd"), pid, "VM.native_memory", "statistics"});
-        output = new OutputAnalyzer(pb.start());
+        output = ProcessTools.executeProcess(JDKToolFinder.getJDKTool("jcmd"), pid, "VM.native_memory", "statistics");
         output.shouldContain("Native Memory Tracking Statistics");
 
         // Attempt to cause NMT to downgrade tracking level by allocating small amounts
@@ -72,8 +70,7 @@ public class MallocSiteHashOverflow {
             pc += MAX_HASH_SIZE;
             if (i == entries) {
                 // Verify that tracking has been downgraded
-                pb.command(new String[] { JDKToolFinder.getJDKTool("jcmd"), pid, "VM.native_memory", "statistics"});
-                output = new OutputAnalyzer(pb.start());
+                output = ProcessTools.executeProcess(JDKToolFinder.getJDKTool("jcmd"), pid, "VM.native_memory", "statistics");
                 output.shouldContain("Tracking level has been downgraded due to lack of resources");
             }
         }

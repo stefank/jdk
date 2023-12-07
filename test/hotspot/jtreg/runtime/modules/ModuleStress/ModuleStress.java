@@ -50,12 +50,11 @@ public class ModuleStress {
         //   loaders (boot, application, platform).  Thus there is
         //   not a need to walk those lists at a GC safepoint since
         //   those loaders never die.
-        ProcessBuilder pb = ProcessTools.createLimitedTestJavaProcessBuilder(
+        OutputAnalyzer oa = ProcessTools.executeLimitedTestJava(
              "-Xbootclasspath/a:.",
              "-Xlog:module=trace",
              "-version");
 
-        OutputAnalyzer oa = new OutputAnalyzer(pb.start());
         oa.shouldNotContain("must be walked")
           .shouldNotContain("being walked")
           .shouldHaveExitValue(0);
@@ -85,12 +84,11 @@ public class ModuleStress {
         //   m1x's module readability list and package p2's exportability should
         //   not be walked at a GC safepoint since both modules are defined to
         //   the same loader and thus have the exact same life cycle.
-        pb = ProcessTools.createLimitedTestJavaProcessBuilder(
+        oa = ProcessTools.executeLimitedTestJava(
              "-Xbootclasspath/a:.",
              "-Xlog:module=trace",
              "ModuleSameCLMain");
 
-        oa = new OutputAnalyzer(pb.start());
         oa.shouldNotContain("must be walked")
           .shouldNotContain("being walked")
           .shouldHaveExitValue(0);
@@ -99,12 +97,11 @@ public class ModuleStress {
         //   m1x's module readability list and package p2's exportability list must
         //   be walked at a GC safepoint since both modules are defined to non-builtin
         //   class loaders which could die and thus be unloaded.
-        pb = ProcessTools.createLimitedTestJavaProcessBuilder(
+        oa = ProcessTools.executeLimitedTestJava(
              "-Xbootclasspath/a:.",
              "-Xlog:module=trace",
              "ModuleNonBuiltinCLMain");
 
-        oa = new OutputAnalyzer(pb.start());
         oa.shouldContain("module m1x reads list must be walked")
           .shouldContain("package p2 defined in module m2x, exports list must be walked")
           .shouldNotContain("module m2x reads list must be walked")
@@ -116,13 +113,12 @@ public class ModuleStress {
         //   m3x is defined to the system class loader, m2x's module readability
         //   list does not have to be walked at a GC safepoint, but package p2's
         //   exportability list does.
-        pb = ProcessTools.createLimitedTestJavaProcessBuilder(
+        oa = ProcessTools.executeLimitedTestJava(
              "-Djava.system.class.loader=CustomSystemClassLoader",
              "-Xbootclasspath/a:.",
              "-Xlog:module=trace",
              "ModuleNonBuiltinCLMain");
 
-        oa = new OutputAnalyzer(pb.start());
         oa.shouldContain("package p2 defined in module m2x, exports list must be walked")
           .shouldNotContain("module m2x reads list must be walked")
           .shouldHaveExitValue(0);

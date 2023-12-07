@@ -27,6 +27,7 @@ import java.io.PrintStream;
 import jdk.test.lib.JDKToolLauncher;
 import jdk.test.lib.apps.LingeredApp;
 import jdk.test.lib.process.OutputAnalyzer;
+import jdk.test.lib.process.ProcessTools;
 import jdk.test.lib.SA.SATestUtils;
 
 import jtreg.SkippedException;
@@ -61,17 +62,13 @@ public class ClhsdbTestConnectArgument {
             jhsdbLauncher.addToolArg("--connect");
             jhsdbLauncher.addToolArg("localhost");
 
-            Process jhsdb = (SATestUtils.createProcessBuilder(jhsdbLauncher)).start();
-            OutputAnalyzer out = new OutputAnalyzer(jhsdb);
+            ProcessBuilder pb = SATestUtils.createProcessBuilder(jhsdbLauncher);
+            OutputAnalyzer out = ProcessTools.executeProcess(pb,
+                "echo true\n" + 
+                "verbose true\n" +
+                "class java.lang.Object\n" +
+                "quit\n");
 
-            try (PrintStream console = new PrintStream(jhsdb.getOutputStream(), true)) {
-                console.println("echo true");
-                console.println("verbose true");
-                console.println("class java.lang.Object");
-                console.println("quit");
-            }
-
-            jhsdb.waitFor();
             System.out.println(out.getStdout());
             System.err.println(out.getStderr());
 

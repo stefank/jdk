@@ -42,11 +42,10 @@ public class TestJVMCIPrintProperties {
     }
 
     static void test(String enableFlag) throws Exception {
-        ProcessBuilder pb = ProcessTools.createLimitedTestJavaProcessBuilder(
+        OutputAnalyzer output = ProcessTools.executeLimitedTestJava(
             "-XX:+UnlockExperimentalVMOptions",
             enableFlag, "-Djvmci.Compiler=null",
             "-XX:+JVMCIPrintProperties");
-        OutputAnalyzer output = new OutputAnalyzer(pb.start());
         output.shouldContain("[JVMCI properties]"); // expected message
         output.shouldContain("jvmci.Compiler := \"null\""); // expected message
         output.shouldContain("jvmci.InitTimer = false"); // expected message

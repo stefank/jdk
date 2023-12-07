@@ -75,8 +75,8 @@ public class RedefineSharedClassJFR {
                 List<String> offCommand = new ArrayList<>();
                 offCommand.add("-Xshare:off");
                 offCommand.addAll(baseCommand);
-                ProcessBuilder pb = ProcessTools.createLimitedTestJavaProcessBuilder(offCommand);
-                new OutputAnalyzer(pb.start())
+                OutputAnalyzer output = ProcessTools.executeLimitedTestJava(offCommand);
+                output
                     // We can't expect any of the transformed classes to be in use
                     // so the only thing we can verify is that no scratch classes
                     // are added because they are shared.
@@ -89,8 +89,8 @@ public class RedefineSharedClassJFR {
                 List<String> onCommand = new ArrayList<>();
                 onCommand.add("-Xshare:on");
                 onCommand.addAll(baseCommand);
-                ProcessBuilder pb = ProcessTools.createLimitedTestJavaProcessBuilder(onCommand);
-                new OutputAnalyzer(pb.start())
+                OutputAnalyzer output = ProcessTools.executeLimitedTestJava(onCommand);
+                output
                     .shouldContain(SHOULD_CLEAN_FALSE)
                     .shouldNotContain(SHOULD_CLEAN_TRUE)
                     .shouldContain(SCRATCH_CLASS_ADDED_SHARED)

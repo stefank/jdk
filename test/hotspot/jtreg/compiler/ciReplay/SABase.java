@@ -78,34 +78,13 @@ public class SABase extends CiReplayBase {
         } catch (Exception e) {
             throw new Error("Can't create process builder: " + e, e);
         }
-        Process p;
-        try {
-            p = pb.start();
-        } catch (IOException ioe) {
-            throw new Error("Can't start child process: " + ioe, ioe);
-        }
-        OutputStream input = p.getOutputStream();
-        String str = "dumpreplaydata -a > " + REPLAY_FILE_NAME + "\nquit\n";
-        try {
-            input.write(str.getBytes());
-            input.flush();
-        } catch (IOException ioe) {
-            throw new Error("Problem writing process input: " + str, ioe);
-        }
-        try {
-            p.waitFor();
-        } catch (InterruptedException ie) {
-            throw new Error("Problem waitinig child process: " + ie, ie);
-        }
-        int exitValue = p.exitValue();
+
+        String input = "dumpreplaydata -a > " + REPLAY_FILE_NAME + "\nquit\n");
+        OutputAnalyzer analyzer = ProcessTools.executeProcess(pb, input);
+        
+        int exitValue = analyzer.getExitValue();
         if (exitValue != 0) {
-            String output;
-            try {
-                output = new OutputAnalyzer(p).getOutput();
-            } catch (IOException ioe) {
-                throw new Error("Can't get failed CLHSDB process output: " + ioe, ioe);
-            }
-            throw new AssertionError("CLHSDB wasn't run successfully: " + output);
+            throw new AssertionError("CLHSDB wasn't run successfully: " + analyzer.getOutput());
         }
         File replay = new File(REPLAY_FILE_NAME);
         Asserts.assertTrue(replay.exists() && replay.isFile() && replay.length() > 0,

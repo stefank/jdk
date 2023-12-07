@@ -67,11 +67,10 @@ public class invocationOldCHATests {
     public static void runTest(String whichTests, String classFileVersion) throws Throwable {
         System.out.println("\nOld CHA invocation tests, Tests: " + whichTests +
                            ", class file version: " + classFileVersion);
-        ProcessBuilder pb = ProcessTools.createLimitedTestJavaProcessBuilder("-Xmx128M",
+        OutputAnalyzer output = ProcessTools.executeLimitedTestJava("-Xmx128M",
             "-Xcomp", "-XX:+UnlockDiagnosticVMOptions", "-XX:-UseVtableBasedCHA",
             "--add-exports", "java.base/jdk.internal.org.objectweb.asm=ALL-UNNAMED",
             whichTests, "--classfile_version=" + classFileVersion);
-        OutputAnalyzer output = new OutputAnalyzer(pb.start());
         try {
             output.shouldContain("EXECUTION STATUS: PASSED");
             output.shouldHaveExitValue(0);

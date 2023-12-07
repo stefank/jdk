@@ -37,11 +37,10 @@ public class PatchModuleDupJavaBase {
   // The VM should exit initialization if java.base is specified
   // more than once to --patch-module.
   public static void main(String args[]) throws Exception {
-    ProcessBuilder pb = ProcessTools.createLimitedTestJavaProcessBuilder(
+    OutputAnalyzer output = ProcessTools.executeLimitedTestJava(
       "--patch-module=java.base=javabase_dir",
       "--patch-module=java.base=javabase_dir",
       "-version");
-    OutputAnalyzer output = new OutputAnalyzer(pb.start());
     output.shouldContain("Cannot specify java.base more than once to --patch-module");
     output.shouldHaveExitValue(1);
   }

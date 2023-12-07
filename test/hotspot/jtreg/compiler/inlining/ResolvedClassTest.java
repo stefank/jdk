@@ -41,14 +41,12 @@ import java.io.IOException;
 
 public class ResolvedClassTest {
     /* ======================================================================== */
-    static void testStatic() throws IOException {
-        ProcessBuilder pb = ProcessTools.createLimitedTestJavaProcessBuilder(
+    static void testStatic() throws Exception {
+        OutputAnalyzer analyzer = ProcessTools.executeLimitedTestJava(
                 "-XX:+IgnoreUnrecognizedVMOptions", "-showversion",
                 "-XX:+PrintCompilation", "-XX:+UnlockDiagnosticVMOptions", "-XX:+PrintInlining",
                 "-Xbatch", "-XX:CompileCommand=quiet", "-XX:CompileCommand=compileonly," + TestStatic.class.getName() + "::test",
                 TestStatic.class.getName());
-
-        OutputAnalyzer analyzer = new OutputAnalyzer(pb.start());
 
         analyzer.shouldHaveExitValue(0);
 
@@ -77,14 +75,12 @@ public class ResolvedClassTest {
     }
 
     /* ======================================================================== */
-    static void testStaticInit() throws IOException {
-        ProcessBuilder pb = ProcessTools.createLimitedTestJavaProcessBuilder(
+    static void testStaticInit() throws Exception {
+        OutputAnalyzer analyzer = ProcessTools.executeLimitedTestJava(
                 "-XX:+IgnoreUnrecognizedVMOptions", "-showversion",
                 "-XX:+PrintCompilation", "-XX:+UnlockDiagnosticVMOptions", "-XX:+PrintInlining",
                 "-Xbatch", "-XX:CompileCommand=quiet", "-XX:CompileCommand=compileonly," + TestStaticInit.class.getName() + "::test",
                 TestStaticInit.class.getName());
-
-        OutputAnalyzer analyzer = new OutputAnalyzer(pb.start());
 
         analyzer.shouldHaveExitValue(0);
 
@@ -114,14 +110,12 @@ public class ResolvedClassTest {
     }
 
     /* ======================================================================== */
-    static void testIndy() throws IOException {
-        ProcessBuilder pb = ProcessTools.createLimitedTestJavaProcessBuilder(
+    static void testIndy() throws Exception {
+        OutputAnalyzer analyzer = ProcessTools.executeLimitedTestJava(
                 "-XX:+IgnoreUnrecognizedVMOptions", "-showversion",
                 "-XX:+PrintCompilation", "-XX:+UnlockDiagnosticVMOptions", "-XX:+PrintInlining",
                 "-Xbatch", "-XX:CompileCommand=quiet", "-XX:CompileCommand=compileonly," + TestIndy.class.getName() + "::test",
                 TestIndy.class.getName());
-
-        OutputAnalyzer analyzer = new OutputAnalyzer(pb.start());
 
         analyzer.shouldHaveExitValue(0);
 
@@ -150,7 +144,7 @@ public class ResolvedClassTest {
 
     /* ======================================================================== */
 
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) throws Exception {
         testStatic();
         testStaticInit();
         testIndy();

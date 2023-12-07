@@ -221,15 +221,13 @@ public class TestBufferVectorization {
     }
 
     static void verify_vectors(String testName) {
-        ProcessBuilder pb;
         OutputAnalyzer out;
         try {
-            pb = ProcessTools.createLimitedTestJavaProcessBuilder("-XX:-BackgroundCompilation",
-                                                                  "-XX:+TraceNewVectors",
-                                                                  "compiler.vectorization.TestBufferVectorization",
-                                                                  testName,
-                                                                  "run");
-            out = new OutputAnalyzer(pb.start());
+            out = ProcessTools.executeLimitedTestJava("-XX:-BackgroundCompilation",
+                                                      "-XX:+TraceNewVectors",
+                                                      "compiler.vectorization.TestBufferVectorization",
+                                                      testName,
+                                                      "run");
         } catch (Exception e) {
             throw new RuntimeException(" Exception launching Java process: " + e);
         }

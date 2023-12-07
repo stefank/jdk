@@ -238,8 +238,7 @@ public class JarBuilder {
 
         if (DEBUG) printIterable("compile args: ", args);
 
-        ProcessBuilder pb = new ProcessBuilder(args);
-        OutputAnalyzer output = new OutputAnalyzer(pb.start());
+        OutputAnalyzer output = ProcessTools.executeProcess(args);
         output.shouldHaveExitValue(0);
     }
 

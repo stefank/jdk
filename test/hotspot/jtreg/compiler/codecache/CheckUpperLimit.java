@@ -38,11 +38,7 @@ import jdk.test.lib.process.ProcessTools;
 
 public class CheckUpperLimit {
     public static void main(String[] args) throws Exception {
-        ProcessBuilder pb;
-        OutputAnalyzer out;
-
-        pb = ProcessTools.createLimitedTestJavaProcessBuilder("-XX:ReservedCodeCacheSize=2049m", "-version");
-        out = new OutputAnalyzer(pb.start());
+        OutputAnalyzer out = ProcessTools.executeLimitedTestJava("-XX:ReservedCodeCacheSize=2049m", "-version");
         out.shouldContain("Invalid ReservedCodeCacheSize=");
         out.shouldHaveExitValue(1);
     }

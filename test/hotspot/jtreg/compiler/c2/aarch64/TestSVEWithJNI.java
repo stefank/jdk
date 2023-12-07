@@ -73,13 +73,13 @@ public class TestSVEWithJNI {
         }
     }
 
-    public static ProcessBuilder createProcessBuilder(String [] args, String mode) {
+    public static OutputAnalyzer execute(String [] args, String mode) {
         List<String> vmopts = new ArrayList<>();
         String testjdkPath = System.getProperty("test.jdk");
         Collections.addAll(vmopts, "-Dtest.jdk=" + testjdkPath);
         Collections.addAll(vmopts, args);
         Collections.addAll(vmopts, TestSVEWithJNI.class.getName(), mode);
-        return ProcessTools.createLimitedTestJavaProcessBuilder(vmopts.toArray(new String[vmopts.size()]));
+        return ProcessTools.executeLimitedTest(vmopts);
     }
 
     public static void main(String [] args) throws Exception {
@@ -92,15 +92,12 @@ public class TestSVEWithJNI {
                 {"-Xint", "-XX:UseSVE=1"},
                 {"-Xcomp", "-XX:UseSVE=1"},
             };
-            ProcessBuilder pb;
             OutputAnalyzer output;
             for (String [] opts : testOpts) {
-                pb = createProcessBuilder(opts, "normal");
-                output = new OutputAnalyzer(pb.start());
+                output = execute(opts, "normal");
                 output.shouldHaveExitValue(EXIT_CODE);
 
-                pb = createProcessBuilder(opts, "abort");
-                output = new OutputAnalyzer(pb.start());
+                output = execute(opts, "abort");
                 output.shouldNotHaveExitValue(EXIT_CODE);
                 output.shouldMatch("(error|Error|ERROR)");
             }
@@ -108,14 +105,12 @@ public class TestSVEWithJNI {
             // Verify MaxVectorSize
 
             // Any SVE architecture should support 128-bit vector size.
-            pb = createProcessBuilder(new String []{"-XX:UseSVE=1", "-XX:MaxVectorSize=16"}, "normal");
-            output = new OutputAnalyzer(pb.start());
+            output = execute(new String []{"-XX:UseSVE=1", "-XX:MaxVectorSize=16"}, "normal");
             output.shouldHaveExitValue(EXIT_CODE);
             output.shouldContain(MSG + 16);
 
             // An unsupported large vector size value.
-            pb = createProcessBuilder(new String []{"-XX:UseSVE=1", "-XX:MaxVectorSize=512"}, "normal");
-            output = new OutputAnalyzer(pb.start());
+            output = execute(new String []{"-XX:UseSVE=1", "-XX:MaxVectorSize=512"}, "normal");
             output.shouldHaveExitValue(EXIT_CODE);
             output.shouldContain("warning");
         } else if (args[0].equals("normal")) {

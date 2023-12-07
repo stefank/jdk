@@ -70,7 +70,6 @@ public abstract class DumpReplayBase extends CiReplayBase {
     }
 
     public boolean generateReplay(String... vmopts) {
-        OutputAnalyzer oa;
         try {
             List<String> options = new ArrayList<>(Arrays.asList(vmopts));
             options.add("-XX:CompileCommand=option," + getTestClass() + "::" + getTestMethod() + ",bool,DumpReplay,true");
@@ -79,7 +78,7 @@ public abstract class DumpReplayBase extends CiReplayBase {
             options.add("-XX:CompileCommand=compileonly," + getTestClass() + "::" + getTestMethod());
             options.add("-Xbatch");
             options.add(getTestClass());
-            oa = ProcessTools.executeProcess(ProcessTools.createTestJavaProcessBuilder(options));
+            OutputAnalyzer oa = ProcessTools.executeTestJava(options);
             Asserts.assertEquals(oa.getExitValue(), 0, "Crash JVM exits gracefully");
             replayFiles = Files.list(Paths.get("."))
                                     .map(Path::toFile)

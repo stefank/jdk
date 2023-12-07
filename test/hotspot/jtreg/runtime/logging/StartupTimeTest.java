@@ -36,8 +36,7 @@ import jdk.test.lib.process.OutputAnalyzer;
 import jdk.test.lib.process.ProcessTools;
 
 public class StartupTimeTest {
-    static void analyzeOutputOn(ProcessBuilder pb) throws Exception {
-        OutputAnalyzer output = new OutputAnalyzer(pb.start());
+    static void analyzeOutputOn(OutputAnalyzer output) throws Exception {
         output.shouldMatch("(Genesis, [0-9]+.[0-9]+ secs)");
         output.shouldMatch("(Start VMThread, [0-9]+.[0-9]+ secs)");
         output.shouldMatch("(Initialize module system, [0-9]+.[0-9]+ secs)");
@@ -45,20 +44,19 @@ public class StartupTimeTest {
         output.shouldHaveExitValue(0);
     }
 
-    static void analyzeOutputOff(ProcessBuilder pb) throws Exception {
-        OutputAnalyzer output = new OutputAnalyzer(pb.start());
+    static void analyzeOutputOff(OutputAnalyzer output) throws Exception {
         output.shouldNotContain("[startuptime]");
         output.shouldHaveExitValue(0);
     }
 
     public static void main(String[] args) throws Exception {
-        ProcessBuilder pb = ProcessTools.createLimitedTestJavaProcessBuilder("-Xlog:startuptime",
-                                                                             InnerClass.class.getName());
-        analyzeOutputOn(pb);
+        OutputAnalyzer output = ProcessTools.executeLimitedTestJava("-Xlog:startuptime",
+                                                                    InnerClass.class.getName());
+        analyzeOutputOn(output);
 
-        pb = ProcessTools.createLimitedTestJavaProcessBuilder("-Xlog:startuptime=off",
-                                                              InnerClass.class.getName());
-        analyzeOutputOff(pb);
+        output = ProcessTools.executeLimitedTestJava("-Xlog:startuptime=off",
+                                                     InnerClass.class.getName());
+        analyzeOutputOff(output);
     }
 
     public static class InnerClass {

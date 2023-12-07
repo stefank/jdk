@@ -37,8 +37,7 @@ import jdk.test.lib.process.OutputAnalyzer;
 
 public class VerifyWithDefaultArchive {
     public static void main(String... args) throws Exception {
-        ProcessBuilder pb = ProcessTools.createLimitedTestJavaProcessBuilder("-Xlog:cds", "-XX:+VerifySharedSpaces", "-version");
-        OutputAnalyzer out = new OutputAnalyzer(pb.start());
+        OutputAnalyzer out = ProcessTools.executeLimitedTestJava("-Xlog:cds", "-XX:+VerifySharedSpaces", "-version");
         out.shouldNotContain("relocation bitmap CRC error");
         out.shouldHaveExitValue(0);
     }

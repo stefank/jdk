@@ -62,8 +62,7 @@ public class DTraceOptionsTest {
         };
 
         for (String opt : options) {
-            var pb = ProcessTools.createLimitedTestJavaProcessBuilder("-XX:+" + opt, "-version");
-            var oa = new OutputAnalyzer(pb.start());
+            var oa = ProcessTools.executeLimitedTestJava("-XX:+" + opt, "-version");
             if (dtraceEnabled) {
                 oa.shouldHaveExitValue(0);
             } else {

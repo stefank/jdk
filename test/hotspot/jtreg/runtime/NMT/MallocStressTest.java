@@ -77,7 +77,6 @@ public class MallocStressTest {
 
         // Grab my own PID
         String pid = Long.toString(ProcessTools.getProcessId());
-        ProcessBuilder pb = new ProcessBuilder();
 
         AllocThread[]   alloc_threads = new AllocThread[40];
         ReleaseThread[] release_threads = new ReleaseThread[10];
@@ -104,8 +103,8 @@ public class MallocStressTest {
         // Now check if the result from NMT matches the total memory allocated.
         String expected_test_summary = "Test (reserved=" + mallocd_total_in_KB +"KB, committed=" + mallocd_total_in_KB + "KB)";
         // Run 'jcmd <pid> VM.native_memory summary'
-        pb.command(new String[] { JDKToolFinder.getJDKTool("jcmd"), pid, "VM.native_memory", "summary"});
-        output = new OutputAnalyzer(pb.start());
+        ProcessBuilder pb = new ProcessBuilder(JDKToolFinder.getJDKTool("jcmd"), pid, "VM.native_memory", "summary");
+        output = ProcessTools.executeProcess(pb);
         output.shouldContain(expected_test_summary);
 
         // Release all allocated memory
@@ -130,12 +129,11 @@ public class MallocStressTest {
         }
 
         // All test memory allocated should be released
-        output = new OutputAnalyzer(pb.start());
+        output = ProcessTools.executeProcess(pb);
         output.shouldContain("Test (reserved=0KB, committed=0KB)");
 
         // Verify that tracking level has not been downgraded
-        pb.command(new String[] { JDKToolFinder.getJDKTool("jcmd"), pid, "VM.native_memory", "statistics"});
-        output = new OutputAnalyzer(pb.start());
+        output = ProcessTools.executeProcess(JDKToolFinder.getJDKTool("jcmd"), pid, "VM.native_memory", "statistics");
         output.shouldNotContain("Tracking level has been downgraded due to lack of resources");
     }
 

@@ -44,7 +44,7 @@ public class ReadFromNoaccessArea {
 
   public static void main(String args[]) throws Exception {
 
-    ProcessBuilder pb = ProcessTools.createLimitedTestJavaProcessBuilder(
+        OutputAnalyzer output = ProcessTools.executeLimitedTestJava(
           "-Xbootclasspath/a:.",
           "-XX:+UnlockDiagnosticVMOptions",
           "-XX:+WhiteBoxAPI",
@@ -54,7 +54,6 @@ public class ReadFromNoaccessArea {
           "-Xmx128m",
           DummyClassWithMainTryingToReadFromNoaccessArea.class.getName());
 
-    OutputAnalyzer output = new OutputAnalyzer(pb.start());
     System.out.println("******* Printing stdout for analysis in case of failure *******");
     System.out.println(output.getStdout());
     System.out.println("******* Printing stderr for analysis in case of failure *******");

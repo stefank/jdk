@@ -98,7 +98,7 @@ public class ProtectionDomainCacheTest {
     }
 
     public static void main(String args[]) throws Exception {
-        ProcessBuilder pb = ProcessTools.createLimitedTestJavaProcessBuilder(
+        OutputAnalyzer output = ProcessTools.executeLimitedTestJava(
                                       "-Djava.security.policy==" + System.getProperty("test.src") + File.separator + "test.policy",
                                       "-Dtest.classes=" + System.getProperty("test.classes", "."),
                                       "-XX:+UnlockDiagnosticVMOptions",
@@ -107,7 +107,6 @@ public class ProtectionDomainCacheTest {
                                       "-Xlog:gc+verify,protectiondomain=trace",
                                       "-Djava.security.manager",
                                       Test.class.getName());
-        OutputAnalyzer output = new OutputAnalyzer(pb.start());
         output.shouldContain("PD in set is not alive");
         output.shouldContain("HandshakeForPD::do_thread");
         output.shouldHaveExitValue(0);

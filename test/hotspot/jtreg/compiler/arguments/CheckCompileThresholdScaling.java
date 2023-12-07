@@ -335,11 +335,7 @@ public class CheckCompileThresholdScaling {
     };
 
     private static void verifyValidOption(String[] arguments, String[] expected_outputs, boolean tiered) throws Exception {
-        ProcessBuilder pb;
-        OutputAnalyzer out;
-
-        pb = ProcessTools.createLimitedTestJavaProcessBuilder(arguments);
-        out = new OutputAnalyzer(pb.start());
+        OutputAnalyzer out = ProcessTools.executeLimitedTestJava(arguments);
 
         try {
             for (String expected_output : expected_outputs) {

@@ -69,8 +69,7 @@ public class TestANewArray {
         byte[] classFile_254 = dumpClassFile(cfv, test_Dimension_254, array_Dimension_254);
         writeClassFileFromByteArray(classFile_254);
         System.err.println("Running with cfv: " + cfv + ", test_Dimension_254");
-        ProcessBuilder pb = ProcessTools.createTestJavaProcessBuilder("-verify", "-cp", ".",  classCName);
-        OutputAnalyzer output = new OutputAnalyzer(pb.start());
+        OutputAnalyzer output = ProcessTools.executeTestJava("-verify", "-cp", ".",  classCName);
         output.shouldNotContain("java.lang.VerifyError");
         output.shouldHaveExitValue(0);
 
@@ -78,8 +77,7 @@ public class TestANewArray {
         byte[] classFile_255 = dumpClassFile(cfv, test_Dimension_255, array_Dimension_255);
         writeClassFileFromByteArray(classFile_255);
         System.err.println("Running with cfv: " + cfv + ", test_Dimension_255");
-        pb = ProcessTools.createTestJavaProcessBuilder("-verify", "-cp", ".",  classCName);
-        output = new OutputAnalyzer(pb.start());
+        output = ProcessTools.executeTestJava("-verify", "-cp", ".",  classCName);
         // If anewarray has an operand with 255 array dimensions then VerifyError should
         // be thrown because the resulting array would have 256 dimensions.
         output.shouldContain("java.lang.VerifyError");
@@ -95,8 +93,7 @@ public class TestANewArray {
         byte[] classFile_264 = dumpClassFile(cfv, test_Dimension_264, array_Dimension_264);
         writeClassFileFromByteArray(classFile_264);
         System.err.println("Running with cfv: " + cfv + ", test_Dimension_264");
-        pb = ProcessTools.createTestJavaProcessBuilder("-verify", "-cp", ".",  classCName);
-        output = new OutputAnalyzer(pb.start());
+        output = ProcessTools.executeTestJava("-verify", "-cp", ".",  classCName);
         output.shouldContain("java.lang.ClassFormatError");
         output.shouldHaveExitValue(1);
     }

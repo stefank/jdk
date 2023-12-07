@@ -43,7 +43,7 @@ import jdk.test.whitebox.WhiteBox;
 public class CleanProtectionDomain {
 
   public static void main(String args[]) throws Exception {
-    ProcessBuilder pb = ProcessTools.createLimitedTestJavaProcessBuilder(
+    OutputAnalyzer output = ProcessTools.executeLimitedTestJava(
                                   "-Xlog:protectiondomain+table=debug",
                                   "--add-exports=java.base/jdk.internal.misc=ALL-UNNAMED",
                                   "-XX:+UnlockDiagnosticVMOptions",
@@ -51,7 +51,6 @@ public class CleanProtectionDomain {
                                   "-Xbootclasspath/a:.",
                                   "-Djava.security.manager=allow",
                                   Test.class.getName());
-    OutputAnalyzer output = new OutputAnalyzer(pb.start());
     output.shouldContain("protection domain added");
     output.shouldContain("protection domain unlinked");
     output.shouldHaveExitValue(0);

@@ -44,24 +44,20 @@ public class MallocSiteTypeChange {
 
         // Grab my own PID
         String pid = Long.toString(ProcessTools.getProcessId());
-        ProcessBuilder pb = new ProcessBuilder();
 
         int pc = 1;
         long addr = wb.NMTMallocWithPseudoStack(4 * 1024, pc);
 
         // Verify that current tracking level is "detail"
-        pb.command(new String[] { JDKToolFinder.getJDKTool("jcmd"), pid, "VM.native_memory", "detail"});
-        output = new OutputAnalyzer(pb.start());
+        output = ProcessTools.executeProcess(JDKToolFinder.getJDKTool("jcmd"), pid, "VM.native_memory", "detail");
         output.shouldContain("Test (reserved=4KB, committed=4KB)");
 
-        pb.command(new String[] { JDKToolFinder.getJDKTool("jcmd"), pid, "VM.native_memory", "baseline"});
-        output = new OutputAnalyzer(pb.start());
+        output = ProcessTools.executeProcess(JDKToolFinder.getJDKTool("jcmd"), pid, "VM.native_memory", "baseline");
         output.shouldContain("Baseline taken");
 
         wb.NMTFree(addr);
         addr = wb.NMTMallocWithPseudoStackAndType(2 * 1024, pc, 9 /* mtInternal */ );
-        pb.command(new String[] { JDKToolFinder.getJDKTool("jcmd"), pid, "VM.native_memory", "detail.diff"});
-        output = new OutputAnalyzer(pb.start());
+        output = ProcessTools.executeProcess(JDKToolFinder.getJDKTool("jcmd"), pid, "VM.native_memory", "detail.diff");
         output.shouldContain("(malloc=0KB type=Test -4KB)");
         output.shouldContain("(malloc=2KB type=Internal +2KB #1 +1)");
         output.shouldHaveExitValue(0);

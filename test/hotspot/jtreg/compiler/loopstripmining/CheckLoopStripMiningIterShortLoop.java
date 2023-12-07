@@ -37,8 +37,7 @@ import jdk.test.lib.process.ProcessTools;
 public class CheckLoopStripMiningIterShortLoop {
 
     public static void main(String[] args) throws Exception {
-        ProcessBuilder pb = ProcessTools.createLimitedTestJavaProcessBuilder("-XX:+UseG1GC", "-XX:+PrintFlagsFinal", "-version");
-        OutputAnalyzer out = new OutputAnalyzer(pb.start());
+        OutputAnalyzer out = ProcessTools.executeLimitedTestJava("-XX:+UseG1GC", "-XX:+PrintFlagsFinal", "-version");
         out.shouldHaveExitValue(0);
 
         long iter = Long.parseLong(out.firstMatch("uintx LoopStripMiningIter                      = (\\d+)", 1));

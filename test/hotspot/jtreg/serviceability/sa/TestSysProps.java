@@ -87,12 +87,7 @@ public class TestSysProps {
             jhsdbLauncher.addToolArg("--pid");
             jhsdbLauncher.addToolArg(Long.toString(app.getPid()));
 
-            ProcessBuilder jhsdbPb = SATestUtils.createProcessBuilder(jhsdbLauncher);
-            System.out.println("> " + ProcessTools.getCommandLine(jhsdbPb));
-            Process jhsdb = jhsdbPb.start();
-            OutputAnalyzer jhsdbOut = new OutputAnalyzer(jhsdb);
-
-            jhsdb.waitFor();
+            OutputAnalyzer jhsdbOut = SATestUtils.execute(jhsdbLauncher, true);
 
             System.out.println(jhsdbOut.getStdout());
             System.err.println(jhsdbOut.getStderr());
@@ -106,13 +101,9 @@ public class TestSysProps {
             jinfoLauncher.addToolArg("-sysprops");
             jinfoLauncher.addToolArg(Long.toString(app.getPid()));
 
-            List<String> cmdStringList = Arrays.asList(jinfoLauncher.getCommand());
-            ProcessBuilder jinfoPb = new ProcessBuilder(cmdStringList);
+            ProcessBuilder jinfoPb = new ProcessBuilder(jinfoLauncher.getCommand());
             System.out.println("> " + ProcessTools.getCommandLine(jinfoPb));
-            Process jinfo = jinfoPb.start();
-            OutputAnalyzer jinfoOut = new OutputAnalyzer(jinfo);
-
-            jinfo.waitFor();
+            OutputAnalyzer jinfoOut = ProcessTools.executeProcess(jinfoPb);
 
             System.out.println(jinfoOut.getStdout());
             System.err.println(jinfoOut.getStderr());

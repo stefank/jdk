@@ -43,14 +43,12 @@ import java.lang.invoke.MethodType;
 
 public class PollutedTrapCounts {
     public static void main(String[] args) throws Exception {
-        ProcessBuilder pb = ProcessTools.createLimitedTestJavaProcessBuilder(
+        OutputAnalyzer analyzer = ProcessTools.executeLimitedTestJava(
                 "-XX:+IgnoreUnrecognizedVMOptions",
                 "-XX:-TieredCompilation", "-Xbatch",
                 "-XX:PerBytecodeRecompilationCutoff=10", "-XX:PerMethodRecompilationCutoff=10",
                 "-XX:+PrintCompilation", "-XX:+UnlockDiagnosticVMOptions", "-XX:+PrintInlining",
                 Test.class.getName());
-
-        OutputAnalyzer analyzer = new OutputAnalyzer(pb.start());
 
         analyzer.shouldHaveExitValue(0);
 

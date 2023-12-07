@@ -57,10 +57,8 @@ public class PmapOnDebugdTest {
             jhsdbLauncher.addToolArg("--connect");
             jhsdbLauncher.addToolArg("localhost");
 
-            Process jhsdb = (SATestUtils.createProcessBuilder(jhsdbLauncher)).start();
-            OutputAnalyzer out = new OutputAnalyzer(jhsdb);
+            OutputAnalyzer out = SATestUtils.execute(jhsdbLauncher);
 
-            jhsdb.waitFor();
             System.out.println(out.getStdout());
             System.err.println(out.getStderr());
 

@@ -54,9 +54,9 @@ public class GetPackageXbootclasspath {
         ClassFileInstaller.writeClassToDisk("P/Test",
             InMemoryJavaCompiler.compile("P.Test", Test_src), test_classes);
 
-        new OutputAnalyzer(ProcessTools.createLimitedTestJavaProcessBuilder(
+        ProcessTools.executeLimitedTestJava(
                 "-Xbootclasspath/a:" + test_classes, "P.Test")
-            .start()).shouldContain("Test Passed")
+            .shouldContain("Test Passed")
             .shouldHaveExitValue(0);
     }
 }

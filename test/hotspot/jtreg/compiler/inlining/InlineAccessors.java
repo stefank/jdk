@@ -38,13 +38,11 @@ import jdk.test.lib.process.ProcessTools;
 
 public class InlineAccessors {
     public static void main(String[] args) throws Exception {
-        ProcessBuilder pb = ProcessTools.createLimitedTestJavaProcessBuilder(
+        OutputAnalyzer analyzer = ProcessTools.executeLimitedTestJava(
                 "-XX:+IgnoreUnrecognizedVMOptions", "-showversion",
                 "-server", "-XX:-TieredCompilation", "-Xbatch",
                 "-XX:+PrintCompilation", "-XX:+UnlockDiagnosticVMOptions", "-XX:+PrintInlining",
                  Launcher.class.getName());
-
-        OutputAnalyzer analyzer = new OutputAnalyzer(pb.start());
 
         analyzer.shouldHaveExitValue(0);
 

@@ -90,14 +90,13 @@ public class TestAlwaysPreTouchStacks {
 
         } else {
 
-            ProcessBuilder pb = ProcessTools.createLimitedTestJavaProcessBuilder(
+            OutputAnalyzer output = ProcessTools.executeLimitedTestJava(
                     "-XX:+UnlockDiagnosticVMOptions",
                     "-Xmx100M",
                     "-XX:+AlwaysPreTouchStacks",
                     "-XX:NativeMemoryTracking=summary", "-XX:+PrintNMTStatistics",
                     "TestAlwaysPreTouchStacks",
                     "test");
-            OutputAnalyzer output = new OutputAnalyzer(pb.start());
             output.reportDiagnosticSummary();
 
             output.shouldHaveExitValue(0);

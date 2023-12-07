@@ -101,10 +101,9 @@ public class GetSysPkgTest {
                 InMemoryJavaCompiler.compile("GetSysPkg_package.GetSysClass", source);
             ClassFileInstaller.writeClassToDisk("GetSysPkg_package/GetSysClass", klassbuf);
 
-            ProcessBuilder pb = ProcessTools.createLimitedTestJavaProcessBuilder("-Xbootclasspath/a:bl_dir",
+            OutputAnalyzer output = ProcessTools.executeLimitedTestJava("-Xbootclasspath/a:bl_dir",
                 "--add-opens=java.base/jdk.internal.loader=ALL-UNNAMED", "-cp", "." + File.pathSeparator +
                 System.getProperty("test.classes"), "GetSysPkgTest", "do_tests");
-            OutputAnalyzer output = new OutputAnalyzer(pb.start());
             output.shouldHaveExitValue(0);
             return;
         }

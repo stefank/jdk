@@ -53,10 +53,9 @@ public class PatchModuleTraceCL {
              InMemoryJavaCompiler.compile("javax.naming.spi.NamingManager", source, "--patch-module=java.naming"),
              "mods/java.naming");
 
-        ProcessBuilder pb = ProcessTools.createLimitedTestJavaProcessBuilder("--patch-module=java.naming=mods/java.naming",
+        OutputAnalyzer output = ProcessTools.executeLimitedTestJava("--patch-module=java.naming=mods/java.naming",
              "-Xlog:class+load=info", "PatchModuleMain", "javax.naming.spi.NamingManager");
 
-        OutputAnalyzer output = new OutputAnalyzer(pb.start());
         output.shouldHaveExitValue(0);
         // "modules" jimage case.
         output.shouldContain("[class,load] java.lang.Thread source: jrt:/java.base");
@@ -77,9 +76,8 @@ public class PatchModuleTraceCL {
              InMemoryJavaCompiler.compile("PatchModuleTraceCL_pkg.ItIsI", source),
              "xbcp");
 
-        pb = ProcessTools.createLimitedTestJavaProcessBuilder("-Xbootclasspath/a:xbcp",
+        output = ProcessTools.executeLimitedTestJava("-Xbootclasspath/a:xbcp",
              "-Xlog:class+load=info", "PatchModuleMain", "PatchModuleTraceCL_pkg.ItIsI");
-        output = new OutputAnalyzer(pb.start());
         // -Xbootclasspath/a case.
         output.shouldContain("[class,load] PatchModuleTraceCL_pkg.ItIsI source: xbcp");
         output.shouldHaveExitValue(0);

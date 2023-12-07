@@ -94,8 +94,7 @@ public class TestNoWarningLoopStripMiningIterSet {
         System.arraycopy(args, 0, cmds, 1, args.length);
         cmds[args.length + 1] = "-XX:+PrintFlagsFinal";
         cmds[args.length + 2] = "-version";
-        ProcessBuilder pb = ProcessTools.createLimitedTestJavaProcessBuilder(cmds);
-        OutputAnalyzer output = new OutputAnalyzer(pb.start());
+        OutputAnalyzer output = ProcessTools.executeLimitedTestJava(cmds);
         output.shouldHaveExitValue(0);
 
         check.accept(output);

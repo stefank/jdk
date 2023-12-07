@@ -51,11 +51,7 @@ public class TestJhsdbJstackLock {
             launcher.addToolArg("--pid");
             launcher.addToolArg(Long.toString(app.getPid()));
 
-            ProcessBuilder pb = SATestUtils.createProcessBuilder(launcher);
-            Process jhsdb = pb.start();
-            OutputAnalyzer out = new OutputAnalyzer(jhsdb);
-
-            jhsdb.waitFor();
+            OutputAnalyzer out = SATestUtils.execute(launcher);
 
             System.out.println(out.getStdout());
             System.err.println(out.getStderr());

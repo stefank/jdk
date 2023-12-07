@@ -91,7 +91,7 @@ public class BlackholeIntrinsicTest {
     private static final int CYCLES = 100_000;
     private static final int TRIES = 10;
 
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) throws Exception {
         if (args.length == 0) {
             driver();
         } else {
@@ -99,7 +99,7 @@ public class BlackholeIntrinsicTest {
         }
     }
 
-    public static void driver() throws IOException {
+    public static void driver() throws Exception {
         for (String test : TESTS.keySet()) {
             check(test, "-XX:TieredStopAtLevel=1");
             check(test, "-XX:-TieredCompilation");
@@ -120,7 +120,7 @@ public class BlackholeIntrinsicTest {
         }
     }
 
-    public static void check(String test, String... args) throws IOException {
+    public static void check(String test, String... args) throws Exception {
         List<String> cmdline = new ArrayList();
         cmdline.add("-Xmx128m");
         cmdline.add("-Xbatch");
@@ -134,8 +134,7 @@ public class BlackholeIntrinsicTest {
         cmdline.add("compiler.blackhole.BlackholeIntrinsicTest");
         cmdline.add(test);
 
-        ProcessBuilder pb = ProcessTools.createLimitedTestJavaProcessBuilder(cmdline);
-        OutputAnalyzer output = new OutputAnalyzer(pb.start());
+        OutputAnalyzer output = ProcessTools.executeLimitedTestJava(cmdline);
         output.shouldHaveExitValue(0);
         output.stderrShouldBeEmpty();
         output.stdoutShouldMatch("compiler.blackhole.BlackholeTarget::" + test + ".*intrinsic.*");

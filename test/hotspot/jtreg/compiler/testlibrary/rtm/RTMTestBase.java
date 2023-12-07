@@ -62,13 +62,10 @@ public class RTMTestBase {
      */
     public static OutputAnalyzer executeRTMTest(CompilableTest test,
             String... options) throws Exception {
-        ProcessBuilder processBuilder
-                = ProcessTools.createLimitedTestJavaProcessBuilder(
+        OutputAnalyzer output = ProcessTools.executeLimitedTestJava(
                 RTMTestBase.prepareTestOptions(test, options));
-        OutputAnalyzer outputAnalyzer
-                = new OutputAnalyzer(processBuilder.start());
-        System.out.println(outputAnalyzer.getOutput());
-        return outputAnalyzer;
+        System.out.println(output.getOutput());
+        return output;
     }
 
     /**
@@ -82,15 +79,10 @@ public class RTMTestBase {
      */
     public static OutputAnalyzer executeRTMTest(String logFileName,
             CompilableTest test, String... options) throws Exception {
-        ProcessBuilder processBuilder
-                = ProcessTools.createLimitedTestJavaProcessBuilder(
+        OutputAnalyzer output = ProcessTools.executeLimitedTestJava(
                 RTMTestBase.prepareTestOptions(logFileName, test, options));
-        OutputAnalyzer outputAnalyzer
-                = new OutputAnalyzer(processBuilder.start());
-
-        System.out.println(outputAnalyzer.getOutput());
-
-        return outputAnalyzer;
+        System.out.println(output.getOutput());
+        return output;
     }
 
     /**

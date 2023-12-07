@@ -41,19 +41,16 @@ import jtreg.SkippedException;
 
 public class CDSCompressedKPtrs {
   public static void main(String[] args) throws Exception {
-    ProcessBuilder pb;
-    pb = ProcessTools.createLimitedTestJavaProcessBuilder(
+    OutputAnalyzer output = ProcessTools.executeLimitedTestJava(
       "-XX:+UseCompressedClassPointers", "-XX:+UseCompressedOops",
       "-XX:+UnlockDiagnosticVMOptions", "-XX:SharedArchiveFile=./CDSCompressedKPtrs.jsa", "-Xshare:dump", "-Xlog:cds");
-    OutputAnalyzer output = new OutputAnalyzer(pb.start());
     try {
       output.shouldContain("Loading classes to share");
       output.shouldHaveExitValue(0);
 
-      pb = ProcessTools.createLimitedTestJavaProcessBuilder(
+      output = ProcessTools.executeLimitedTestJava(
         "-XX:+UseCompressedClassPointers", "-XX:+UseCompressedOops",
         "-XX:+UnlockDiagnosticVMOptions", "-XX:SharedArchiveFile=./CDSCompressedKPtrs.jsa", "-Xshare:on", "-version");
-      output = new OutputAnalyzer(pb.start());
       output.shouldContain("sharing");
       output.shouldHaveExitValue(0);
 

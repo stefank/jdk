@@ -52,7 +52,7 @@ public class VirtualAllocTestType {
       addr1 = wb.NMTReserveMemory(reserveSize);
       info = "reserve 1: addr1=" + addr1;
 
-      output = NMTTestUtils.startJcmdVMNativeMemoryDetail();
+      output = NMTTestUtils.executeJcmdVMNativeMemoryDetail();
       checkReservedCommittedSummary(output, 256, 0);
       output.shouldMatch("\\[0x[0]*" + Long.toHexString(addr1) + " - 0x[0]*" + Long.toHexString(addr1 + reserveSize) + "\\] reserved 256KB for Test");
 
@@ -69,7 +69,7 @@ public class VirtualAllocTestType {
         addr2 = tmp;
       }
 
-      output = NMTTestUtils.startJcmdVMNativeMemoryDetail();
+      output = NMTTestUtils.executeJcmdVMNativeMemoryDetail();
       checkReservedCommittedSummary(output, 512, 0);
       output.shouldMatch("\\[0x[0]*" + Long.toHexString(addr1) + " - 0x[0]*" + Long.toHexString(addr1 + reserveSize) + "\\] reserved 256KB for Test");
       output.shouldMatch("\\[0x[0]*" + Long.toHexString(addr2) + " - 0x[0]*" + Long.toHexString(addr2 + reserveSize) + "\\] reserved 256KB for Test");
@@ -79,7 +79,7 @@ public class VirtualAllocTestType {
       wb.NMTCommitMemory(addr1, commitSize);
       info = "commit 1";
 
-      output = NMTTestUtils.startJcmdVMNativeMemoryDetail();
+      output = NMTTestUtils.executeJcmdVMNativeMemoryDetail();
       checkReservedCommittedSummary(output, 512, 128);
       output.shouldMatch("\\[0x[0]*" + Long.toHexString(addr1) + " - 0x[0]*" + Long.toHexString(addr1 + reserveSize) + "\\] reserved 256KB for Test");
       output.shouldMatch("\\[0x[0]*" + Long.toHexString(addr1) + " - 0x[0]*" + Long.toHexString(addr1 + commitSize) + "\\] committed 128KB");
@@ -90,7 +90,7 @@ public class VirtualAllocTestType {
       wb.NMTCommitMemory(addr2, commitSize);
       info = "commit 2";
 
-      output = NMTTestUtils.startJcmdVMNativeMemoryDetail();
+      output = NMTTestUtils.executeJcmdVMNativeMemoryDetail();
       checkReservedCommittedSummary(output, 512, 256);
       output.shouldMatch("\\[0x[0]*" + Long.toHexString(addr1) + " - 0x[0]*" + Long.toHexString(addr1 + reserveSize) + "\\] reserved 256KB for Test");
       output.shouldMatch("\\[0x[0]*" + Long.toHexString(addr1) + " - 0x[0]*" + Long.toHexString(addr1 + commitSize) + "\\] committed 128KB");
@@ -102,7 +102,7 @@ public class VirtualAllocTestType {
       wb.NMTUncommitMemory(addr2, commitSize);
       info = "uncommit 2";
 
-      output = NMTTestUtils.startJcmdVMNativeMemoryDetail();
+      output = NMTTestUtils.executeJcmdVMNativeMemoryDetail();
       checkReservedCommittedSummary(output, 512, 128);
       output.shouldMatch("\\[0x[0]*" + Long.toHexString(addr1) + " - 0x[0]*" + Long.toHexString(addr1 + reserveSize) + "\\] reserved 256KB for Test");
       output.shouldMatch("\\[0x[0]*" + Long.toHexString(addr1) + " - 0x[0]*" + Long.toHexString(addr1 + commitSize) + "\\] committed 128KB");
@@ -114,7 +114,7 @@ public class VirtualAllocTestType {
       wb.NMTUncommitMemory(addr1, commitSize);
       info = "uncommit 1";
 
-      output = NMTTestUtils.startJcmdVMNativeMemoryDetail();
+      output = NMTTestUtils.executeJcmdVMNativeMemoryDetail();
       checkReservedCommittedSummary(output, 512, 0);
       output.shouldMatch("\\[0x[0]*" + Long.toHexString(addr1) + " - 0x[0]*" + Long.toHexString(addr1 + reserveSize) + "\\] reserved 256KB for Test");
       output.shouldNotMatch("\\[0x[0]*" + Long.toHexString(addr1) + " - 0x[0]*" + Long.toHexString(addr1 + commitSize) + "\\] committed 128KB");
@@ -126,7 +126,7 @@ public class VirtualAllocTestType {
       wb.NMTReleaseMemory(addr2, reserveSize);
       info = "release 2";
 
-      output = NMTTestUtils.startJcmdVMNativeMemoryDetail();
+      output = NMTTestUtils.executeJcmdVMNativeMemoryDetail();
       checkReservedCommittedSummary(output, 256, 0);
       output.shouldMatch("\\[0x[0]*" + Long.toHexString(addr1) + " - 0x[0]*" + Long.toHexString(addr1 + reserveSize) + "\\] reserved 256KB for Test");
       output.shouldNotMatch("\\[0x[0]*" + Long.toHexString(addr1) + " - 0x[0]*" + Long.toHexString(addr1 + commitSize) + "\\] committed 128KB");
@@ -138,7 +138,7 @@ public class VirtualAllocTestType {
       wb.NMTReleaseMemory(addr1, reserveSize);
       info = "release 1";
 
-      output = NMTTestUtils.startJcmdVMNativeMemoryDetail();
+      output = NMTTestUtils.executeJcmdVMNativeMemoryDetail();
       checkReservedCommittedSummary(output, 0, 0);
       output.shouldNotMatch("\\[0x[0]*" + Long.toHexString(addr1) + " - 0x[0]*" + Long.toHexString(addr1 + reserveSize) + "\\] reserved 256KB for Test");
       output.shouldNotMatch("\\[0x[0]*" + Long.toHexString(addr1) + " - 0x[0]*" + Long.toHexString(addr1 + commitSize) + "\\] committed 128KB");

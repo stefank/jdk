@@ -125,8 +125,7 @@ public class OverriderMsg {
     public static void main(String... args) throws Exception {
         dump_HasFinal();
         dump_Overrider();
-        ProcessBuilder pb = ProcessTools.createTestJavaProcessBuilder("-cp", ".",  "Overrider");
-        OutputAnalyzer output = new OutputAnalyzer(pb.start());
+        OutputAnalyzer output = ProcessTools.executeTestJava("-cp", ".",  "Overrider");
         output.shouldContain(
             "java.lang.IncompatibleClassChangeError: class Overrider overrides final method HasFinal.m(Ljava/lang/String;)V");
         output.shouldHaveExitValue(1);

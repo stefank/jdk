@@ -69,21 +69,19 @@ public class Test {
     public static void main(String[] args) throws Exception {
         {
             System.out.println("SegmentedCodeCache is enabled");
-            var pb = ProcessTools.createTestJavaProcessBuilder(
+            var output = ProcessTools.executeTestJava(
                     "-XX:+SegmentedCodeCache",
                     "-XX:+PrintCodeCache",
                     "-version");
-            var output = new OutputAnalyzer(pb.start());
             output.shouldHaveExitValue(0);
             output.stdoutShouldMatch(SEG_REGEXP);
         }
         {
             System.out.println("SegmentedCodeCache is disabled");
-            var pb = ProcessTools.createTestJavaProcessBuilder(
+            var output = ProcessTools.executeTestJava(
                     "-XX:-SegmentedCodeCache",
                     "-XX:+PrintCodeCache",
                     "-version");
-            var output = new OutputAnalyzer(pb.start());
             output.shouldHaveExitValue(0);
             output.stdoutShouldMatch(NOSEG_REGEXP);
         }

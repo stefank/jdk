@@ -68,8 +68,7 @@ public class TestResize {
     return Integer.parseInt(string.substring(start, end));
   }
 
-  static void analyzeOutputOn(ProcessBuilder pb) throws Exception {
-    OutputAnalyzer analyzer = new OutputAnalyzer(pb.start());
+  static void analyzeOutputOn(OutputAnalyzer analyzer) throws Exception {
     String output = analyzer.getStdout();
     analyzer.shouldHaveExitValue(0);
 
@@ -131,10 +130,10 @@ public class TestResize {
     // that will allow us to calculate the table's load factor.
     // -Xlog:safepoint+cleanup will print out cleanup details at safepoint
     // that will allow us to detect if the system dictionary resized.
-    ProcessBuilder pb = ProcessTools.createLimitedTestJavaProcessBuilder("-XX:+PrintClassLoaderDataGraphAtExit",
-                                                                         "-Xlog:safepoint+cleanup,class+loader+data",
-                                                                         "TriggerResize",
-                                                                         String.valueOf(CLASSES_TO_LOAD));
-    analyzeOutputOn(pb);
+    OutputAnalyzer output = ProcessTools.executeLimitedTestJava("-XX:+PrintClassLoaderDataGraphAtExit",
+                                                                "-Xlog:safepoint+cleanup,class+loader+data",
+                                                                "TriggerResize",
+                                                                String.valueOf(CLASSES_TO_LOAD));
+    analyzeOutputOn(output);
   }
 }

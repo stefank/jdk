@@ -39,11 +39,9 @@ import jdk.test.lib.process.OutputAnalyzer;
 public class TestIterativeEA {
 
   public static void main(String[] args) throws Exception {
-    ProcessBuilder pb = ProcessTools.createLimitedTestJavaProcessBuilder(
+    OutputAnalyzer analyzer = ProcessTools.executeLimitedTestJava(
                 "-server", "-XX:-TieredCompilation", "-Xbatch", "-XX:+PrintEliminateAllocations",
                  Launcher.class.getName());
-
-    OutputAnalyzer analyzer = new OutputAnalyzer(pb.start());
 
     System.out.println(analyzer.getOutput());
 

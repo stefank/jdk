@@ -60,15 +60,11 @@ public class GetFlagValueTest {
         Object missing = CompilerToVMHelper.getFlagValue("this is surely not a flag");
         Asserts.assertEquals(CompilerToVMHelper.CTVM, missing);
 
-        ProcessBuilder pb;
-        OutputAnalyzer out;
-
-        pb = ProcessTools.createLimitedTestJavaProcessBuilder(
+        OutputAnalyzer out = ProcessTools.executeLimitedTestJava(
             "-XX:+UnlockExperimentalVMOptions",
             "-XX:+EnableJVMCI",
             "-XX:+PrintFlagsFinal",
             "-version");
-        out = new OutputAnalyzer(pb.start());
 
         out.shouldHaveExitValue(0);
         String[] lines = out.getStdout().split("\\r?\\n");

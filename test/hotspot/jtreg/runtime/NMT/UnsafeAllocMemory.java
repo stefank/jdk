@@ -41,14 +41,12 @@ public class UnsafeAllocMemory {
 
     // Grab my own PID
     String pid = Long.toString(ProcessTools.getProcessId());
-    ProcessBuilder pb = new ProcessBuilder();
 
     Unsafe unsafe = Unsafe.getUnsafe();
     unsafe.allocateMemory(128 * 1024);
 
     // Run 'jcmd <pid> VM.native_memory summary'
-    pb.command(new String[] { JDKToolFinder.getJDKTool("jcmd"), pid, "VM.native_memory", "summary"});
-    output = new OutputAnalyzer(pb.start());
+    output = ProcessTools.executeProcess(JDKToolFinder.getJDKTool("jcmd"), pid, "VM.native_memory", "summary");
 
     output.shouldContain("Other (reserved=");
   }

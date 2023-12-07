@@ -417,7 +417,7 @@ public abstract class JVMOption {
         runJava.add(optionValue);
         runJava.add(JVMStartup.class.getName());
 
-        out = new OutputAnalyzer(ProcessTools.createLimitedTestJavaProcessBuilder(runJava).start());
+        out = ProcessTools.executeLimitedTestJava(runJava);
 
         exitCode = out.getExitValue();
         String exitCodeString = null;

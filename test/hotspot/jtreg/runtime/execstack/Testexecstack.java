@@ -45,31 +45,28 @@ public class Testexecstack {
         // Get the library path property
         String libpath = System.getProperty("java.library.path");
 
-        // Create a new java process for the Test Java/JNI test without
+        // Execute a new java process for the Test Java/JNI test without
         // an executeable stack
-        ProcessBuilder pb = ProcessTools.createLimitedTestJavaProcessBuilder(
+        OutputAnalyzer output = ProcessTools.executeLimitedTestJava(
             "-Djava.library.path=" + libpath + ":.", "Test", "test-rw");
 
-        // Start the process and check the output
-        OutputAnalyzer output = new OutputAnalyzer(pb.start());
+        // Check the output
         output.shouldHaveExitValue(0);
 
-        // Create a new java process for the Test Java/JNI test with an
+        // Execute a new java process for the Test Java/JNI test with an
         // executable stack
-        pb = ProcessTools.createLimitedTestJavaProcessBuilder(
+        output = ProcessTools.executeLimitedTestJava(
             "-Djava.library.path=" + libpath + ":.", "Test", "test-rwx");
 
-        // Start the process and check the output
-        output = new OutputAnalyzer(pb.start());
+        // Check the output
         output.shouldHaveExitValue(0);
 
-        // Create a new java process for the TestMT Java/JNI test with an
+        // Execute a new java process for the TestMT Java/JNI test with an
         // executable stack
-        pb = ProcessTools.createLimitedTestJavaProcessBuilder(
+        output = ProcessTools.executeLimitedTestJava(
             "-Djava.library.path=" + libpath + ":.", "TestMT", "test-rwx");
 
-        // Start the process and check the output
-        output = new OutputAnalyzer(pb.start());
+        // Check the output
         output.shouldHaveExitValue(0);
     }
 }

@@ -52,11 +52,8 @@ public class CDSJMapClstats {
         launcher.addToolArg("--pid");
         launcher.addToolArg(Long.toString(lingeredAppPid));
 
-        ProcessBuilder processBuilder = SATestUtils.createProcessBuilder(launcher);
-        System.out.println(
-            processBuilder.command().stream().collect(Collectors.joining(" ")));
+        OutputAnalyzer SAOutput = SATestUtils.execute(launcher);
 
-        OutputAnalyzer SAOutput = ProcessTools.executeProcess(processBuilder);
         System.out.println(SAOutput.getOutput());
         SAOutput.shouldHaveExitValue(0);
         SAOutput.shouldContain("BootClassLoader");

@@ -49,8 +49,7 @@ public class CheckSegmentedCodeCache {
     private static final String PROFILED = "CodeHeap 'profiled nmethods'";
     private static final String NON_PROFILED = "CodeHeap 'non-profiled nmethods'";
 
-    private static void verifySegmentedCodeCache(ProcessBuilder pb, boolean enabled) throws Exception {
-        OutputAnalyzer out = new OutputAnalyzer(pb.start());
+    private static void verifySegmentedCodeCache(OutputAnalyzer out, boolean enabled) throws Exception {
         out.shouldHaveExitValue(0);
         if (enabled) {
             try {
@@ -68,16 +67,14 @@ public class CheckSegmentedCodeCache {
         }
     }
 
-    private static void verifyCodeHeapNotExists(ProcessBuilder pb, String... heapNames) throws Exception {
-        OutputAnalyzer out = new OutputAnalyzer(pb.start());
+    private static void verifyCodeHeapNotExists(OutputAnalyzer out, String... heapNames) throws Exception {
         out.shouldHaveExitValue(0);
         for (String name : heapNames) {
             out.shouldNotContain(name);
         }
     }
 
-    private static void failsWith(ProcessBuilder pb, String message) throws Exception {
-        OutputAnalyzer out = new OutputAnalyzer(pb.start());
+    private static void failsWith(OutputAnalyzer out, String message) throws Exception {
         out.shouldContain(message);
         out.shouldHaveExitValue(1);
     }
@@ -86,83 +83,83 @@ public class CheckSegmentedCodeCache {
     * Check the result of segmented code cache related VM options.
     */
     public static void main(String[] args) throws Exception {
-        ProcessBuilder pb;
+        OutputAnalyzer out;
 
         // Disabled with ReservedCodeCacheSize < 240MB
-        pb = ProcessTools.createLimitedTestJavaProcessBuilder("-XX:ReservedCodeCacheSize=239m",
-                                                              "-XX:+PrintCodeCache",
-                                                              "-version");
-        verifySegmentedCodeCache(pb, false);
+        out = ProcessTools.executeLimitedTestJava("-XX:ReservedCodeCacheSize=239m",
+                                                  "-XX:+PrintCodeCache",
+                                                  "-version");
+        verifySegmentedCodeCache(out, false);
 
         // Disabled without TieredCompilation
-        pb = ProcessTools.createLimitedTestJavaProcessBuilder("-XX:-TieredCompilation",
-                                                              "-XX:+PrintCodeCache",
-                                                              "-version");
-        verifySegmentedCodeCache(pb, false);
+        out = ProcessTools.executeLimitedTestJava("-XX:-TieredCompilation",
+                                                  "-XX:+PrintCodeCache",
+                                                  "-version");
+        verifySegmentedCodeCache(out, false);
 
         // Enabled with TieredCompilation and ReservedCodeCacheSize >= 240MB
-        pb = ProcessTools.createLimitedTestJavaProcessBuilder("-XX:+TieredCompilation",
-                                                              "-XX:ReservedCodeCacheSize=240m",
-                                                              "-XX:+PrintCodeCache",
-                                                              "-version");
-        verifySegmentedCodeCache(pb, true);
-        pb = ProcessTools.createLimitedTestJavaProcessBuilder("-XX:+TieredCompilation",
-                                                              "-XX:ReservedCodeCacheSize=400m",
-                                                              "-XX:+PrintCodeCache",
-                                                              "-version");
-        verifySegmentedCodeCache(pb, true);
+        out = ProcessTools.executeLimitedTestJava("-XX:+TieredCompilation",
+                                                  "-XX:ReservedCodeCacheSize=240m",
+                                                  "-XX:+PrintCodeCache",
+                                                  "-version");
+        verifySegmentedCodeCache(out, true);
+        out = ProcessTools.executeLimitedTestJava("-XX:+TieredCompilation",
+                                                  "-XX:ReservedCodeCacheSize=400m",
+                                                  "-XX:+PrintCodeCache",
+                                                  "-version");
+        verifySegmentedCodeCache(out, true);
 
         // Always enabled if SegmentedCodeCache is set
-        pb = ProcessTools.createLimitedTestJavaProcessBuilder("-XX:+SegmentedCodeCache",
-                                                              "-XX:-TieredCompilation",
-                                                              "-XX:ReservedCodeCacheSize=239m",
-                                                              "-XX:+PrintCodeCache",
-                                                              "-version");
-        verifySegmentedCodeCache(pb, true);
+        out = ProcessTools.executeLimitedTestJava("-XX:+SegmentedCodeCache",
+                                                  "-XX:-TieredCompilation",
+                                                  "-XX:ReservedCodeCacheSize=239m",
+                                                  "-XX:+PrintCodeCache",
+                                                  "-version");
+        verifySegmentedCodeCache(out, true);
 
         // The profiled and non-profiled code heaps should not be available in
         // interpreter-only mode
-        pb = ProcessTools.createLimitedTestJavaProcessBuilder("-XX:+SegmentedCodeCache",
-                                                              "-Xint",
-                                                              "-XX:+PrintCodeCache",
-                                                              "-version");
-        verifyCodeHeapNotExists(pb, PROFILED, NON_PROFILED);
+        out = ProcessTools.executeLimitedTestJava("-XX:+SegmentedCodeCache",
+                                                  "-Xint",
+                                                  "-XX:+PrintCodeCache",
+                                                  "-version");
+        verifyCodeHeapNotExists(out, PROFILED, NON_PROFILED);
 
         // If we stop compilation at CompLevel_none or CompLevel_simple we
         // don't need a profiled code heap.
-        pb = ProcessTools.createLimitedTestJavaProcessBuilder("-XX:+SegmentedCodeCache",
-                                                              "-XX:TieredStopAtLevel=0",
-                                                              "-XX:+PrintCodeCache",
-                                                              "-version");
-        verifyCodeHeapNotExists(pb, PROFILED);
-        pb = ProcessTools.createLimitedTestJavaProcessBuilder("-XX:+SegmentedCodeCache",
-                                                              "-XX:TieredStopAtLevel=1",
-                                                              "-XX:+PrintCodeCache",
-                                                              "-version");
-        verifyCodeHeapNotExists(pb, PROFILED);
+        out = ProcessTools.executeLimitedTestJava("-XX:+SegmentedCodeCache",
+                                                  "-XX:TieredStopAtLevel=0",
+                                                  "-XX:+PrintCodeCache",
+                                                  "-version");
+        verifyCodeHeapNotExists(out, PROFILED);
+        out = ProcessTools.executeLimitedTestJava("-XX:+SegmentedCodeCache",
+                                                  "-XX:TieredStopAtLevel=1",
+                                                  "-XX:+PrintCodeCache",
+                                                  "-version");
+        verifyCodeHeapNotExists(out, PROFILED);
 
         // Fails with too small non-nmethod code heap size
-        pb = ProcessTools.createLimitedTestJavaProcessBuilder("-XX:NonNMethodCodeHeapSize=100K",
-                                                              "-version");
-        failsWith(pb, "Invalid NonNMethodCodeHeapSize");
+        out = ProcessTools.executeLimitedTestJava("-XX:NonNMethodCodeHeapSize=100K",
+                                                  "-version");
+        failsWith(out, "Invalid NonNMethodCodeHeapSize");
 
         // Fails if code heap sizes do not add up
-        pb = ProcessTools.createLimitedTestJavaProcessBuilder("-XX:+SegmentedCodeCache",
-                                                              "-XX:ReservedCodeCacheSize=10M",
-                                                              "-XX:NonNMethodCodeHeapSize=5M",
-                                                              "-XX:ProfiledCodeHeapSize=5M",
-                                                              "-XX:NonProfiledCodeHeapSize=5M",
-                                                              "-version");
-        failsWith(pb, "Invalid code heap sizes");
+        out = ProcessTools.executeLimitedTestJava("-XX:+SegmentedCodeCache",
+                                                  "-XX:ReservedCodeCacheSize=10M",
+                                                  "-XX:NonNMethodCodeHeapSize=5M",
+                                                  "-XX:ProfiledCodeHeapSize=5M",
+                                                  "-XX:NonProfiledCodeHeapSize=5M",
+                                                  "-version");
+        failsWith(out, "Invalid code heap sizes");
 
         // Fails if not enough space for VM internal code
         long minUseSpace = WHITE_BOX.getUintxVMFlag("CodeCacheMinimumUseSpace");
         // minimum size: CodeCacheMinimumUseSpace DEBUG_ONLY(* 3)
         long minSize = (Platform.isDebugBuild() ? 3 : 1) * minUseSpace;
-        pb = ProcessTools.createLimitedTestJavaProcessBuilder("-XX:+SegmentedCodeCache",
-                                                              "-XX:ReservedCodeCacheSize=" + minSize,
-                                                              "-XX:InitialCodeCacheSize=100K",
-                                                              "-version");
-        failsWith(pb, "Not enough space in non-nmethod code heap to run VM");
+        out = ProcessTools.executeLimitedTestJava("-XX:+SegmentedCodeCache",
+                                                  "-XX:ReservedCodeCacheSize=" + minSize,
+                                                  "-XX:InitialCodeCacheSize=100K",
+                                                  "-version");
+        failsWith(out, "Not enough space in non-nmethod code heap to run VM");
     }
 }

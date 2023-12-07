@@ -35,6 +35,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import jdk.test.lib.jittester.types.TypeKlass;
 import jdk.test.lib.jittester.utils.PseudoRandom;
+import jdk.test.lib.process.ProcessExecutor;
 
 public abstract class TestsGenerator implements BiConsumer<IRNode, IRNode> {
     private static final int DEFAULT_JTREG_TIMEOUT = 120;
@@ -77,16 +78,16 @@ public abstract class TestsGenerator implements BiConsumer<IRNode, IRNode> {
     }
 
     protected static int runProcess(ProcessBuilder pb, String name)
-            throws IOException, InterruptedException {
+            throws Exception {
         pb.redirectError(new File(name + ".err"));
         pb.redirectOutput(new File(name + ".out"));
-        Process process = pb.start();
+        ProcessExecutor process = new ProcessExecutor(pb);
         try {
             if (process.waitFor(DEFAULT_JTREG_TIMEOUT, TimeUnit.SECONDS)) {
                 try (FileWriter file = new FileWriter(name + ".exit")) {
                     file.write(Integer.toString(process.exitValue()));
                 }
-                return process.exitValue();
+                return process.getExitValue();
             }
         } finally {
             process.destroyForcibly();

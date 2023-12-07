@@ -36,8 +36,7 @@ import jdk.test.lib.process.OutputAnalyzer;
 public class TestBasicLogOutput {
 
     public static void main(String[] args) throws Exception {
-        ProcessBuilder pb = ProcessTools.createLimitedTestJavaProcessBuilder("-Xlog:all=trace", "-version");
-        OutputAnalyzer output = new OutputAnalyzer(pb.start());
+        OutputAnalyzer output = ProcessTools.executeLimitedTestJava("-Xlog:all=trace", "-version");
         output.shouldMatch("\\[logging *\\]"); // expected tag(s)
         output.shouldContain("Log configuration fully initialized."); // expected message
         output.shouldHaveExitValue(0);

@@ -42,17 +42,12 @@ public class BaselineWithParameter {
     String pid = Long.toString(ProcessTools.getProcessId());
     OutputAnalyzer output;
 
-    ProcessBuilder pb = new ProcessBuilder();
-
     // Run 'jcmd <pid> VM.native_memory baseline=false'
-    pb.command(new String[] { JDKToolFinder.getJDKTool("jcmd"), pid, "VM.native_memory", "baseline=false"});
-    output = new OutputAnalyzer(pb.start());
+    output = ProcessTools.executeProcess(JDKToolFinder.getJDKTool("jcmd"), pid, "VM.native_memory", "baseline=false");
     output.shouldContain("Total: reserved");
 
     // Run 'jcmd <pid> VM.native_memory summary=false'
-    pb.command(new String[] { JDKToolFinder.getJDKTool("jcmd"), pid, "VM.native_memory", "summary=false"});
-    output = new OutputAnalyzer(pb.start());
+    output = ProcessTools.executeProcess(JDKToolFinder.getJDKTool("jcmd"), pid, "VM.native_memory", "summary=false");
     output.shouldContain("No command to execute");
-
   }
 }

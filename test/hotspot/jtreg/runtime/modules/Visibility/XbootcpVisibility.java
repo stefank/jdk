@@ -104,10 +104,10 @@ public class XbootcpVisibility {
         Files.delete(Paths.get(System.getProperty("test.classes") +  File.separator +
                                                                "p2" + File.separator + "Vis1_C.class"));
 
-        new OutputAnalyzer(ProcessTools.createLimitedTestJavaProcessBuilder(
+        ProcessTools.executeLimitedTestJava(
                 "-Xbootclasspath/a:nonexistent.jar",
                 "-Xbootclasspath/a:mods1",
                 "Vis1_A")
-            .start()).shouldHaveExitValue(0);
+            .shouldHaveExitValue(0);
     }
 }

@@ -45,7 +45,8 @@ import java.util.UUID;
 
 import jdk.test.lib.JDKToolFinder;
 import jdk.test.lib.Utils;
-import jdk.test.lib.process.OutputBuffer;
+import jdk.test.lib.process.OutputAnalyzer;
+import jdk.test.lib.process.ProcessExecutor;
 import jdk.test.lib.process.StreamPumper;
 import jdk.test.lib.util.CoreUtils;
 
@@ -87,15 +88,11 @@ public class LingeredApp {
     private static final long spinDelay = 1000;
 
     private long lockCreationTime;
-    private ByteArrayOutputStream stderrBuffer;
-    private ByteArrayOutputStream stdoutBuffer;
-    private Thread outPumperThread;
-    private Thread errPumperThread;
     private boolean finishAppCalled = false;
     private boolean useDefaultClasspath = true;
+    private OutputAnalyzer output;
+    private ProcessExecutor processExecutor;
 
-    protected Process appProcess;
-    protected OutputBuffer output;
     protected static final int appWaitTime = 100;
     protected static final int appCoreWaitTime = 480;
     protected final String lockFileName;
@@ -122,6 +119,10 @@ public class LingeredApp {
         this.forceCrash = forceCrash;
     }
 
+    public boolean getForceCrash() {
+        return forceCrash;
+    }
+
     native private static int crash();
 
     /**
@@ -141,60 +142,36 @@ public class LingeredApp {
      *  @return pid of java process running testapp
      */
     public long getPid() {
-        if (appProcess == null) {
+        if (processExecutor == null) {
             throw new RuntimeException("Process is not alive");
         }
-        return appProcess.pid();
+        return processExecutor.pid();
     }
 
     /**
      *
      * @return process object
      */
-    public Process getProcess() {
-        return appProcess;
-    }
-
-    /**
-     * @return the LingeredApp's output.
-     * Can be called after the app is run.
-     */
-    public String getProcessStdout() {
-        return stdoutBuffer.toString();
+    public ProcessExecutor getProcess() {
+        return processExecutor;
     }
 
     /**
      *
-     * @return OutputBuffer object for the LingeredApp's output. Can only be called
+     * @return OutputAnalyzer object for the LingeredApp's output. Can only be called
      * after LingeredApp has exited.
      */
-    public OutputBuffer getOutput() {
-        if (appProcess.isAlive()) {
-            throw new RuntimeException("Process is still alive. Can't get its output.");
+    public OutputAnalyzer getOutput() {
+        if (!processExecutor.hasFinished()) {
+            throw new RuntimeException("Unexpected early request to get process output. " +
+                    (processExecutor.isAlive()
+                            ? "The LingeredApp process is alive"
+                            : "The LingeredApp process is dead, but waitFor has not been called"));
         }
         if (output == null) {
-            output = OutputBuffer.of(stdoutBuffer.toString(), stderrBuffer.toString(), appProcess.exitValue());
+            output = processExecutor.getOutputAnalyzer();
         }
         return output;
-    }
-
-    /*
-     * Capture all stdout and stderr output from the LingeredApp so it can be returned
-     * to the driver app later. This code is modeled after ProcessTools.getOutput().
-     */
-    private void startOutputPumpers() {
-        stderrBuffer = new ByteArrayOutputStream();
-        stdoutBuffer = new ByteArrayOutputStream();
-        StreamPumper outPumper = new StreamPumper(appProcess.getInputStream(), stdoutBuffer);
-        StreamPumper errPumper = new StreamPumper(appProcess.getErrorStream(), stderrBuffer);
-        outPumperThread = new Thread(outPumper);
-        errPumperThread = new Thread(errPumper);
-
-        outPumperThread.setDaemon(true);
-        errPumperThread.setDaemon(true);
-
-        outPumperThread.start();
-        errPumperThread.start();
     }
 
     /* Make sure all part of the app use the same method to get dates,
@@ -246,12 +223,10 @@ public class LingeredApp {
         // This code is modeled after tail end of ProcessTools.getOutput().
         try {
             // If the app hangs, we don't want to wait for the to test timeout.
-            if (!appProcess.waitFor(Utils.adjustTimeout(appWaitTime), TimeUnit.SECONDS)) {
-                appProcess.destroy();
-                appProcess.waitFor();
+            if (!processExecutor.waitFor(Utils.adjustTimeout(appWaitTime), TimeUnit.SECONDS)) {
+                processExecutor.destroy();
+                processExecutor.waitFor();
             }
-            outPumperThread.join();
-            errPumperThread.join();
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             // pass
@@ -271,11 +246,11 @@ public class LingeredApp {
         long here = epoch();
         while (true) {
             // Check for crash or lock modification now, and immediately after sleeping for spinDelay each loop.
-            if (!appProcess.isAlive()) {
+            if (!processExecutor.isAlive()) {
                 if (forceCrash) {
                     return; // This is expected. Just return.
                 } else {
-                    throw new IOException("App exited unexpectedly with " + appProcess.exitValue());
+                    throw new IOException("App exited unexpectedly with " + processExecutor.waitForExitValue());
                 }
             }
 
@@ -374,26 +349,24 @@ public class LingeredApp {
             pb = CoreUtils.addCoreUlimitCommand(pb);
         }
         // ProcessBuilder.start can throw IOException
-        appProcess = pb.start();
-
-        startOutputPumpers();
+        processExecutor = new ProcessExecutor(pb);
     }
 
     private void finishApp() {
-        if (appProcess != null) {
+        if (processExecutor != null) {
             if (finishAppCalled) {
                 return;
             } else {
                 finishAppCalled = true;
             }
-            OutputBuffer output = getOutput();
+            OutputAnalyzer output = getOutput();
             String msg =
                     " LingeredApp stdout: [" + output.getStdout() + "];\n" +
                     " LingeredApp stderr: [" + output.getStderr() + "]\n" +
-                    " LingeredApp exitValue = " + appProcess.exitValue();
+                    " LingeredApp exitValue = " + output.getExitValue();
 
             if (logFileName != null) {
-                System.out.println(" LingeredApp exitValue = " + appProcess.exitValue());
+                System.out.println(" LingeredApp exitValue = " + output.getExitValue());
                 System.out.println(" LingeredApp output: " + logFileName + " (" + msg.length() + " chars)");
                 try (FileOutputStream fos = new FileOutputStream(logFileName);
                      PrintStream ps = new PrintStream(fos);) {
@@ -417,14 +390,14 @@ public class LingeredApp {
         deleteLock();
         // The startApp() of the derived app can throw
         // an exception before the LA actually starts
-        if (appProcess != null) {
+        if (processExecutor != null) {
             waitAppTerminate();
 
             finishApp();
 
-            int exitcode = appProcess.exitValue();
-            if (exitcode != 0) {
-                throw new IOException("LingeredApp terminated with non-zero exit code " + exitcode);
+            int exitValue = processExecutor.getExitValue();
+            if (exitValue != 0) {
+                throw new IOException("LingeredApp terminated with non-zero exit code " + exitValue);
             }
         }
     }
@@ -464,6 +437,11 @@ public class LingeredApp {
             long t2 = System.currentTimeMillis();
             System.out.println("LingeredApp startup took " + (t2 - t1) + "ms");
             checkForDumps();
+            if (theApp.getForceCrash()) {
+                // Cleanup after intentional crash
+                theApp.waitAppTerminate();
+                theApp.deleteLock();
+            }
         }
     }
 

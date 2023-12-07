@@ -51,8 +51,7 @@ public class TestPrintOptoAssemblyLineNumbers {
             CheckC2OptoAssembly.class.getName()
         };
 
-        ProcessBuilder pb = ProcessTools.createLimitedTestJavaProcessBuilder(procArgs);
-        OutputAnalyzer oa = new OutputAnalyzer(pb.start());
+        OutputAnalyzer oa = ProcessTools.executeLimitedTestJava(procArgs);
         oa.shouldHaveExitValue(0);
 
         if (oa.getOutput().contains("TestPrintOptoAssemblyLineNumbers$CheckC2OptoAssembly::main @ bci:11")) {

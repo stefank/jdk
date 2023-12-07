@@ -44,14 +44,14 @@ public class ExceptionsTest {
     }
 
     static void analyzeOutputOn(ProcessBuilder pb) throws Exception {
-        OutputAnalyzer output = new OutputAnalyzer(pb.start());
+        OutputAnalyzer output = ProcessTools.executeProcess(pb);
         output.shouldContain("<a 'java/lang/RuntimeException'").shouldContain(": Test exception 1 for logging>");
         output.shouldContain(" thrown in interpreter method ");
         output.shouldHaveExitValue(0);
     }
 
     static void analyzeOutputOff(ProcessBuilder pb) throws Exception {
-        OutputAnalyzer output = new OutputAnalyzer(pb.start());
+        OutputAnalyzer output = ProcessTools.executeProcess(pb);
         output.shouldNotContain("[exceptions]");
         output.shouldHaveExitValue(0);
     }

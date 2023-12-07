@@ -62,7 +62,7 @@ import jdk.test.lib.process.OutputAnalyzer;
 //                 // StringConcatFactory.java/makeConcatWithConstants.
 //                 // The ASM below erroneously puts 2 static arguments, "hello "
 //                 // and "goodbye" on the stack for the BSM. Causing a exception to
-//                 // be thrown when creatingthe CallSite object.
+//                 // be thrown when creating the CallSite object.
 //                 System.out.println("hello " + f); <--------------- invokedynamic
 //
 //             } catch (Error e) {
@@ -107,8 +107,7 @@ public class BSMCalledTwice implements Opcodes {
         };
 
         cl.loadClass(classTestCName);
-        ProcessBuilder pb = ProcessTools.createTestJavaProcessBuilder("-cp", ".",  classTestCName);
-        OutputAnalyzer output = new OutputAnalyzer(pb.start());
+        OutputAnalyzer output = ProcessTools.executeTestJava("-cp", ".",  classTestCName);
         String test_output = output.getOutput();
         if (test_output == null) {
             throw new RuntimeException("Test failed, null test output");

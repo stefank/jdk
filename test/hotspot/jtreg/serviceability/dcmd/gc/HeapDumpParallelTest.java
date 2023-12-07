@@ -54,7 +54,7 @@ public class HeapDumpParallelTest {
     private static void checkAndVerify(OutputAnalyzer dcmdOut, LingeredApp app, File heapDumpFile, boolean expectSerial) throws Exception {
         dcmdOut.shouldHaveExitValue(0);
         dcmdOut.shouldContain("Heap dump file created");
-        OutputAnalyzer appOut = new OutputAnalyzer(app.getProcessStdout());
+        OutputAnalyzer appOut = new OutputAnalyzer(app.getOutput().getStdout());
         appOut.shouldContain("[heapdump]");
         String opts = Arrays.asList(Utils.getTestJavaOpts()).toString();
         if (opts.contains("-XX:+UseSerialGC") || opts.contains("-XX:+UseEpsilonGC")) {

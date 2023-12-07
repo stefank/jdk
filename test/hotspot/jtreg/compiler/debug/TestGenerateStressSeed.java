@@ -58,7 +58,7 @@ public class TestGenerateStressSeed {
                 "-Xcomp", "-XX:-TieredCompilation", "-XX:+UnlockDiagnosticVMOptions",
                 "-XX:CompileOnly=" + className + "::sum", "-XX:+" + stressOpt,
                 "-XX:+LogCompilation", "-XX:LogFile=" + log, className, "10"};
-            new OutputAnalyzer(ProcessTools.createLimitedTestJavaProcessBuilder(procArgs).start())
+            ProcessTools.executeLimitedTestJava(procArgs)
                 .shouldHaveExitValue(0);
             new OutputAnalyzer(Paths.get(log))
                 .shouldContain("stress_test seed");

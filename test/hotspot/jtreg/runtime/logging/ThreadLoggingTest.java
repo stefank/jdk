@@ -61,12 +61,10 @@ public class ThreadLoggingTest {
 
     public static void main(String[] args) throws Exception {
 
-        ProcessBuilder pb = ProcessTools.createLimitedTestJavaProcessBuilder("-Xlog:os+thread", "-version");
-        OutputAnalyzer output = new OutputAnalyzer(pb.start());
+        OutputAnalyzer output = ProcessTools.executeLimitedTestJava("-Xlog:os+thread", "-version");
         analyzeOutputForInfoLevel(output);
 
-        pb = ProcessTools.createLimitedTestJavaProcessBuilder("-Xlog:os+thread=debug", "-version");
-        output = new OutputAnalyzer(pb.start());
+        output = ProcessTools.executeLimitedTestJava("-Xlog:os+thread=debug", "-version");
         analyzeOutputForDebugLevel(output);
         output.reportDiagnosticSummary();
     }

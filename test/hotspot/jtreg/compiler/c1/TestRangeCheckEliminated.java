@@ -54,8 +54,8 @@ public class TestRangeCheckEliminated {
             test_constant_array.class.getName()
          };
 
-        ProcessBuilder pb = ProcessTools.createLimitedTestJavaProcessBuilder(procArgs);
-        String output = new OutputAnalyzer(pb.start()).getOutput();
+        OutputAnalyzer analyzer = ProcessTools.executeLimitedTestJava(procArgs);
+        String output = analyzer.getOutput();
         // should have 2 "can be fully eliminated"
         System.out.println(output);
         if ((output.split(eliminated, -1).length - 1) == 2) {
@@ -74,8 +74,8 @@ public class TestRangeCheckEliminated {
             test_multi_constant_array.class.getName()
         };
 
-        pb = ProcessTools.createLimitedTestJavaProcessBuilder(procArgs);
-        output = new OutputAnalyzer(pb.start()).getOutput();
+        analyzer = ProcessTools.executeLimitedTestJava(procArgs);
+        output = analyzer.getOutput();
         // should have 1 "can be fully eliminated"
         System.out.println(output);
         if ((output.split(eliminated, -1).length - 1) == 1) {
@@ -94,8 +94,8 @@ public class TestRangeCheckEliminated {
             test_multi_new_array.class.getName()
          };
 
-        pb = ProcessTools.createLimitedTestJavaProcessBuilder(procArgs);
-        output = new OutputAnalyzer(pb.start()).getOutput();
+        analyzer = ProcessTools.executeLimitedTestJava(procArgs);
+        output = analyzer.getOutput();
         // should have 2 "can be fully eliminated"
         System.out.println(output);
         if ((output.split(eliminated, -1).length - 1) == 2) {

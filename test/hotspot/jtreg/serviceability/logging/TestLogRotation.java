@@ -82,8 +82,8 @@ public class TestLogRotation {
                 String.valueOf(numberOfFiles * logFileSizeK * 1024));
         pb.redirectErrorStream(true);
         pb.redirectOutput(new File(GCLoggingGenerator.class.getName() + ".log"));
-        Process process = pb.start();
-        int result = process.waitFor();
+
+        int result = ProcessTools.executeProcess(pb).getExitValue();
         if (result != 0) {
             throw new Error("Unexpected exit code = " + result);
         }

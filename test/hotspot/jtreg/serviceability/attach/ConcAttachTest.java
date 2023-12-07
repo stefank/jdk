@@ -85,12 +85,7 @@ public class ConcAttachTest implements Runnable {
         jcmd.addToolArg(strPID);
         jcmd.addToolArg("Thread.print");
 
-        ProcessBuilder pb = new ProcessBuilder(jcmd.getCommand());
-        Process jcmdProc = pb.start();
-
-        OutputAnalyzer out = new OutputAnalyzer(jcmdProc);
-
-        jcmdProc.waitFor();
+        ProcessTools.executeProcess(jcmd.getCommand());
 
         System.out.println(out.getStdout());
         System.err.println(out.getStderr());

@@ -61,6 +61,6 @@ public class MultiProcClass {
         if (inheritIO)
             pmapPb.inheritIO();
 
-        return pmapPb.start().waitFor();
+        return ProcessTool.executeProcess().getExitValue();
     }
 }

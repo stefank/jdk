@@ -44,7 +44,7 @@ import jdk.test.lib.process.OutputAnalyzer;
 
 public class DebugdConnectTest {
 
-    private static OutputAnalyzer runJHSDB(String command, String serverID) throws IOException, InterruptedException {
+    private static OutputAnalyzer runJHSDB(String command, String serverID) throws Exception {
         JDKToolLauncher jhsdbLauncher = JDKToolLauncher.createUsingTestJDK("jhsdb");
         jhsdbLauncher.addVMArgs(Utils.getFilteredTestJavaOpts("-showversion", "-Xcomp"));
         jhsdbLauncher.addToolArg(command);
@@ -55,10 +55,7 @@ public class DebugdConnectTest {
             jhsdbLauncher.addToolArg("localhost");
         }
 
-        Process jhsdb = (SATestUtils.createProcessBuilder(jhsdbLauncher)).start();
-        OutputAnalyzer out = new OutputAnalyzer(jhsdb);
-
-        jhsdb.waitFor();
+        OutputAnalyzer out = SATestUtils.execute(jhsdbLauncher);
 
         System.out.println(out.getStdout());
         System.err.println(out.getStderr());
@@ -66,7 +63,7 @@ public class DebugdConnectTest {
         return out;
     }
 
-    private static void runJSTACK(String serverID) throws IOException, InterruptedException {
+    private static void runJSTACK(String serverID) throws Exception {
         OutputAnalyzer out = runJHSDB("jstack", serverID);
 
         out.shouldContain("LingeredApp");
@@ -74,7 +71,7 @@ public class DebugdConnectTest {
         out.shouldHaveExitValue(0);
     }
 
-    private static void runJMAP(String serverID) throws IOException, InterruptedException {
+    private static void runJMAP(String serverID) throws Exception {
         OutputAnalyzer out = runJHSDB("jmap", serverID);
 
         out.shouldContain("JVM version is");
@@ -82,7 +79,7 @@ public class DebugdConnectTest {
         out.shouldHaveExitValue(0);
     }
 
-    private static void runJINFO(String serverID) throws IOException, InterruptedException {
+    private static void runJINFO(String serverID) throws Exception {
         OutputAnalyzer out = runJHSDB("jinfo", serverID);
 
         out.shouldContain("Java System Properties:");
@@ -90,7 +87,7 @@ public class DebugdConnectTest {
         out.shouldHaveExitValue(0);
     }
 
-    private static void runJSNAP(String serverID) throws IOException, InterruptedException {
+    private static void runJSNAP(String serverID) throws Exception {
         OutputAnalyzer out = runJHSDB("jsnap", serverID);
 
         out.shouldContain("java.vm.name=");
@@ -98,7 +95,7 @@ public class DebugdConnectTest {
         out.shouldHaveExitValue(0);
     }
 
-    private static void runTests(String serverID, long debuggeePid) throws IOException, InterruptedException {
+    private static void runTests(String serverID, long debuggeePid) throws Exception {
         DebugdUtils debugd = new DebugdUtils();
         if (serverID != null) {
             debugd.setServerID(serverID);

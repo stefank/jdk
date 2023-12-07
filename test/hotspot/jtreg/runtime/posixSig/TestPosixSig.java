@@ -43,7 +43,7 @@ public class TestPosixSig {
 
         if (args.length == 0) {
 
-            // Create a new java process for the TestPsig Java/JNI test.
+            // Execute a new java process for the TestPsig Java/JNI test.
             // We run the VM in interpreted mode, because the JIT might mark
             // a Java method as not-entrant, which means turning the first instruction
             // into an illegal one. Calling such a method after establishing
@@ -52,14 +52,13 @@ public class TestPosixSig {
             // modification, the JVM may crash or hang in an endless loop, where the
             // illegal instruction will be continously executed, raising SIGILL, and
             // the signal handler will return to the illegal instruction again...
-            ProcessBuilder pb = ProcessTools.createLimitedTestJavaProcessBuilder(
+            OutputAnalyzer output = ProcessTools.executeLimitedTestJava(
                 "-XX:+CheckJNICalls",
                 "-Xint",
                 "-Djava.library.path=" + libpath + ":.",
                 "TestPosixSig", "dummy");
 
-            // Start the process and check the output.
-            OutputAnalyzer output = new OutputAnalyzer(pb.start());
+            // Check the output.
             String outputString = output.getOutput();
             if (!outputString.contains("Warning: SIGILL handler modified!") ||
                 !outputString.contains("Warning: SIGFPE handler modified!")) {

@@ -105,9 +105,9 @@ public abstract class CiReplayBase {
 
     static {
         try {
-            CLIENT_VM_AVAILABLE = ProcessTools.executeTestJvm(CLIENT_VM_OPTION, VERSION_OPTION)
+            CLIENT_VM_AVAILABLE = ProcessTools.executeTestJava(CLIENT_VM_OPTION, VERSION_OPTION)
                     .getOutput().contains("Client");
-            SERVER_VM_AVAILABLE = ProcessTools.executeTestJvm(SERVER_VM_OPTION, VERSION_OPTION)
+            SERVER_VM_AVAILABLE = ProcessTools.executeTestJava(SERVER_VM_OPTION, VERSION_OPTION)
                     .getOutput().contains("Server");
         } catch(Throwable t) {
             throw new Error("Initialization failed: " + t, t);
@@ -177,11 +177,11 @@ public abstract class CiReplayBase {
                 options.add("'" + getTestClass() + "'");
                 crashOut = ProcessTools.executeProcess(
                         CoreUtils.addCoreUlimitCommand(
-                                ProcessTools.createTestJavaProcessBuilder(options.toArray(new String[0]))));
+                                ProcessTools.createTestJavaProcessBuilder(options)));
             } else {
                 options.add("-XX:CompileOnly=" + getTestClass() + "::" + getTestMethod());
                 options.add(getTestClass());
-                crashOut = ProcessTools.executeProcess(ProcessTools.createTestJavaProcessBuilder(options));
+                crashOut = ProcessTools.executeTestJava(options);
             }
             crashOutputString = crashOut.getOutput();
             Asserts.assertNotEquals(crashOut.getExitValue(), 0, "Crash JVM exits gracefully");

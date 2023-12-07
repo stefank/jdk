@@ -34,6 +34,7 @@
 import jdk.test.lib.Platform;
 import jdk.test.lib.Utils;
 import jdk.test.lib.process.OutputAnalyzer;
+import jdk.test.lib.process.ProcessTools;
 
 import java.io.File;
 import java.io.IOException;
@@ -43,14 +44,14 @@ import java.nio.file.Paths;
 import java.util.Optional;
 
 public class FPRegs {
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) throws Exception {
         Path launcher = Paths.get(Utils.TEST_NATIVE_PATH, "FPRegs" + (Platform.isWindows() ? ".exe" : ""));
         System.out.println("Launcher = " + launcher + (Files.exists(launcher) ? " (exists)" : " (not exists)"));
         Path jvmLib = findJVM();
         ProcessBuilder pb = new ProcessBuilder(launcher.toString(), jvmLib.toString());
         // bin as working directory to let Windows load dll
         pb.directory(jvmLib.getParent().getParent().toFile());
-        OutputAnalyzer oa = new OutputAnalyzer(pb.start());
+        OutputAnalyzer oa = ProcessTools.executeProcess(pb);
         oa.shouldHaveExitValue(0);
     }
 

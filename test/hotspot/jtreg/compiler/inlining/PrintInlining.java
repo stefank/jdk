@@ -40,15 +40,13 @@ import jdk.test.lib.process.ProcessTools;
 public class PrintInlining {
 
     static void test(String option) throws Exception {
-        ProcessBuilder pb = ProcessTools.createLimitedTestJavaProcessBuilder(
+        OutputAnalyzer analyzer = ProcessTools.executeLimitedTestJava(
                 "-XX:+IgnoreUnrecognizedVMOptions", "-showversion",
                 "-server", "-XX:-TieredCompilation", "-Xbatch", "-XX:-UseOnStackReplacement",
                 "-XX:CompileCommand=dontinline,*::bar",
                 "-XX:CompileCommand=compileonly,*::foo",
                 "-XX:+PrintCompilation", "-XX:+UnlockDiagnosticVMOptions", option,
                 Launcher.class.getName());
-
-        OutputAnalyzer analyzer = new OutputAnalyzer(pb.start());
 
         analyzer.shouldHaveExitValue(0);
 

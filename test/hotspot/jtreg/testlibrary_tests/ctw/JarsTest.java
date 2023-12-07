@@ -57,14 +57,12 @@ public class JarsTest extends CtwTest {
     }
 
     protected void prepare() throws Exception {
-        ProcessBuilder pb = createJarProcessBuilder("cf", "foo.jar",
+        OutputAnalyzer output = executeJar("cf", "foo.jar",
                 "Foo.class", "Bar.class");
-        OutputAnalyzer output = new OutputAnalyzer(pb.start());
         dump(output, "ctw-foo.jar");
         output.shouldHaveExitValue(0);
 
-        pb = createJarProcessBuilder("cf", "bar.jar", "Foo.class", "Bar.class");
-        output = new OutputAnalyzer(pb.start());
+        output = executeJar("cf", "bar.jar", "Foo.class", "Bar.class");
         dump(output, "ctw-bar.jar");
         output.shouldHaveExitValue(0);
     }

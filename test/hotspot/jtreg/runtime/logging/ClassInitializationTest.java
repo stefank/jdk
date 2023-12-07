@@ -41,11 +41,10 @@ public class ClassInitializationTest {
     public static void main(String... args) throws Exception {
 
         // (1)
-        ProcessBuilder pb = ProcessTools.createLimitedTestJavaProcessBuilder("-Xlog:class+init=info",
-                                                                             "-Xverify:all",
-                                                                             "-Xmx128m",
-                                                                             "BadMap50");
-        OutputAnalyzer out = new OutputAnalyzer(pb.start());
+        OutputAnalyzer out = ProcessTools.executeLimitedTestJava("-Xlog:class+init=info",
+                                                                 "-Xverify:all",
+                                                                 "-Xmx128m",
+                                                                 "BadMap50");
         out.shouldNotHaveExitValue(0);
         out.shouldContain("Start class verification for:");
         out.shouldContain("End class verification for:");
@@ -54,11 +53,10 @@ public class ClassInitializationTest {
         out.shouldContain("Fail over class verification to old verifier for: BadMap50");
 
         // (2) class+init should turn off.
-        pb = ProcessTools.createLimitedTestJavaProcessBuilder("-Xlog:class+init=off",
-                                                              "-Xverify:all",
-                                                              "-Xmx128m",
-                                                              "BadMap50");
-        out = new OutputAnalyzer(pb.start());
+        out = ProcessTools.executeLimitedTestJava("-Xlog:class+init=off",
+                                                  "-Xverify:all",
+                                                  "-Xmx128m",
+                                                  "BadMap50");
         out.shouldNotHaveExitValue(0);
         out.shouldNotContain("[class,init]");
         out.shouldNotContain("Fail over class verification to old verifier for: BadMap50");

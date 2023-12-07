@@ -21,11 +21,10 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
+
 import java.lang.ProcessBuilder;
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
+
+import jdk.test.lib.process.ProcessTools;
 
 public class T {
     public static boolean run() {
@@ -43,9 +42,7 @@ public class T {
             // failure mode the VM fails to create a thread with error message
             // 'Failed to start thread - pthread_create failed'.
             System.out.println("Starting a new process ...");
-            Process process = pb.start();
-            process.waitFor();
-            String echoOutput = output(process.getInputStream());
+            String echoOutput = ProcessTools.executeProcess(pb).getStdout();
             System.out.println("Echo Output: " + echoOutput);
             if (echoOutput.equals(echoInput)) {
                 res = true;
@@ -59,15 +56,6 @@ public class T {
             e.printStackTrace();
         }
         return res;
-    }
-
-    private static String output(InputStream inputStream) throws IOException {
-        String s = "";
-        try (BufferedReader br =
-                 new BufferedReader(new InputStreamReader(inputStream))) {
-            s = br.readLine();
-        }
-        return s;
     }
 }
 

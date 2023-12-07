@@ -48,7 +48,7 @@ public class ReserveMemory {
       // expected to crash
       WhiteBox.getWhiteBox().readReservedMemory();
     } else {
-      ProcessBuilder pb = ProcessTools.createLimitedTestJavaProcessBuilder(
+      OutputAnalyzer output = ProcessTools.executeLimitedTestJava(
             "-Xbootclasspath/a:.",
             "-XX:+UnlockDiagnosticVMOptions",
             "-XX:+WhiteBoxAPI",
@@ -57,7 +57,6 @@ public class ReserveMemory {
             "ReserveMemory",
             "test");
 
-      OutputAnalyzer output = new OutputAnalyzer(pb.start());
       output.shouldNotHaveExitValue(0);
       if (Platform.isWindows()) {
         output.shouldContain("EXCEPTION_ACCESS_VIOLATION");

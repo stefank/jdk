@@ -37,13 +37,11 @@ import jdk.test.lib.process.OutputAnalyzer;
 
 public class NMTJavaHeapTest {
     public static void main(String args[]) throws Exception {
-        ProcessBuilder pb = ProcessTools.createTestJavaProcessBuilder(
+        OutputAnalyzer output = ProcessTools.executeTestJava(
               "-XX:+UnlockDiagnosticVMOptions",
               "-XX:+PrintNMTStatistics",
               "-XX:NativeMemoryTracking=summary",
               "-version");
-
-        OutputAnalyzer output = new OutputAnalyzer(pb.start());
 
         // Java Heap (reserved=786432KB, committed=49152KB)
         String pattern = ".*Java Heap \\(reserved=.*, committed=(.*)\\).*";

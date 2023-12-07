@@ -55,7 +55,7 @@ public class DisableRegistryTest {
         return debugd;
     }
 
-    private static void test(String serverName) throws IOException, InterruptedException {
+    private static void test(String serverName) throws Exception {
         assert serverName != null;
 
         JDKToolLauncher jhsdbLauncher = JDKToolLauncher.createUsingTestJDK("jhsdb");
@@ -63,9 +63,8 @@ public class DisableRegistryTest {
         jhsdbLauncher.addToolArg("--connect");
         jhsdbLauncher.addToolArg("localhost:" + REGISTRY_PORT + "/" + serverName);
 
-        Process jhsdb = (SATestUtils.createProcessBuilder(jhsdbLauncher)).start();
-        OutputAnalyzer out = new OutputAnalyzer(jhsdb);
-        jhsdb.waitFor();
+        OutputAnalyzer out = SATestUtils.execute(jhsdbLauncher);
+
         System.out.println(out.getStdout());
         System.err.println(out.getStderr());
 

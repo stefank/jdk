@@ -40,20 +40,18 @@
  */
 
 import jdk.test.lib.process.OutputAnalyzer;
+import jdk.test.lib.process.ProcessTools;
 import jdk.test.lib.JDKToolFinder;
 
 public class PrintClasses {
   public static void main(String args[]) throws Exception {
     var pid = Long.toString(ProcessHandle.current().pid());
-    var pb = new ProcessBuilder();
 
-    pb.command(new String[] { JDKToolFinder.getJDKTool("jcmd"), pid, "VM.classes"});
-    var output = new OutputAnalyzer(pb.start());
+    var output = ProcessTools.executeProcess(JDKToolFinder.getJDKTool("jcmd"), pid, "VM.classes");
     output.shouldNotContain("instance size");
     output.shouldContain(PrintClasses.class.getSimpleName());
 
-    pb.command(new String[] { JDKToolFinder.getJDKTool("jcmd"), pid, "VM.classes", "-verbose"});
-    output = new OutputAnalyzer(pb.start());
+    output = ProcessTools.executeProcess(JDKToolFinder.getJDKTool("jcmd"), pid, "VM.classes", "-verbose");
     output.shouldContain("instance size");
     output.shouldContain(PrintClasses.class.getSimpleName());
 

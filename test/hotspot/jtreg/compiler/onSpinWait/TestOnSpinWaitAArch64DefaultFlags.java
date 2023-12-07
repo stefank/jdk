@@ -49,8 +49,7 @@ public class TestOnSpinWaitAArch64DefaultFlags {
         return cpuModel.contains("0xd0c");
     }
 
-    private static void checkFinalFlagsEqualTo(ProcessBuilder pb, String expectedOnSpinWaitInstValue, String expectedOnSpinWaitInstCountValue) throws Exception {
-        OutputAnalyzer analyzer = new OutputAnalyzer(pb.start());
+    private static void checkFinalFlagsEqualTo(OutputAnalyzer analyzer, String expectedOnSpinWaitInstValue, String expectedOnSpinWaitInstCountValue) throws Exception {
         analyzer.shouldHaveExitValue(0);
 
         Iterator<String> iter = analyzer.asLines().listIterator();
@@ -87,9 +86,9 @@ public class TestOnSpinWaitAArch64DefaultFlags {
         final String cpuModel = cpuFeatures.get(0);
 
         if (isCPUModelNeoverseN1(cpuModel)) {
-            checkFinalFlagsEqualTo(ProcessTools.createLimitedTestJavaProcessBuilder("-XX:+UnlockDiagnosticVMOptions", "-XX:+PrintFlagsFinal", "-version"),
+            checkFinalFlagsEqualTo(ProcessTools.executeLimitedTestJava("-XX:+UnlockDiagnosticVMOptions", "-XX:+PrintFlagsFinal", "-version"),
                 "isb", "1");
-            checkFinalFlagsEqualTo(ProcessTools.createLimitedTestJavaProcessBuilder("-XX:+UnlockDiagnosticVMOptions", "-XX:OnSpinWaitInstCount=2", "-XX:+PrintFlagsFinal", "-version"),
+            checkFinalFlagsEqualTo(ProcessTools.executeLimitedTestJava("-XX:+UnlockDiagnosticVMOptions", "-XX:OnSpinWaitInstCount=2", "-XX:+PrintFlagsFinal", "-version"),
                 "isb", "2");
         } else {
             System.out.println("Skip because no defaults for CPU model: " + cpuModel);

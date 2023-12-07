@@ -27,6 +27,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.Reader;
+import java.io.StringReader;
 import java.lang.management.GarbageCollectorMXBean;
 import java.lang.management.ManagementFactory;
 import java.math.BigDecimal;
@@ -251,9 +252,9 @@ public class JVMOptionsUtils {
      * @return map from option name to the JVMOption object
      * @throws IOException if an error occurred while reading the data
      */
-    private static Map<String, JVMOption> getJVMOptions(Reader inputReader,
+    private static Map<String, JVMOption> getJVMOptions(OutputAnalyzer output,
             boolean withRanges, Predicate<String> acceptOrigin) throws IOException {
-        BufferedReader reader = new BufferedReader(inputReader);
+        BufferedReader reader = new BufferedReader(new StringReader(output.getStdout()));
         String type;
         String line;
         String token;
@@ -450,7 +451,6 @@ public class JVMOptionsUtils {
     private static Map<String, JVMOption> getOptionsAsMap(boolean withRanges, Predicate<String> acceptOrigin,
             String... additionalArgs) throws Exception {
         Map<String, JVMOption> result;
-        Process p;
         List<String> runJava = new ArrayList<>();
 
         if (additionalArgs.length > 0) {
@@ -469,13 +469,9 @@ public class JVMOptionsUtils {
         runJava.add(PRINT_FLAGS_RANGES);
         runJava.add("-version");
 
-        p = ProcessTools.createLimitedTestJavaProcessBuilder(runJava).start();
+        OutputAnalyzer output = ProcessTools.executeLimitedTestJava(runJava);
 
-        result = getJVMOptions(new InputStreamReader(p.getInputStream()), withRanges, acceptOrigin);
-
-        p.waitFor();
-
-        return result;
+        return getJVMOptions(output, withRanges, acceptOrigin);
     }
 
     /**

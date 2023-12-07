@@ -167,7 +167,7 @@ public class TestHotSpotJVMCIRuntime {
         }
         String[] names = {"translate", "attachCurrentThread", "registerNativeMethods"};
         for (String name : names) {
-            ProcessBuilder pb = ProcessTools.createLimitedTestJavaProcessBuilder(
+            OutputAnalyzer output = ProcessTools.executeLimitedTestJava(
                 "-XX:+UnlockExperimentalVMOptions",
                 "-XX:+EnableJVMCI",
                 "-XX:-UseJVMCICompiler",
@@ -178,7 +178,6 @@ public class TestHotSpotJVMCIRuntime {
                 "--add-exports=jdk.internal.vm.ci/jdk.vm.ci.hotspot=ALL-UNNAMED",
                 "-Xbootclasspath/a:.",
                 JNIEnomemVMCall.class.getName(), name);
-            OutputAnalyzer output = new OutputAnalyzer(pb.start());
             output.shouldContain("java.lang.OutOfMemoryError: JNI_ENOMEM creating or attaching to libjvmci");
             output.shouldNotHaveExitValue(0);
         }

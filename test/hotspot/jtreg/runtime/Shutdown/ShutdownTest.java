@@ -64,20 +64,19 @@ public class ShutdownTest {
        }
     }
 
-    private static void startVM(String... options) throws Throwable {
+    private static void executeAndVerify(String... options) throws Throwable {
         // Combine VM flags given from command-line and your additional options
-        OutputAnalyzer output = ProcessTools.executeTestJvm(options);
+        OutputAnalyzer output = ProcessTools.executeTestJava(options);
         output.shouldContain("- ShutdownTest -");
         output.shouldHaveExitValue(0);
-
     }
 
     public static void main(String[] args) throws Throwable {
         // To reproduce original bug you may need this option: "-Xmx2500k",
         for (int iteration = 0; iteration < 5; ++iteration) {
-            startVM("-XX:+UnlockDiagnosticVMOptions",
-                    "-XX:+VerifyBeforeExit",
-                    ShutdownTestThread.class.getName());
+            executeAndVerify("-XX:+UnlockDiagnosticVMOptions",
+                             "-XX:+VerifyBeforeExit",
+                             ShutdownTestThread.class.getName());
         }
     }
 }

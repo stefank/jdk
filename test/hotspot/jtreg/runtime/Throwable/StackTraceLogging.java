@@ -39,8 +39,7 @@ import jdk.test.lib.process.OutputAnalyzer;
 import jdk.test.lib.process.ProcessTools;
 
 public class StackTraceLogging {
-    static void analyzeOutputOn(ProcessBuilder pb) throws Exception {
-        OutputAnalyzer output = new OutputAnalyzer(pb.start());
+    static void analyzeOutputOn(OutputAnalyzer output) throws Exception {
         // These depths match the ones in TestThrowable.java, except the one greater than 1024
         int[] depths = {10, 34, 100, 1023, 1024};
         for (int d : depths) {
@@ -51,11 +50,11 @@ public class StackTraceLogging {
 
 
     public static void main(String[] args) throws Exception {
-        ProcessBuilder pb = ProcessTools.createLimitedTestJavaProcessBuilder("-Xlog:stacktrace=info",
-                                                                             "-XX:MaxJavaStackTraceDepth=1024",
-                                                                             "--add-opens",
-                                                                             "java.base/java.lang=ALL-UNNAMED",
-                                                                             "TestThrowable");
-        analyzeOutputOn(pb);
+        OutputAnalyzer output = ProcessTools.executeLimitedTestJava("-Xlog:stacktrace=info",
+                                                                    "-XX:MaxJavaStackTraceDepth=1024",
+                                                                    "--add-opens",
+                                                                    "java.base/java.lang=ALL-UNNAMED",
+                                                                    "TestThrowable");
+        analyzeOutputOn(output);
     }
 }

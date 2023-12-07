@@ -57,9 +57,8 @@ public class DeadlockDetectionTest {
             }
         }
 
-        ProcessBuilder processBuilder = SATestUtils.createProcessBuilder(launcher);
-        System.out.println(processBuilder.command().stream().collect(Collectors.joining(" ")));
-        OutputAnalyzer output = ProcessTools.executeProcess(processBuilder);
+        OutputAnalyzer output = SATestUtils.execute(launcher, true);
+
         System.out.println(output.getOutput());
 
         return output;

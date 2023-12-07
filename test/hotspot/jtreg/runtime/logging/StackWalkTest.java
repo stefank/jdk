@@ -35,27 +35,25 @@ import jdk.test.lib.process.ProcessTools;
 import jdk.test.lib.process.OutputAnalyzer;
 
 public class StackWalkTest {
-    static void analyzeOutputOn(ProcessBuilder pb) throws Exception {
-        OutputAnalyzer output = new OutputAnalyzer(pb.start());
+    static void analyzeOutputOn(OutputAnalyzer output) throws Exception {
         output.shouldContain("Start walking");
         output.shouldContain("fill_in_frames");
         output.shouldHaveExitValue(0);
     }
 
-    static void analyzeOutputOff(ProcessBuilder pb) throws Exception {
-        OutputAnalyzer output = new OutputAnalyzer(pb.start());
+    static void analyzeOutputOff(OutputAnalyzer output) throws Exception {
         output.shouldNotContain("[stackwalk]");
         output.shouldHaveExitValue(0);
     }
 
     public static void main(String... args) throws Exception {
-        ProcessBuilder pb = ProcessTools.createLimitedTestJavaProcessBuilder("-Xlog:stackwalk=debug",
-                                                                             InnerClass.class.getName());
-        analyzeOutputOn(pb);
+        OutputAnalyzer output = ProcessTools.executeLimitedTestJava("-Xlog:stackwalk=debug",
+                                                                    InnerClass.class.getName());
+        analyzeOutputOn(output);
 
-        pb = ProcessTools.createLimitedTestJavaProcessBuilder("-Xlog:stackwalk=off",
-                                                              InnerClass.class.getName());
-        analyzeOutputOff(pb);
+        output = ProcessTools.executeLimitedTestJava("-Xlog:stackwalk=off",
+                                                     InnerClass.class.getName());
+        analyzeOutputOff(output);
     }
 
     public static class InnerClass {

@@ -114,7 +114,7 @@ public class TestGenerator {
                     path.toAbsolutePath().toString(),
                     "-l");
             pb.redirectOutput(output.toFile());
-            new OutputAnalyzer(pb.start()).shouldHaveExitValue(0);
+            ProcessTools.executeProcess(pb).shouldHaveExitValue(0);
         } catch (Exception e) {
             throw new Error("Can not get list of tests", e);
         }

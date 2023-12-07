@@ -33,6 +33,7 @@
  */
 
 import jdk.test.lib.process.OutputAnalyzer;
+import jdk.test.lib.process.ProcessTools;
 import jdk.test.lib.JDKToolFinder;
 
 public class TestThreadDumpSMRInfo {
@@ -70,8 +71,7 @@ public class TestThreadDumpSMRInfo {
             }
         }
 
-        ProcessBuilder pb = new ProcessBuilder(JSTACK, PID);
-        OutputAnalyzer output = new OutputAnalyzer(pb.start());
+        OutputAnalyzer output = ProcessTools.executeProcess(JSTACK, PID);
 
         if (verbose) {
             System.out.println("stdout: " + output.getStdout());

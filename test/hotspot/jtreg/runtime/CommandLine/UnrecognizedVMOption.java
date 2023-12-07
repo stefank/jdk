@@ -44,10 +44,9 @@ public class UnrecognizedVMOption {
       "bogus_option",
     };
     for (String option : badOptions) {
-      ProcessBuilder pb = ProcessTools.createLimitedTestJavaProcessBuilder(
+      OutputAnalyzer output = ProcessTools.executeLimitedTestJava(
           "-XX:" + option, "-version");
 
-      OutputAnalyzer output = new OutputAnalyzer(pb.start());
       output.shouldContain("Unrecognized VM option '" + option + "'");
       output.shouldHaveExitValue(1);
     }

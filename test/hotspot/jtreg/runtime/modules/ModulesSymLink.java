@@ -51,10 +51,9 @@ public class ModulesSymLink {
 
         constructTestJDK();
 
-        ProcessBuilder pb = new ProcessBuilder(
+        OutputAnalyzer out = ProcessTools.executeProcess(
             test_jdk + File.separator + "bin" + File.separator + "java",
             "-version");
-        OutputAnalyzer out = new OutputAnalyzer(pb.start());
         out.shouldHaveExitValue(0);
     }
 

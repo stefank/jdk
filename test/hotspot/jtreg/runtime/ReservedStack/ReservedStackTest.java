@@ -254,8 +254,7 @@ public class ReservedStackTest {
         // In order to dynamicaly determine if the platform supports the reserved
         // stack area, run with -XX:StackReservedPages=1 and see if we get the
         // expected warning message for platforms that don't support it.
-        ProcessBuilder pb = ProcessTools.createLimitedTestJavaProcessBuilder("-XX:StackReservedPages=1", "-version");
-        OutputAnalyzer output = new OutputAnalyzer(pb.start());
+        OutputAnalyzer output = ProcessTools.executeLimitedTestJava("-XX:StackReservedPages=1", "-version");
         System.out.println("StackReservedPages=1 log: [" + output.getOutput() + "]");
         if (output.getExitValue() != 0) {
             String msg = "Could not launch with -XX:StackReservedPages=1: exit " + output.getExitValue();

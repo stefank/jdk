@@ -672,13 +672,13 @@ public class CDSTestUtils {
     // ============================= Logging
     public static OutputAnalyzer executeAndLog(ProcessBuilder pb, String logName) throws Exception {
         handleCDSRuntimeOptions(pb);
-        return executeAndLog(pb.start(), logName);
+        OutputAnalyzer output = ProcessTools.executeProcess(pb);
+        return logProcessOutput(output, logName);
     }
 
-    public static OutputAnalyzer executeAndLog(Process process, String logName) throws Exception {
+    public static OutputAnalyzer logProcessOutput(OutputAnalyzer output, String logName) throws Exception {
         long started = System.currentTimeMillis();
 
-        OutputAnalyzer output = new OutputAnalyzer(process);
         String logFileNameStem =
             String.format("%04d", getNextLogCounter()) + "-" + logName;
 

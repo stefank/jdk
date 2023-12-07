@@ -41,7 +41,7 @@ import jdk.test.whitebox.WhiteBox;
 public class TestAbortVMOnSafepointTimeout {
 
     public static void testThreadKilledOnSafepointTimeout() throws Exception {
-        ProcessBuilder pb = ProcessTools.createLimitedTestJavaProcessBuilder(
+        OutputAnalyzer output = ProcessTools.executeLimitedTestJava(
                 "-Xbootclasspath/a:.",
                 "-XX:+UnlockDiagnosticVMOptions",
                 "-XX:+WhiteBoxAPI",
@@ -56,12 +56,11 @@ public class TestAbortVMOnSafepointTimeout {
                 "999" /* 999 is max unsafe sleep */
         );
 
-        OutputAnalyzer output = new OutputAnalyzer(pb.start());
         verifyAbortVmApplied(output);
     }
 
     public static void testGracePeriodAppliedBeforeVmAbort() throws Exception {
-        ProcessBuilder pb = ProcessTools.createLimitedTestJavaProcessBuilder(
+        OutputAnalyzer output = ProcessTools.executeLimitedTestJava(
                 "-Xbootclasspath/a:.",
                 "-XX:+UnlockDiagnosticVMOptions",
                 "-XX:+WhiteBoxAPI",
@@ -76,7 +75,6 @@ public class TestAbortVMOnSafepointTimeout {
                 "TestAbortVMOnSafepointTimeout$TestWithDelay"
         );
 
-        OutputAnalyzer output = new OutputAnalyzer(pb.start());
         output.shouldContain(TestWithDelay.PRE_STALL_TEXT);
         verifyAbortVmApplied(output);
     }

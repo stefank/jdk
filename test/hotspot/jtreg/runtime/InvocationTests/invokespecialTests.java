@@ -70,10 +70,9 @@ public class invokespecialTests {
     public static void runTest(String classFileVersion, String option) throws Throwable {
         System.out.println("\ninvokespecial invocation tests, option: " + option +
                            ", class file version: " + classFileVersion);
-        ProcessBuilder pb = ProcessTools.createLimitedTestJavaProcessBuilder("-Xmx128M", option,
+        OutputAnalyzer output = ProcessTools.executeLimitedTestJava("-Xmx128M", option,
             "--add-exports", "java.base/jdk.internal.org.objectweb.asm=ALL-UNNAMED",
             "invokespecial.Generator", "--classfile_version=" + classFileVersion);
-        OutputAnalyzer output = new OutputAnalyzer(pb.start());
         try {
             output.shouldContain("EXECUTION STATUS: PASSED");
             output.shouldHaveExitValue(0);

@@ -97,14 +97,12 @@ public class ErrorFileOverwriteTest {
 
     System.out.println("First crash...");
 
-    ProcessBuilder pb = ProcessTools.createLimitedTestJavaProcessBuilder(
+    OutputAnalyzer output_detail = ProcessTools.executeLimitedTestJava(
             "-Xmx64M",
             "-XX:-CreateCoredumpOnCrash",
             "-XX:ErrorHandlerTest=1",
             "-XX:ErrorFile=" + errorFileName,
             "-version");
-
-    OutputAnalyzer output_detail = new OutputAnalyzer(pb.start());
 
     output_detail.shouldMatch("# A fatal error has been detected by the Java Runtime Environment:.*");
     output_detail.shouldMatch("# An error report file with more information is saved as:.*");
@@ -123,14 +121,12 @@ public class ErrorFileOverwriteTest {
 
     System.out.println("Second crash...");
 
-    pb = ProcessTools.createLimitedTestJavaProcessBuilder(
+    output_detail = ProcessTools.executeLimitedTestJava(
             "-Xmx64M",
             "-XX:-CreateCoredumpOnCrash",
             "-XX:ErrorHandlerTest=2", // << now 2
             "-XX:ErrorFile=" + errorFileName,
             "-version");
-
-    output_detail = new OutputAnalyzer(pb.start());
 
     output_detail.shouldMatch("# A fatal error has been detected by the Java Runtime Environment:.*");
     output_detail.shouldMatch("# An error report file with more information is saved as:.*");
@@ -160,5 +156,3 @@ public class ErrorFileOverwriteTest {
   }
 
 }
-
-

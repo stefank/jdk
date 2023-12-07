@@ -92,16 +92,16 @@ public class TooSmallStackSize {
         throw new RuntimeException("test fails");
     }
 
-    static ProcessBuilder createProcessWithOptions(String stackOption, String stackSize) throws Exception {
+    static OutputAnalyzer executeWithOptions(String stackOption, String stackSize) throws Exception {
         if (testShadowSize == null) {
-            return ProcessTools.createLimitedTestJavaProcessBuilder(
+            return ProcessTools.executeLimitedTestJava(
                 stackOption + stackSize,
                 // Uncomment the following to get log output
                 // that shows actual thread creation sizes.
                 // "-Xlog:os+thread",
                 "-version");
         } else {
-            return ProcessTools.createLimitedTestJavaProcessBuilder(
+            return ProcessTools.executeLimitedTestJava(
                 stackOption + stackSize,
                 // Uncomment the following to get log output
                 // that shows actual thread creation sizes.
@@ -122,8 +122,7 @@ public class TooSmallStackSize {
 
         System.out.println("*** Testing " + stackOption + stackSize);
 
-        ProcessBuilder pb = createProcessWithOptions(stackOption, stackSize);
-        OutputAnalyzer output = new OutputAnalyzer(pb.start());
+        OutputAnalyzer output = executeWithOptions(stackOption, stackSize);
 
         if (verbose) {
             System.out.println("stdout: " + output.getStdout());
@@ -159,8 +158,7 @@ public class TooSmallStackSize {
     static void checkMinStackAllowed(String stackOption, String optionMesg, String stackSize) throws Exception {
         System.out.println("*** Testing " + stackOption + stackSize);
 
-        ProcessBuilder pb = createProcessWithOptions(stackOption, stackSize);
-        OutputAnalyzer output = new OutputAnalyzer(pb.start());
+        OutputAnalyzer output = executeWithOptions(stackOption, stackSize);
         output.shouldHaveExitValue(0);
 
         System.out.println("PASSED: VM launched with " + stackOption + stackSize);

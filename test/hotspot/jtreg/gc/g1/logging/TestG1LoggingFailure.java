@@ -58,12 +58,12 @@ public class TestG1LoggingFailure {
         // According to https://bugs.openjdk.org/browse/JDK-8146009 failure happens not every time.
         // Will try to reproduce this failure.
         for (int iteration = 0; iteration < 40; ++iteration) {
-            startVM(options);
+            executeTestJavaAndVerify(options);
         }
     }
 
-    private static void startVM(List<String> options) throws Throwable, RuntimeException {
-        OutputAnalyzer out = ProcessTools.executeTestJvm(options);
+    private static void executeTestJavaAndVerify(List<String> options) throws Throwable, RuntimeException {
+        OutputAnalyzer out = ProcessTools.executeTestJava(options);
 
         out.shouldNotContain("pure virtual method called");
 

@@ -83,7 +83,7 @@ public class TestDriver {
         System.out.println("exec " + command);
         pb.inheritIO();
 
-        int exitCode = pb.start().waitFor();
+        int exitCode = ProcessTools.executeProcess(pb).getExitValue();
 
         if (exitCode != 95 && exitCode !=0 ) {
             throw new AssertionError(command + " exit code is " + exitCode);

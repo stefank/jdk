@@ -124,10 +124,8 @@ public class CanGenerateAllClassHook {
         System.out.flush();
     }
 
-    private static OutputAnalyzer execJava(String... args) throws IOException {
-        ProcessBuilder pb = ProcessTools.createLimitedTestJavaProcessBuilder(args);
-
-        OutputAnalyzer output = new OutputAnalyzer(pb.start());
+    private static OutputAnalyzer execJava(String... args) throws Exception {
+        OutputAnalyzer output = ProcessTools.executeLimitedTestJava(args);
 
         log("[STDERR]\n" + output.getStderr());
         log("[STDOUT]\n" + output.getStdout());

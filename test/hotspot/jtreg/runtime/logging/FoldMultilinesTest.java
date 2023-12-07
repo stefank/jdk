@@ -52,43 +52,40 @@ public class FoldMultilinesTest {
         };
     }
 
-    private static void analyzeFoldMultilinesOn(ProcessBuilder pb, String out) throws Exception {
-        OutputAnalyzer output = new OutputAnalyzer(pb.start());
+    private static void analyzeFoldMultilinesOn(OutputAnalyzer output, String out) throws Exception {
         output.shouldHaveExitValue(0);
         if (!getLog(out, output).contains(FOLDED_EXCEPTION_MESSAGE)) {
             throw new RuntimeException(out + ": foldmultilines=true did not work.");
         }
     }
 
-    private static void analyzeFoldMultilinesOff(ProcessBuilder pb, String out) throws Exception {
-        OutputAnalyzer output = new OutputAnalyzer(pb.start());
+    private static void analyzeFoldMultilinesOff(OutputAnalyzer output, String out) throws Exception {
         output.shouldHaveExitValue(0);
         if (!NEWLINE_LOG_PATTERN.matcher(getLog(out, output)).find()) {
             throw new RuntimeException(out + ": foldmultilines=false did not work.");
         }
     }
 
-    private static void analyzeFoldMultilinesInvalid(ProcessBuilder pb) throws Exception {
-        OutputAnalyzer output = new OutputAnalyzer(pb.start());
+    private static void analyzeFoldMultilinesInvalid(OutputAnalyzer output) throws Exception {
         output.shouldContain("Invalid option: foldmultilines must be 'true' or 'false'.");
         output.shouldNotHaveExitValue(0);
     }
 
     private static void test(String out) throws Exception {
         String Xlog;
-        ProcessBuilder pb;
+        OutputAnalyzer output;
 
         Xlog = XLOG_BASE + out +  "::foldmultilines=true";
-        pb = ProcessTools.createLimitedTestJavaProcessBuilder(Xlog, InternalClass.class.getName());
-        analyzeFoldMultilinesOn(pb, out);
+        output = ProcessTools.executeLimitedTestJava(Xlog, InternalClass.class.getName());
+        analyzeFoldMultilinesOn(output, out);
 
         Xlog = XLOG_BASE + out + "::foldmultilines=false";
-        pb = ProcessTools.createLimitedTestJavaProcessBuilder(Xlog, InternalClass.class.getName());
-        analyzeFoldMultilinesOff(pb, out);
+        output = ProcessTools.executeLimitedTestJava(Xlog, InternalClass.class.getName());
+        analyzeFoldMultilinesOff(output, out);
 
         Xlog = XLOG_BASE + out + "::foldmultilines=invalid";
-        pb = ProcessTools.createLimitedTestJavaProcessBuilder(Xlog, InternalClass.class.getName());
-        analyzeFoldMultilinesInvalid(pb);
+        output = ProcessTools.executeLimitedTestJava(Xlog, InternalClass.class.getName());
+        analyzeFoldMultilinesInvalid(output);
     }
 
     public static void main(String[] args) throws Exception {

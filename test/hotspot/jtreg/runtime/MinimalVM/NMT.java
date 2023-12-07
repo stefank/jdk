@@ -36,20 +36,15 @@ import jdk.test.lib.process.ProcessTools;
 public class NMT {
 
     public static void main(String args[]) throws Exception {
-        ProcessBuilder pb;
-
-        pb = ProcessTools.createLimitedTestJavaProcessBuilder("-minimal", "-XX:NativeMemoryTracking=detail", "-version");
-        new OutputAnalyzer(pb.start())
+        ProcessTools.executeLimitedTestJava("-minimal", "-XX:NativeMemoryTracking=detail", "-version")
                 .shouldContain("Native Memory Tracking is not supported in this VM")
                 .shouldHaveExitValue(1);
 
-        pb = ProcessTools.createLimitedTestJavaProcessBuilder("-minimal", "-XX:NativeMemoryTracking=summary", "-version");
-        new OutputAnalyzer(pb.start())
+        ProcessTools.executeLimitedTestJava("-minimal", "-XX:NativeMemoryTracking=summary", "-version")
                 .shouldContain("Native Memory Tracking is not supported in this VM")
                 .shouldHaveExitValue(1);
 
-        pb = ProcessTools.createLimitedTestJavaProcessBuilder("-minimal", "-XX:NativeMemoryTracking=off", "-version");
-        new OutputAnalyzer(pb.start())
+        ProcessTools.executeLimitedTestJava("-minimal", "-XX:NativeMemoryTracking=off", "-version")
                 .shouldContain("Native Memory Tracking is not supported in this VM")
                 .shouldHaveExitValue(1);
 

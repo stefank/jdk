@@ -42,18 +42,16 @@ public class ModuleOptionsTest {
 
         // Test that multiple --add-modules options are cumulative, not last one wins.
         // An exception should be thrown because module i_dont_exist doesn't exist.
-        ProcessBuilder pb = ProcessTools.createLimitedTestJavaProcessBuilder(
+        OutputAnalyzer output = ProcessTools.executeLimitedTestJava(
             "--add-modules=i_dont_exist", "--add-modules=java.base", "-version");
-        OutputAnalyzer output = new OutputAnalyzer(pb.start());
         output.shouldContain("FindException");
         output.shouldContain("i_dont_exist");
         output.shouldHaveExitValue(1);
 
         // Test that the last --limit-modules is the only one recognized.  No exception
         // should be thrown.
-        pb = ProcessTools.createLimitedTestJavaProcessBuilder(
+        output = ProcessTools.executeLimitedTestJava(
             "--limit-modules=i_dont_exist", "--limit-modules=java.base", "-version");
-        output = new OutputAnalyzer(pb.start());
         output.shouldHaveExitValue(0);
     }
 }

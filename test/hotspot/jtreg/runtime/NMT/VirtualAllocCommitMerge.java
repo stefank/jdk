@@ -53,7 +53,7 @@ public class VirtualAllocCommitMerge {
 
         // reserve
         addr = wb.NMTReserveMemory(reserveSize);
-        output = NMTTestUtils.startJcmdVMNativeMemory("detail");
+        output = NMTTestUtils.executeJcmdVMNativeMemory("detail");
         checkReservedCommittedSummary(output, 4096, 0);
         checkReserved(output, addr, reserveSize, "4096KB");
 
@@ -67,7 +67,7 @@ public class VirtualAllocCommitMerge {
             // commit overlapping ABC, A, B, C
             wb.NMTCommitMemory(addrA, 3 * commitSize);
 
-            output = NMTTestUtils.startJcmdVMNativeMemoryDetail();
+            output = NMTTestUtils.executeJcmdVMNativeMemoryDetail();
             checkReservedCommittedSummary(output, 4096, 384);
             checkReserved(output, addr, reserveSize, "4096KB");
 
@@ -76,7 +76,7 @@ public class VirtualAllocCommitMerge {
 
             wb.NMTCommitMemory(addrA, commitSize);
 
-            output = NMTTestUtils.startJcmdVMNativeMemoryDetail();
+            output = NMTTestUtils.executeJcmdVMNativeMemoryDetail();
             checkReservedCommittedSummary(output, 4096, 384);
             checkReserved(output, addr, reserveSize, "4096KB");
 
@@ -85,7 +85,7 @@ public class VirtualAllocCommitMerge {
 
             wb.NMTCommitMemory(addrB, commitSize);
 
-            output = NMTTestUtils.startJcmdVMNativeMemoryDetail();
+            output = NMTTestUtils.executeJcmdVMNativeMemoryDetail();
             checkReservedCommittedSummary(output, 4096, 384);
             checkReserved(output, addr, reserveSize, "4096KB");
 
@@ -93,7 +93,7 @@ public class VirtualAllocCommitMerge {
 
             wb.NMTCommitMemory(addrC, commitSize);
 
-            output = NMTTestUtils.startJcmdVMNativeMemoryDetail();
+            output = NMTTestUtils.executeJcmdVMNativeMemoryDetail();
             checkReservedCommittedSummary(output, 4096, 384);
             checkReserved(output, addr, reserveSize, "4096KB");
 
@@ -102,7 +102,7 @@ public class VirtualAllocCommitMerge {
             // uncommit
             wb.NMTUncommitMemory(addrA, 3 * commitSize);
 
-            output = NMTTestUtils.startJcmdVMNativeMemoryDetail();
+            output = NMTTestUtils.executeJcmdVMNativeMemoryDetail();
             checkReservedCommittedSummary(output, 4096, 0);
         }
 
@@ -113,7 +113,7 @@ public class VirtualAllocCommitMerge {
             wb.NMTCommitMemory(addrC, commitSize);
             wb.NMTCommitMemory(addrE, commitSize);
 
-            output = NMTTestUtils.startJcmdVMNativeMemoryDetail();
+            output = NMTTestUtils.executeJcmdVMNativeMemoryDetail();
             checkReservedCommittedSummary(output, 4096, 384);
             checkReserved(output, addr, reserveSize, "4096KB");
 
@@ -126,7 +126,7 @@ public class VirtualAllocCommitMerge {
             wb.NMTUncommitMemory(addrC, commitSize);
             wb.NMTUncommitMemory(addrE, commitSize);
 
-            output = NMTTestUtils.startJcmdVMNativeMemoryDetail();
+            output = NMTTestUtils.executeJcmdVMNativeMemoryDetail();
             checkReservedCommittedSummary(output, 4096, 0);
         }
 
@@ -136,7 +136,7 @@ public class VirtualAllocCommitMerge {
             wb.NMTCommitMemory(addrA, commitSize);
             wb.NMTCommitMemory(addrB, commitSize);
 
-            output = NMTTestUtils.startJcmdVMNativeMemoryDetail();
+            output = NMTTestUtils.executeJcmdVMNativeMemoryDetail();
             checkReservedCommittedSummary(output, 4096, 256);
             checkReserved(output, addr, reserveSize, "4096KB");
 
@@ -146,7 +146,7 @@ public class VirtualAllocCommitMerge {
             wb.NMTUncommitMemory(addrA, commitSize);
             wb.NMTUncommitMemory(addrB, commitSize);
 
-            output = NMTTestUtils.startJcmdVMNativeMemoryDetail();
+            output = NMTTestUtils.executeJcmdVMNativeMemoryDetail();
             checkReservedCommittedSummary(output, 4096, 0);
         }
 
@@ -155,7 +155,7 @@ public class VirtualAllocCommitMerge {
             wb.NMTCommitMemory(addrB, commitSize);
             wb.NMTCommitMemory(addrA, commitSize);
 
-            output = NMTTestUtils.startJcmdVMNativeMemoryDetail();
+            output = NMTTestUtils.executeJcmdVMNativeMemoryDetail();
             checkReservedCommittedSummary(output, 4096, 256);
             checkReserved(output, addr, reserveSize, "4096KB");
 
@@ -165,7 +165,7 @@ public class VirtualAllocCommitMerge {
             wb.NMTUncommitMemory(addrB, commitSize);
             wb.NMTUncommitMemory(addrA, commitSize);
 
-            output = NMTTestUtils.startJcmdVMNativeMemoryDetail();
+            output = NMTTestUtils.executeJcmdVMNativeMemoryDetail();
             checkReservedCommittedSummary(output, 4096, 0);
         }
 
@@ -175,7 +175,7 @@ public class VirtualAllocCommitMerge {
             wb.NMTCommitMemory(addrB, commitSize);
             wb.NMTCommitMemory(addrC, commitSize);
 
-            output = NMTTestUtils.startJcmdVMNativeMemoryDetail();
+            output = NMTTestUtils.executeJcmdVMNativeMemoryDetail();
             checkReservedCommittedSummary(output, 4096, 384);
             checkReserved(output, addr, reserveSize, "4096KB");
 
@@ -186,7 +186,7 @@ public class VirtualAllocCommitMerge {
             wb.NMTUncommitMemory(addrB, commitSize);
             wb.NMTUncommitMemory(addrC, commitSize);
 
-            output = NMTTestUtils.startJcmdVMNativeMemoryDetail();
+            output = NMTTestUtils.executeJcmdVMNativeMemoryDetail();
             checkReservedCommittedSummary(output, 4096, 0);
         }
 
@@ -196,7 +196,7 @@ public class VirtualAllocCommitMerge {
             wb.NMTCommitMemory(addrC, commitSize);
             wb.NMTCommitMemory(addrB, commitSize);
 
-            output = NMTTestUtils.startJcmdVMNativeMemoryDetail();
+            output = NMTTestUtils.executeJcmdVMNativeMemoryDetail();
             checkReservedCommittedSummary(output, 4096, 384);
             checkReserved(output, addr, reserveSize, "4096KB");
 
@@ -207,7 +207,7 @@ public class VirtualAllocCommitMerge {
             wb.NMTUncommitMemory(addrC, commitSize);
             wb.NMTUncommitMemory(addrB, commitSize);
 
-            output = NMTTestUtils.startJcmdVMNativeMemoryDetail();
+            output = NMTTestUtils.executeJcmdVMNativeMemoryDetail();
             checkReservedCommittedSummary(output, 4096, 0);
         }
 
@@ -217,7 +217,7 @@ public class VirtualAllocCommitMerge {
             wb.NMTCommitMemory(addrA, commitSize);
             wb.NMTCommitMemory(addrC, commitSize);
 
-            output = NMTTestUtils.startJcmdVMNativeMemoryDetail();
+            output = NMTTestUtils.executeJcmdVMNativeMemoryDetail();
             checkReservedCommittedSummary(output, 4096, 384);
             checkReserved(output, addr, reserveSize, "4096KB");
 
@@ -228,7 +228,7 @@ public class VirtualAllocCommitMerge {
             wb.NMTUncommitMemory(addrA, commitSize);
             wb.NMTUncommitMemory(addrC, commitSize);
 
-            output = NMTTestUtils.startJcmdVMNativeMemoryDetail();
+            output = NMTTestUtils.executeJcmdVMNativeMemoryDetail();
             checkReservedCommittedSummary(output, 4096, 0);
         }
 
@@ -238,7 +238,7 @@ public class VirtualAllocCommitMerge {
             wb.NMTCommitMemory(addrC, commitSize);
             wb.NMTCommitMemory(addrA, commitSize);
 
-            output = NMTTestUtils.startJcmdVMNativeMemoryDetail();
+            output = NMTTestUtils.executeJcmdVMNativeMemoryDetail();
             checkReservedCommittedSummary(output, 4096, 384);
             checkReserved(output, addr, reserveSize, "4096KB");
 
@@ -249,7 +249,7 @@ public class VirtualAllocCommitMerge {
             wb.NMTUncommitMemory(addrC, commitSize);
             wb.NMTUncommitMemory(addrA, commitSize);
 
-            output = NMTTestUtils.startJcmdVMNativeMemoryDetail();
+            output = NMTTestUtils.executeJcmdVMNativeMemoryDetail();
             checkReservedCommittedSummary(output, 4096, 0);
         }
 
@@ -259,7 +259,7 @@ public class VirtualAllocCommitMerge {
             wb.NMTCommitMemory(addrA, commitSize);
             wb.NMTCommitMemory(addrB, commitSize);
 
-            output = NMTTestUtils.startJcmdVMNativeMemoryDetail();
+            output = NMTTestUtils.executeJcmdVMNativeMemoryDetail();
             checkReservedCommittedSummary(output, 4096, 384);
             checkReserved(output, addr, reserveSize, "4096KB");
 
@@ -270,7 +270,7 @@ public class VirtualAllocCommitMerge {
             wb.NMTUncommitMemory(addrA, commitSize);
             wb.NMTUncommitMemory(addrB, commitSize);
 
-            output = NMTTestUtils.startJcmdVMNativeMemoryDetail();
+            output = NMTTestUtils.executeJcmdVMNativeMemoryDetail();
             checkReservedCommittedSummary(output, 4096, 0);
         }
 
@@ -280,7 +280,7 @@ public class VirtualAllocCommitMerge {
             wb.NMTCommitMemory(addrB, commitSize);
             wb.NMTCommitMemory(addrA, commitSize);
 
-            output = NMTTestUtils.startJcmdVMNativeMemoryDetail();
+            output = NMTTestUtils.executeJcmdVMNativeMemoryDetail();
             checkReservedCommittedSummary(output, 4096, 384);
             checkReserved(output, addr, reserveSize, "4096KB");
 
@@ -291,13 +291,13 @@ public class VirtualAllocCommitMerge {
             wb.NMTUncommitMemory(addrB, commitSize);
             wb.NMTUncommitMemory(addrA, commitSize);
 
-            output = NMTTestUtils.startJcmdVMNativeMemoryDetail();
+            output = NMTTestUtils.executeJcmdVMNativeMemoryDetail();
             checkReservedCommittedSummary(output, 4096, 0);
         }
 
         // release
         wb.NMTReleaseMemory(addr, reserveSize);
-        output = NMTTestUtils.startJcmdVMNativeMemoryDetail();
+        output = NMTTestUtils.executeJcmdVMNativeMemoryDetail();
         checkReservedCommittedSummary(output, 0, 0);
         output.shouldNotMatch("\\[0x[0]*" + Long.toHexString(addr) + " - 0x[0]*"
                 + Long.toHexString(addr + reserveSize) + "\\] reserved 4096KB for Test");

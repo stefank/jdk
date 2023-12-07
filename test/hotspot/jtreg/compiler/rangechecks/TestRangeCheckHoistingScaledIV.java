@@ -82,10 +82,9 @@ public class TestRangeCheckHoistingScaledIV {
     }
 
     public static void main(String[] args) throws Exception {
-        ProcessBuilder pb = ProcessTools.createTestJavaProcessBuilder(
+        OutputAnalyzer analyzer = ProcessTools.executeTestJava(
                 "--add-modules", "jdk.incubator.vector",
                 "-Xbatch", "-XX:+TraceLoopPredicate", Launcher.class.getName());
-        OutputAnalyzer analyzer = new OutputAnalyzer(pb.start());
         analyzer.shouldHaveExitValue(0);
         analyzer.outputTo(System.out);
 

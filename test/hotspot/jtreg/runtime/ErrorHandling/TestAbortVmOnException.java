@@ -47,37 +47,35 @@ public class TestAbortVmOnException {
             }
         }
         // Run process throwing MyException
-        Process myExceptionThrowingProcess = runProcess( "MyAbortException", false, null);
-        parseOutput(myExceptionThrowingProcess, "fatal error: Saw MyAbortException, aborting");
+        OutputAnalyzer myExceptionThrowingOutput = runProcess( "MyAbortException", false, null);
+        parseOutput(myExceptionThrowingOutput, "fatal error: Saw MyAbortException, aborting");
         // Run process throwing MyException with message
-        Process myExceptionThrowingWithMessageProcess = runProcess( "MyAbortException", true, null);
-        parseOutput(myExceptionThrowingWithMessageProcess, "fatal error: Saw MyAbortException: MyExceptionMessage, aborting");
+        OutputAnalyzer myExceptionThrowingWithMessageOutput = runProcess( "MyAbortException", true, null);
+        parseOutput(myExceptionThrowingWithMessageOutput, "fatal error: Saw MyAbortException: MyExceptionMessage, aborting");
         // Run process throwing MyException with message and check message
-        Process myExceptionThrowingWithMessageCheckProcess = runProcess( "MyAbortException", true, "MyExceptionMessage");
-        parseOutput(myExceptionThrowingWithMessageCheckProcess, "fatal error: Saw MyAbortException: MyExceptionMessage, aborting");
+        OutputAnalyzer myExceptionThrowingWithMessageCheckOutput = runProcess( "MyAbortException", true, "MyExceptionMessage");
+        parseOutput(myExceptionThrowingWithMessageCheckOutput, "fatal error: Saw MyAbortException: MyExceptionMessage, aborting");
         System.out.println("PASSED");
     }
 
-    private static Process runProcess(String exceptionName, boolean withMessage, String exceptionMessage) throws IOException {
+    private static OutputAnalyzer runProcess(String exceptionName, boolean withMessage, String exceptionMessage) throws Exception {
         if (exceptionMessage == null) {
-            return ProcessTools.createLimitedTestJavaProcessBuilder("-XX:+UnlockDiagnosticVMOptions",
+            return ProcessTools.executeLimitedTestJava("-XX:+UnlockDiagnosticVMOptions",
                 "-XX:AbortVMOnException=" + exceptionName, "-Xcomp", "-XX:TieredStopAtLevel=3", "-XX:-CreateCoredumpOnCrash",
                 "-XX:CompileCommand=compileonly,TestAbortVmOnException::*", TestAbortVmOnException.class.getName(),
-                withMessage ? "throwExceptionWithMessage" : "throwException").start();
+                withMessage ? "throwExceptionWithMessage" : "throwException");
         } else {
-            return ProcessTools.createLimitedTestJavaProcessBuilder("-XX:+UnlockDiagnosticVMOptions",
+            return ProcessTools.executeLimitedTestJava("-XX:+UnlockDiagnosticVMOptions",
                 "-XX:AbortVMOnException=" + exceptionName, "-XX:AbortVMOnExceptionMessage=" + exceptionMessage,
                 "-Xcomp", "-XX:TieredStopAtLevel=3", "-XX:-CreateCoredumpOnCrash", "-XX:CompileCommand=compileonly,TestAbortVmOnException::*",
-                TestAbortVmOnException.class.getName(),withMessage ? "throwExceptionWithMessage" : "throwException").start();
+                TestAbortVmOnException.class.getName(),withMessage ? "throwExceptionWithMessage" : "throwException");
         }
     }
 
-    private static void parseOutput(Process process, String expectedString) throws IOException {
-        OutputAnalyzer output = new OutputAnalyzer(process);
+    private static void parseOutput(OutputAnalyzer output, String expectedString) throws IOException {
         output.stdoutShouldNotBeEmpty();
         output.shouldContain(expectedString);
     }
-
 }
 
 class MyAbortException extends RuntimeException {

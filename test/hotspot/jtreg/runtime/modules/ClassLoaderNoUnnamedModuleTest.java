@@ -37,12 +37,11 @@ import jdk.test.lib.process.OutputAnalyzer;
 
 public class ClassLoaderNoUnnamedModuleTest {
     public static void main(String args[]) throws Throwable {
-        ProcessBuilder pb = ProcessTools.createLimitedTestJavaProcessBuilder(
+        OutputAnalyzer oa = ProcessTools.executeLimitedTestJava(
                                "--add-modules=java.base",
                                "--add-exports=java.base/jdk.internal.misc=ALL-UNNAMED",
                                "-XX:-CreateCoredumpOnCrash",
                                "ClassLoaderNoUnnamedModule");
-        OutputAnalyzer oa = new OutputAnalyzer(pb.start());
         oa.shouldNotHaveExitValue(0);
         oa.shouldContain("Internal Error");
         oa.shouldContain("unnamed module");

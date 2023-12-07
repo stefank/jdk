@@ -25,6 +25,7 @@ package compiler.jsr292.NonInlinedCall;
 
 import jdk.test.lib.JDKToolLauncher;
 import jdk.test.lib.process.OutputAnalyzer;
+import jdk.test.lib.process.ProcessTools;
 
 import java.io.File;
 import java.io.PrintStream;
@@ -52,7 +53,7 @@ public class Agent {
         System.out.println("Running jar " + Arrays.toString(jar.getCommand()));
 
         ProcessBuilder pb = new ProcessBuilder(jar.getCommand());
-        OutputAnalyzer output = new OutputAnalyzer(pb.start());
-        output.shouldHaveExitValue(0);
+        ProcessTools.executeProcess(pb)
+            .shouldHaveExitValue(0);
     }
 }

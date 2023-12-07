@@ -50,6 +50,7 @@ import jdk.test.lib.Platform;
 import jdk.test.lib.cds.CDSOptions;
 import jdk.test.lib.cds.CDSTestUtils;
 import jdk.test.lib.process.OutputAnalyzer;
+import jdk.test.lib.process.ProcessExecutor;
 import jdk.test.lib.process.ProcessTools;
 import jdk.test.lib.util.CoreUtils;
 import jdk.test.lib.Utils;
@@ -87,19 +88,22 @@ public class ClhsdbCDSCore {
             };
 
             OutputAnalyzer crashOutput;
+            long pid;
             try {
                List<String> options = new ArrayList<>();
                options.addAll(Arrays.asList(jArgs));
                ProcessBuilder pb = ProcessTools.createTestJavaProcessBuilder(options);
                // Add "ulimit -c unlimited" if we can since we are generating a core file.
                pb = CoreUtils.addCoreUlimitCommand(pb);
-               crashOutput = ProcessTools.executeProcess(pb);
+               ProcessExecutor executor = new ProcessExecutor(pb);
+               pid = executor.pid();
+               crashOutput = executor.waitForOutputAnalyzer();
             } catch (Throwable t) {
                throw new Error("Can't execute the java cds process.", t);
             }
 
             try {
-                coreFileName = CoreUtils.getCoreFileLocation(crashOutput.getStdout(), crashOutput.pid());
+                coreFileName = CoreUtils.getCoreFileLocation(crashOutput.getStdout(), pid);
             } catch (Exception e) {
                 cleanup();
                 throw e;

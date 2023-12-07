@@ -35,6 +35,7 @@
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
+import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
@@ -346,9 +347,7 @@ public class TestThreadDumpMonitorContention {
             if (verbose || error_cnt > 0) System.out.println();
             System.out.println("Sample #" + count);
 
-            // We don't use the ProcessTools, OutputBuffer or
-            // OutputAnalyzer classes from the testlibrary because
-            // we have a complicated multi-line parse to perform
+            // We have a complicated multi-line parse to perform
             // on a narrow subset of the JSTACK output.
             //
             // - we only care about stack traces that match
@@ -379,11 +378,10 @@ public class TestThreadDumpMonitorContention {
             // we don't mix data between the two stack traces that do
             // match HEADER_PREFIX_PATTERN.
             //
-            Process process = new ProcessBuilder(JSTACK, PID)
-                .redirectErrorStream(true).start();
+            OutputAnalyzer output = ProcessTools.executeProcess(JSTACK, PID);
 
-            BufferedReader reader = new BufferedReader(new InputStreamReader(
-                                        process.getInputStream()));
+            BufferedReader reader = new BufferedReader(new StringReader(
+                                        output.getOutput()));
             String line;
             while ((line = reader.readLine()) != null) {
                 Matcher matcher = null;
@@ -433,7 +431,6 @@ public class TestThreadDumpMonitorContention {
                     continue;
                 }
             }
-            process.waitFor();
 
             if (header_prefix_match_cnt != 2) {
                 System.err.println();

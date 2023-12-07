@@ -64,11 +64,10 @@ public class PatchModuleClassList {
         String moduleJar = BasicJarBuilder.getTestJar("javanaming.jar");
 
         String classList = "javanaming.list";
-        ProcessBuilder pb = ProcessTools.createTestJavaProcessBuilder(
+        OutputAnalyzer oa = ProcessTools.executeTestJava(
             "-XX:DumpLoadedClassList=" + classList,
             "--patch-module=java.naming=" + moduleJar,
             "PatchModuleMain", BOOT_CLASS.replace('/', '.'));
-        OutputAnalyzer oa = new OutputAnalyzer(pb.start());
         oa.shouldContain("I pass!");
         oa.shouldHaveExitValue(0);
 
@@ -98,11 +97,10 @@ public class PatchModuleClassList {
         moduleJar = BasicJarBuilder.getTestJar("javasql.jar");
 
         classList = "javasql.list";
-        pb = ProcessTools.createTestJavaProcessBuilder(
+        OutputAnalyzer oa2 = ProcessTools.executeTestJava(
             "-XX:DumpLoadedClassList=" + classList,
             "--patch-module=java.sql=" + moduleJar,
             "PatchModuleMain", PLATFORM_CLASS.replace('/', '.'));
-        OutputAnalyzer oa2 = new OutputAnalyzer(pb.start());
         oa2.shouldContain("I pass too!");
         oa2.shouldHaveExitValue(0);
 
@@ -130,11 +128,11 @@ public class PatchModuleClassList {
         moduleJar = BasicJarBuilder.getTestJar("hello.jar");
 
         classList = "hello.list";
-        pb = ProcessTools.createTestJavaProcessBuilder(
+        ProcessTools.executeTestJava(
             "-XX:DumpLoadedClassList=" + classList,
             "-Xbootclasspath/a:" + moduleJar,
-            "Hello");
-        new OutputAnalyzer(pb.start()).shouldHaveExitValue(0);
+            "Hello")
+                .shouldHaveExitValue(0);
 
         // check the generated classlist file
         content = new String(Files.readAllBytes(Paths.get(classList)));

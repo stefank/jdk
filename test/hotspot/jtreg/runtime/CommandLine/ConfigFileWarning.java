@@ -40,15 +40,13 @@ import jdk.test.lib.Platform;
 public class ConfigFileWarning {
     public static void main(String[] args) throws Exception {
         PrintWriter pw;
-        ProcessBuilder pb;
         OutputAnalyzer output;
 
         pw = new PrintWriter("hs_flags.txt");
         pw.println("aaa");
         pw.close();
 
-        pb = ProcessTools.createLimitedTestJavaProcessBuilder("-XX:Flags=hs_flags.txt","-version");
-        output = new OutputAnalyzer(pb.start());
+        output = ProcessTools.executeLimitedTestJava("-XX:Flags=hs_flags.txt","-version");
         output.shouldContain("Unrecognized VM option 'aaa'");
         output.shouldHaveExitValue(1);
 
@@ -58,8 +56,7 @@ public class ConfigFileWarning {
             pw.println("aa");
             pw.close();
 
-            pb = ProcessTools.createLimitedTestJavaProcessBuilder("-version");
-            output = new OutputAnalyzer(pb.start());
+            output = ProcessTools.executeLimitedTestJava("-version");
             output.shouldHaveExitValue(0);
             output.shouldContain("warning: .hotspotrc file is present but has been ignored.  Run with -XX:Flags=.hotspotrc to load the file.");
         }

@@ -40,13 +40,12 @@ public class TestGenerateOopMapCrash {
     public static void main(String args[]) throws Exception {
         if (args.length == 0) {
             // Spawn new VM instance to execute test
-            ProcessBuilder pb = ProcessTools.createLimitedTestJavaProcessBuilder(
+            OutputAnalyzer output = ProcessTools.executeLimitedTestJava(
                     "-XX:-TieredCompilation",
                     "-XX:CompileCommand=dontinline,if_icmpleIsLastOpcode.m*",
                     "-Xmx64m",
                     TestGenerateOopMapCrash.class.getName(),
                     "run");
-            OutputAnalyzer output = new OutputAnalyzer(pb.start());
             output.shouldHaveExitValue(0);
         } else {
             // Execute test

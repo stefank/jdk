@@ -36,6 +36,7 @@ package compiler.c2;
 
 import jdk.test.lib.JDKToolLauncher;
 import jdk.test.lib.process.OutputAnalyzer;
+import jdk.test.lib.process.ProcessTools;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -135,8 +136,8 @@ public class Test7068051 {
         }
         ProcessBuilder pb = new ProcessBuilder(jar.getCommand());
         try {
-            OutputAnalyzer output = new OutputAnalyzer(pb.start());
-            output.shouldHaveExitValue(0);
+            ProcessTools.executeProcess(pb)
+                .shouldHaveExitValue(0);
         } catch (IOException ex) {
             throw new AssertionError("TESTBUG: jar failed.", ex);
         }

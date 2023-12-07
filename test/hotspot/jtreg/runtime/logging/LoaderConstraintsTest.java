@@ -46,7 +46,7 @@ import jdk.test.lib.classloader.ClassUnloadCommon;
 
 public class LoaderConstraintsTest {
     private static OutputAnalyzer out;
-    private static ProcessBuilder pb;
+
     private static class ClassUnloadTestMain {
         public static void main(String... args) throws Exception {
             String className = "test.Empty";
@@ -58,7 +58,7 @@ public class LoaderConstraintsTest {
     }
 
     // Use the same command-line heap size setting as ../ClassUnload/UnloadTest.java
-    static ProcessBuilder exec(String... args) throws Exception {
+    static OutputAnalyzer exec(String... args) throws Exception {
         List<String> argsList = new ArrayList<>();
         Collections.addAll(argsList, args);
         Collections.addAll(argsList, "-Xmn8m");
@@ -66,20 +66,18 @@ public class LoaderConstraintsTest {
         Collections.addAll(argsList, "-XX:+UnlockDiagnosticVMOptions");
         Collections.addAll(argsList, "-XX:+WhiteBoxAPI");
         Collections.addAll(argsList, ClassUnloadTestMain.class.getName());
-        return ProcessTools.createLimitedTestJavaProcessBuilder(argsList);
+        return ProcessTools.executeLimitedTestJava(argsList);
     }
 
     public static void main(String... args) throws Exception {
 
         // -Xlog:class+loader+constraints=info
-        pb = exec("-Xlog:class+loader+constraints=info");
-        out = new OutputAnalyzer(pb.start());
+        out = exec("-Xlog:class+loader+constraints=info");
         out.shouldHaveExitValue(0);
         out.shouldContain("[class,loader,constraints] adding new constraint for name: java/lang/Class, loader[0]: 'app', loader[1]: 'bootstrap'");
 
         // -Xlog:class+loader+constraints=off
-        pb = exec("-Xlog:class+loader+constraints=off");
-        out = new OutputAnalyzer(pb.start());
+        out = exec("-Xlog:class+loader+constraints=off");
         out.shouldHaveExitValue(0);
         out.shouldNotContain("[class,loader,constraints]");
 

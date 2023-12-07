@@ -44,7 +44,7 @@ public class BlackholeExperimentalUnlockTest {
     private static final int CYCLES = 100_000;
     private static final int TRIES = 10;
 
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) throws Exception {
         if (args.length == 0) {
             driver();
         } else {
@@ -64,21 +64,19 @@ public class BlackholeExperimentalUnlockTest {
         return r;
     }
 
-    public static void shouldFail(String... args) throws IOException {
-        ProcessBuilder pb = ProcessTools.createLimitedTestJavaProcessBuilder(cmdline(args));
-        OutputAnalyzer output = new OutputAnalyzer(pb.start());
+    public static void shouldFail(String... args) throws Exception {
+        OutputAnalyzer output = ProcessTools.executeLimitedTestJava(cmdline(args));
         output.shouldHaveExitValue(0);
         output.shouldContain(MSG);
     }
 
-    public static void shouldPass(String... args) throws IOException {
-        ProcessBuilder pb = ProcessTools.createLimitedTestJavaProcessBuilder(cmdline(args));
-        OutputAnalyzer output = new OutputAnalyzer(pb.start());
+    public static void shouldPass(String... args) throws Exception {
+        OutputAnalyzer output = ProcessTools.executeLimitedTestJava(cmdline(args));
         output.shouldHaveExitValue(0);
         output.shouldNotContain(MSG);
     }
 
-    public static void driver() throws IOException {
+    public static void driver() throws Exception {
         // Option is disabled by default, should fail:
         shouldFail(
             "-XX:CompileCommand=quiet",

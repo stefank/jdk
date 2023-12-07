@@ -98,7 +98,7 @@ public class TestDefaultMethods {
                             String[] instanceKlassNames,
                             long lingeredAppPid) throws Exception {
         // Start a new process to attach to the lingered app
-        ProcessBuilder processBuilder = ProcessTools.createLimitedTestJavaProcessBuilder(
+        OutputAnalyzer SAOutput = SATestUtils.executeLimitedTestJava(
             "--add-modules=jdk.hotspot.agent",
             "--add-exports=jdk.hotspot.agent/sun.jvm.hotspot=ALL-UNNAMED",
             "--add-exports=jdk.hotspot.agent/sun.jvm.hotspot.utilities=ALL-UNNAMED",
@@ -106,8 +106,6 @@ public class TestDefaultMethods {
             "--add-exports=jdk.hotspot.agent/sun.jvm.hotspot.debugger=ALL-UNNAMED",
             "TestDefaultMethods",
              Long.toString(lingeredAppPid));
-        SATestUtils.addPrivilegesIfNeeded(processBuilder);
-        OutputAnalyzer SAOutput = ProcessTools.executeProcess(processBuilder);
         SAOutput.shouldHaveExitValue(0);
         System.out.println(SAOutput.getOutput());
 

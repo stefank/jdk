@@ -44,16 +44,13 @@ import jtreg.SkippedException;
 public class TestClassDump {
 
     private static void dumpClass(long lingeredAppPid)
-        throws IOException {
+        throws Exception {
 
-        ProcessBuilder pb;
         OutputAnalyzer output;
 
-        pb = ProcessTools.createLimitedTestJavaProcessBuilder(
+        output = SATestUtils.executeLimitedTestJava(
                 "-Dsun.jvm.hotspot.tools.jcore.outputDir=jtreg_classes",
                 "-m", "jdk.hotspot.agent/sun.jvm.hotspot.tools.jcore.ClassDump", String.valueOf(lingeredAppPid));
-        SATestUtils.addPrivilegesIfNeeded(pb);
-        output = new OutputAnalyzer(pb.start());
         output.shouldHaveExitValue(0);
         if (!Files.isDirectory(Paths.get("jtreg_classes"))) {
             throw new RuntimeException("jtreg_classes directory not found");
@@ -68,12 +65,10 @@ public class TestClassDump {
             throw new RuntimeException("jtreg_classes/sun/net/util/URLUtil.class not found");
         }
 
-        pb = ProcessTools.createLimitedTestJavaProcessBuilder(
+        output = SATestUtils.executeLimitedTestJava(
                 "-Dsun.jvm.hotspot.tools.jcore.outputDir=jtreg_classes2",
                 "-Dsun.jvm.hotspot.tools.jcore.PackageNameFilter.pkgList=jdk,sun",
                 "-m", "jdk.hotspot.agent/sun.jvm.hotspot.tools.jcore.ClassDump", String.valueOf(lingeredAppPid));
-        SATestUtils.addPrivilegesIfNeeded(pb);
-        output = new OutputAnalyzer(pb.start());
         output.shouldHaveExitValue(0);
         if (Files.exists(Paths.get("jtreg_classes2", "java", "math", "BigInteger.class"))) {
             throw new RuntimeException("jtreg_classes2/java/math/BigInteger.class not expected");

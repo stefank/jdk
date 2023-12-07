@@ -53,11 +53,7 @@ public class TestCompileCommand {
     };
 
     private static void verifyValidOption(String[] arguments, String[] expected_outputs) throws Exception {
-        ProcessBuilder pb;
-        OutputAnalyzer out;
-
-        pb = ProcessTools.createLimitedTestJavaProcessBuilder(arguments);
-        out = new OutputAnalyzer(pb.start());
+        OutputAnalyzer out = ProcessTools.executeLimitedTestJava(arguments);
 
         for (String expected_output : expected_outputs) {
             out.shouldContain(expected_output);

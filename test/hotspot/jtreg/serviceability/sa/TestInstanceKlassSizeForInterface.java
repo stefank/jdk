@@ -103,7 +103,7 @@ public class TestInstanceKlassSizeForInterface {
                             String[] instanceKlassNames,
                             int lingeredAppPid) throws Exception {
         // Start a new process to attach to the LingeredApp process to get SA info
-        ProcessBuilder processBuilder = ProcessTools.createLimitedTestJavaProcessBuilder(
+        OutputAnalyzer SAOutput = SATestUtils.executeLimitedTestJava(
             "--add-modules=jdk.hotspot.agent",
             "--add-exports=jdk.hotspot.agent/sun.jvm.hotspot=ALL-UNNAMED",
             "--add-exports=jdk.hotspot.agent/sun.jvm.hotspot.utilities=ALL-UNNAMED",
@@ -114,8 +114,6 @@ public class TestInstanceKlassSizeForInterface {
             "-Xbootclasspath/a:.",
             "TestInstanceKlassSizeForInterface",
             Integer.toString(lingeredAppPid));
-        SATestUtils.addPrivilegesIfNeeded(processBuilder);
-        OutputAnalyzer SAOutput = ProcessTools.executeProcess(processBuilder);
         SAOutput.shouldHaveExitValue(0);
         System.out.println(SAOutput.getOutput());
 

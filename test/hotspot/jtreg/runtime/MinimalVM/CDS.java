@@ -36,20 +36,15 @@ import jdk.test.lib.process.ProcessTools;
 public class CDS {
 
     public static void main(String args[]) throws Exception {
-        ProcessBuilder pb;
-
-        pb = ProcessTools.createLimitedTestJavaProcessBuilder("-minimal", "-Xshare:dump");
-        new OutputAnalyzer(pb.start())
+        ProcessTools.executeLimitedTestJava("-minimal", "-Xshare:dump")
                 .shouldContain("Shared spaces are not supported in this VM")
                 .shouldHaveExitValue(1);
 
-        pb = ProcessTools.createLimitedTestJavaProcessBuilder("-minimal", "-Xshare:on");
-        new OutputAnalyzer(pb.start())
+        ProcessTools.executeLimitedTestJava("-minimal", "-Xshare:on").
                 .shouldContain("Shared spaces are not supported in this VM")
                 .shouldHaveExitValue(1);
 
-        pb = ProcessTools.createLimitedTestJavaProcessBuilder("-minimal", "-Xshare:auto", "-version");
-        new OutputAnalyzer(pb.start())
+        ProcessTools.executeLimitedTestJava("-minimal", "-Xshare:auto", "-version").
                 .shouldContain("Shared spaces are not supported in this VM")
                 .shouldHaveExitValue(0);
     }

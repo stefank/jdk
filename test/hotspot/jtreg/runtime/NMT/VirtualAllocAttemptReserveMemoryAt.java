@@ -49,7 +49,6 @@ public class VirtualAllocAttemptReserveMemoryAt {
         long reserveSize = 4 * 1024 * 1024; // 4096KB
 
         String pid = Long.toString(ProcessTools.getProcessId());
-        ProcessBuilder pb = new ProcessBuilder();
 
         // Find an address
         long addr = wb.NMTReserveMemory(reserveSize);
@@ -67,15 +66,14 @@ public class VirtualAllocAttemptReserveMemoryAt {
 
         assertEQ(addr, attempt_addr);
 
-        pb.command(new String[] { JDKToolFinder.getJDKTool("jcmd"), pid,
-                "VM.native_memory", "detail" });
+        ProcessBuilder pb = new ProcessBuilder(JDKToolFinder.getJDKTool("jcmd"), pid,
+                "VM.native_memory", "detail");
 
-        OutputAnalyzer output = new OutputAnalyzer(pb.start());
-
+        OutputAnalyzer output = ProcessTools.executeProcess(pb);
         output.shouldContain("Test (reserved=4096KB, committed=0KB)");
 
         wb.NMTReleaseMemory(addr, reserveSize);
-        output = new OutputAnalyzer(pb.start());
+        output = ProcessTools.executeProcess(pb);
         output.shouldNotContain("Test (reserved=");
         output.shouldNotMatch("\\[0x[0]*" + Long.toHexString(addr) + " - 0x[0]*"
                 + Long.toHexString(addr + reserveSize) + "\\] reserved 4096KB for Test");

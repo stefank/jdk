@@ -39,7 +39,7 @@ import jdk.test.lib.process.ProcessTools;
 
 public class TestConflictInlineCommands {
     public static void main(String[] args) throws Exception {
-        ProcessBuilder pb = ProcessTools.createLimitedTestJavaProcessBuilder(
+        OutputAnalyzer analyzer = ProcessTools.executeLimitedTestJava(
                 "-Xbatch",
                 "-XX:CompileCommand=inline,*TestConflictInlineCommands::caller",
                 "-XX:CompileCommand=dontinline,*TestConflictInlineCommands::caller",
@@ -47,12 +47,11 @@ public class TestConflictInlineCommands {
                 "-XX:+PrintCompilation", "-XX:+UnlockDiagnosticVMOptions", "-XX:+PrintInlining",
                 Launcher.class.getName());
 
-        OutputAnalyzer analyzer = new OutputAnalyzer(pb.start());
         analyzer.shouldHaveExitValue(0);
         analyzer.shouldContain("disallowed by CompileCommand");
         analyzer.shouldNotContain("force inline by CompileCommand");
 
-        pb = ProcessTools.createLimitedTestJavaProcessBuilder(
+        analyzer = ProcessTools.executeLimitedTestJava(
                 "-Xbatch",
                 "-XX:CompileCommand=dontinline,*TestConflictInlineCommands::*caller",
                 "-XX:CompileCommand=inline,*TestConflictInlineCommands::caller",
@@ -60,7 +59,6 @@ public class TestConflictInlineCommands {
                 "-XX:+PrintCompilation", "-XX:+UnlockDiagnosticVMOptions", "-XX:+PrintInlining",
                 Launcher.class.getName());
 
-        analyzer = new OutputAnalyzer(pb.start());
         analyzer.shouldHaveExitValue(0);
         analyzer.shouldContain("force inline by CompileCommand");
         analyzer.shouldNotContain("disallowed by CompileCommand");

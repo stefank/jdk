@@ -67,7 +67,7 @@ public class ClassPathEnvVar {
         cp += pathSep + endPath;
         envMap.put(classPathEnv, cp);
 
-        return new OutputAnalyzer(pb.start());
+        return ProcessTools.executeProcess(pb);
     }
 
     private static void checkErrorLog(OutputAnalyzer output) throws Exception {

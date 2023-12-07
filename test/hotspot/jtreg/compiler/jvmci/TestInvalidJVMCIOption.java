@@ -38,12 +38,11 @@ import jdk.test.lib.process.OutputAnalyzer;
 public class TestInvalidJVMCIOption {
 
     public static void main(String[] args) throws Exception {
-        ProcessBuilder pb = ProcessTools.createLimitedTestJavaProcessBuilder(
+        OutputAnalyzer output = ProcessTools.executeLimitedTestJava(
             "-XX:+UnlockExperimentalVMOptions",
             "-XX:+EagerJVMCI",
             "-XX:+UseJVMCICompiler",
             "-Djvmci.XXXXXXXXX=true");
-        OutputAnalyzer output = new OutputAnalyzer(pb.start());
         String expectStdout = String.format(
             "Error parsing JVMCI options: Could not find option jvmci.XXXXXXXXX%n" +
             "Error: A fatal exception has occurred. Program will exit.%n");

@@ -37,13 +37,12 @@ public class PrintNMTStatistics {
 
     public static void main(String args[]) throws Exception {
 
-    ProcessBuilder pb = ProcessTools.createTestJavaProcessBuilder(
+    OutputAnalyzer output_detail = ProcessTools.executeTestJava(
       "-XX:+UnlockDiagnosticVMOptions",
       "-XX:+PrintNMTStatistics",
       "-XX:NativeMemoryTracking=detail",
       "-version");
 
-    OutputAnalyzer output_detail = new OutputAnalyzer(pb.start());
     output_detail.shouldContain("Virtual memory map:");
     output_detail.shouldContain("Details:");
 
@@ -55,13 +54,12 @@ public class PrintNMTStatistics {
     // Make sure memory reserved for Module processing is recorded.
     output_detail.shouldContain(" Module (reserved=");
 
-    ProcessBuilder pb1 = ProcessTools.createTestJavaProcessBuilder(
+    OutputAnalyzer output_summary = ProcessTools.executeTestJava(
       "-XX:+UnlockDiagnosticVMOptions",
       "-XX:+PrintNMTStatistics",
       "-XX:NativeMemoryTracking=summary",
       "-version");
 
-    OutputAnalyzer output_summary = new OutputAnalyzer(pb1.start());
     output_summary.shouldContain("Java Heap (reserved=");
     output_summary.shouldNotContain("Virtual memory map:");
     output_summary.shouldNotContain("Details:");

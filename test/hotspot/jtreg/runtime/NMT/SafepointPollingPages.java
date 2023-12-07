@@ -43,11 +43,9 @@ public class SafepointPollingPages {
 
     // Grab my own PID
     String pid = Long.toString(ProcessTools.getProcessId());
-    ProcessBuilder pb = new ProcessBuilder();
 
     // Run 'jcmd <pid> VM.native_memory summary'
-    pb.command(new String[] { JDKToolFinder.getJDKTool("jcmd"), pid, "VM.native_memory", "summary"});
-    output = new OutputAnalyzer(pb.start());
+    output = ProcessTools.executeProcess(JDKToolFinder.getJDKTool("jcmd"), pid, "VM.native_memory", "summary");
     output.shouldContain("Safepoint (reserved=");
   }
 }

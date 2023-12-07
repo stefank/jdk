@@ -38,25 +38,22 @@ import java.io.File;
 
 public class TestVMOptions {
   public static void main(String[] args) throws Exception {
-    ProcessBuilder pb = ProcessTools.createLimitedTestJavaProcessBuilder(
+    OutputAnalyzer output = ProcessTools.executeLimitedTestJava(
         "-XX:bogus",
         "-XX:+IgnoreUnrecognizedVMOptions",
         "-XX:+PrintFlagsInitial");
-    OutputAnalyzer output = new OutputAnalyzer(pb.start());
     output.shouldHaveExitValue(0);
     output.shouldContain("bool UseSerialGC");
 
-    pb = ProcessTools.createLimitedTestJavaProcessBuilder(
+    output = ProcessTools.executeLimitedTestJava(
         "-XX:-PrintVMOptions", "-version");
-    output = new OutputAnalyzer(pb.start());
     output.shouldHaveExitValue(0);
     output.shouldMatch("(openjdk|java)\\sversion");
 
     File dir = new File(System.getProperty("test.src", "."));
     File file = new File(dir, "flagfile.txt");
     String s = file.getAbsolutePath();
-    pb = ProcessTools.createLimitedTestJavaProcessBuilder("-XX:Flags="+s);
-    output = new OutputAnalyzer(pb.start());
+    output = ProcessTools.executeLimitedTestJava("-XX:Flags="+s);
     output.shouldNotHaveExitValue(0);
     output.shouldContain("VM option '-IgnoreUnrecognizedVMOptions'");
   }

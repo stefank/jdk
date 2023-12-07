@@ -54,9 +54,7 @@ public class TestReduceAllocationAndHeapDump {
                 HeapDumper.class.getName()
             };
 
-            ProcessBuilder pb = ProcessTools.createLimitedTestJavaProcessBuilder(dumperArgs);
-            Process p = pb.start();
-            OutputAnalyzer out = new OutputAnalyzer(p);
+            OutputAnalyzer out = ProcessTools.executeLimitedTestJava(dumperArgs);
 
             if (out.getExitValue() != 0) {
                 throw new IllegalStateException("Subprocess finished with non-zero exit code.");

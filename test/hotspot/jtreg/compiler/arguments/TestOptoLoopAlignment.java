@@ -62,15 +62,13 @@ public class TestOptoLoopAlignment {
     }
 
     public static void shouldFail(String... args) throws IOException {
-        ProcessBuilder pb = ProcessTools.createLimitedTestJavaProcessBuilder(cmdline(args));
-        OutputAnalyzer output = new OutputAnalyzer(pb.start());
+        OutputAnalyzer output = ProcessTools.executeLimitedTestJava(cmdline(args));
         output.shouldNotHaveExitValue(0);
         output.shouldContain(MSG);
     }
 
     public static void shouldPass(String... args) throws IOException {
-        ProcessBuilder pb = ProcessTools.createLimitedTestJavaProcessBuilder(cmdline(args));
-        OutputAnalyzer output = new OutputAnalyzer(pb.start());
+        OutputAnalyzer output = ProcessTools.executeLimitedTestJava(cmdline(args));
         output.shouldHaveExitValue(0);
         output.shouldNotContain(MSG);
     }

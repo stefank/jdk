@@ -42,9 +42,9 @@ public class FindClassFromBoot {
         Path patches = Paths.get(System.getProperty("test.classes"), "patches", "java.base");
         String syspaths = System.getProperty("sun.boot.library.path") +
                               File.pathSeparator + System.getProperty("java.library.path");
-        ProcessTools.executeTestJvm("-Dsun.boot.library.path=" + syspaths,
-                                    "--patch-module", "java.base=" + patches.toString(),
-                                    "BootLoaderTest")
+        ProcessTools.executeTestJava("-Dsun.boot.library.path=" + syspaths,
+                                     "--patch-module", "java.base=" + patches.toString(),
+                                     "BootLoaderTest")
                     .shouldHaveExitValue(0);
     }
 }

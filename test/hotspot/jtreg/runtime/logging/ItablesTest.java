@@ -41,8 +41,7 @@ import jdk.test.lib.process.OutputAnalyzer;
 
 public class ItablesTest {
     public static void main(String[] args) throws Exception {
-        ProcessBuilder pb = ProcessTools.createLimitedTestJavaProcessBuilder("-Xlog:itables=trace", "ClassB");
-        OutputAnalyzer output = new OutputAnalyzer(pb.start());
+        OutputAnalyzer output = ProcessTools.executeLimitedTestJava("-Xlog:itables=trace", "ClassB");
         output.shouldContain(": Initializing itables for ClassB");
         output.shouldContain(": Initializing itable indices for interface ");
         output.shouldContain("itable index ");
@@ -53,8 +52,7 @@ public class ItablesTest {
         output.shouldContain("invokeinterface selected method: receiver-class");
         output.shouldHaveExitValue(0);
 
-        pb = ProcessTools.createLimitedTestJavaProcessBuilder("-Xlog:itables=trace", "ItablesVtableTest");
-        output = new OutputAnalyzer(pb.start());
+        output = ProcessTools.executeLimitedTestJava("-Xlog:itables=trace", "ItablesVtableTest");
         output.shouldContain("vtable index ");
         output.shouldHaveExitValue(0);
     }

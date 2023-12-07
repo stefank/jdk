@@ -50,12 +50,7 @@ public class JhsdbThreadInfoTest {
             jhsdbLauncher.addToolArg("--pid");
             jhsdbLauncher.addToolArg(Long.toString(app.getPid()));
 
-            ProcessBuilder pb = SATestUtils.createProcessBuilder(jhsdbLauncher);
-            Process jhsdb = pb.start();
-
-            OutputAnalyzer out = new OutputAnalyzer(jhsdb);
-
-            jhsdb.waitFor();
+            OutputAnalyzer out = SATestUtils.execute(jhsdbLauncher);
 
             System.out.println(out.getStdout());
             System.err.println(out.getStderr());

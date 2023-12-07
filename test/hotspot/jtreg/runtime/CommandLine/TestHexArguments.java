@@ -39,15 +39,13 @@ import jdk.test.lib.process.OutputAnalyzer;
 
 public class TestHexArguments {
     public static void main(String args[]) throws Exception {
-      ProcessBuilder pb = ProcessTools.createLimitedTestJavaProcessBuilder(
+      OutputAnalyzer output = ProcessTools.executeLimitedTestJava(
           "-XX:SharedBaseAddress=0x1D000000", "-version");
-      OutputAnalyzer output = new OutputAnalyzer(pb.start());
       output.shouldNotContain("Could not create the Java Virtual Machine");
       output.shouldHaveExitValue(0);
 
-      pb = ProcessTools.createLimitedTestJavaProcessBuilder(
+      output = ProcessTools.executeLimitedTestJava(
           "-XX:SharedBaseAddress=1D000000", "-version");
-      output = new OutputAnalyzer(pb.start());
       output.shouldNotHaveExitValue(0);
       output.shouldContain("Could not create the Java Virtual Machine");
   }

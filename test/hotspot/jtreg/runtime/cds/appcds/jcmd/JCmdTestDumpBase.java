@@ -32,6 +32,7 @@ import jdk.test.lib.dcmd.CommandExecutorException;
 import jdk.test.lib.dcmd.PidJcmdExecutor;
 import jdk.test.lib.helpers.ClassFileInstaller;
 import jdk.test.lib.process.OutputAnalyzer;
+import jdk.test.lib.process.ProcessExecutor;
 import jtreg.SkippedException;
 import jdk.test.whitebox.WhiteBox;
 
@@ -135,8 +136,8 @@ public abstract class JCmdTestDumpBase {
                 // app exit premature due to incompactible args
                 return null;
             }
-            Process proc = app.getProcess();
-            if (e instanceof IOException && proc.exitValue() == 0) {
+            ProcessExecutor proc = app.getProcess();
+            if (e instanceof IOException && proc.getExitValue() == 0) {
                 // Process started and exit normally.
                 return null;
             }

@@ -45,7 +45,7 @@ public class TestTLS {
     public static void test01() throws Exception {
         ProcessBuilder pb = ProcessTools.createNativeTestProcessBuilder("stack-tls", "-add_tls");
         pb.environment().put("CLASSPATH", Utils.TEST_CLASS_PATH);
-        new OutputAnalyzer(pb.start())
+        ProcessTools.executeProcess(pb)
             .shouldHaveExitValue(0);
     }
 
@@ -56,7 +56,7 @@ public class TestTLS {
     public static void test02() throws Exception {
         ProcessBuilder pb = ProcessTools.createNativeTestProcessBuilder("stack-tls");
         pb.environment().put("CLASSPATH", Utils.TEST_CLASS_PATH);
-        new OutputAnalyzer(pb.start())
+        ProcessTools.executeProcess(pb)
             .shouldHaveExitValue(1);
     }
 }

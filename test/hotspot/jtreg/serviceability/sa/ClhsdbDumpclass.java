@@ -31,6 +31,7 @@ import jdk.test.lib.Utils;
 import jdk.test.lib.apps.LingeredApp;
 import jdk.test.lib.JDKToolLauncher;
 import jdk.test.lib.process.OutputAnalyzer;
+import jdk.test.lib.process.ProcessTools;
 import jdk.test.lib.SA.SATestUtils;
 import jtreg.SkippedException;
 
@@ -79,11 +80,7 @@ public class ClhsdbDumpclass {
             launcher.addToolArg("-verbose");
             launcher.addToolArg(classFile.toString());
             System.out.println("> javap " + classFile.toString());
-            List<String> cmdStringList = Arrays.asList(launcher.getCommand());
-            ProcessBuilder pb = new ProcessBuilder(cmdStringList);
-            Process javap = pb.start();
-            OutputAnalyzer out = new OutputAnalyzer(javap);
-            javap.waitFor();
+            OutputAnalyzer out = ProcessTools.executeProcess(launcher.getCommand());
             System.out.println(out.getStdout());
             System.err.println(out.getStderr());
             out.shouldHaveExitValue(0);

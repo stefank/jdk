@@ -37,16 +37,14 @@ import jdk.test.lib.JDKToolFinder;
 public class JcmdBaselineDetail {
 
     public static void main(String args[]) throws Exception {
-        // Grab my own PID
-        String pid = Long.toString(ProcessTools.getProcessId());
         OutputAnalyzer output;
 
-        ProcessBuilder pb = new ProcessBuilder();
+        // Grab my own PID
+        String pid = Long.toString(ProcessTools.getProcessId());
 
         // Run 'jcmd <pid> VM.native_memory baseline=true'
-        pb.command(new String[] { JDKToolFinder.getJDKTool("jcmd"), pid, "VM.native_memory", "baseline=true"});
+        output = ProcessTools.executeProcess(JDKToolFinder.getJDKTool("jcmd"), pid, "VM.native_memory", "baseline=true");
 
-        output = new OutputAnalyzer(pb.start());
         output.shouldContain("Baseline taken");
     }
 }

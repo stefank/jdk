@@ -39,10 +39,9 @@ import java.util.Scanner;
 
 public class ShortLivedSymbolCleanup {
 
-  static int getSymbolTableSize(ProcessBuilder pb) throws Exception {
+  static int getSymbolTableSize(OutputAnalyzer analyzer) throws Exception {
     int size = 0;
 
-    OutputAnalyzer analyzer = new OutputAnalyzer(pb.start());
     String output = analyzer.getStdout();
     analyzer.shouldHaveExitValue(0);
 
@@ -63,8 +62,7 @@ public class ShortLivedSymbolCleanup {
     return size;
   }
 
-  static void analyzeOutputOn(int size, ProcessBuilder pb) throws Exception {
-    OutputAnalyzer analyzer = new OutputAnalyzer(pb.start());
+  static void analyzeOutputOn(int size, OutputAnalyzer analyzer) throws Exception {
     String output = analyzer.getStdout();
     analyzer.shouldHaveExitValue(0);
 
@@ -89,14 +87,14 @@ public class ShortLivedSymbolCleanup {
   }
 
   public static void main(String[] args) throws Exception {
-    ProcessBuilder pb = ProcessTools.createLimitedTestJavaProcessBuilder("-Xlog:symboltable=trace",
-                                                                         "-version");
-    int size = getSymbolTableSize(pb);
+    OutputAnalyzer output= ProcessTools.executeLimitedTestJava("-Xlog:symboltable=trace",
+                                                               "-version");
+    int size = getSymbolTableSize(output);
 
-    pb = ProcessTools.createLimitedTestJavaProcessBuilder("-XX:+PrintSymbolTableSizeHistogram",
-                                                          LotsOfTempSymbols.class.getName(),
-                                                          Integer.toString(size));
-    analyzeOutputOn(size, pb);
+    output = ProcessTools.executeLimitedTestJava("-XX:+PrintSymbolTableSizeHistogram",
+                                                 LotsOfTempSymbols.class.getName(),
+                                                 Integer.toString(size));
+    analyzeOutputOn(size, output);
   }
 
   static class LotsOfTempSymbols {

@@ -45,13 +45,11 @@ public class TestOnSpinWaitC1 {
     public static void main(String[] args) throws Exception {
 
         // Test C1 compiler
-        ProcessBuilder pb = ProcessTools.createLimitedTestJavaProcessBuilder(
+        OutputAnalyzer analyzer = ProcessTools.executeLimitedTestJava(
           "-XX:+IgnoreUnrecognizedVMOptions", "-showversion",
           "-XX:+TieredCompilation", "-XX:TieredStopAtLevel=1", "-Xbatch",
           "-XX:+PrintCompilation", "-XX:+UnlockDiagnosticVMOptions",
           "-XX:+PrintInlining", Launcher.class.getName());
-
-        OutputAnalyzer analyzer = new OutputAnalyzer(pb.start());
 
         analyzer.shouldHaveExitValue(0);
         analyzer.shouldContain("java.lang.Thread::onSpinWait (1 bytes)   intrinsic");

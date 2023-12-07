@@ -39,14 +39,10 @@ import jdk.test.lib.process.ProcessTools;
 
 public class CheckReservedInitialCodeCacheSizeArgOrder {
     public static void main(String[] args) throws Exception {
-        ProcessBuilder pb1,  pb2;
         OutputAnalyzer out1, out2;
 
-        pb1 = ProcessTools.createLimitedTestJavaProcessBuilder("-XX:InitialCodeCacheSize=4m", "-XX:ReservedCodeCacheSize=8m", "-version");
-        pb2 = ProcessTools.createLimitedTestJavaProcessBuilder("-XX:ReservedCodeCacheSize=8m", "-XX:InitialCodeCacheSize=4m", "-version");
-
-        out1 = new OutputAnalyzer(pb1.start());
-        out2 = new OutputAnalyzer(pb2.start());
+        out1 = ProcessTools.executeLimitedTestJava("-XX:InitialCodeCacheSize=4m", "-XX:ReservedCodeCacheSize=8m", "-version");
+        out2 = ProcessTools.executeLimitedTestJava("-XX:ReservedCodeCacheSize=8m", "-XX:InitialCodeCacheSize=4m", "-version");
 
         // Check that the outputs are equal
         if (out1.getStdout().compareTo(out2.getStdout()) != 0) {

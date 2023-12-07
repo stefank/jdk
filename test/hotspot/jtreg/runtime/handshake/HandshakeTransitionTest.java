@@ -52,9 +52,8 @@ public class HandshakeTransitionTest {
         commands.add("-XX:CICompilerCount=2");
         commands.addAll(Arrays.asList(args));
         commands.add("HandshakeTransitionTest$Test");
-        ProcessBuilder pb = ProcessTools.createTestJavaProcessBuilder(commands);
+        OutputAnalyzer output = ProcessTools.executeTestJava(commands);
 
-        OutputAnalyzer output = ProcessTools.executeProcess(pb);
         output.reportDiagnosticSummary();
         output.shouldHaveExitValue(0);
         output.stdoutShouldContain("JOINED");

@@ -44,14 +44,13 @@ public class TestWBDeflateIdleMonitors {
     static final int N_TRIES = 5;     // number of times to try deflation
 
     public static void main(String args[]) throws Exception {
-        ProcessBuilder pb = ProcessTools.createTestJavaProcessBuilder(
+        OutputAnalyzer output = ProcessTools.executeTestJava(
                 "-Xbootclasspath/a:.",
                 "-XX:+UnlockDiagnosticVMOptions",
                 "-XX:+WhiteBoxAPI",
                 "-Xlog:monitorinflation=info",
                 InflateMonitorsTest.class.getName());
 
-        OutputAnalyzer output = new OutputAnalyzer(pb.start());
         System.out.println(output.getStdout());
         output.shouldHaveExitValue(0);
         output.shouldContain("WhiteBox initiated DeflateIdleMonitors");

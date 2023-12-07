@@ -611,15 +611,31 @@ public final class ProcessTools {
      * Executes a test jvm process, waits for it to finish and returns
      * the process output.
      *
-     * <p>The process is created using runtime flags set up by:
-     * {@link #createTestJavaProcessBuilder(String...)}. The
+     * <p>The process is created using the runtime flags set up by:
+     * {@link #createLimitedTestJavaProcessBuilder(String...)}. The
      * jvm process will have exited before this method returns.
      *
-     * @param cmds User specified arguments.
+     * @param command User specified arguments.
      * @return The output from the process.
      */
-    public static OutputAnalyzer executeTestJvm(List<String> cmds) throws Exception {
-        return executeTestJvm(cmds.toArray(String[]::new));
+    public static OutputAnalyzer executeLimitedTestJava(List<String> command) throws Exception {
+        return executeLimitedTestJava(command.toArray(String[]::new));
+    }
+
+    /**
+     * Executes a test jvm process, waits for it to finish and returns
+     * the process output.
+     *
+     * <p>The process is created using the runtime flags set up by:
+     * {@link #createLimitedTestJavaProcessBuilder(String...)}. The
+     * jvm process will have exited before this method returns.
+     *
+     * @param command User specified arguments.
+     * @return The output from the process.
+     */
+    public static OutputAnalyzer executeLimitedTestJava(String... command) throws Exception {
+        ProcessBuilder pb = createLimitedTestJavaProcessBuilder(command);
+        return executeProcess(pb);
     }
 
     /**
@@ -630,21 +646,27 @@ public final class ProcessTools {
      * {@link #createTestJavaProcessBuilder(String...)}. The
      * jvm process will have exited before this method returns.
      *
-     * @param cmds User specified arguments.
+     * @param command User specified arguments.
      * @return The output from the process.
      */
-    public static OutputAnalyzer executeTestJvm(String... cmds) throws Exception {
-        ProcessBuilder pb = createTestJavaProcessBuilder(cmds);
-        return executeProcess(pb);
+    public static OutputAnalyzer executeTestJava(List<String> command) throws Exception {
+        return executeTestJava(command.toArray(String[]::new));
     }
 
     /**
-     * @param cmds User specified arguments.
+     * Executes a test jvm process, waits for it to finish and returns
+     * the process output.
+     *
+     * <p>The process is created using runtime flags set up by:
+     * {@link #createTestJavaProcessBuilder(String...)}. The
+     * jvm process will have exited before this method returns.
+     *
+     * @param command User specified arguments.
      * @return The output from the process.
-     * @see #executeTestJvm(String...)
      */
-    public static OutputAnalyzer executeTestJava(String... cmds) throws Exception {
-        return executeTestJvm(cmds);
+    public static OutputAnalyzer executeTestJava(String... command) throws Exception {
+        ProcessBuilder pb = createTestJavaProcessBuilder(command);
+        return executeProcess(pb);
     }
 
     /**
@@ -685,44 +707,37 @@ public final class ProcessTools {
     @SuppressWarnings("removal")
     public static OutputAnalyzer executeProcess(ProcessBuilder pb, String input,
                                                 Charset cs) throws Exception {
-        OutputAnalyzer output = null;
-        Process p = null;
+        ProcessExecutor executor = null;
         boolean failed = false;
         try {
-            p = privilegedStart(pb);
-            if (input != null) {
-                try (PrintStream ps = new PrintStream(p.getOutputStream())) {
-                    ps.print(input);
-                }
-            }
-
-            output = new OutputAnalyzer(p, cs);
-            p.waitFor();
+            executor = new ProcessExecutor(pb, input, cs);
+            executor.waitFor();
 
             {   // Dumping the process output to a separate file
-                var fileName = String.format("pid-%d-output.log", p.pid());
-                var processOutput = getProcessLog(pb, output);
+                String fileName = String.format("pid-%d-output.log", executor.pid());
+                String processOutput = getProcessLog(pb, executor);
                 AccessController.doPrivileged((PrivilegedExceptionAction<Void>) () -> {
                     Files.writeString(Path.of(fileName), processOutput);
                     return null;
                 });
                 System.out.printf(
                         "Output and diagnostic info for process %d " +
-                                "was saved into '%s'%n", p.pid(), fileName);
+                                "was saved into '%s'%n", executor.pid(), fileName);
             }
 
-            return output;
+            return executor.getOutputAnalyzer();
         } catch (Throwable t) {
-            if (p != null) {
-                p.destroyForcibly().waitFor();
+            if (executor != null) {
+                executor.destroyForcibly();
+                executor.waitFor();
             }
 
             failed = true;
             System.out.println("executeProcess() failed: " + t);
-            throw t;
+            throw new Exception(t);
         } finally {
             if (failed) {
-                System.err.println(getProcessLog(pb, output));
+                System.err.println(getProcessLog(pb, executor));
             }
         }
     }
@@ -732,11 +747,23 @@ public final class ProcessTools {
      * <p>
      * The process will have exited before this method returns.
      *
-     * @param cmds The command line to execute.
-     * @return The output from the process.
+     * @param command The command line to execute.
+     * @return The output from the process.cmds
      */
-    public static OutputAnalyzer executeProcess(String... cmds) throws Throwable {
-        return executeProcess(new ProcessBuilder(cmds));
+    public static OutputAnalyzer executeProcess(String... command) throws Exception {
+        return executeProcess(new ProcessBuilder(command));
+    }
+
+    /**
+     * Executes a process, waits for it to finish and returns the process output.
+     * <p>
+     * The process will have exited before this method returns.
+     *
+     * @param command The command line to execute.
+     * @return The output from the process.cmds
+     */
+    public static OutputAnalyzer executeProcess(List<String> command) throws Exception {
+        return executeProcess(command.toArray(String[]::new));
     }
 
     /**
@@ -745,10 +772,15 @@ public final class ProcessTools {
      * @param pb     The executed process.
      * @param output The output from the process.
      */
-    public static String getProcessLog(ProcessBuilder pb, OutputAnalyzer output) {
-        String stderr = output == null ? "null" : output.getStderr();
-        String stdout = output == null ? "null" : output.getStdout();
-        String exitValue = output == null ? "null" : Integer.toString(output.getExitValue());
+    public static String getProcessLog(ProcessBuilder pb, ProcessExecutor executor) {
+        // Make sure all output from running the process is available.
+        if (executor != null) {
+            executor.waitFor();
+        }
+
+        String stderr = executor == null ? "null" : executor.getStderr();
+        String stdout = executor == null ? "null" : executor.getStdout();
+        String exitValue = executor == null ? "null" : Integer.toString(executor.getExitValue());
         return String.format("--- ProcessLog ---%n" +
                              "cmd: %s%n" +
                              "exitvalue: %s%n" +
@@ -856,7 +888,7 @@ public final class ProcessTools {
     }
 
     @SuppressWarnings("removal")
-    private static Process privilegedStart(ProcessBuilder pb) throws IOException {
+    static Process privilegedStart(ProcessBuilder pb) throws IOException {
         try {
             return AccessController.doPrivileged(
                     (PrivilegedExceptionAction<Process>) pb::start);

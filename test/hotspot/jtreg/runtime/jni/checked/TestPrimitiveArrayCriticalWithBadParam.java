@@ -47,7 +47,7 @@ public class TestPrimitiveArrayCriticalWithBadParam {
     private static native void pin(Object[] a);
     private static native void unpin(Object[] a);
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws Exception {
         if (args.length > 0) {
             test(args[0]);
         } else {
@@ -56,7 +56,7 @@ public class TestPrimitiveArrayCriticalWithBadParam {
         }
     }
 
-    private static void runTest(boolean useVThread) {
+    private static void runTest(boolean useVThread) throws Exception {
         List<String> pbArgs = new ArrayList<>();
         pbArgs.add("-XX:-CreateCoredumpOnCrash");
         pbArgs.add("-Xcheck:jni");
@@ -65,8 +65,7 @@ public class TestPrimitiveArrayCriticalWithBadParam {
         pbArgs.add(TestPrimitiveArrayCriticalWithBadParam.class.getName());
         pbArgs.add(useVThread ? "vtest" : "test");
         try {
-            ProcessBuilder pb = ProcessTools.createLimitedTestJavaProcessBuilder(pbArgs.toArray(new String[0]));
-            OutputAnalyzer analyzer = new OutputAnalyzer(pb.start());
+            OutputAnalyzer analyzer = ProcessTools.executeLimitedTestJava(pbArgs);
 
             // -Xcheck:jni should warn the bad parameter
             analyzer.shouldContain("FATAL ERROR in native method: Primitive type array expected but not received for JNI array operation");

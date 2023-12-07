@@ -257,7 +257,7 @@ public class TestVMOptionsFile {
     }
 
     private static void runJavaCheckExitValue(ProcessBuilder pb, int expectedExitValue) throws Exception {
-        output = new OutputAnalyzer(pb.start());
+        output = ProcessTools.executeProcess(pb);
         output.shouldHaveExitValue(expectedExitValue);
     }
 

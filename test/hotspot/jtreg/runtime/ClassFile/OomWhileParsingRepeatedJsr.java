@@ -58,20 +58,19 @@ public class OomWhileParsingRepeatedJsr {
         ProcessBuilder pb = new ProcessBuilder(new String[] {
             JDKToolFinder.getJDKTool("jar"),
             "xvf", jarFile } );
-        OutputAnalyzer output = new OutputAnalyzer(pb.start());
+        OutputAnalyzer output = ProcessTools.executeProcess(pb);
         output.shouldHaveExitValue(0);
 
         // ======= execute the test
         // We run the test with MallocLimit set to 768m in oom mode,
         // in order to trigger and observe a fake os::malloc oom. This needs NMT.
-        pb = ProcessTools.createLimitedTestJavaProcessBuilder(
+        output = ProcessTools.executeLimitedTestJava(
             "-cp", ".",
             "-XX:+UnlockDiagnosticVMOptions",
             "-XX:NativeMemoryTracking=summary",
             "-XX:MallocLimit=768m:oom",
             className );
 
-        output = new OutputAnalyzer(pb.start());
         output.shouldNotHaveExitValue(0);
         output.shouldContain("Cannot reserve enough memory");
     }

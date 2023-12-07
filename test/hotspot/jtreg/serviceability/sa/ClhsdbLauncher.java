@@ -30,6 +30,7 @@ import jdk.test.lib.Utils;
 import jdk.test.lib.JDKToolLauncher;
 import jdk.test.lib.JDKToolFinder;
 import jdk.test.lib.process.OutputAnalyzer;
+import jdk.test.lib.process.ProcessExecutor;
 import jdk.test.lib.SA.SATestUtils;
 
 /**
@@ -39,20 +40,12 @@ import jdk.test.lib.SA.SATestUtils;
  */
 
 public class ClhsdbLauncher {
-
-    private Process toolProcess;
-
-    public ClhsdbLauncher() {
-        toolProcess = null;
-    }
-
     /**
      *
-     * Launches 'jhsdb clhsdb' and attaches to the Lingered App process.
+     * Creates a 'jhsdb clhsdb' process builder to attach to the Lingered App process.
      * @param lingeredAppPid  - pid of the Lingered App or one its sub-classes.
      */
-    private void attach(long lingeredAppPid)
-        throws IOException {
+    private ProcessBuilder createAttachProcessBuilder(long lingeredAppPid) {
         JDKToolLauncher launcher = JDKToolLauncher.createUsingTestJDK("jhsdb");
         launcher.addVMArgs(Utils.getTestJavaOpts());
         launcher.addToolArg("clhsdb");
@@ -61,18 +54,15 @@ public class ClhsdbLauncher {
             System.out.println("Starting clhsdb against " + lingeredAppPid);
         }
 
-        ProcessBuilder processBuilder = SATestUtils.createProcessBuilder(launcher);
-        toolProcess = processBuilder.start();
+        return SATestUtils.createProcessBuilder(launcher);
     }
 
     /**
      *
-     * Launches 'jhsdb clhsdb' and loads a core file.
+     * Creates a 'jhsdb clhsdb' process builder to load a core file.
      * @param coreFileName - Name of the corefile to be loaded.
      */
-    private void loadCore(String coreFileName)
-        throws IOException {
-
+    private ProcessBuilder createLoadCoreProcessBuilder(String coreFileName) {
         JDKToolLauncher launcher = JDKToolLauncher.createUsingTestJDK("jhsdb");
         launcher.addVMArgs(Utils.getTestJavaOpts());
         launcher.addToolArg("clhsdb");
@@ -81,8 +71,7 @@ public class ClhsdbLauncher {
         System.out.println("Starting clhsdb against corefile " + coreFileName +
                            " and exe " + JDKToolFinder.getTestJDKTool("java"));
 
-        ProcessBuilder processBuilder = new ProcessBuilder(launcher.getCommand());
-        toolProcess = processBuilder.start();
+        return new ProcessBuilder(launcher.getCommand());
     }
 
     /**
@@ -95,7 +84,8 @@ public class ClhsdbLauncher {
      *                           not be present in the output of the command.
      * @return Output of the commands as a String.
      */
-    private String runCmd(List<String> commands,
+    private String runCmd(ProcessBuilder toolProcessBuilder,
+                          List<String> commands,
                           Map<String, List<String>> expectedStrMap,
                           Map<String, List<String>> unExpectedStrMap)
         throws IOException, InterruptedException {
@@ -123,21 +113,22 @@ public class ClhsdbLauncher {
         // Now add all the original commands after the "echo" and "verbose" commands.
         commands.addAll(savedCommands);
 
-        try (OutputStream out = toolProcess.getOutputStream()) {
-            for (String cmd : commands) {
-                out.write((cmd + "\n").getBytes());
-            }
-            out.write("quit\n".getBytes());
-            out.flush();
+        StringBuilder input = new StringBuilder();
+        for (String cmd : commands) {
+            input.append(cmd + "\n");
         }
+        input.append("quit\n");
 
-        OutputAnalyzer oa = new OutputAnalyzer(toolProcess);
+        ProcessExecutor executor = new ProcessExecutor(toolProcessBuilder, input.toString());
+
         try {
-            toolProcess.waitFor();
+            executor.waitForThrowing();
         } catch (InterruptedException ie) {
-            toolProcess.destroyForcibly();
+            executor.destroyForcibly();
             throw new Error("Problem awaiting the child process: " + ie);
         }
+
+        OutputAnalyzer oa = executor.getOutputAnalyzer();
 
         oa.shouldHaveExitValue(0);
         output = oa.getOutput();
@@ -199,8 +190,8 @@ public class ClhsdbLauncher {
         throws Exception {
 
         SATestUtils.skipIfCannotAttach(); // throws SkippedException if attach not expected to work.
-        attach(lingeredAppPid);
-        return runCmd(commands, expectedStrMap, unExpectedStrMap);
+        ProcessBuilder pb = createAttachProcessBuilder(lingeredAppPid);
+        return runCmd(pb, commands, expectedStrMap, unExpectedStrMap);
     }
 
     /**
@@ -221,7 +212,7 @@ public class ClhsdbLauncher {
                             Map<String, List<String>> unExpectedStrMap)
         throws IOException, InterruptedException {
 
-        loadCore(coreFileName);
-        return runCmd(commands, expectedStrMap, unExpectedStrMap);
+        ProcessBuilder pb = createLoadCoreProcessBuilder(coreFileName);
+        return runCmd(pb, commands, expectedStrMap, unExpectedStrMap);
     }
 }

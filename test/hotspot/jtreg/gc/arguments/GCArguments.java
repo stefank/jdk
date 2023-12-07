@@ -81,4 +81,21 @@ public final class GCArguments {
     static public ProcessBuilder createTestJavaProcessBuilder(String... arguments) {
         return ProcessTools.createTestJavaProcessBuilder(withDefaults(arguments));
     }
+
+    static public OutputAnalyzer executeLimitedTestJava(List<String> arguments) {
+        return executeLimitedTestJava(arguments.toArray(String[]::new));
+    }
+
+    static public OutputAnalyzer executeLimitedTestJava(String... arguments) {
+        return ProcessTools.executeLimitedTestJava(withDefaults(arguments));
+    }
+
+    static public OutputAnalyzer executeTestJava(List<String> arguments) {
+        return executeTestJava(arguments.toArray(String[]::new));
+    }
+
+    static public OutputAnalyzer executeTestJava(String... arguments) {
+        return ProcessTools.executeTestJava(withDefaults(arguments));
+    }
+
 }

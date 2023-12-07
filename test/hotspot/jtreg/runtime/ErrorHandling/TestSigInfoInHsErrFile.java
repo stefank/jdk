@@ -46,14 +46,13 @@ public class TestSigInfoInHsErrFile {
 
   public static void main(String[] args) throws Exception {
 
-    ProcessBuilder pb = ProcessTools.createLimitedTestJavaProcessBuilder(
+    OutputAnalyzer output = ProcessTools.executeLimitedTestJava(
         "-XX:+UnlockDiagnosticVMOptions",
         "-Xmx100M",
         "-XX:-CreateCoredumpOnCrash",
         "-XX:ErrorHandlerTest=14",
         "-version");
 
-    OutputAnalyzer output = new OutputAnalyzer(pb.start());
     output.shouldNotHaveExitValue(0);
 
     // we should have crashed with a SIGSEGV
@@ -84,5 +83,3 @@ public class TestSigInfoInHsErrFile {
   }
 
 }
-
-

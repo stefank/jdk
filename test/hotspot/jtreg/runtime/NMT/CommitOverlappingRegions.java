@@ -50,13 +50,12 @@ public class CommitOverlappingRegions {
         long addr = wb.NMTReserveMemory(8*size);
 
         String pid = Long.toString(ProcessTools.getProcessId());
-        ProcessBuilder pb = new ProcessBuilder();
 
-        pb.command(new String[] { JDKToolFinder.getJDKTool("jcmd"), pid, "VM.native_memory", "detail"});
+        ProcessBuilder pb = new ProcessBuilder(JDKToolFinder.getJDKTool("jcmd"), pid, "VM.native_memory", "detail");
         System.out.println("Address is " + Long.toHexString(addr));
 
         // Start: . . . . . . . .
-        output = new OutputAnalyzer(pb.start());
+        output = ProcessTools.executeProcess(pb);
         output.shouldContain("Test (reserved=" + 8*sizek + "KB, committed=0KB)");
 
         // Committing: * * * . . . . .
@@ -70,7 +69,7 @@ public class CommitOverlappingRegions {
         wb.NMTCommitMemory(addr + 4*size, 3*size);
 
         // Check output after first 2 commits.
-        output = new OutputAnalyzer(pb.start());
+        output = ProcessTools.executeProcess(pb);
         output.shouldContain("Test (reserved=" + 8*sizek + "KB, committed=" + 6*sizek + "KB)");
 
         // Committing: . . * * * . . .
@@ -79,35 +78,35 @@ public class CommitOverlappingRegions {
         wb.NMTCommitMemory(addr + 2*size, 3*size);
 
         // Check output after overlapping commit.
-        output = new OutputAnalyzer(pb.start());
+        output = ProcessTools.executeProcess(pb);
         output.shouldContain("Test (reserved=" + 8*sizek + "KB, committed=" + 7*sizek + "KB)");
 
         // Uncommitting: * * * * * * * *
         // Region:       . . . . . . . .
         // Expected Total: 0 x sizek KB
         wb.NMTUncommitMemory(addr + 0*size, 8*size);
-        output = new OutputAnalyzer(pb.start());
+        output = ProcessTools.executeProcess(pb);
         output.shouldContain("Test (reserved=" + 8*sizek + "KB, committed=0KB)");
 
         // Committing: * * . . . . . .
         // Region:     * * . . . . . .
         // Expected Total: 2 x sizek KB
         wb.NMTCommitMemory(addr + 0*size, 2*size);
-        output = new OutputAnalyzer(pb.start());
+        output = ProcessTools.executeProcess(pb);
         output.shouldContain("Test (reserved=" + 8*sizek + "KB, committed=" + 2*sizek + "KB)");
 
         // Committing: . * * * . . . .
         // Region:     * * * * . . . .
         // Expected Total: 4 x sizek KB
         wb.NMTCommitMemory(addr + 1*size, 3*size);
-        output = new OutputAnalyzer(pb.start());
+        output = ProcessTools.executeProcess(pb);
         output.shouldContain("Test (reserved=" + 8*sizek + "KB, committed=" + 4*sizek + "KB)");
 
         // Uncommitting: * * * . . . . .
         // Region:       . . . * . . . .
         // Expected Total: 1 x sizek KB
         wb.NMTUncommitMemory(addr + 0*size, 3*size);
-        output = new OutputAnalyzer(pb.start());
+        output = ProcessTools.executeProcess(pb);
         output.shouldContain("Test (reserved=" + 8*sizek + "KB, committed=" + 1*sizek + "KB)");
 
         // Committing: . . . * * . . .
@@ -115,35 +114,35 @@ public class CommitOverlappingRegions {
         // Expected Total: 2 x sizek KB
         wb.NMTCommitMemory(addr + 3*size, 2*size);
         System.out.println("Address is " + Long.toHexString(addr + 3*size));
-        output = new OutputAnalyzer(pb.start());
+        output = ProcessTools.executeProcess(pb);
         output.shouldContain("Test (reserved=" + 8*sizek + "KB, committed=" + 2*sizek + "KB)");
 
         // Committing: . . . . * * . .
         // Region:     . . . * * * . .
         // Expected Total: 3 x sizek KB
         wb.NMTCommitMemory(addr + 4*size, 2*size);
-        output = new OutputAnalyzer(pb.start());
+        output = ProcessTools.executeProcess(pb);
         output.shouldContain("Test (reserved=" + 8*sizek + "KB, committed=" + 3*sizek + "KB)");
 
         // Committing: . . . . . * * .
         // Region:     . . . * * * * .
         // Expected Total: 4 x sizek KB
         wb.NMTCommitMemory(addr + 5*size, 2*size);
-        output = new OutputAnalyzer(pb.start());
+        output = ProcessTools.executeProcess(pb);
         output.shouldContain("Test (reserved=" + 8*sizek + "KB, committed=" + 4*sizek + "KB)");
 
         // Committing: . . . . . . * *
         // Region:     . . . * * * * *
         // Expected Total: 5 x sizek KB
         wb.NMTCommitMemory(addr + 6*size, 2*size);
-        output = new OutputAnalyzer(pb.start());
+        output = ProcessTools.executeProcess(pb);
         output.shouldContain("Test (reserved=" + 8*sizek + "KB, committed=" + 5*sizek + "KB)");
 
         // Uncommitting: * * * * * * * *
         // Region:       . . . . . . . .
         // Expected Total: 0 x sizek KB
         wb.NMTUncommitMemory(addr + 0*size, 8*size);
-        output = new OutputAnalyzer(pb.start());
+        output = ProcessTools.executeProcess(pb);
         output.shouldContain("Test (reserved=" + 8*sizek + "KB, committed=0KB)");
     }
 }

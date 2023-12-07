@@ -67,8 +67,7 @@ public class PlainRead {
 
     public static void main(String[] args) throws Exception {
         WhiteBox wb = WhiteBox.getWhiteBox();
-        ProcessBuilder pb = ProcessTools.createLimitedTestJavaProcessBuilder("-Xlog:os+container=trace", "-version");
-        OutputAnalyzer output = new OutputAnalyzer(pb.start());
+        OutputAnalyzer output = ProcessTools.executeLimitedTestJava("-Xlog:os+container=trace", "-version");
 
         if (wb.isContainerized()) {
             System.out.println("Inside a cgroup, testing...");

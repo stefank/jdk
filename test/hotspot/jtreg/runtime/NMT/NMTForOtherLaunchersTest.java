@@ -54,15 +54,14 @@ import jdk.test.lib.JDKToolFinder;
 public class NMTForOtherLaunchersTest {
     public static void main(String args[]) throws Exception {
         String tool = args[0];
-        ProcessBuilder pb = new ProcessBuilder();
-        pb.command(new String[]{
+        ProcessBuilder pb = new ProcessBuilder(
                 JDKToolFinder.getJDKTool(tool),
                 "-J-XX:NativeMemoryTracking=summary",
                 "-J-XX:+UnlockDiagnosticVMOptions",
                 "-J-XX:+PrintNMTStatistics",
-                "--help"});
+                "--help");
         System.out.println(pb.command());
-        OutputAnalyzer output = new OutputAnalyzer(pb.start());
+        OutputAnalyzer output = ProcessTools.executeProcess(pb);
         output.shouldHaveExitValue(0);
         // We should not see the "wrong launcher?" message, which would indicate
         // an older JDK, and we should see the NMT stat output when the VM shuts down.

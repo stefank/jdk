@@ -37,67 +37,53 @@ import jdk.test.lib.process.OutputAnalyzer;
 public class Options {
 
     public static void main(String[] args) throws Exception {
-        ProcessBuilder pb;
         OutputAnalyzer output;
 
-        pb = ProcessTools.createLimitedTestJavaProcessBuilder("-XX:ContendedPaddingWidth=-128", "-version");
-        output = new OutputAnalyzer(pb.start());
+        output = ProcessTools.executeLimitedTestJava("-XX:ContendedPaddingWidth=-128", "-version");
         output.shouldContain("ContendedPaddingWidth");
         output.shouldContain("outside the allowed range");
         output.shouldHaveExitValue(1);
 
-        pb = ProcessTools.createLimitedTestJavaProcessBuilder("-XX:ContendedPaddingWidth=-8", "-version");
-        output = new OutputAnalyzer(pb.start());
+        output = ProcessTools.executeLimitedTestJava("-XX:ContendedPaddingWidth=-8", "-version");
         output.shouldContain("ContendedPaddingWidth");
         output.shouldContain("outside the allowed range");
         output.shouldHaveExitValue(1);
 
-        pb = ProcessTools.createLimitedTestJavaProcessBuilder("-XX:ContendedPaddingWidth=-1", "-version");
-        output = new OutputAnalyzer(pb.start());
+        output = ProcessTools.executeLimitedTestJava("-XX:ContendedPaddingWidth=-1", "-version");
         output.shouldContain("ContendedPaddingWidth");
         output.shouldContain("outside the allowed range");
         output.shouldHaveExitValue(1);
 
-        pb = ProcessTools.createLimitedTestJavaProcessBuilder("-XX:ContendedPaddingWidth=0", "-version");
-        output = new OutputAnalyzer(pb.start());
+        output = ProcessTools.executeLimitedTestJava("-XX:ContendedPaddingWidth=0", "-version");
         output.shouldHaveExitValue(0);
 
-        pb = ProcessTools.createLimitedTestJavaProcessBuilder("-XX:ContendedPaddingWidth=1", "-version");
-        output = new OutputAnalyzer(pb.start());
+        output = ProcessTools.executeLimitedTestJava("-XX:ContendedPaddingWidth=1", "-version");
         output.shouldContain("ContendedPaddingWidth");
         output.shouldContain("must be a multiple of 8");
         output.shouldHaveExitValue(1);
 
-        pb = ProcessTools.createLimitedTestJavaProcessBuilder("-XX:ContendedPaddingWidth=8", "-version");
-        output = new OutputAnalyzer(pb.start());
+        output = ProcessTools.executeLimitedTestJava("-XX:ContendedPaddingWidth=8", "-version");
         output.shouldHaveExitValue(0);
 
-        pb = ProcessTools.createLimitedTestJavaProcessBuilder("-XX:ContendedPaddingWidth=8184", "-version"); // 8192-8 = 8184
-        output = new OutputAnalyzer(pb.start());
+        output = ProcessTools.executeLimitedTestJava("-XX:ContendedPaddingWidth=8184", "-version"); // 8192-8 = 8184
         output.shouldHaveExitValue(0);
 
-        pb = ProcessTools.createLimitedTestJavaProcessBuilder("-XX:ContendedPaddingWidth=8191", "-version");
-        output = new OutputAnalyzer(pb.start());
+        output = ProcessTools.executeLimitedTestJava("-XX:ContendedPaddingWidth=8191", "-version");
         output.shouldContain("ContendedPaddingWidth");
         output.shouldContain("must be a multiple of 8");
         output.shouldHaveExitValue(1);
 
-        pb = ProcessTools.createLimitedTestJavaProcessBuilder("-XX:ContendedPaddingWidth=8192", "-version");
-        output = new OutputAnalyzer(pb.start());
+        output = ProcessTools.executeLimitedTestJava("-XX:ContendedPaddingWidth=8192", "-version");
         output.shouldHaveExitValue(0);
 
-        pb = ProcessTools.createLimitedTestJavaProcessBuilder("-XX:ContendedPaddingWidth=8193", "-version");
-        output = new OutputAnalyzer(pb.start());
+        output = ProcessTools.executeLimitedTestJava("-XX:ContendedPaddingWidth=8193", "-version");
         output.shouldContain("ContendedPaddingWidth");
         output.shouldContain("outside the allowed range");
         output.shouldHaveExitValue(1);
 
-        pb = ProcessTools.createLimitedTestJavaProcessBuilder("-XX:ContendedPaddingWidth=8200", "-version"); // 8192+8 = 8200
-        output = new OutputAnalyzer(pb.start());
+        output = ProcessTools.executeLimitedTestJava("-XX:ContendedPaddingWidth=8200", "-version"); // 8192+8 = 8200
         output.shouldContain("ContendedPaddingWidth");
         output.shouldContain("outside the allowed range");
         output.shouldHaveExitValue(1);
-
    }
-
 }

@@ -110,12 +110,8 @@ public class JMapHProfLargeHeapTest {
             jMapLauncher.addToolArg("--pid");
             jMapLauncher.addToolArg(String.valueOf(pid));
 
-            ProcessBuilder jMapProcessBuilder = SATestUtils.createProcessBuilder(jMapLauncher);
-            System.out.println("jmap command: "
-                    + Arrays.toString(jMapLauncher.getCommand()));
+            OutputAnalyzer analyzer = SATestUtils.execute(jMapLauncher, true);
 
-            Process jMapProcess = jMapProcessBuilder.start();
-            OutputAnalyzer analyzer = new OutputAnalyzer(jMapProcess);
             analyzer.shouldHaveExitValue(0);
             analyzer.shouldContain(HEAP_DUMP_FILE_NAME);
 

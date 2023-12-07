@@ -65,6 +65,7 @@ public class AttachWithStalePidFile {
     Path pidFile = null;
 
     try {
+      // TODO: Maybe use getPid here?
       int pid = getUnixProcessId(target);
 
       // create the stale .java_pid file. use hard-coded /tmp path as in th VM
@@ -77,6 +78,8 @@ public class AttachWithStalePidFile {
       waitForAndResumeVM(pid);
 
       waitForTargetReady(target);
+
+      // FIXME: Doesn't pump the stderr - risk for hangs
 
       HotSpotVirtualMachine vm = (HotSpotVirtualMachine)VirtualMachine.attach(((Integer)pid).toString());
       BufferedReader remoteDataReader = new BufferedReader(new InputStreamReader(vm.remoteDataDump()));

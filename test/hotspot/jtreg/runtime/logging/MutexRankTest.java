@@ -36,9 +36,8 @@ import jdk.test.lib.Platform;
 
 public class MutexRankTest {
     public static void main(String[] args) throws Exception {
-        ProcessBuilder pb = ProcessTools.createLimitedTestJavaProcessBuilder("-Xlog:vmmutex",
-                                                                             "-version");
-        OutputAnalyzer oa = new OutputAnalyzer(pb.start());
+        OutputAnalyzer oa = ProcessTools.executeLimitedTestJava("-Xlog:vmmutex",
+                                                                "-version");
         oa.shouldContain("VM Mutex/Monitor ranks:");
         if (Platform.isDebugBuild()) {
             oa.shouldContain("Rank \"safepoint\"");

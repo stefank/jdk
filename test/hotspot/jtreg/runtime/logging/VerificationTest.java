@@ -37,8 +37,7 @@ import jdk.test.lib.process.ProcessTools;
 
 public class VerificationTest {
 
-    static void analyzeOutputOn(ProcessBuilder pb, boolean isLogLevelInfo) throws Exception {
-        OutputAnalyzer output = new OutputAnalyzer(pb.start());
+    static void analyzeOutputOn(OutputAnalyzer output, boolean isLogLevelInfo) throws Exception {
         output.shouldContain("[verification]");
         output.shouldContain("Verifying class VerificationTest$InternalClass with new format");
         output.shouldContain("Verifying method VerificationTest$InternalClass.<init>()V");
@@ -56,25 +55,24 @@ public class VerificationTest {
         output.shouldHaveExitValue(0);
     }
 
-    static void analyzeOutputOff(ProcessBuilder pb) throws Exception {
-        OutputAnalyzer output = new OutputAnalyzer(pb.start());
+    static void analyzeOutputOff(OutputAnalyzer output) throws Exception {
         output.shouldNotContain("[verification]");
         output.shouldHaveExitValue(0);
     }
 
     public static void main(String[] args) throws Exception {
-        ProcessBuilder pb = ProcessTools.createLimitedTestJavaProcessBuilder("-Xlog:verification=info",
-                                                                             InternalClass.class.getName());
-        analyzeOutputOn(pb, true);
+        OutputAnalyzer output = ProcessTools.executeLimitedTestJava("-Xlog:verification=info",
+                                                                    InternalClass.class.getName());
+        analyzeOutputOn(output, true);
 
-        pb = ProcessTools.createLimitedTestJavaProcessBuilder("-Xlog:verification=off",
-                                                              InternalClass.class.getName());
-        analyzeOutputOff(pb);
+        output = ProcessTools.executeLimitedTestJava("-Xlog:verification=off",
+                                                     InternalClass.class.getName());
+        analyzeOutputOff(output);
 
         // logging level 'debug' should output stackmaps and bytecode data.
-        pb = ProcessTools.createLimitedTestJavaProcessBuilder("-Xlog:verification=debug",
-                                                              InternalClass.class.getName());
-        analyzeOutputOn(pb, false);
+        output = ProcessTools.executeLimitedTestJava("-Xlog:verification=debug",
+                                                     InternalClass.class.getName());
+        analyzeOutputOn(output, false);
     }
 
     public static class InternalClass {

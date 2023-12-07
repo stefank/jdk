@@ -51,8 +51,7 @@ public class BootstrapRedefine {
                                         "--patch-module=java.base"),
                                         "mods/java.base");
 
-        ProcessBuilder pb = ProcessTools.createLimitedTestJavaProcessBuilder("--patch-module=java.base=mods/java.base", "-version");
-        new OutputAnalyzer(pb.start())
+        ProcessTools.executeLimitedTestJava("--patch-module=java.base=mods/java.base", "-version")
             .shouldContain("Incompatible definition of java.lang.Object")
             .shouldHaveExitValue(1);
     }

@@ -113,6 +113,9 @@ public class AttachSetGetFlag {
 
     Process target = pb.start();
 
+    // FIXME: This test doesn't pump the stderr. This will lead to hangs if the spawned
+    // process ever prints to stderr.
+
     try {
       waitForReady(target);
 

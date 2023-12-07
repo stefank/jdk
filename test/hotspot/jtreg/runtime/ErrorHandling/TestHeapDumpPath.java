@@ -54,10 +54,9 @@ public class TestHeapDumpPath {
         String heapdumpPath = "dumps";
         File dumpDirectory = new File(heapdumpPath);
         dumpDirectory.mkdir();
-        ProcessBuilder pb = ProcessTools.createLimitedTestJavaProcessBuilder("-XX:+HeapDumpOnOutOfMemoryError",
+        OutputAnalyzer output = ProcessTools.executeLimitedTestJava("-XX:+HeapDumpOnOutOfMemoryError",
                 "-Xmx64m", "-XX:HeapDumpPath=" + heapdumpPath, TestHeapDumpPath.class.getName(), "OOME");
 
-        OutputAnalyzer output = new OutputAnalyzer(pb.start());
         output.stdoutShouldNotBeEmpty();
         output.shouldContain("Dumping heap");
 

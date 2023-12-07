@@ -38,9 +38,8 @@ import jdk.test.lib.process.OutputAnalyzer;
 public class TraceExceptionsTest {
     public static void main(String[] args) throws Exception {
 
-        ProcessBuilder pb = ProcessTools.createLimitedTestJavaProcessBuilder(
+        OutputAnalyzer output = ProcessTools.executeLimitedTestJava(
             "-Xlog:exceptions=info", "NoClassFound");
-        OutputAnalyzer output = new OutputAnalyzer(pb.start());
         output.shouldContain("<a 'java/lang/ClassNotFoundException'").shouldContain(": NoClassFound>");
         output.shouldNotContain("<a 'java/lang/ClassNotFoundException'>");
         output.shouldHaveExitValue(1);

@@ -76,11 +76,9 @@ public class PatchModuleTestJar {
              System.getProperty("test.classes"));
 
         // Supply --patch-module with the name of the jar file for the module java.naming.
-        ProcessBuilder pb = ProcessTools.createLimitedTestJavaProcessBuilder("--patch-module=java.naming=" + moduleJar,
-             "PatchModuleMain", "javax.naming.spi.NamingManager");
-
-        new OutputAnalyzer(pb.start())
-            .shouldContain("I pass!")
-            .shouldHaveExitValue(0);
+        ProcessTools.executeLimitedTestJava("--patch-module=java.naming=" + moduleJar,
+            "PatchModuleMain", "javax.naming.spi.NamingManager")
+                .shouldContain("I pass!")
+                .shouldHaveExitValue(0);
     }
 }

@@ -73,7 +73,7 @@ public class TestBreakSignalThreadDump {
             prepend_jsig_lib(pb.environment());
         }
 
-        OutputAnalyzer output = new OutputAnalyzer(pb.start());
+        OutputAnalyzer output = ProcessTools.executeProcess(pb);
         output.shouldHaveExitValue(0);
         output.shouldContain("Full thread dump ");
         output.shouldContain("java.lang.Thread.State: RUNNABLE");

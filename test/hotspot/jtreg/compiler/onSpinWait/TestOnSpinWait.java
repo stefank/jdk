@@ -43,13 +43,11 @@ public class TestOnSpinWait {
 
     public static void main(String[] args) throws Exception {
         // Test C2 compiler
-        ProcessBuilder pb = ProcessTools.createLimitedTestJavaProcessBuilder(
+        OutputAnalyzer analyzer = ProcessTools.executeLimitedTestJava(
           "-XX:+IgnoreUnrecognizedVMOptions", "-showversion",
           "-XX:-TieredCompilation", "-Xbatch",
           "-XX:+PrintCompilation", "-XX:+UnlockDiagnosticVMOptions",
           "-XX:+PrintInlining", Launcher.class.getName());
-
-        OutputAnalyzer analyzer = new OutputAnalyzer(pb.start());
 
         analyzer.shouldHaveExitValue(0);
 

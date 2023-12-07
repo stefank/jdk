@@ -95,8 +95,7 @@ public class TestFarJump {
             "-XX:+PrintAssembly",
             className};
 
-        ProcessBuilder pb = ProcessTools.createLimitedTestJavaProcessBuilder(procArgs);
-        OutputAnalyzer output = new OutputAnalyzer(pb.start());
+        OutputAnalyzer output = ProcessTools.executeLimitedTestJava(procArgs);
         List<String> lines = output.asLines();
 
         ListIterator<String> itr = lines.listIterator();

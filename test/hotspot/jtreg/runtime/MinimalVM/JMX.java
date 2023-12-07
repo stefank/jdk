@@ -36,20 +36,15 @@ import jdk.test.lib.process.ProcessTools;
 public class JMX {
 
     public static void main(String args[]) throws Exception {
-        ProcessBuilder pb;
-
-        pb = ProcessTools.createLimitedTestJavaProcessBuilder("-minimal", "-XX:+ManagementServer", "-version");
-        new OutputAnalyzer(pb.start())
+        ProcessTools.executeLimitedTestJava("-minimal", "-XX:+ManagementServer", "-version")
                 .shouldContain("ManagementServer is not supported in this VM.")
                 .shouldHaveExitValue(1);
 
-        pb = ProcessTools.createLimitedTestJavaProcessBuilder("-minimal", "-Dcom.sun.management ", "-version");
-        new OutputAnalyzer(pb.start())
+        ProcessTools.executeLimitedTestJava("-minimal", "-Dcom.sun.management ", "-version")
                 .shouldContain("-Dcom.sun.management is not supported in this VM.")
                 .shouldHaveExitValue(1);
 
-        pb.command(new String[] { JDKToolFinder.getJDKTool("jcmd"), "-l"});
-        new OutputAnalyzer(pb.start())
+        ProcessTools.executeProcess(JDKToolFinder.getJDKTool("jcmd"), "-l").
                 .shouldNotMatch("^" + Long.toString(ProcessTools.getProcessId()) + "\\s+.*$");
     }
 }

@@ -38,11 +38,7 @@ import jdk.test.lib.process.ProcessTools;
 
 public class RestoreMXCSR {
     public static void main(String[] args) throws Exception {
-        ProcessBuilder pb;
-        OutputAnalyzer out;
-
-        pb = ProcessTools.createLimitedTestJavaProcessBuilder("-XX:+RestoreMXCSROnJNICalls", "-version");
-        out = new OutputAnalyzer(pb.start());
-        out.shouldHaveExitValue(0);
+        ProcessTools.executeLimitedTestJava("-XX:+RestoreMXCSROnJNICalls", "-version")
+            .shouldHaveExitValue(0);
     }
 }

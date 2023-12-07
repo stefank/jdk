@@ -40,14 +40,13 @@ import jdk.internal.misc.Unsafe;
 public class RangeCheck {
 
     public static void main(String args[]) throws Exception {
-        ProcessBuilder pb = ProcessTools.createTestJavaProcessBuilder(
+        OutputAnalyzer output = ProcessTools.executeTestJava(
                 "-Xmx128m",
                 "--add-exports=java.base/jdk.internal.misc=ALL-UNNAMED",
                 "-XX:-CreateCoredumpOnCrash",
                 "-XX:-InlineUnsafeOps", // The compiler intrinsics doesn't have the assert
                 DummyClassWithMainRangeCheck.class.getName());
 
-        OutputAnalyzer output = new OutputAnalyzer(pb.start());
         output.shouldMatch("assert\\(byte_offset < p_size\\) failed: Unsafe access: offset \\d+ > object's size \\d+");
         output.shouldNotHaveExitValue(0);
     }

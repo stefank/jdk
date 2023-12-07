@@ -35,13 +35,12 @@ import jdk.test.lib.process.OutputAnalyzer;
 
 public class MaxMetaspaceSizeTest {
     public static void main(String... args) throws Exception {
-        ProcessBuilder pb = ProcessTools.createLimitedTestJavaProcessBuilder(
+        OutputAnalyzer output = ProcessTools.executeLimitedTestJava(
             "-Xmx1g",
             "-XX:MaxMetaspaceSize=4K",
             "-XX:+UseCompressedClassPointers",
             "-XX:CompressedClassSpaceSize=1g",
             "--version");
-        OutputAnalyzer output = new OutputAnalyzer(pb.start());
         // We do not explicitly limit MaxMetaspaceSize to a lower minimum. User can get as low as he wants.
         // However, you most certainly will hit either one of
         // "OutOfMemoryError: Metaspace" or

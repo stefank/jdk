@@ -61,9 +61,7 @@ public class ContinuousCallSiteTargetChange {
         argsList.add(test.getName());
         argsList.add(Integer.toString(ITERATIONS));
 
-        ProcessBuilder pb = ProcessTools.createLimitedTestJavaProcessBuilder(argsList);
-
-        OutputAnalyzer analyzer = new OutputAnalyzer(pb.start());
+        OutputAnalyzer analyzer = ProcessTools.executeLimitedTestJava(argsList);
 
         analyzer.shouldHaveExitValue(0);
 

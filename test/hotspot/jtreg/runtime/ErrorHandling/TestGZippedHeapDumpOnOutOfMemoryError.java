@@ -39,6 +39,7 @@
 
 import jdk.test.lib.Asserts;
 import jdk.test.lib.hprof.HprofParser;
+import jdk.test.lib.process.ProcessExecutor;
 import jdk.test.lib.process.ProcessTools;
 import jdk.test.lib.process.OutputAnalyzer;
 
@@ -69,11 +70,13 @@ public class TestGZippedHeapDumpOnOutOfMemoryError {
             "-Xmx128M",
             TestGZippedHeapDumpOnOutOfMemoryError.class.getName());
 
-        Process proc = pb.start();
-        String heapdumpFilename = "java_pid" + proc.pid() + ".hprof" + (level > 0 ? ".gz" : "");
-        OutputAnalyzer output = new OutputAnalyzer(proc);
+        ProcessExecutor executor = new ProcessExecutor(pb);
+        OutputAnalyzer output = executor.waitForOutputAnalyzer();
         output.stdoutShouldNotBeEmpty();
+
+        String heapdumpFilename = "java_pid" + executor.pid() + ".hprof" + (level > 0 ? ".gz" : "");        
         output.shouldContain("Dumping heap to " + heapdumpFilename);
+
         File dump = new File(heapdumpFilename);
         Asserts.assertTrue(dump.exists() && dump.isFile(),
                 "Could not find dump file " + dump.getAbsolutePath());

@@ -38,8 +38,7 @@ import jdk.test.lib.Platform;
 public class IgnoreUnrecognizedVMOptions {
 
   private static void runJavaAndCheckExitValue(boolean shouldSucceed, String... args) throws Exception {
-    ProcessBuilder pb = ProcessTools.createLimitedTestJavaProcessBuilder(args);
-    OutputAnalyzer output = new OutputAnalyzer(pb.start());
+    OutputAnalyzer output = ProcessTools.executeLimitedTestJava(args);
     if (shouldSucceed) {
       output.shouldHaveExitValue(0);
     } else {

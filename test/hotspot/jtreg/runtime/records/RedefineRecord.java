@@ -102,12 +102,11 @@ public class RedefineRecord {
             return;
         }
         if (argv.length == 1 && argv[0].equals("runtest")) {
-            ProcessBuilder pb = ProcessTools.createLimitedTestJavaProcessBuilder(
+            OutputAnalyzer output = ProcessTools.executeLimitedTestJava(
                 "-XX:MetaspaceSize=12m",
                 "-XX:MaxMetaspaceSize=12m",
                 "-javaagent:redefineagent.jar",
                 "RedefineRecord");
-            OutputAnalyzer output = new OutputAnalyzer(pb.start());
             output.shouldNotContain("processing of -javaagent failed");
             output.shouldHaveExitValue(0);
         }

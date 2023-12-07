@@ -38,6 +38,7 @@ import jdk.test.lib.Platform;
 import jdk.test.lib.Utils;
 import jdk.test.lib.classloader.GeneratingClassLoader;
 import jdk.test.lib.hprof.HprofParser;
+import jdk.test.lib.process.ProcessExecutor;
 import jdk.test.lib.process.ProcessTools;
 import jdk.test.lib.process.OutputAnalyzer;
 import jdk.test.lib.util.CoreUtils;
@@ -81,9 +82,11 @@ public class TestJmapCore {
 
         // If we are going to force a core dump, apply "ulimit -c unlimited" if we can.
         pb = CoreUtils.addCoreUlimitCommand(pb);
-        OutputAnalyzer output = ProcessTools.executeProcess(pb);
+        ProcessExecutor executor = new ProcessExecutor(pb);
+        long pid = executor.pid();
+        OutputAnalyzer output = executor.waitForOutputAnalyzer();
 
-        String coreFileName = CoreUtils.getCoreFileLocation(output.getStdout(), output.pid());
+        String coreFileName = CoreUtils.getCoreFileLocation(output.getStdout(), pid);
         File core = new File(coreFileName);
         File dumpFile = new File("heap.hprof");
         JDKToolLauncher launcher = JDKToolLauncher.createUsingTestJDK("jhsdb");
@@ -96,12 +99,7 @@ public class TestJmapCore {
         launcher.addToolArg("--core");
         launcher.addToolArg(core.getPath());
 
-        ProcessBuilder jhsdpb = new ProcessBuilder();
-        jhsdpb.command(launcher.getCommand());
-        Process jhsdb = jhsdpb.start();
-        OutputAnalyzer out = new OutputAnalyzer(jhsdb);
-
-        jhsdb.waitFor();
+        OutputAnalyzer out = ProcessTools.executeProcess(launcher.getCommand());
 
         System.out.println(out.getStdout());
         System.err.println(out.getStderr());

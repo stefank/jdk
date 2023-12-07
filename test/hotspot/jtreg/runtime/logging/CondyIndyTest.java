@@ -40,38 +40,34 @@ public class CondyIndyTest {
     public static void main(String... args) throws Exception {
 
         // (1) methodhandles should turn on, no indy, no condy
-        ProcessBuilder pb = ProcessTools.createLimitedTestJavaProcessBuilder("-Xlog:methodhandles",
-                                                                             "CondyIndy");
-        OutputAnalyzer o = new OutputAnalyzer(pb.start());
+        OutputAnalyzer o = ProcessTools.executeLimitedTestJava("-Xlog:methodhandles",
+                                                               "CondyIndy");
         o.shouldHaveExitValue(0);
         o.shouldContain("[info][methodhandles");
         o.shouldNotContain("[debug][methodhandles,indy");
         o.shouldNotContain("[debug][methodhandles,condy");
 
         // (2) methodhandles+condy=debug only
-        pb = ProcessTools.createLimitedTestJavaProcessBuilder("-Xlog:methodhandles+condy=debug",
-                                                              "CondyIndy");
-        o = new OutputAnalyzer(pb.start());
+        o = ProcessTools.executeLimitedTestJava("-Xlog:methodhandles+condy=debug",
+                                                "CondyIndy");
         o.shouldHaveExitValue(0);
         o.shouldNotContain("[info ][methodhandles");
         o.shouldNotContain("[debug][methodhandles,indy");
         o.shouldContain("[debug][methodhandles,condy");
 
         // (3) methodhandles+indy=debug only
-        pb = ProcessTools.createLimitedTestJavaProcessBuilder("-Xlog:methodhandles+indy=debug",
-                                                              "CondyIndy");
-        o = new OutputAnalyzer(pb.start());
+        o = ProcessTools.executeLimitedTestJava("-Xlog:methodhandles+indy=debug",
+                                                "CondyIndy");
         o.shouldHaveExitValue(0);
         o.shouldNotContain("[info ][methodhandles");
         o.shouldContain("[debug][methodhandles,indy");
         o.shouldNotContain("[debug][methodhandles,condy");
 
         // (4) methodhandles, condy, indy all on
-        pb = ProcessTools.createLimitedTestJavaProcessBuilder("-Xlog:methodhandles=info",
-                                                              "-Xlog:methodhandles+condy=debug",
-                                                              "-Xlog:methodhandles+indy=debug",
-                                                              "CondyIndy");
-        o = new OutputAnalyzer(pb.start());
+        o = ProcessTools.executeLimitedTestJava("-Xlog:methodhandles=info",
+                                                "-Xlog:methodhandles+condy=debug",
+                                                "-Xlog:methodhandles+indy=debug",
+                                                "CondyIndy");
         o.shouldHaveExitValue(0);
         o.shouldContain("[info ][methodhandles");
         o.shouldContain("[debug][methodhandles,indy");

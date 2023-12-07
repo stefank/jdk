@@ -49,9 +49,8 @@ public class TestExitOnOutOfMemoryError {
         }
 
         // else this is the main test
-        ProcessBuilder pb = ProcessTools.createLimitedTestJavaProcessBuilder("-XX:+ExitOnOutOfMemoryError",
+        OutputAnalyzer output = ProcessTools.executeLimitedTestJava("-XX:+ExitOnOutOfMemoryError",
                 "-Xmx128m", TestExitOnOutOfMemoryError.class.getName(), "throwOOME");
-        OutputAnalyzer output = new OutputAnalyzer(pb.start());
 
         /*
          * Actual output should look like this:

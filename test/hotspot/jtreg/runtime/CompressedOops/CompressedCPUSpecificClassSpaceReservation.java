@@ -51,14 +51,13 @@ public class CompressedCPUSpecificClassSpaceReservation {
         // of reserving the cds+class space, but never succeed. That means we see every single allocation attempt.
         // We start with -Xlog options enabled. The expected output goes like this:
         // [0.017s][debug][os,map] reserve_between (range [0x0000000000000000-0x0000000100000000), size 0x41000000, alignment 0x1000000, randomize: 1)
-        ProcessBuilder pb = ProcessTools.createLimitedTestJavaProcessBuilder(
+        OutputAnalyzer output = ProcessTools.executeLimitedTestJava(
                 "-Xshare:" + (CDS ? "on" : "off"),
                 "-Xmx128m",
                 "-XX:CompressedClassSpaceSize=128m",
                 "-Xlog:metaspace*", "-Xlog:metaspace+map=trace", "-Xlog:os+map=trace",
                 "-XX:+SimulateFullAddressSpace", // So that no resevation attempt will succeed
                 "-version");
-        OutputAnalyzer output = new OutputAnalyzer(pb.start());
 
         final String tryReserveForUnscaled = "reserve_between (range [0x0000000000000000-0x0000000100000000)";
         final String tryReserveForZeroBased = "reserve_between (range [0x0000000100000000-0x0000000800000000)";

@@ -53,12 +53,11 @@ public class GetObjectSizeOverflow {
             pw.println("Premain-Class: GetObjectSizeOverflowAgent");
         }
 
-        var jar = new ProcessBuilder(JDKToolFinder.getJDKTool("jar"), "cmf", "MANIFEST.MF", "agent.jar", "GetObjectSizeOverflowAgent.class");
-        new OutputAnalyzer(jar.start()).shouldHaveExitValue(0);
+        ProcessTools.executeProcess(JDKToolFinder.getJDKTool("jar"), "cmf", "MANIFEST.MF", "agent.jar", "GetObjectSizeOverflowAgent.class")
+            .shouldHaveExitValue(0);
 
-        ProcessBuilder pt = ProcessTools.createTestJavaProcessBuilder("-Xmx4000m", "-javaagent:agent.jar",  "GetObjectSizeOverflowAgent");
-        OutputAnalyzer output = new OutputAnalyzer(pt.start());
-        output.stdoutShouldContain("GetObjectSizeOverflow passed");
-        output.shouldHaveExitValue(0);
+        ProcessTools.executeTestJava("-Xmx4000m", "-javaagent:agent.jar",  "GetObjectSizeOverflowAgent")
+            .stdoutShouldContain("GetObjectSizeOverflow passed");
+            .shouldHaveExitValue(0);
     }
 }

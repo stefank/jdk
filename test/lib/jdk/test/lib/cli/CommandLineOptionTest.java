@@ -116,7 +116,7 @@ public abstract class CommandLineOptionTest {
                 = ProcessTools.createLimitedTestJavaProcessBuilder(finalOptions.toArray(
                 new String[finalOptions.size()]));
         OutputAnalyzer outputAnalyzer
-                = new OutputAnalyzer(processBuilder.start());
+                = ProcessTools.executeProcess(processBuilder);
 
         try {
                 outputAnalyzer.shouldHaveExitValue(exitCode.value);
@@ -267,7 +267,7 @@ public abstract class CommandLineOptionTest {
                 vmOpts.toArray(new String[vmOpts.size()]));
 
         OutputAnalyzer outputAnalyzer
-                = new OutputAnalyzer(processBuilder.start());
+                = ProcessTools.executeProcess(processBuilder);
 
         try {
             outputAnalyzer.shouldHaveExitValue(0);
@@ -309,7 +309,7 @@ public abstract class CommandLineOptionTest {
     }
 
     /**
-     * Start VM with given options and values.
+     * Execute VM with given options and values.
      * Generates command line option flags from
      * {@code optionNames} and {@code optionValues}.
      *
@@ -319,7 +319,7 @@ public abstract class CommandLineOptionTest {
      *                         passed to JVM.
      * @return output from vm process
      */
-    public static OutputAnalyzer startVMWithOptions(String[] optionNames,
+    public static OutputAnalyzer executeVMWithOptions(String[] optionNames,
             String[] optionValues,
             String... additionalVMOpts) throws Throwable {
         List<String> vmOpts = new ArrayList<>();
@@ -336,7 +336,7 @@ public abstract class CommandLineOptionTest {
         ProcessBuilder processBuilder = ProcessTools.createLimitedTestJavaProcessBuilder(
                 vmOpts.toArray(new String[vmOpts.size()]));
 
-        return new OutputAnalyzer(processBuilder.start());
+        return ProcessTools.executeProcess(processBuilder);
     }
 
     /**
@@ -371,7 +371,7 @@ public abstract class CommandLineOptionTest {
      */
     public static void verifyOptionValues(String[] optionNames,
             String[] expectedValues) throws Throwable {
-       OutputAnalyzer outputAnalyzer = startVMWithOptions(optionNames, expectedValues, "-XX:+PrintFlagsFinal");
+       OutputAnalyzer outputAnalyzer = executeVMWithOptions(optionNames, expectedValues, "-XX:+PrintFlagsFinal");
        verifyOptionValuesFromOutput(outputAnalyzer, optionNames, expectedValues);
     }
 

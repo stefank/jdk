@@ -65,8 +65,7 @@ public class StackWalkNativeToJava {
         commands.addAll(Arrays.asList(extraFlags));
         commands.add("StackWalkNativeToJava$TestNativeToJavaNative");
 
-        ProcessBuilder pb = ProcessTools.createLimitedTestJavaProcessBuilder(commands);
-        OutputAnalyzer output = new OutputAnalyzer(pb.start());
+        OutputAnalyzer output = ProcessTools.executeLimitedTestJava(commands);
         output.shouldNotContain("java.lang.RuntimeException: Reached statement after obj.wait()");
         output.shouldNotContain("[error occurred during error reporting (printing native stack");
         String[] res = output.getOutput().split("StackWalkNativeToJava\\$TestNativeToJavaNative\\.callNativeMethod\\(\\)V");
@@ -99,8 +98,7 @@ public class StackWalkNativeToJava {
         commands.addAll(Arrays.asList(extraFlags));
         commands.add("StackWalkNativeToJava$TestNativeToJava");
 
-        ProcessBuilder pb = ProcessTools.createLimitedTestJavaProcessBuilder(commands);
-        OutputAnalyzer output = new OutputAnalyzer(pb.start());
+        OutputAnalyzer output = ProcessTools.executeLimitedTestJava(commands);
         output.shouldNotContain("java.lang.RuntimeException: Reached statement after synchronized");
         output.shouldNotContain("[error occurred during error reporting (printing native stack");
         String[] res = output.getOutput().split("StackWalkNativeToJava\\$TestNativeToJava\\.callVMMethod\\(\\)V");

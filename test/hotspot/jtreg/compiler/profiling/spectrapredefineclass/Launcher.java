@@ -41,6 +41,7 @@ package compiler.profiling.spectrapredefineclass;
 
 import jdk.test.lib.JDKToolLauncher;
 import jdk.test.lib.process.OutputAnalyzer;
+import jdk.test.lib.process.ProcessTools;
 
 import java.io.File;
 import java.io.IOException;
@@ -62,8 +63,8 @@ public class Launcher {
 
         ProcessBuilder pb = new ProcessBuilder(jar.getCommand());
         try {
-            OutputAnalyzer output = new OutputAnalyzer(pb.start());
-            output.shouldHaveExitValue(0);
+            ProcessTools.executeProcess(pb)
+                .shouldHaveExitValue(0);
         } catch (IOException ex) {
             throw new Error("TESTBUG: jar failed.", ex);
         }

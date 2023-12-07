@@ -38,6 +38,7 @@ import jdk.test.lib.Utils;
 import jdk.test.lib.apps.LingeredApp;
 import jdk.test.lib.JDKToolLauncher;
 import jdk.test.lib.process.OutputAnalyzer;
+import jdk.test.lib.process.ProcessExecutor;
 import jdk.test.lib.process.ProcessTools;
 
 public class RemovingUnixDomainSocketTest {
@@ -52,15 +53,15 @@ public class RemovingUnixDomainSocketTest {
         jcmd.addToolArg("VM.version");
 
         ProcessBuilder pb = new ProcessBuilder(jcmd.getCommand());
-        Process jcmdProc = pb.start();
-
-        OutputAnalyzer out = new OutputAnalyzer(jcmdProc);
+        ProcessExecutor jcmdProc = new ProcessExecutor(pb);
 
         if (!jcmdProc.waitFor(timeout, TimeUnit.SECONDS)) {
             log("jcmd is still running after " + timeout + " seconds, terminating...");
             jcmdProc.destroy();
             jcmdProc.waitFor();
         }
+
+        OutputAnalyzer out = jcmdProc.getOutputAnalyzer();
 
         log("jcmd stdout: [" + out.getStdout() + "];\n" +
             "jcmd  stderr: [" + out.getStderr() + "]\n" +

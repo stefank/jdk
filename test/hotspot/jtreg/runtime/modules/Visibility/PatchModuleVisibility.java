@@ -86,10 +86,10 @@ public class PatchModuleVisibility {
       Files.delete(Paths.get(System.getProperty("test.classes") +  File.separator +
                                                            "p2" + File.separator + "Vis2_B.class"));
 
-      new OutputAnalyzer(ProcessTools.createLimitedTestJavaProcessBuilder(
+      ProcessTools.executeLimitedTestJava(
               "--patch-module=java.base=mods2/java.base",
               "--add-exports=java.base/p2=ALL-UNNAMED",
               "Vis2_A")
-          .start()).shouldHaveExitValue(0);
+          .shouldHaveExitValue(0);
     }
 }

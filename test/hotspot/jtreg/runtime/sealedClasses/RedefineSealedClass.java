@@ -108,8 +108,7 @@ public class RedefineSealedClass {
         if (argv.length == 1 && argv[0].equals("runtest")) {
             String[] javaArgs1 = { "-XX:MetaspaceSize=12m", "-XX:MaxMetaspaceSize=12m",
                                    "-javaagent:redefineagent.jar", "RedefineSealedClass"};
-            ProcessBuilder pb = ProcessTools.createLimitedTestJavaProcessBuilder(javaArgs1);
-            OutputAnalyzer output = new OutputAnalyzer(pb.start());
+            OutputAnalyzer output = ProcessTools.executeLimitedTestJava(javaArgs1);
             output.shouldNotContain("processing of -javaagent failed");
             output.shouldHaveExitValue(0);
         }

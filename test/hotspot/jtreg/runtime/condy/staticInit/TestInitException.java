@@ -38,8 +38,7 @@ import jdk.test.lib.process.OutputAnalyzer;
 
 public class TestInitException {
     public static void main(java.lang.String[] unused) throws Exception {
-        ProcessBuilder pb = ProcessTools.createLimitedTestJavaProcessBuilder("Example");
-        OutputAnalyzer oa = new OutputAnalyzer(pb.start());
+        OutputAnalyzer oa = ProcessTools.executeLimitedTestJava("Example");
         // First call stack trace
         // shouldMatch is used to workaround CODETOOLS-7902686
         oa.shouldMatch("^\tat Example\\.\\$jacocoInit\\(.*Example\\.jasm\\)$");

@@ -72,11 +72,11 @@ public class ThreadPriorities {
 
         int matches = 0;
         ArrayList<String> failed = new ArrayList<>();
-        ProcessBuilder pb = new ProcessBuilder(
+        OutputAnalyzer out = ProcessTools.executeProcess(
                 JDKToolFinder.getJDKTool("jstack"),
                 String.valueOf(ProcessTools.getProcessId()));
 
-        String[] output = new OutputAnalyzer(pb.start()).getOutput().split("\\R");
+        String[] output = out.getOutput().split("\\R");
 
         Pattern pattern = Pattern.compile(
                 "\\\"Priority=(\\d+)\\\".* prio=(\\d+).*");

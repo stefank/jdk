@@ -29,6 +29,7 @@ import compiler.lib.ir_framework.flag.FlagVM;
 import compiler.lib.ir_framework.shared.TestRunException;
 import jdk.test.lib.Utils;
 import jdk.test.lib.process.OutputAnalyzer;
+import jdk.test.lib.process.ProcessExecutor;
 import jdk.test.lib.process.ProcessTools;
 
 import java.io.IOException;
@@ -110,14 +111,17 @@ public class FlagVMProcess {
     }
 
     private void start() {
+        long pid;
         try {
             // Run "flag" VM with White Box access to determine the test VM flags and if IR verification should be done.
-            oa = ProcessTools.executeTestJvm(cmds);
+            ProcessBuilder pb = ProcessTools.createTestJavaProcessBuilder(cmds);
+            ProcessExecutor executor = new ProcessExecutor(pb);
+            pid = executor.pid();
+            oa = executor.waitForOutputAnalyzer();
         } catch (Exception e) {
             throw new TestRunException("Failed to execute TestFramework flag VM", e);
         }
-        testVMFlagsFile = FlagVM.TEST_VM_FLAGS_FILE_PREFIX + oa.pid()
-                          + FlagVM.FILE_POSTFIX;
+        testVMFlagsFile = FlagVM.TEST_VM_FLAGS_FILE_PREFIX + pid + FlagVM.FILE_POSTFIX;
         checkFlagVMExitCode();
     }
 

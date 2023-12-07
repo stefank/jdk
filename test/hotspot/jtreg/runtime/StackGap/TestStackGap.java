@@ -40,14 +40,13 @@ public class TestStackGap {
     public static void main(String args[]) throws Exception {
         ProcessBuilder pb = ProcessTools.createNativeTestProcessBuilder("stack-gap");
         pb.environment().put("CLASSPATH", Utils.TEST_CLASS_PATH);
-        new OutputAnalyzer(pb.start())
+        ProcessTools.executeProcess(pb)
             .shouldHaveExitValue(0);
 
         pb = ProcessTools.createNativeTestProcessBuilder("stack-gap",
                                                          "-XX:+DisablePrimordialThreadGuardPages");
         pb.environment().put("CLASSPATH", Utils.TEST_CLASS_PATH);
-        new OutputAnalyzer(pb.start())
+        ProcessTools.executeProcess(pb)
             .shouldHaveExitValue(0);
     }
 }
-

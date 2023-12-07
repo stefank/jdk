@@ -61,8 +61,7 @@ public class TestCodeEntryAlignment {
     }
 
     public static void shouldPass(String... args) throws IOException {
-        ProcessBuilder pb = ProcessTools.createLimitedTestJavaProcessBuilder(cmdline(args));
-        OutputAnalyzer output = new OutputAnalyzer(pb.start());
+        OutputAnalyzer output = ProcessTools.executeLimitedTestJava(cmdline(args));
         output.shouldHaveExitValue(0);
     }
 

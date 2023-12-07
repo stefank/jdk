@@ -42,8 +42,7 @@ public class EnclMethodAttr {
 
     public static void main(String args[]) throws Throwable {
         System.out.println("Regression test for bug 8044738");
-        ProcessBuilder pb = ProcessTools.createLimitedTestJavaProcessBuilder("EnclMethTest");
-        OutputAnalyzer output = new OutputAnalyzer(pb.start());
+        OutputAnalyzer output = ProcessTools.executeLimitedTestJava("EnclMethTest");
         output.shouldNotHaveExitValue(0);
         output.shouldContain("java.lang.ClassFormatError: Wrong EnclosingMethod");
     }

@@ -73,10 +73,9 @@ public class TestQuotedLogOutputs {
         };
         for (String logOutput : validOutputs) {
             // Run with logging=trace on stdout so that we can verify the log configuration afterwards.
-            ProcessBuilder pb = ProcessTools.createLimitedTestJavaProcessBuilder("-Xlog:logging=trace",
-                                                                                 "-Xlog:all=trace:" + logOutput,
-                                                                                 "-version");
-            OutputAnalyzer output = new OutputAnalyzer(pb.start());
+            OutputAnalyzer output = ProcessTools.executeLimitedTestJava("-Xlog:logging=trace",
+                                                                        "-Xlog:all=trace:" + logOutput,
+                                                                        "-version");
             output.shouldHaveExitValue(0);
             Asserts.assertTrue(file.exists());
             file.deleteOnExit(); // Clean up after test
@@ -98,10 +97,9 @@ public class TestQuotedLogOutputs {
             "A" + quote + quote + "B"
         };
         for (String logOutput : invalidOutputs) {
-            ProcessBuilder pb = ProcessTools.createLimitedTestJavaProcessBuilder("-Xlog:logging=trace",
-                                                                                 "-Xlog:all=trace:" + logOutput,
-                                                                                 "-version");
-            OutputAnalyzer output = new OutputAnalyzer(pb.start());
+            OutputAnalyzer output = ProcessTools.executeLimitedTestJava("-Xlog:logging=trace",
+                                                                        "-Xlog:all=trace:" + logOutput,
+                                                                        "-version");
             output.shouldHaveExitValue(1);
             // Ensure error message was logged
             output.shouldMatch("([Mm]issing terminating quote)"

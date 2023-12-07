@@ -41,13 +41,11 @@ public class TestOnError {
     public static void main(String[] args) throws Exception {
         String msg = "Test Succeeded";
 
-        ProcessBuilder pb = ProcessTools.createLimitedTestJavaProcessBuilder(
+        OutputAnalyzer output = ProcessTools.executeLimitedTestJava(
            "-XX:-CreateCoredumpOnCrash",
            "-XX:ErrorHandlerTest=14", // trigger potential SEGV
            "-XX:OnError=echo " + msg,
            TestOnError.class.getName());
-
-        OutputAnalyzer output = new OutputAnalyzer(pb.start());
 
         /* Actual output will include:
            #

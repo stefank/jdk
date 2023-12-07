@@ -103,8 +103,7 @@ public abstract class CtwTest {
                 }
             }
         }
-        ProcessBuilder pb = ProcessTools.createTestJavaProcessBuilder(cmd);
-        OutputAnalyzer output = new OutputAnalyzer(pb.start());
+        OutputAnalyzer output = ProcessTools.executeTestJava(cmd);
         dump(output, "compile");
         output.shouldHaveExitValue(0);
     }
@@ -137,7 +136,7 @@ public abstract class CtwTest {
         }
     }
 
-    protected ProcessBuilder createJarProcessBuilder(String... command)
+    protected OutputAnalyzer executeJar(String... command)
             throws Exception {
         String javapath = JDKToolFinder.getJDKTool("jar");
 
@@ -145,6 +144,7 @@ public abstract class CtwTest {
         args.add(javapath);
         Collections.addAll(args, command);
 
-        return new ProcessBuilder(args.toArray(new String[args.size()]));
+        ProcessBuilder pb = new ProcessBuilder(args);
+        return ProcessTools.executeProcess(pb);
     }
 }

@@ -36,28 +36,26 @@ import jdk.test.lib.process.OutputAnalyzer;
 import jdk.test.lib.process.ProcessTools;
 
 public class SafepointCleanupTest {
-    static void analyzeOutputOn(ProcessBuilder pb) throws Exception {
-        OutputAnalyzer output = new OutputAnalyzer(pb.start());
+    static void analyzeOutputOn(OutputAnalyzer output) throws Exception {
         output.shouldContain("[safepoint,cleanup]");
         output.shouldContain("safepoint cleanup tasks");
         output.shouldContain("updating inline caches");
         output.shouldHaveExitValue(0);
     }
 
-    static void analyzeOutputOff(ProcessBuilder pb) throws Exception {
-        OutputAnalyzer output = new OutputAnalyzer(pb.start());
+    static void analyzeOutputOff(OutputAnalyzer output) throws Exception {
         output.shouldNotContain("[safepoint,cleanup]");
         output.shouldHaveExitValue(0);
     }
 
     public static void main(String[] args) throws Exception {
-        ProcessBuilder pb = ProcessTools.createLimitedTestJavaProcessBuilder("-Xlog:safepoint+cleanup=info",
-                                                                             InnerClass.class.getName());
-        analyzeOutputOn(pb);
+        OutputAnalyzer output = ProcessTools.executeLimitedTestJava("-Xlog:safepoint+cleanup=info",
+                                                                    InnerClass.class.getName());
+        analyzeOutputOn(output);
 
-        pb = ProcessTools.createLimitedTestJavaProcessBuilder("-Xlog:safepoint+cleanup=off",
-                                                              InnerClass.class.getName());
-        analyzeOutputOff(pb);
+        output = ProcessTools.executeLimitedTestJava("-Xlog:safepoint+cleanup=off",
+                                                     InnerClass.class.getName());
+        analyzeOutputOff(output);
     }
 
     public static class InnerClass {

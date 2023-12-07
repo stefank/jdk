@@ -87,7 +87,7 @@ public class VMDeprecatedOptions {
             expectedValues[i] = optionInfo[i][1];
         }
 
-        OutputAnalyzer output = CommandLineOptionTest.startVMWithOptions(optionNames, expectedValues);
+        OutputAnalyzer output = CommandLineOptionTest.executeVMWithOptions(optionNames, expectedValues);
 
         // check for option deprecation messages:
         output.shouldHaveExitValue(0);
@@ -101,9 +101,8 @@ public class VMDeprecatedOptions {
     // command line by -XX:+UnlockDiagnosticVMOptions.
     static void testDeprecatedDiagnostic(String option, String value)  throws Throwable {
         String XXoption = CommandLineOptionTest.prepareFlag(option, value);
-        ProcessBuilder processBuilder = ProcessTools.createLimitedTestJavaProcessBuilder(
+        OutputAnalyzer output = ProcessTools.executeLimitedTestJava(
             CommandLineOptionTest.UNLOCK_DIAGNOSTIC_VM_OPTIONS, XXoption, "-version");
-        OutputAnalyzer output = new OutputAnalyzer(processBuilder.start());
         // check for option deprecation message:
         output.shouldHaveExitValue(0);
         String match = getDeprecationString(option);
@@ -114,9 +113,8 @@ public class VMDeprecatedOptions {
     // command line by -XX:+UnlockExperimentalVMOption.
     static void testDeprecatedExperimental(String option, String value)  throws Throwable {
         String XXoption = CommandLineOptionTest.prepareFlag(option, value);
-        ProcessBuilder processBuilder = ProcessTools.createLimitedTestJavaProcessBuilder(
+        OutputAnalyzer output = ProcessTools.executeLimitedTestJava(
             CommandLineOptionTest.UNLOCK_EXPERIMENTAL_VM_OPTIONS, XXoption, "-version");
-        OutputAnalyzer output = new OutputAnalyzer(processBuilder.start());
         // check for option deprecation message:
         output.shouldHaveExitValue(0);
         String match = getDeprecationString(option);

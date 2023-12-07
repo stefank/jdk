@@ -56,6 +56,7 @@ package compiler.c2.unloaded;
 
 import jdk.test.lib.JDKToolFinder;
 import jdk.test.lib.process.OutputAnalyzer;
+import jdk.test.lib.process.ProcessTools;
 
 import java.io.IOException;
 import java.net.URL;
@@ -180,9 +181,8 @@ public class TestInlineUnloaded {
     }
 
     static void run(String testCaseName, Consumer<OutputAnalyzer> processor) throws IOException {
-        ProcessBuilder pb = new ProcessBuilder();
-
-        pb.command(JDKToolFinder.getJDKTool("java"),
+        ProcessBuilder pb = new ProcessBuilder(
+            JDKToolFinder.getJDKTool("java"),
             "-cp", "launcher.jar",
             "-XX:+IgnoreUnrecognizedVMOptions", "-showversion",
             "-XX:-TieredCompilation", "-Xbatch",
@@ -192,7 +192,7 @@ public class TestInlineUnloaded {
 
         System.out.println("Command line: [" + pb.command() + "]");
 
-        OutputAnalyzer analyzer = new OutputAnalyzer(pb.start());
+        OutputAnalyzer analyzer = ProcessTools.executeProcess(pb);
 
         analyzer.shouldHaveExitValue(0);
 

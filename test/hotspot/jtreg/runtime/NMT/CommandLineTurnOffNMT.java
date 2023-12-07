@@ -37,10 +37,9 @@ import jdk.test.lib.process.OutputAnalyzer;
 public class CommandLineTurnOffNMT {
 
   public static void main(String args[]) throws Exception {
-    ProcessBuilder pb = ProcessTools.createLimitedTestJavaProcessBuilder(
+    OutputAnalyzer output = ProcessTools.executeLimitedTestJava(
               "-XX:NativeMemoryTracking=off",
               "-version");
-    OutputAnalyzer output = new OutputAnalyzer(pb.start());
     output.shouldNotContain("error");
     output.shouldHaveExitValue(0);
   }

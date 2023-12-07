@@ -39,10 +39,9 @@ import jdk.test.lib.process.OutputAnalyzer;
 
 public class XShareAuto {
     public static void main(String[] args) throws Exception {
-        ProcessBuilder pb = ProcessTools.createLimitedTestJavaProcessBuilder(
+        OutputAnalyzer output = ProcessTools.executeLimitedTestJava(
             "-server", "-XX:+UnlockDiagnosticVMOptions",
             "-XX:SharedArchiveFile=./XShareAuto.jsa", "-Xshare:dump", "-Xlog:cds");
-        OutputAnalyzer output = new OutputAnalyzer(pb.start());
         output.shouldContain("Loading classes to share");
         output.shouldHaveExitValue(0);
 
@@ -55,13 +54,12 @@ public class XShareAuto {
         };
 
         for (String x : cases) {
-            pb = ProcessTools.createLimitedTestJavaProcessBuilder(
+            output = ProcessTools.executeLimitedTestJava(
                 "-XX:+UnlockDiagnosticVMOptions",
                 "-XX:SharedArchiveFile=./XShareAuto.jsa",
                 "-Xlog:cds",
                 x,
                 "-version");
-            output = new OutputAnalyzer(pb.start());
             String outputString = output.getOutput();
 
             if (!outputString.contains("Unable to map")) {

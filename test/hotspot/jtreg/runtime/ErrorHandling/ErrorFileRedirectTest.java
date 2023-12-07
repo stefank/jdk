@@ -48,15 +48,13 @@ public class ErrorFileRedirectTest {
 
   public static void do_test(boolean redirectStdout, boolean redirectStderr) throws Exception {
 
-    ProcessBuilder pb = ProcessTools.createLimitedTestJavaProcessBuilder(
+    OutputAnalyzer output_detail = ProcessTools.executeLimitedTestJava(
             "-Xmx64M",
             "-XX:-CreateCoredumpOnCrash",
             "-XX:ErrorHandlerTest=14",
             "-XX:" + (redirectStdout ? "+" : "-") + "ErrorFileToStdout",
             "-XX:" + (redirectStderr ? "+" : "-") + "ErrorFileToStderr",
             "-version");
-
-    OutputAnalyzer output_detail = new OutputAnalyzer(pb.start());
 
     // we should have crashed with a SIGSEGV
     output_detail.shouldMatch("# A fatal error has been detected by the Java Runtime Environment:.*");
@@ -101,5 +99,3 @@ public class ErrorFileRedirectTest {
   }
 
 }
-
-

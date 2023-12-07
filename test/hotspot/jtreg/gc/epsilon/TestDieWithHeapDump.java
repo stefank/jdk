@@ -33,26 +33,26 @@ package gc.epsilon;
 
 import java.io.*;
 import jdk.test.lib.process.OutputAnalyzer;
+import jdk.test.lib.process.ProcessExecutor;
 import jdk.test.lib.process.ProcessTools;
 
 public class TestDieWithHeapDump {
 
   public static void passWith(String... args) throws Exception {
-    ProcessBuilder pb = ProcessTools.createLimitedTestJavaProcessBuilder(args);
-    OutputAnalyzer out = new OutputAnalyzer(pb.start());
+    OutputAnalyzer out = ProcessTools.executeLimitedTestJava(args);
     out.shouldNotContain("OutOfMemoryError");
     out.shouldHaveExitValue(0);
   }
 
   public static void failWith(String... args) throws Exception {
     ProcessBuilder pb = ProcessTools.createLimitedTestJavaProcessBuilder(args);
-    Process p = pb.start();
-    OutputAnalyzer out = new OutputAnalyzer(p);
+    ProcessExecutor executor = new ProcessExecutor(pb);
+    OutputAnalyzer out = executor.waitForOutputAnalyzer();
     out.shouldContain("OutOfMemoryError");
     if (out.getExitValue() == 0) {
       throw new IllegalStateException("Should have failed with non-zero exit code");
     }
-    String heapDump = "java_pid" + p.pid() + ".hprof";
+    String heapDump = "java_pid" + executor.pid() + ".hprof";
     if (!new File(heapDump).exists()) {
       throw new IllegalStateException("Should have produced the heap dump at: " + heapDump);
     }

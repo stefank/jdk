@@ -53,8 +53,6 @@ public class TestRedefineObject {
       pw.println("Can-Retransform-Classes: true");
       pw.close();
 
-      ProcessBuilder pb = new ProcessBuilder();
-      pb.command(new String[] { JDKToolFinder.getJDKTool("jar"), "cmf", "MANIFEST.MF", "agent.jar", "Agent.class"});
-      pb.start().waitFor();
+      ProcessTools.executeProcess(JDKToolFinder.getJDKTool("jar"), "cmf", "MANIFEST.MF", "agent.jar", "Agent.class");
     }
 }

@@ -84,13 +84,12 @@ public class TestEnableJVMCIProduct {
         String[] flags = {"-XX:+EnableJVMCIProduct", "-XX:+UseGraalJIT"};
         String cwd = System.getProperty("user.dir");
         for (String flag : flags) {
-            ProcessBuilder pb = ProcessTools.createLimitedTestJavaProcessBuilder(
+            OutputAnalyzer output = ProcessTools.executeLimitedTestJava(
                 "-XX:+UnlockExperimentalVMOptions", flag, "-XX:-UnlockExperimentalVMOptions",
                 explicitFlag,
                 "-XX:+PrintFlagsFinal",
                 "--class-path=" + System.getProperty("java.class.path"),
                 "TestEnableJVMCIProduct", "jvmci.Compiler");
-            OutputAnalyzer output = new OutputAnalyzer(pb.start());
             for (Expectation expectation : expectations) {
                 output.stdoutShouldMatch(expectation.pattern);
             }

@@ -54,9 +54,8 @@ public class TestCrashOnOutOfMemoryError {
             }
         }
         // else this is the main test
-        ProcessBuilder pb = ProcessTools.createLimitedTestJavaProcessBuilder("-XX:+CrashOnOutOfMemoryError",
+        OutputAnalyzer output = ProcessTools.executeLimitedTestJava("-XX:+CrashOnOutOfMemoryError",
                  "-XX:-CreateCoredumpOnCrash", "-Xmx128m", TestCrashOnOutOfMemoryError.class.getName(),"throwOOME");
-        OutputAnalyzer output = new OutputAnalyzer(pb.start());
         int exitValue = output.getExitValue();
         if (0 == exitValue) {
             //expecting a non zero value

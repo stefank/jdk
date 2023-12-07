@@ -72,9 +72,8 @@ public class TestElfDirectRead {
     String pid = Long.toString(ProcessTools.getProcessId());
 
     pb.command(new String[] { JDKToolFinder.getJDKTool("jcmd"), pid, "VM.native_memory", "detail"});
-    output = new OutputAnalyzer(pb.start());
+    OutputAnalyzer output = ProcessTools.executeProcess(pb);
     // This is a pre-populated stack frame, should always exist if can decode
     output.shouldContain("MallocSiteTable::new_entry");
   }
 }
-

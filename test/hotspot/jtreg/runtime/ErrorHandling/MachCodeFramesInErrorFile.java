@@ -115,7 +115,7 @@ public class MachCodeFramesInErrorFile {
      * expected to have a min number of MachCode sections.
      */
     private static void run(boolean crashInJava) throws Exception {
-        ProcessBuilder pb = ProcessTools.createLimitedTestJavaProcessBuilder(
+        OutputAnalyzer output = ProcessTools.executeLimitedTestJava(
             "-Xmx64m", "--add-exports=java.base/jdk.internal.misc=ALL-UNNAMED",
             "-XX:-CreateCoredumpOnCrash",
             "-Xcomp",
@@ -125,7 +125,6 @@ public class MachCodeFramesInErrorFile {
             "-XX:CompileCommand=dontinline,*/Unsafe.getLong", // ensures VM call when crashInJava == false
             Crasher.class.getName(),
             crashInJava ? "crashInJava" : "crashInVM");
-        OutputAnalyzer output = new OutputAnalyzer(pb.start());
 
         // Extract hs_err_pid file.
         File hs_err_file = HsErrFileUtils.openHsErrFileFromOutput(output);

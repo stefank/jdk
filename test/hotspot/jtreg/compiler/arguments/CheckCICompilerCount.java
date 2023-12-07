@@ -187,11 +187,7 @@ public class CheckCICompilerCount {
     };
 
     private static void verifyValidOption(String[] arguments, String expected_output, int exit, boolean tiered) throws Exception {
-        ProcessBuilder pb;
-        OutputAnalyzer out;
-
-        pb = ProcessTools.createLimitedTestJavaProcessBuilder(arguments);
-        out = new OutputAnalyzer(pb.start());
+        OutputAnalyzer out = ProcessTools.executeLimitedTestJava(arguments);
 
         try {
             out.shouldHaveExitValue(exit);

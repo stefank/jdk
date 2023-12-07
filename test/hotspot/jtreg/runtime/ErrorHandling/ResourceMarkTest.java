@@ -48,15 +48,13 @@ public class ResourceMarkTest {
 
 
   public static void main(String[] args) throws Exception {
-    ProcessBuilder pb = ProcessTools.createLimitedTestJavaProcessBuilder(
+    OutputAnalyzer output_detail = ProcessTools.executeLimitedTestJava(
         "-XX:+UnlockDiagnosticVMOptions",
         "-Xmx100M",
         "-XX:-CreateCoredumpOnCrash",
         "-XX:ErrorHandlerTest=15",
         "-XX:TestCrashInErrorHandler=2",
         "-version");
-
-    OutputAnalyzer output_detail = new OutputAnalyzer(pb.start());
 
     // we should have crashed with a SIGFPE
     output_detail.shouldMatch("# A fatal error has been detected by the Java Runtime Environment:.*");

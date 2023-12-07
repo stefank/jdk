@@ -31,6 +31,7 @@
  * @run main/othervm TestThreadDumpClassInitMonitor
  */
 
+import jdk.test.lib.process.ProcessTools;
 import jdk.test.lib.process.OutputAnalyzer;
 import jdk.test.lib.JDKToolFinder;
 import jdk.test.lib.Platform;
@@ -112,12 +113,11 @@ public class TestThreadDumpClassInitMonitor {
 
             // Now run jstack
             try {
-                ProcessBuilder pb = new ProcessBuilder(JSTACK, PID);
-                OutputAnalyzer output = new OutputAnalyzer(pb.start());
+                OutputAnalyzer output = ProcessTools.executeProcess(JSTACK, PID);
                 output.shouldHaveExitValue(0);
                 stackDump = output.asLines();
             }
-            catch (IOException ioe) {
+            catch (Exception ioe) {
                 throw new Error("Launching jstack failed", ioe);
             }
         }

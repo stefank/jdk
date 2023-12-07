@@ -38,10 +38,9 @@ import jdk.test.lib.process.OutputAnalyzer;
 public class TraceClassRes {
   public static void main(String[] args) throws Exception {
 
-    ProcessBuilder pb = ProcessTools.createLimitedTestJavaProcessBuilder(
+    OutputAnalyzer output = ProcessTools.executeLimitedTestJava(
         "-Xlog:class+resolve=debug", "-verify", "-Xshare:off", "-version");
 
-    OutputAnalyzer output = new OutputAnalyzer(pb.start());
     output.shouldContain("[class,resolve] java.lang.ClassLoader java.lang.Throwable ClassLoader.java (verification)");
     output.shouldHaveExitValue(0);
   }

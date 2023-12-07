@@ -41,9 +41,7 @@ public class TestLongUnrecognizedVMOption {
     private static final String VERY_LONG_OPTION = String.format("%500s=10", "unrecognizedoption").replace(" ", "a");
 
     public static void main(String[] args) throws Exception {
-        OutputAnalyzer output;
-
-        output = new OutputAnalyzer(ProcessTools.createLimitedTestJavaProcessBuilder("-XX:" + VERY_LONG_OPTION, "-version").start());
+        OutputAnalyzer output = ProcessTools.executeLimitedTestJava("-XX:" + VERY_LONG_OPTION, "-version");
         output.shouldHaveExitValue(1);
         output.shouldContain(String.format("Unrecognized VM option '%s'", VERY_LONG_OPTION));
     }

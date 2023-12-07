@@ -55,7 +55,7 @@ public class VMAliasOptions {
             expectedValues[i] = optionInfo[i][2];
         }
 
-        OutputAnalyzer output = CommandLineOptionTest.startVMWithOptions(aliasNames, expectedValues, "-XX:+PrintFlagsFinal");
+        OutputAnalyzer output = CommandLineOptionTest.executeVMWithOptions(aliasNames, expectedValues, "-XX:+PrintFlagsFinal");
         CommandLineOptionTest.verifyOptionValuesFromOutput(output, optionNames, expectedValues);
     }
 

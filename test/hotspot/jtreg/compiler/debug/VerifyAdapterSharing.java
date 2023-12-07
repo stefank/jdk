@@ -39,12 +39,8 @@ import jdk.test.lib.process.ProcessTools;
 
 public class VerifyAdapterSharing {
     public static void main(String[] args) throws Exception {
-        ProcessBuilder pb;
-        OutputAnalyzer out;
-
-        pb = ProcessTools.createLimitedTestJavaProcessBuilder("-Xcomp", "-XX:+IgnoreUnrecognizedVMOptions",
+        OutputAnalyzer out = ProcessTools.executeLimitedTestJava("-Xcomp", "-XX:+IgnoreUnrecognizedVMOptions",
                 "-XX:+VerifyAdapterSharing", "-version");
-        out = new OutputAnalyzer(pb.start());
         out.shouldHaveExitValue(0);
     }
 }

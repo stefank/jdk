@@ -39,9 +39,8 @@ import jdk.test.lib.process.OutputAnalyzer;
 public class Bad_NCDFE_Msg {
 
     public static void main(String args[]) throws Throwable {
-        ProcessBuilder pb = ProcessTools.createLimitedTestJavaProcessBuilder(
+        OutputAnalyzer output = ProcessTools.executeLimitedTestJava(
             "-cp", System.getProperty("test.classes") + File.separator + "pkg", "C");
-        OutputAnalyzer output = new OutputAnalyzer(pb.start());
         output.shouldContain("java.lang.NoClassDefFoundError: C (wrong name: pkg/C");
         output.shouldHaveExitValue(1);
     }

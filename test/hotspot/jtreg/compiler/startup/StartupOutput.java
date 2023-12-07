@@ -40,16 +40,11 @@ import jdk.test.lib.process.ProcessTools;
 
 public class StartupOutput {
     public static void main(String[] args) throws Exception {
-        ProcessBuilder pb;
-        OutputAnalyzer out;
-
-        pb = ProcessTools.createLimitedTestJavaProcessBuilder("-Xint", "-XX:+DisplayVMOutputToStdout", "-version");
-        out = new OutputAnalyzer(pb.start());
+        OutputAnalyzer out = ProcessTools.executeLimitedTestJava("-Xint", "-XX:+DisplayVMOutputToStdout", "-version");
         out.shouldNotContain("no space to run compilers");
         out.shouldHaveExitValue(0);
 
-        pb = ProcessTools.createLimitedTestJavaProcessBuilder("-Xint", "-XX:ReservedCodeCacheSize=1770K", "-XX:InitialCodeCacheSize=4K", "-version");
-        out = new OutputAnalyzer(pb.start());
+        out = ProcessTools.executeLimitedTestJava("-Xint", "-XX:ReservedCodeCacheSize=1770K", "-XX:InitialCodeCacheSize=4K", "-version");
         // The VM should not crash but may return an error message because we don't have enough space for adapters
         int exitCode = out.getExitValue();
         if (exitCode != 1 && exitCode != 0) {

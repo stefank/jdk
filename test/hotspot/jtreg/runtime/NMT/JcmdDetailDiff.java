@@ -53,33 +53,23 @@ public class JcmdDetailDiff {
         long addr;
 
         // Run 'jcmd <pid> VM.native_memory baseline=true'
-        pb.command(new String[] { JDKToolFinder.getJDKTool("jcmd"), pid, "VM.native_memory", "baseline=true"});
-
-        output = new OutputAnalyzer(pb.start());
+        output = ProcessTools.executeProcess(JDKToolFinder.getJDKTool("jcmd"), pid, "VM.native_memory", "baseline=true");
         output.shouldContain("Baseline taken");
 
         addr = wb.NMTReserveMemory(reserveSize);
-        pb.command(new String[] { JDKToolFinder.getJDKTool("jcmd"), pid, "VM.native_memory", "detail.diff", "scale=KB"});
-
-        output = new OutputAnalyzer(pb.start());
+        output = ProcessTools.executeProcess(JDKToolFinder.getJDKTool("jcmd"), pid, "VM.native_memory", "detail.diff", "scale=KB");
         output.shouldContain("Test (reserved=256KB +256KB, committed=0KB)");
 
         wb.NMTCommitMemory(addr, commitSize);
-        pb.command(new String[] { JDKToolFinder.getJDKTool("jcmd"), pid, "VM.native_memory", "detail.diff", "scale=KB"});
-
-        output = new OutputAnalyzer(pb.start());
+        output = ProcessTools.executeProcess(JDKToolFinder.getJDKTool("jcmd"), pid, "VM.native_memory", "detail.diff", "scale=KB");
         output.shouldContain("Test (reserved=256KB +256KB, committed=128KB +128KB)");
 
         wb.NMTUncommitMemory(addr, commitSize);
-        pb.command(new String[] { JDKToolFinder.getJDKTool("jcmd"), pid, "VM.native_memory", "detail.diff", "scale=KB"});
-
-        output = new OutputAnalyzer(pb.start());
+        output = ProcessTools.executeProcess(JDKToolFinder.getJDKTool("jcmd"), pid, "VM.native_memory", "detail.diff", "scale=KB");
         output.shouldContain("Test (reserved=256KB +256KB, committed=0KB)");
 
         wb.NMTReleaseMemory(addr, reserveSize);
-        pb.command(new String[] { JDKToolFinder.getJDKTool("jcmd"), pid, "VM.native_memory", "detail.diff", "scale=KB"});
-
-        output = new OutputAnalyzer(pb.start());
+        output = ProcessTools.executeProcess(JDKToolFinder.getJDKTool("jcmd"), pid, "VM.native_memory", "detail.diff", "scale=KB");
         output.shouldNotContain("Test (reserved=");
     }
 }

@@ -38,34 +38,32 @@ import jdk.test.lib.Platform;
 import jdk.test.lib.process.ProcessTools;
 
 public class CompressedOopsTest {
-    static void analyzeOutputOn(ProcessBuilder pb) throws Exception {
-        OutputAnalyzer output = new OutputAnalyzer(pb.start());
+    static void analyzeOutputOn(OutputAnalyzer output) throws Exception {
         output.shouldContain("[gc,heap,coops] Heap address");
         output.shouldHaveExitValue(0);
     }
 
-    static void analyzeOutputOff(ProcessBuilder pb) throws Exception {
-        OutputAnalyzer output = new OutputAnalyzer(pb.start());
+    static void analyzeOutputOff(OutputAnalyzer output) throws Exception {
         output.shouldNotContain("[gc,heap,coops]");
         output.shouldHaveExitValue(0);
     }
 
     public static void main(String[] args) throws Exception {
-        ProcessBuilder pb = ProcessTools.createLimitedTestJavaProcessBuilder("-XX:+UseCompressedOops",
-                                                                             "-Xlog:gc+heap+coops=debug",
-                                                                             InnerClass.class.getName());
-        analyzeOutputOn(pb);
+        OutputAnalyzer output = ProcessTools.executeLimitedTestJava("-XX:+UseCompressedOops",
+                                                                    "-Xlog:gc+heap+coops=debug",
+                                                                    InnerClass.class.getName());
+        analyzeOutputOn(output);
 
-        pb = ProcessTools.createLimitedTestJavaProcessBuilder("-XX:+UseCompressedOops",
-                                                              "-Xlog:gc+heap+coops",
-                                                              InnerClass.class.getName());
+        output = ProcessTools.executeLimitedTestJava("-XX:+UseCompressedOops",
+                                                     "-Xlog:gc+heap+coops",
+                                                     InnerClass.class.getName());
         // No coops logging on info level.
-        analyzeOutputOff(pb);
+        analyzeOutputOff(output);
 
-        pb = ProcessTools.createLimitedTestJavaProcessBuilder("-XX:+UseCompressedOops",
-                                                              "-Xlog:gc+heap+coops=off",
-                                                              InnerClass.class.getName());
-        analyzeOutputOff(pb);
+        output = ProcessTools.executeLimitedTestJava("-XX:+UseCompressedOops",
+                                                     "-Xlog:gc+heap+coops=off",
+                                                     InnerClass.class.getName());
+        analyzeOutputOff(output);
     }
 
     public static class InnerClass {

@@ -72,7 +72,6 @@ public class TestInstanceKlassSize {
     private static void startMeWithArgs() throws Exception {
 
         LingeredApp app = null;
-        OutputAnalyzer output = null;
         try {
             app = LingeredApp.startApp("-XX:+UsePerfData");
             System.out.println ("Started LingeredApp with pid " + app.getPid());
@@ -82,7 +81,7 @@ public class TestInstanceKlassSize {
         }
         try {
             // Run this app with the LingeredApp PID to get SA output from the LingeredApp
-            ProcessBuilder processBuilder = ProcessTools.createLimitedTestJavaProcessBuilder(
+            OutputAnalyzer output = SATestUtils.executeLimitedTestJava(
                 "--add-modules=jdk.hotspot.agent",
                 "--add-exports=jdk.hotspot.agent/sun.jvm.hotspot=ALL-UNNAMED",
                 "--add-exports=jdk.hotspot.agent/sun.jvm.hotspot.utilities=ALL-UNNAMED",
@@ -93,8 +92,6 @@ public class TestInstanceKlassSize {
                 "-Xbootclasspath/a:.",
                 "TestInstanceKlassSize",
                 Long.toString(app.getPid()));
-            SATestUtils.addPrivilegesIfNeeded(processBuilder);
-            output = ProcessTools.executeProcess(processBuilder);
             System.out.println(output.getOutput());
             output.shouldHaveExitValue(0);
 

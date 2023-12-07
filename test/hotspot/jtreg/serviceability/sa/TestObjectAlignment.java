@@ -64,7 +64,7 @@ public class TestObjectAlignment {
     private static void createAnotherToAttach(long lingeredAppPid, int expectedAlign)
                                                          throws Exception {
         // Start a new process to attach to the lingered app
-        ProcessBuilder processBuilder = ProcessTools.createLimitedTestJavaProcessBuilder(
+        OutputAnalyzer SAOutput = SATestUtils.executeLimitedTestJava(
             "--add-modules=jdk.hotspot.agent",
             "--add-exports=jdk.hotspot.agent/sun.jvm.hotspot=ALL-UNNAMED",
             "--add-exports=jdk.hotspot.agent/sun.jvm.hotspot.runtime=ALL-UNNAMED",
@@ -72,8 +72,6 @@ public class TestObjectAlignment {
             Long.toString(lingeredAppPid),
             Integer.toString(expectedAlign)
         );
-        SATestUtils.addPrivilegesIfNeeded(processBuilder);
-        OutputAnalyzer SAOutput = ProcessTools.executeProcess(processBuilder);
         SAOutput.shouldHaveExitValue(0);
         System.out.println(SAOutput.getOutput());
     }

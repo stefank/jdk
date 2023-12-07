@@ -43,14 +43,13 @@ public class TestSymbolsInHsErrFile {
   public static void main(String[] args) throws Exception {
 
     // Start a jvm and cause a SIGSEGV / ACCESS_VIOLATION
-    ProcessBuilder pb = ProcessTools.createLimitedTestJavaProcessBuilder(
+    OutputAnalyzer output = ProcessTools.executeLimitedTestJava(
         "-XX:+UnlockDiagnosticVMOptions",
         "-Xmx100M",
         "-XX:-CreateCoredumpOnCrash",
         "-XX:ErrorHandlerTest=14",
         "-version");
 
-    OutputAnalyzer output = new OutputAnalyzer(pb.start());
     output.shouldNotHaveExitValue(0);
 
     // Verify that the hs_err problematic frame contains a function name that points to origin of the crash;
@@ -72,5 +71,3 @@ public class TestSymbolsInHsErrFile {
   }
 
 }
-
-
