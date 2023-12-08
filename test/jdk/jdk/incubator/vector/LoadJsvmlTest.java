@@ -66,7 +66,7 @@ public class LoadJsvmlTest {
             "--add-modules=jdk.incubator.vector",
             VectorTest.class.getName());
 
-        OutputAnalyzer output = new OutputAnalyzer(pb.start());
+        OutputAnalyzer output = ProcessTools.executeProcess(pb);
         output.shouldHaveExitValue(0);
         output.shouldMatch("Loaded library .*jsvml");
     }

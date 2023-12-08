@@ -28,7 +28,7 @@ public class TestOptionsWithLocale {
         }
     }
 
-    public static void main(String... args) throws IOException {
+    public static void main(String... args) throws Exception {
         // Can only run test if jdk.localedata is available.
         // Can't specify @module jdk.jfr jdk.localedata, because
         // --limit-modules jdk.jfr,jdk.localedata prevents the product issue.
@@ -41,7 +41,7 @@ public class TestOptionsWithLocale {
                 "-Duser.language=de",
                 "-XX:FlightRecorderOptions:stackdepth=128",
                 PrintDate.class.getName());
-        OutputAnalyzer output = new OutputAnalyzer(pb.start());
+        OutputAnalyzer output = ProcessTools.executeProcess(pb);
         output.shouldContain("01.01.2020, 00:00:00");
     }
 }

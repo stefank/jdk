@@ -116,6 +116,6 @@ public final class MinimumSizeDPIVariation {
                 String.valueOf(w), String.valueOf(h), dpi);
         Process worker = ProcessTools.startProcess("Worker", pb, null, 20,
                 TimeUnit.SECONDS);
-        new OutputAnalyzer(worker).shouldHaveExitValue(0);
+        ProcessTools.finishProcess(worker).shouldHaveExitValue(0);
     }
 }

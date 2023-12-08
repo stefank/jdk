@@ -47,6 +47,7 @@ import java.util.stream.Collectors;
 
 import jdk.test.lib.JDKToolFinder;
 import jdk.test.lib.process.OutputAnalyzer;
+import jdk.test.lib.process.ProcessTools;
 
 public class Lookup {
     private static final String HOST = "icann.org";
@@ -54,7 +55,7 @@ public class Lookup {
     private static final String CLASS_PATH = System.getProperty(
             "test.class.path");
 
-    public static void main(String args[]) throws IOException {
+    public static void main(String args[]) throws Exception {
         String addr = null;
         String ipv4Name = null;
         String ipv4Reversed = null;
@@ -134,21 +135,21 @@ public class Lookup {
         }
     }
 
-    static String lookupWithIPv4Prefer() throws IOException {
+    static String lookupWithIPv4Prefer() throws Exception {
         String java = JDKToolFinder.getTestJDKTool("java");
         String testClz = Lookup.class.getName();
         List<String> cmd = List.of(java, "-Djava.net.preferIPv4Stack=true",
                 "-cp", CLASS_PATH, testClz);
         System.out.println("Executing: " + cmd);
-        return new OutputAnalyzer(new ProcessBuilder(cmd).start()).getOutput();
+        return ProcessTools.executeProcess(new ProcessBuilder(cmd)).getOutput();
     }
 
-    static String reverseWithIPv4Prefer(String addr) throws IOException {
+    static String reverseWithIPv4Prefer(String addr) throws Exception {
         String java = JDKToolFinder.getTestJDKTool("java");
         String testClz = Lookup.class.getName();
         List<String> cmd = List.of(java, "-Djava.net.preferIPv4Stack=true",
                                    "-cp", CLASS_PATH, testClz, "reverse", addr);
         System.out.println("Executing: " + cmd);
-        return new OutputAnalyzer(new ProcessBuilder(cmd).start()).getOutput();
+        return ProcessTools.executeProcess(new ProcessBuilder(cmd)).getOutput();
     }
 }

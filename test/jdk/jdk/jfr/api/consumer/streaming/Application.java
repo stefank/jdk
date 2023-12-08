@@ -51,8 +51,7 @@ public class Application {
     private final ScheduledExecutorService monitor;
     private final int id;
     private final Thread thread;
-    private Process process;
-    private OutputAnalyzer analyzer;
+    private ProcessExecutor process;
     private int statusCheck;
 
     public Application(Path repository) {
@@ -104,9 +103,7 @@ public class Application {
         args[4] = message;
         ProcessBuilder pb = ProcessTools.createTestJavaProcessBuilder(args);
         touch(lockFile);
-        process = pb.start();
-        // For debugging
-        analyzer = new OutputAnalyzer(process);
+        process = new ProcessExecutor(pb);
         monitor.scheduleWithFixedDelay(() -> checkStatus(), 0, 1, TimeUnit.SECONDS);
         if (!process.isAlive()) {
             throw new IOException("Test application not alive after start");
@@ -186,6 +183,7 @@ public class Application {
                     System.out.println(se);
                 }
                 if (process != null && !process.isAlive()) {
+                    OutputAnalyzer analyzer = process.waitForOutputAnalyzer();
                     System.out.println(analyzer.getStdout());
                     System.out.println(analyzer.getStderr());
                 }

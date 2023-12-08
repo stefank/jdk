@@ -35,13 +35,14 @@
  */
 
 import jdk.test.lib.process.OutputAnalyzer;
+import jdk.test.lib.process.ProcessTools;
 
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
 public class LibraryFromCache {
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) throws Exception {
         System.out.println("os.version = " + System.getProperty("os.version"));
 
         String libname = args[0];
@@ -56,10 +57,10 @@ public class LibraryFromCache {
     /*
      * Returns true if dlopen successfully loads the specified library
      */
-    private static boolean systemHasLibrary(String libname) throws IOException {
+    private static boolean systemHasLibrary(String libname) throws Exception {
         Path launcher = Paths.get(System.getProperty("test.nativepath"), "LibraryCache");
         ProcessBuilder pb = new ProcessBuilder(launcher.toString(), "lib" + libname + ".dylib");
-        OutputAnalyzer outputAnalyzer = new OutputAnalyzer(pb.start());
+        OutputAnalyzer outputAnalyzer = ProcessTools.executeProcess(pb);
         System.out.println(outputAnalyzer.getOutput());
         return outputAnalyzer.getExitValue() == 0;
     }

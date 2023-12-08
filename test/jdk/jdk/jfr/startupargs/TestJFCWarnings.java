@@ -71,7 +71,7 @@ public class TestJFCWarnings {
 
     private static void launch(String commandLine, String expectedOutput) throws Exception {
         ProcessBuilder pb = ProcessTools.createLimitedTestJavaProcessBuilder(commandLine, "-version");
-        OutputAnalyzer output = new OutputAnalyzer(pb.start());
+        OutputAnalyzer output = ProcessTools.executeProcess(pb);
         output.shouldContain(expectedOutput);
     }
 

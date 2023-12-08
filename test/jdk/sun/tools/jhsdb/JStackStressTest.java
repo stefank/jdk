@@ -36,6 +36,7 @@ import jdk.test.lib.JDKToolLauncher;
 import jdk.test.lib.JDKToolFinder;
 import jdk.test.lib.process.OutputAnalyzer;
 import jdk.test.lib.process.ProcessTools;
+import jdk.test.lib.process.StreamTask;
 import jdk.test.lib.SA.SATestUtils;
 import jdk.test.lib.Utils;
 
@@ -46,7 +47,9 @@ public class JStackStressTest {
     public static void testjstack() throws IOException {
         launchJshell();
         long jShellPID = jShellProcess.pid();
-        OutputAnalyzer jshellOutput = new OutputAnalyzer(jShellProcess);
+
+        StreamTask stdoutTask = new StreamTask(jShellProcess.getInputStream());
+        StreamTask stderrTask = new StreamTask(jShellProcess.getErrorStream());
 
         try {
             // Do 4 jstacks on the jshell process as it starts up
@@ -85,7 +88,9 @@ public class JStackStressTest {
                 jShellProcess.waitFor(); // jshell should exit quickly
             } catch (InterruptedException e) {
             }
-            System.out.println("jshell Output: " + jshellOutput.getOutput());
+
+            OutputAnalyzer jShellOutput = new OutputAnalyzer(stdoutTask.get(), stdoutTask.get(), jShellProcess.exitValue());
+            System.out.println("jshell Output: " + jShellOutput.getOutput());
         }
     }
 

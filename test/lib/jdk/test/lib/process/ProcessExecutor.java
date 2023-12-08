@@ -49,16 +49,15 @@ public class ProcessExecutor {
     private Integer exitValue;
 
     /**
-     * Creates a ProcessExecutor which will help starting and drinving a
-     * process to its completion. The process is started in this constructor.
+     * Creates a ProcessExecutor which will help starting and driving a
+     * process to its completion. The process should have been started already.
      *
      * @param pb The process builder describing the process to be started.
      * @param input The input to send to the spawned process, or null.
      * @param cs The charset, or null
      */
-    public ProcessExecutor(ProcessBuilder pb, String input, Charset cs) throws IOException {
-        // Start the process
-        this.process = ProcessTools.privilegedStart(pb);
+    public ProcessExecutor(Process p, String input, Charset cs) throws IOException {
+        this.process = p;
 
         // Log that we are about to gather the stdout and stderr
         logProgress("Gathering output");
@@ -72,6 +71,26 @@ public class ProcessExecutor {
                 ps.print(input);
             }
         }
+    }
+
+    public ProcessExecutor(Process p, String input) throws IOException {
+        this(p, input, null /* cs */);
+    }
+
+    public ProcessExecutor(Process p) throws IOException {
+        this(p, null /* input */);
+    }
+
+    /**
+     * Creates a ProcessExecutor which will help starting and driving a
+     * process to its completion. The process is started in this constructor.
+     *
+     * @param pb The process builder describing the process to be started.
+     * @param input The input to send to the spawned process, or null.
+     * @param cs The charset, or null
+     */
+    public ProcessExecutor(ProcessBuilder pb, String input, Charset cs) throws IOException {
+        this(ProcessTools.privilegedStart(pb));
     }
 
     public ProcessExecutor(ProcessBuilder pb, String input) throws IOException {

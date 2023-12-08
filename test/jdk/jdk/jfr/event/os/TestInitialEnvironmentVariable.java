@@ -50,7 +50,7 @@ public class TestInitialEnvironmentVariable {
     public static void main(String[] args) throws Exception {
         ProcessBuilder pb = ProcessTools.createLimitedTestJavaProcessBuilder(Test.class.getName());
         setEnv(pb.environment());
-        (new OutputAnalyzer(pb.start())).shouldHaveExitValue(0);
+        ProcessTools.executeProcess(pb).shouldHaveExitValue(0);
     }
 
     static void setEnv(Map<String, String> env) {

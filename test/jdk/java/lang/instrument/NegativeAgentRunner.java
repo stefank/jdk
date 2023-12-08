@@ -24,8 +24,8 @@
 package jdk.java.lang.instrument;
 
 import java.lang.RuntimeException;
-import jdk.test.lib.process.ProcessTools;
 import jdk.test.lib.process.OutputAnalyzer;
+import jdk.test.lib.process.ProcessTools;
 
 public class NegativeAgentRunner {
 
@@ -38,7 +38,7 @@ public class NegativeAgentRunner {
         ProcessBuilder pb = ProcessTools.createLimitedTestJavaProcessBuilder(
                 "-javaagent:" + agentClassName + ".jar", "-Xmx128m", "-XX:-CreateCoredumpOnCrash",
                 agentClassName);
-        OutputAnalyzer output = new OutputAnalyzer(pb.start());
+        OutputAnalyzer output = ProcessTool.executeProcess(pb);
         output.shouldContain(excepClassName);
         if (0 == output.getExitValue()) {
             throw new RuntimeException("Expected error but got exit value 0");

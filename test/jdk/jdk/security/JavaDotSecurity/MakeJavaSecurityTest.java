@@ -56,7 +56,7 @@ public class MakeJavaSecurityTest {
                 "somepolicy",
                 TEST_SRC + "/more_restricted");
 
-        OutputAnalyzer output = new OutputAnalyzer(pb.start());
+        OutputAnalyzer output = ProcessTools.executeProcess(pb);
         output.shouldHaveExitValue(0);
 
         verifyOutputFile();

@@ -34,6 +34,7 @@ import java.util.Map;
 import jdk.test.lib.Utils;
 import jdk.test.lib.Platform;
 import jdk.test.lib.process.OutputAnalyzer;
+import jdk.test.lib.process.ProcessTools;
 
 import java.io.File;
 import java.io.IOException;
@@ -42,7 +43,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 
 public class JliLaunchTest {
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) throws Exception {
         Path launcher = Paths.get(System.getProperty("test.nativepath"),
             "JliLaunchTest" + (Platform.isWindows() ? ".exe" : ""));
         System.out.println("Launcher = " + launcher + (Files.exists(launcher) ? " (exists)" : " (not exists)"));
@@ -54,7 +55,7 @@ public class JliLaunchTest {
         String pathEnvVar = Platform.sharedLibraryPathVariableName();
         env.compute(pathEnvVar, (k, v) -> (v == null) ? libdir : libdir + File.pathSeparator + v);
 
-        OutputAnalyzer outputf = new OutputAnalyzer(pb.start());
+        OutputAnalyzer outputf = ProcessTools.executeProcess(pb);
         outputf.shouldHaveExitValue(0);
 
         if (Platform.isOSX()) {
@@ -71,7 +72,7 @@ public class JliLaunchTest {
                 env = pb2.environment();
                 env.compute(pathEnvVar, (k, v) -> (v == null) ? macosDir : macosDir + File.pathSeparator + v);
 
-                OutputAnalyzer output2 = new OutputAnalyzer(pb2.start());
+                OutputAnalyzer output2 = ProcessTools.executeProcess(pb2);
                 output2.shouldHaveExitValue(0);
             } else {
                 System.out.println("Not a MacOS bundle distribution, not testing Contents/MacOS/libjli.dylib");

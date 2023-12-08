@@ -47,7 +47,7 @@ public class TestMultipleStartupRecordings {
     }
 
     private static void test(ProcessBuilder pb, String... expectedOutputs) throws Exception {
-        OutputAnalyzer output = new OutputAnalyzer(pb.start());
+        OutputAnalyzer output = ProcessTools.executeProcess(pb);
         for (String s : expectedOutputs) {
             output.shouldContain(s);
         }

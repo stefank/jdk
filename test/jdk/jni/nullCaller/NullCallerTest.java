@@ -47,6 +47,7 @@ import java.util.Properties;
 
 import jdk.test.lib.Platform;
 import jdk.test.lib.process.OutputAnalyzer;
+import jdk.test.lib.process.ProcessTools;
 import jdk.test.lib.compiler.CompilerUtils;
 
 public class NullCallerTest {
@@ -104,7 +105,7 @@ public class NullCallerTest {
         // launch the actual test
         System.out.println("Launching: " + launcher + " shared library path: " +
                 env.get(sharedLibraryPathEnvName));
-        new OutputAnalyzer(pb.start())
+        ProcessTools.executeProcess(pb)
                 .outputTo(System.out)
                 .errorTo(System.err)
                 .shouldHaveExitValue(0);

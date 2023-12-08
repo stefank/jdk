@@ -30,13 +30,13 @@
  * @run main/othervm TestEventWriterLog
  */
 
-import jdk.test.lib.process.ProcessTools;
 import jdk.test.lib.process.OutputAnalyzer;
+import jdk.test.lib.process.ProcessTools;
 
 public class TestEventWriterLog {
     public static void main(String[] args) throws Exception {
         ProcessBuilder pb = ProcessTools.createLimitedTestJavaProcessBuilder("-Xlog:jfr+system+bytecode=trace", "-XX:StartFlightRecording", "-version");
-        OutputAnalyzer output = new OutputAnalyzer(pb.start());
+        OutputAnalyzer output = ProcessTools.executeProcess(pb);
         output.shouldContain("superclass: jdk/jfr/events/AbstractJDKEvent");
     }
 }

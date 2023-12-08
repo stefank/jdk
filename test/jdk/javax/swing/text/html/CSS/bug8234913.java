@@ -56,7 +56,7 @@ public class bug8234913 {
     }
 
     static void checkFor(String... outputStrings) throws Exception {
-        OutputAnalyzer out = new OutputAnalyzer(pb.start());
+        OutputAnalyzer out = ProcessTools.executeProcess(pb);
         for (String s : outputStrings) {
             out.shouldContain(s);
         }
@@ -64,7 +64,7 @@ public class bug8234913 {
     }
 
     static void checkAbsent(String... outputStrings) throws Exception {
-        OutputAnalyzer out = new OutputAnalyzer(pb.start());
+        OutputAnalyzer out = ProcessTools.executeProcess(pb);
         for (String s : outputStrings) {
             out.shouldNotContain(s);
         }

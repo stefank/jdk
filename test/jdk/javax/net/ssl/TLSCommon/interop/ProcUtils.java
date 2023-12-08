@@ -116,13 +116,7 @@ public class ProcUtils {
      * Returns a OutputAnalyzer wrapping the process.
      */
     private static OutputAnalyzer getProcessOutput (Process process) throws IOException {
-        OutputAnalyzer oa = new OutputAnalyzer(process);
-        try {
-            process.waitFor();
-            return oa;
-        } catch (InterruptedException e) {
-            throw new RuntimeException("Process is interrupted!", e);
-        }
+        return ProcessTools.finishProcess(process);
     }
 
     /*

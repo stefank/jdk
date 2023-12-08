@@ -69,7 +69,7 @@ public class BasicTestLauncher {
      */
     @ParameterizedTest
     @ValueSource(strings = { "US/Pacific", "Asia/Novosibirsk" })
-    void testTimeZone(String timeZone) throws IOException{
+    void testTimeZone(String timeZone) throws Exception{
         System.out.printf("$$$ Testing against %s!%n", timeZone);
         OutputAnalyzer output = RunTest(timeZone);
         CheckTest(output);
@@ -80,12 +80,11 @@ public class BasicTestLauncher {
      * Creates and runs the testJVM process using Basic class
      * @param timeZone the time zone to be set in the testJVM environment
      */
-    private static OutputAnalyzer RunTest(String timeZone) throws IOException{
+    private static OutputAnalyzer RunTest(String timeZone) throws Exception{
         // Build and run Basic class with correct configuration
         ProcessBuilder pb = ProcessTools.createTestJavaProcessBuilder(JAVA_OPTS, TEST_CLASS);
         pb.environment().put("TZ", timeZone);
-        Process process = pb.start();
-        return new OutputAnalyzer(process);
+        return ProcessTools.executeProcess(pb);
     }
 
     /**
@@ -93,7 +92,7 @@ public class BasicTestLauncher {
      * @param output is an Output Analyzer for the testJVM
      * @throws RuntimeException for all testJVM failures
      */
-    private static void CheckTest(OutputAnalyzer output){
+    private static void CheckTest(OutputAnalyzer output) {
         output.shouldHaveExitValue(0)
                 .reportDiagnosticSummary();
     }

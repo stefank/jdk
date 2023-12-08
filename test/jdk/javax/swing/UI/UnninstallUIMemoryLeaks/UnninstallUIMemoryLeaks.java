@@ -99,8 +99,9 @@ public final class UnninstallUIMemoryLeaks {
                 }
             }
             for (Process task : tasks) {
-                new OutputAnalyzer(task).shouldHaveExitValue(0)
-                                        .stderrShouldBeEmpty();
+                ProcessTools.finishProcess(task)
+                    .shouldHaveExitValue(0)
+                    .stderrShouldBeEmpty();
             }
             return;
         }

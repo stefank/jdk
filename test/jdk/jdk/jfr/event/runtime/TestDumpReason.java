@@ -37,6 +37,7 @@ import jdk.jfr.consumer.RecordingFile;
 import jdk.test.lib.Asserts;
 import jdk.test.lib.jfr.EventNames;
 import jdk.test.lib.process.OutputAnalyzer;
+import jdk.test.lib.process.ProcessExecutor;
 import jdk.test.lib.process.ProcessTools;
 
 /**
@@ -89,15 +90,16 @@ public class TestDumpReason {
 
     private static long runProcess(Class<?> crasher) throws Exception {
         System.out.println("Test case for " + crasher.getName());
-        Process p = ProcessTools.createTestJavaProcessBuilder(
+        ProcessBuilder pb = ProcessTools.createTestJavaProcessBuilder(
                 "-Xmx64m",
                 "-XX:-CreateCoredumpOnCrash",
                 "--add-exports=java.base/jdk.internal.misc=ALL-UNNAMED",
                 crasher.getName(),
                 ""
-                ).start();
+                );
 
-        OutputAnalyzer output = new OutputAnalyzer(p);
+        ProcessExecutor p = new ProcessExecutor(pb);
+        OutputAnalyzer output = p.waitForOutputAnalyzer();
         System.out.println("========== Crasher process output:");
         System.out.println(output.getOutput());
         System.out.println("==================================");

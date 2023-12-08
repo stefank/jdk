@@ -55,7 +55,7 @@ public class TestBadOptionValues {
 
         for (String option : options) {
             pb = ProcessTools.createLimitedTestJavaProcessBuilder(prepend + option, "-version");
-            output = new OutputAnalyzer(pb.start());
+            output = ProcessTools.executeProcess(pb);
             output.shouldContain(expectedOutput);
         }
     }

@@ -110,6 +110,6 @@ public final class ScreenInsetsDPIVariation {
                 String.valueOf(insets.bottom), dpi);
         Process worker = ProcessTools.startProcess("Worker", pb, null, 20,
                 TimeUnit.SECONDS);
-        new OutputAnalyzer(worker).shouldHaveExitValue(0);
+        ProcessTools.finishProcess(worker).shouldHaveExitValue(0);
     }
 }

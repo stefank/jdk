@@ -41,6 +41,10 @@ public class StreamTask {
         this.future = new StreamPumper(stream, buffer).process();
     }
 
+    public StreamTask(InputStream stream) {
+        this(stream, null /* cs */);
+    }
+
     public String get() {
         try {
             future.get();

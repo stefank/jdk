@@ -220,9 +220,7 @@ public class JMXInterfaceBindingTest {
             try {
                 ProcessBuilder builder = ProcessTools.createTestJavaProcessBuilder(args.toArray(new String[]{}));
                 System.out.println(ProcessTools.getCommandLine(builder));
-                Process process = builder.start();
-                output = new OutputAnalyzer(process);
-                return process;
+                return builder.start();
             } catch (Exception e) {
                 throw new RuntimeException("Test failed", e);
             }
@@ -232,9 +230,17 @@ public class JMXInterfaceBindingTest {
         private boolean runTest() {
             testFailed = true;
             Process process = createTestProcess();
+
+            StreamTask stdoutTask = new StreamTask(process.getInputStream());
+            StreamTask stderrTask = new StreamTask(process.getErrorStream());
+
+            stdoutTask.start();
+            stderrTask.start();
+
             try {
                 sendMessageToProcess(process, "Exit: " + STOP_PROCESS_EXIT_VAL);
                 process.waitFor();
+                output = new OutputAnalyzer(stdoutTask.get(), stderrTask.get(), process.exitValue());
             } catch (Throwable e) {
                 System.err.println("Failed to stop process: " + name);
                 throw new RuntimeException("Test failed", e);

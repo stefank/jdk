@@ -52,6 +52,7 @@ import java.util.List;
 
 import jdk.test.lib.JDKToolFinder;
 import jdk.test.lib.process.OutputAnalyzer;
+import jdk.test.lib.process.ProcessTools;
 
 public class AcceptCauseFileDescriptorLeak {
     private static final int REPS = 2048;
@@ -82,6 +83,7 @@ public class AcceptCauseFileDescriptorLeak {
                     }
                     return;
                 }
+                throw new RuntimeException("Unexpected patch taken");
             }
         }
 
@@ -97,9 +99,13 @@ public class AcceptCauseFileDescriptorLeak {
         ss.bind(new InetSocketAddress(InetAddress.getLoopbackAddress(), 0));
         Thread t = new Thread(new Runnable() {
             public void run() {
+                System.err.println("Starting new sockets");
                 int repsCompleted = 0;
                 try {
                     for (; repsCompleted < REPS; repsCompleted++) {
+                        if (repsCompleted % 2 == 0) {
+                          System.err.println("Starting new socket: " + repsCompleted);
+                        }
                         (new Socket(InetAddress.getLoopbackAddress(), ss.getLocalPort())).close();
                     }
                 } catch (IOException e) {
@@ -111,8 +117,10 @@ public class AcceptCauseFileDescriptorLeak {
         });
         t.start();
         int repsCompleted = 0;
+        System.err.println("Starting accepting sockets");
         try {
             for (; repsCompleted < REPS; repsCompleted++) {
+                System.err.println("Starting accept socket: " + repsCompleted);
                 ss.accept().close();
             }
         } finally {
@@ -129,11 +137,11 @@ public class AcceptCauseFileDescriptorLeak {
      * @return OutputAnalyzer
      * @throws IOException
      */
-    static OutputAnalyzer execCmd(String command) throws IOException {
+    static OutputAnalyzer execCmd(String command) throws Exception {
         List<String> cmd = List.of("sh", "-c", command);
         System.out.println("Executing: " + cmd);
         ProcessBuilder pb = new ProcessBuilder(cmd);
-        return new OutputAnalyzer(pb.start());
+        return ProcessTools.executeProcess(pb);
     }
 
     static String composeJavaTestStr() {
@@ -141,4 +149,3 @@ public class AcceptCauseFileDescriptorLeak {
                 + AcceptCauseFileDescriptorLeak.class.getName();
     }
 }
-

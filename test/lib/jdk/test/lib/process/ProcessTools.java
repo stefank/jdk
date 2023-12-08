@@ -367,6 +367,11 @@ public final class ProcessTools {
         return startProcess(name, processBuilder, linePredicate, 0, TimeUnit.SECONDS);
     }
 
+    public static OutputAnalyzer finishProcess(Process process) throws IOException {
+        ProcessExecutor executor = new ProcessExecutor(process);
+        return executor.waitForOutputAnalyzer();
+    }
+
     /**
      * Get the process id of the current running Java process
      *

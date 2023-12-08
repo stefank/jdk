@@ -35,6 +35,7 @@ import java.util.Map;
 import jdk.test.lib.Platform;
 import jdk.test.lib.Utils;
 import jdk.test.lib.process.OutputAnalyzer;
+import jdk.test.lib.process.ProcessTools;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -42,15 +43,14 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 
 public class JniInvocationTest {
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) throws Exception {
         Path launcher = Paths.get(System.getProperty("test.nativepath"), "JniInvocationTest");
         System.out.println("Launcher = " + launcher + (Files.exists(launcher) ? " (exists)" : " (not exists)"));
         ProcessBuilder pb = new ProcessBuilder(launcher.toString());
         Map<String, String> env = pb.environment();
         String libdir = Paths.get(Utils.TEST_JDK).resolve("lib").toAbsolutePath().toString();
         env.compute(Platform.sharedLibraryPathVariableName(), (k, v) -> (k == null) ? libdir : v + ":" + libdir);
-        OutputAnalyzer outputf = new OutputAnalyzer(pb.start());
+        OutputAnalyzer outputf = ProcessTools.executeProcess(pb);
         outputf.shouldHaveExitValue(0);
     }
 }
-
