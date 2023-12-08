@@ -161,9 +161,8 @@ public class ProcessThread extends TestThread {
             }
 
             try {
-                output = new OutputAnalyzer(this.process);
                 // Will block...
-                this.process.waitFor();
+                output = ProcessTools.finishProcess(this.process);
             } catch (Throwable t) {
                 System.out.println(String.format("ProcessThread[%s] failed: %s", name, t.toString()));
                 throw t;

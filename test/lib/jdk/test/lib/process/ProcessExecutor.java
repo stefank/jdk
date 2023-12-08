@@ -292,4 +292,8 @@ public class ProcessExecutor {
         waitFor();
         return getOutputAnalyzer();
     }
+
+    public String sneakReadOutputForLingeredApp() {
+        return outTask.sneakReadOutputForLingeredApp();
+    }
 }

@@ -39,6 +39,7 @@ import sun.security.x509.X500Name;
 import jdk.test.lib.JDKToolFinder;
 import jdk.test.lib.SecurityTools;
 import jdk.test.lib.process.OutputAnalyzer;
+import jdk.test.lib.process.ProcessTools;
 
 // Certificates taken from old ValWithAnchorByName testcase ***
 public enum TestCertificate {
@@ -202,10 +203,8 @@ public enum TestCertificate {
     }
 
     private static OutputAnalyzer jfrTool(String jfrFile) throws Exception {
-        ProcessBuilder pb = new ProcessBuilder();
-        pb.command(new String[] { JDKToolFinder.getJDKTool("jfr"), "print", "--events",
-                "jdk.X509Certificate", jfrFile});
-        return new OutputAnalyzer(pb.start());
+        return ProcessTools.executeProcess(JDKToolFinder.getJDKTool("jfr"), "print", "--events",
+                "jdk.X509Certificate", jfrFile);
     }
 
     public static void generateChain(boolean selfSignedTest, boolean trustAnchorCert) throws Exception {

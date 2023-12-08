@@ -174,6 +174,14 @@ public class LingeredApp {
         return output;
     }
 
+    public String sneakReadOutput() {
+        if (processExecutor == null) {
+            return null;
+        }
+
+        return processExecutor.sneakReadOutputForLingeredApp();
+    }
+
     /* Make sure all part of the app use the same method to get dates,
      as different methods could produce different results
      */

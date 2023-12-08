@@ -718,9 +718,11 @@ public final class ProcessTools {
             executor = new ProcessExecutor(pb, input, cs);
             executor.waitFor();
 
+            OutputAnalyzer output = executor.getOutputAnalyzer();
+
             {   // Dumping the process output to a separate file
                 String fileName = String.format("pid-%d-output.log", executor.pid());
-                String processOutput = getProcessLog(pb, executor);
+                String processOutput = getProcessLog(pb, output);
                 AccessController.doPrivileged((PrivilegedExceptionAction<Void>) () -> {
                     Files.writeString(Path.of(fileName), processOutput);
                     return null;
@@ -730,7 +732,7 @@ public final class ProcessTools {
                                 "was saved into '%s'%n", executor.pid(), fileName);
             }
 
-            return executor.getOutputAnalyzer();
+            return output;
         } catch (Throwable t) {
             if (executor != null) {
                 executor.destroyForcibly();
@@ -742,7 +744,7 @@ public final class ProcessTools {
             throw new Exception(t);
         } finally {
             if (failed) {
-                System.err.println(getProcessLog(pb, executor));
+                System.err.println(getProcessLog(pb, executor.getOutputAnalyzer()));
             }
         }
     }
@@ -777,15 +779,10 @@ public final class ProcessTools {
      * @param pb     The executed process.
      * @param output The output from the process.
      */
-    public static String getProcessLog(ProcessBuilder pb, ProcessExecutor executor) {
-        // Make sure all output from running the process is available.
-        if (executor != null) {
-            executor.waitFor();
-        }
-
-        String stderr = executor == null ? "null" : executor.getStderr();
-        String stdout = executor == null ? "null" : executor.getStdout();
-        String exitValue = executor == null ? "null" : Integer.toString(executor.getExitValue());
+    public static String getProcessLog(ProcessBuilder pb, OutputAnalyzer output) {
+        String stderr = output == null ? "null" : output.getStderr();
+        String stdout = output == null ? "null" : output.getStdout();
+        String exitValue = output == null ? "null" : Integer.toString(output.getExitValue());
         return String.format("--- ProcessLog ---%n" +
                              "cmd: %s%n" +
                              "exitvalue: %s%n" +

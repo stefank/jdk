@@ -56,4 +56,8 @@ public class StreamTask {
             throw new RuntimeException(e);
         }
     }
+
+    public String sneakReadOutputForLingeredApp() {
+        return buffer.toString();
+    }
 }

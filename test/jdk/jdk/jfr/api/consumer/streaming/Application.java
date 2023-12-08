@@ -37,6 +37,7 @@ import com.sun.tools.attach.VirtualMachineDescriptor;
 import jdk.jfr.Event;
 import jdk.jfr.Name;
 import jdk.test.lib.process.OutputAnalyzer;
+import jdk.test.lib.process.ProcessExecutor;
 import jdk.test.lib.process.ProcessTools;
 
 public class Application {
@@ -127,13 +128,12 @@ public class Application {
         long t = System.currentTimeMillis();
         while (true) {
             if (!process.isAlive()) {
-                String std = new String(process.getInputStream().readAllBytes());
+                OutputAnalyzer output = process.waitForOutputAnalyzer();
                 System.out.println("========= Application: " + id + " Process std out ==========");
-                System.out.println(std);
+                System.out.println(output.getStdout());
                 System.out.println("====================================================");
-                String err = new String(process.getInputStream().readAllBytes());
                 System.out.println("========= Application: " + id + " Process std err ==========");
-                System.out.println(err);
+                System.out.println(output.getStderr());
                 System.out.println("====================================================");
                 throw new IOException("Application process not alive!");
             }

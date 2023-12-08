@@ -78,7 +78,7 @@ public class JdwpAllowTest {
         long maxWaitTime = System.currentTimeMillis()
                 + Utils.adjustTimeout(10000);  // 10 seconds adjusted for TIMEOUT_FACTOR
         while (true) {
-            String s = app.getProcessStdout();
+            String s = app.sneakReadOutput();
             JDWP.ListenAddress addr = JDWP.parseListenAddress(s);
             if (addr != null) {
                 return Integer.parseInt(addr.address());
