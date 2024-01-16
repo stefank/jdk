@@ -609,16 +609,23 @@ void ZStatPhase::log_start(LogTargetHandle log, bool thread) const {
   }
 }
 
-void ZStatPhase::log_end(LogTargetHandle log, const Tickspan& duration, bool thread) const {
+void ZStatPhase::log_end(LogTargetHandle log, const Tickspan& duration, bool thread, ZStatPhaseContext* context) const {
   if (!log.is_enabled()) {
     return;
   }
 
   if (thread) {
     ResourceMark rm;
-    log.print("%s (%s) %.3fms", name(), Thread::current()->name(), TimeHelper::counter_to_millis(duration.value()));
+    log.print("%s %s(%s) %.3fms",
+        name(),
+        context == nullptr ? "" : context->description(),
+        Thread::current()->name(),
+        TimeHelper::counter_to_millis(duration.value()));
   } else {
-    log.print("%s %.3fms", name(), TimeHelper::counter_to_millis(duration.value()));
+    log.print("%s %s%.3fms",
+        name(),
+        context == nullptr ? "" : context->description(),
+        TimeHelper::counter_to_millis(duration.value()));
   }
 }
 
@@ -858,7 +865,7 @@ void ZStatCriticalPhase::register_start(ConcurrentGCTimer* timer, const Ticks& s
   // really log anything useful here.
 }
 
-void ZStatCriticalPhase::register_end(ConcurrentGCTimer* timer, const Ticks& start, const Ticks& end) const {
+void ZStatCriticalPhase::register_end_with_context(ConcurrentGCTimer* timer, const Ticks& start, const Ticks& end, ZStatPhaseContext* context) const {
   ZTracer::report_thread_phase(name(), start, end);
 
   const Tickspan duration = end - start;
@@ -867,10 +874,10 @@ void ZStatCriticalPhase::register_end(ConcurrentGCTimer* timer, const Ticks& sta
 
   if (_verbose) {
     LogTarget(Info, gc) log;
-    log_end(log, duration, true /* thread */);
+    log_end(log, duration, true /* thread */, context);
   } else {
     LogTarget(Debug, gc) log;
-    log_end(log, duration, true /* thread */);
+    log_end(log, duration, true /* thread */, context);
   }
 }
 

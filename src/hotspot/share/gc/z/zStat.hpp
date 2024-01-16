@@ -206,6 +206,30 @@ public:
   static void print();
 };
 
+struct ZStatPhaseContext {
+  virtual const char* description() = 0;
+};
+
+class ZStatPhaseSizeContext : public ZStatPhaseContext {
+private:
+  static constexpr size_t BufferSize = 64;
+
+  char buffer[BufferSize];
+  const size_t _size;
+
+public:
+  ZStatPhaseSizeContext(size_t size)
+    : _size(size) {}
+
+  const char* description() {
+    stringStream ss(buffer, BufferSize);
+    ss.print("%zu%s ", byte_size_in_exact_unit(_size), exact_unit_for_byte_size(_size));
+    // Borrow the buffer!
+    return ss.base();
+  }
+};
+
+
 //
 // Stat phases
 //
@@ -216,13 +240,16 @@ protected:
   ZStatPhase(const char* group, const char* name);
 
   void log_start(LogTargetHandle log, bool thread = false) const;
-  void log_end(LogTargetHandle log, const Tickspan& duration, bool thread = false) const;
+  void log_end(LogTargetHandle log, const Tickspan& duration, bool thread = false, ZStatPhaseContext* context = nullptr) const;
 
 public:
   const char* name() const;
 
   virtual void register_start(ConcurrentGCTimer* timer, const Ticks& start) const = 0;
   virtual void register_end(ConcurrentGCTimer* timer, const Ticks& start, const Ticks& end) const = 0;
+  virtual void register_end_with_context(ConcurrentGCTimer* timer, const Ticks& start, const Ticks& end, ZStatPhaseContext* context) const {
+    register_end(timer, start, end);
+  }
 };
 
 class ZStatPhaseCollection : public ZStatPhase {
@@ -292,7 +319,10 @@ public:
   ZStatCriticalPhase(const char* name, bool verbose = true);
 
   virtual void register_start(ConcurrentGCTimer* timer, const Ticks& start) const;
-  virtual void register_end(ConcurrentGCTimer* timer, const Ticks& start, const Ticks& end) const;
+  virtual void register_end(ConcurrentGCTimer* timer, const Ticks& start, const Ticks& end) const {
+    register_end_with_context(timer, start, end, nullptr /* context */);
+  }
+  virtual void register_end_with_context(ConcurrentGCTimer* timer, const Ticks& start, const Ticks& end, ZStatPhaseContext* context) const;
 };
 
 //
@@ -303,12 +333,14 @@ private:
   ConcurrentGCTimer* const _gc_timer;
   const ZStatPhase&        _phase;
   const Ticks              _start;
+  ZStatPhaseContext* const _context;
 
 public:
-  ZStatTimer(const ZStatPhase& phase, ConcurrentGCTimer* gc_timer)
+  ZStatTimer(const ZStatPhase& phase, ConcurrentGCTimer* gc_timer, ZStatPhaseContext* context = nullptr)
     : _gc_timer(gc_timer),
       _phase(phase),
-      _start(Ticks::now()) {
+      _start(Ticks::now()),
+      _context(context) {
     _phase.register_start(_gc_timer, _start);
   }
 
@@ -316,13 +348,13 @@ public:
     : ZStatTimer(phase, nullptr /* timer */) {
   }
 
-  ZStatTimer(const ZStatCriticalPhase& phase)
-    : ZStatTimer(phase, nullptr /* timer */) {
+  ZStatTimer(const ZStatCriticalPhase& phase, ZStatPhaseContext* context = nullptr)
+    : ZStatTimer(phase, nullptr /* timer */, context) {
   }
 
   ~ZStatTimer() {
     const Ticks end = Ticks::now();
-    _phase.register_end(_gc_timer, _start, end);
+    _phase.register_end_with_context(_gc_timer, _start, end, _context);
   }
 };
 

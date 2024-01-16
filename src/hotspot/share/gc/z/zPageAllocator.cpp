@@ -519,7 +519,8 @@ static void check_out_of_memory_during_initialization() {
 }
 
 bool ZPageAllocator::alloc_page_stall(ZPageAllocation* allocation) {
-  ZStatTimer timer(ZCriticalPhaseAllocationStall);
+  ZStatPhaseSizeContext context(allocation->size());
+  ZStatTimer timer(ZCriticalPhaseAllocationStall, &context);
   EventZAllocationStall event;
 
   // We can only block if the VM is fully initialized
