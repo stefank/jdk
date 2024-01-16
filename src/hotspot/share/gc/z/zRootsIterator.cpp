@@ -55,26 +55,13 @@ static const ZRootStatSubPhase ZSubPhaseConcurrentRootsJavaThreads("Concurrent R
 static const ZRootStatSubPhase ZSubPhaseConcurrentRootsCodeCache("Concurrent Roots CodeCache");
 static const ZRootStatSubPhase ZSubPhaseConcurrentWeakRootsOopStorageSet("Concurrent Weak Roots OopStorageSet");
 
-class ZRootStatTimer {
+class ZRootStatTimer : public ZStatTimerSubPhase {
 private:
-  const ZStatPhase*  _phase;
-  const Ticks        _start;
 
-  ZRootStatTimer(const ZStatPhase* phase)
-    : _phase(phase),
-      _start(Ticks::now()) {
-    if (phase != nullptr) {
-      _phase->register_start(nullptr /* timer */, _start);
-    }
-  }
+  ZRootStatTimer(const ZStatSubPhase* phase)
+    : ZStatTimerSubPhase(phase, nullptr /* gc_timer */) {}
 
 public:
-  ~ZRootStatTimer() {
-    if (_phase != nullptr) {
-      const Ticks end = Ticks::now();
-      _phase->register_end(nullptr /* timer */, _start, end);
-    }
-  }
 
   static const ZStatSubPhase* calculate_subphase(const ZGenerationIdOptional generation, const ZRootStatSubPhase& subphase) {
     switch (generation) {

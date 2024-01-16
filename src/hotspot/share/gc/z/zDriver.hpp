@@ -54,6 +54,7 @@ private:
   static ZDriverMinor* _minor;
   static ZDriverMajor* _major;
 
+  size_t         _used_at_start;
   GCCause::Cause _gc_cause;
 
   static void lock();
@@ -70,8 +71,13 @@ public:
 
   ZDriver();
 
+  void set_used_at_start(size_t used);
+  size_t used_at_start() const;
+
   void set_gc_cause(GCCause::Cause cause);
   GCCause::Cause gc_cause();
+
+  virtual GCTracer* jfr_tracer() = 0;
 };
 
 class ZDriverMinor : public ZDriver {
@@ -79,7 +85,6 @@ private:
   ZDriverPort       _port;
   ConcurrentGCTimer _gc_timer;
   ZMinorTracer      _jfr_tracer;
-  size_t            _used_at_start;
 
   void gc(const ZDriverRequest& request);
   void handle_alloc_stalls() const;
@@ -95,10 +100,7 @@ public:
 
   void collect(const ZDriverRequest& request);
 
-  GCTracer* jfr_tracer();
-
-  void set_used_at_start(size_t used);
-  size_t used_at_start() const;
+  virtual GCTracer* jfr_tracer() final;
 };
 
 class ZDriverMajor : public ZDriver {
@@ -106,7 +108,6 @@ private:
   ZDriverPort       _port;
   ConcurrentGCTimer _gc_timer;
   ZMajorTracer      _jfr_tracer;
-  size_t            _used_at_start;
 
   void collect_young(const ZDriverRequest& request);
 
@@ -125,10 +126,7 @@ public:
 
   void collect(const ZDriverRequest& request);
 
-  GCTracer* jfr_tracer();
-
-  void set_used_at_start(size_t used);
-  size_t used_at_start() const;
+  virtual GCTracer* jfr_tracer() final;
 };
 
 class ZDriverLocker : public StackObj {

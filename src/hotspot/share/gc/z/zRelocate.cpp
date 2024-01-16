@@ -159,7 +159,7 @@ void ZRelocateQueue::leave() {
 }
 
 void ZRelocateQueue::add_and_wait(ZForwarding* forwarding) {
-  ZStatTimer timer(ZCriticalPhaseRelocationStall);
+  ZStatTimerStall timer(ZCriticalPhaseRelocationStall, forwarding->size());
   ZLocker<ZConditionLock> locker(&_lock);
 
   if (forwarding->is_done()) {
@@ -1207,7 +1207,7 @@ static void remap_and_maybe_add_remset(volatile zpointer* p) {
 
 class ZRelocateAddRemsetForFlipPromoted : public ZRestartableTask {
 private:
-  ZStatTimerYoung                _timer;
+  ZStatTimerSubPhase             _timer;
   ZArrayParallelIterator<ZPage*> _iter;
 
 public:

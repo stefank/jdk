@@ -45,7 +45,7 @@
 //   will be blocked.
 //
 
-static const ZStatCriticalPhase ZCriticalPhaseJNICriticalStall("JNI Critical Stall", false /* verbose */);
+static const ZStatCriticalPhase ZCriticalPhaseJNICriticalStall("JNI Critical Stall");
 
 volatile int64_t ZJNICritical::_count;
 ZConditionLock*  ZJNICritical::_lock;
@@ -107,7 +107,7 @@ void ZJNICritical::enter_inner(JavaThread* thread) {
 
     if (count < 0) {
       // Wait until unblocked
-      ZStatTimer timer(ZCriticalPhaseJNICriticalStall);
+      ZStatTimerCritical timer(ZCriticalPhaseJNICriticalStall);
 
       // Transition thread to blocked before locking to avoid deadlock
       ThreadBlockInVM tbivm(thread);

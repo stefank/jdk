@@ -438,7 +438,7 @@ public:
 };
 
 void ZReferenceProcessor::process_references() {
-  ZStatTimerOld timer(ZSubPhaseConcurrentReferencesProcess);
+  ZStatTimerSubPhase timer(ZSubPhaseConcurrentReferencesProcess);
 
   if (_clear_all_soft_refs) {
     log_info(gc, ref)("Clearing All SoftReferences");
@@ -485,7 +485,7 @@ zaddress ZReferenceProcessor::swap_pending_list(zaddress pending_list) {
 }
 
 void ZReferenceProcessor::enqueue_references() {
-  ZStatTimerOld timer(ZSubPhaseConcurrentReferencesEnqueue);
+  ZStatTimerSubPhase timer(ZSubPhaseConcurrentReferencesEnqueue);
 
   if (is_null(_pending_list.get())) {
     // Nothing to enqueue

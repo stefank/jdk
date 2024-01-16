@@ -596,131 +596,196 @@ void ZStatMMU::print() {
 ZStatPhase::ZStatPhase(const char* group, const char* name)
   : _sampler(group, name, ZStatUnitTime) {}
 
-void ZStatPhase::log_start(LogTargetHandle log, bool thread) const {
-  if (!log.is_enabled()) {
-    return;
-  }
-
-  if (thread) {
-    ResourceMark rm;
-    log.print("%s (%s)", name(), Thread::current()->name());
-  } else {
-    log.print("%s", name());
-  }
-}
-
-void ZStatPhase::log_end(LogTargetHandle log, const Tickspan& duration, bool thread) const {
-  if (!log.is_enabled()) {
-    return;
-  }
-
-  if (thread) {
-    ResourceMark rm;
-    log.print("%s (%s) %.3fms", name(), Thread::current()->name(), TimeHelper::counter_to_millis(duration.value()));
-  } else {
-    log.print("%s %.3fms", name(), TimeHelper::counter_to_millis(duration.value()));
-  }
-}
-
 const char* ZStatPhase::name() const {
   return _sampler.name();
+}
+
+void ZStatPhase::sample(uint64_t value) const {
+  ZStatSample(_sampler, value);
 }
 
 ZStatPhaseCollection::ZStatPhaseCollection(const char* name, bool minor)
   : ZStatPhase(minor ? "Minor Collection" : "Major Collection", name),
     _minor(minor) {}
 
-GCTracer* ZStatPhaseCollection::jfr_tracer() const {
-  return _minor
-      ? ZDriver::minor()->jfr_tracer()
-      : ZDriver::major()->jfr_tracer();
+bool ZStatPhaseCollection::minor() const {
+  return _minor;
 }
 
-void ZStatPhaseCollection::set_used_at_start(size_t used) const {
-  if (_minor) {
-    ZDriver::minor()->set_used_at_start(used);
-  } else {
-    ZDriver::major()->set_used_at_start(used);
+ZStatPhaseWithGeneration::ZStatPhaseWithGeneration(const char* group, const char* name, ZGenerationId id)
+  : ZStatPhase(group, name),
+    _generation_id(id) {}
+
+ZGenerationId ZStatPhaseWithGeneration::generation_id() const {
+  return _generation_id;
+}
+
+ZStatPhaseGeneration::ZStatPhaseGeneration(const char* name, ZGenerationId id)
+  : ZStatPhaseWithGeneration( id == ZGenerationId::old ? "Old Generation" : "Young Generation", name, id) {}
+
+Tickspan ZStatPhasePause::_max;
+
+ZStatPhasePause::ZStatPhasePause(const char* name, ZGenerationId id)
+  : ZStatPhaseWithGeneration(id == ZGenerationId::young ? "Young Pause" : "Old Pause", name, id) {}
+
+const Tickspan& ZStatPhasePause::max() {
+  return _max;
+}
+
+void ZStatPhasePause::register_pause(const Tickspan& duration) {
+  if (_max < duration) {
+    _max = duration;
   }
 }
 
-size_t ZStatPhaseCollection::used_at_start() const {
-  return _minor
-      ? ZDriver::minor()->used_at_start()
-      : ZDriver::major()->used_at_start();
+ZStatPhaseConcurrent::ZStatPhaseConcurrent(const char* name, ZGenerationId id)
+  : ZStatPhaseWithGeneration(id == ZGenerationId::young ? "Young Phase" : "Old Phase", name, id) {}
+
+ZStatSubPhase::ZStatSubPhase(const char* name, ZGenerationId id)
+  : ZStatPhaseWithGeneration(id == ZGenerationId::young ? "Young Subphase" : "Old Subphase", name, id) {}
+
+ZStatCriticalPhase::ZStatCriticalPhase(const char* name)
+  : ZStatPhase("Critical", name),
+    _counter("Critical", name, ZStatUnitOpsPerSecond) {}
+
+void ZStatCriticalPhase::critical_sample(uint64_t value) const {
+  sample(value);
+  ZStatInc(_counter);
 }
 
-void ZStatPhaseCollection::register_start(ConcurrentGCTimer* timer, const Ticks& start) const {
-  const GCCause::Cause cause = _minor ? ZDriver::minor()->gc_cause() : ZDriver::major()->gc_cause();
+void ZStatTimer::log_start(LogTargetHandle log, bool thread) const {
+  if (!log.is_enabled()) {
+    return;
+  }
 
-  timer->register_gc_start(start);
+  if (thread) {
+    ResourceMark rm;
+    log.print("%s (%s)", _phase->name(), Thread::current()->name());
+  } else {
+    log.print("%s", _phase->name());
+  }
+}
 
-  jfr_tracer()->report_gc_start(cause, start);
+void ZStatTimer::log_end(LogTargetHandle log, const Tickspan& duration, bool thread, ZStatPhaseContext* context) const {
+  if (!log.is_enabled()) {
+    return;
+  }
+
+  if (thread) {
+    ResourceMark rm;
+    log.print("%s %s(%s) %.3fms",
+        _phase->name(),
+        context == nullptr ? "" : context->description(),
+        Thread::current()->name(),
+        TimeHelper::counter_to_millis(duration.value()));
+  } else {
+    log.print("%s %s%.3fms",
+        _phase->name(),
+        context == nullptr ? "" : context->description(),
+        TimeHelper::counter_to_millis(duration.value()));
+  }
+}
+
+ZStatTimerCollection::ZStatTimerCollection(const ZStatPhaseCollection& phase, ConcurrentGCTimer* gc_timer)
+  : ZStatTimer(&phase, gc_timer) {
+  const GCCause::Cause cause = gc_cause();
+
+  _gc_timer->register_gc_start(_start);
+
+  jfr_tracer()->report_gc_start(cause, _start);
   ZCollectedHeap::heap()->trace_heap_before_gc(jfr_tracer());
 
   set_used_at_start(ZHeap::heap()->used());
 
-  log_info(gc)("%s (%s)", name(), GCCause::to_string(cause));
+  log_info(gc)("%s (%s)", _phase->name(), GCCause::to_string(cause));
 }
 
-void ZStatPhaseCollection::register_end(ConcurrentGCTimer* timer, const Ticks& start, const Ticks& end) const {
-  const GCCause::Cause cause = _minor ? ZDriver::minor()->gc_cause() : ZDriver::major()->gc_cause();
+ZStatTimerCollection::~ZStatTimerCollection(){
+  const GCCause::Cause cause = gc_cause();
 
   if (ZAbort::should_abort()) {
-    log_info(gc)("%s (%s) Aborted", name(), GCCause::to_string(cause));
+    log_info(gc)("%s (%s) Aborted", _phase->name(), GCCause::to_string(cause));
     return;
   }
 
-  timer->register_gc_end(end);
+  const Ticks end = Ticks::now();
+  const Tickspan duration = end - _start;
 
-  jfr_tracer()->report_gc_end(end, timer->time_partitions());
+  _gc_timer->register_gc_end(end);
+
+  jfr_tracer()->report_gc_end(end, _gc_timer->time_partitions());
   ZCollectedHeap::heap()->trace_heap_after_gc(jfr_tracer());
 
-  const Tickspan duration = end - start;
-  ZStatSample(_sampler, duration.value());
+  _phase->sample(duration.value());
 
   const size_t used_at_end = ZHeap::heap()->used();
 
   log_info(gc)("%s (%s) " ZSIZE_FMT "->" ZSIZE_FMT " %.3fs",
-               name(),
+               _phase->name(),
                GCCause::to_string(cause),
                ZSIZE_ARGS(used_at_start()),
                ZSIZE_ARGS(used_at_end),
                duration.seconds());
 }
 
-ZStatPhaseGeneration::ZStatPhaseGeneration(const char* name, ZGenerationId id)
-  : ZStatPhase(id == ZGenerationId::old ? "Old Generation" : "Young Generation", name),
-    _id(id) {}
-
-ZGenerationTracer* ZStatPhaseGeneration::jfr_tracer() const {
-  return _id == ZGenerationId::young
-      ? ZGeneration::young()->jfr_tracer()
-      : ZGeneration::old()->jfr_tracer();
+bool ZStatTimerCollection::minor() const {
+  return static_cast<const ZStatPhaseCollection*>(_phase)->minor();
 }
 
-void ZStatPhaseGeneration::register_start(ConcurrentGCTimer* timer, const Ticks& start) const {
+ZDriver* ZStatTimerCollection::driver() const {
+  return minor()
+      ? static_cast<ZDriver*>(ZDriver::minor())
+      : static_cast<ZDriver*>(ZDriver::major());
+}
+
+GCCause::Cause ZStatTimerCollection::gc_cause() const {
+  return driver()->gc_cause();
+}
+
+GCTracer* ZStatTimerCollection::jfr_tracer() const {
+  return driver()->jfr_tracer();
+}
+
+void ZStatTimerCollection::set_used_at_start(size_t used) const {
+   driver()->set_used_at_start(used);
+}
+
+size_t ZStatTimerCollection::used_at_start() const {
+  return driver()->used_at_start();
+}
+
+ZStatTimerWithGeneration::ZStatTimerWithGeneration(const ZStatPhaseWithGeneration* phase, ConcurrentGCTimer* gc_timer)
+  : ZStatTimer(phase, gc_timer) {}
+
+ZGenerationId ZStatTimerWithGeneration::generation_id() const {
+  return static_cast<const ZStatPhaseWithGeneration*>(_phase)->generation_id();
+}
+
+ZStatTimerGeneration::ZStatTimerGeneration(const ZStatPhaseGeneration& phase, ConcurrentGCTimer* gc_timer)
+  : ZStatTimerWithGeneration(&phase, gc_timer) {
   ZCollectedHeap::heap()->print_heap_before_gc();
 
-  jfr_tracer()->report_start(start);
+  jfr_tracer()->report_start(_start);
 
-  log_info(gc, phases)("%s", name());
+  log_info(gc, phases)("%s", _phase->name());
 }
 
-void ZStatPhaseGeneration::register_end(ConcurrentGCTimer* timer, const Ticks& start, const Ticks& end) const {
+ZStatTimerGeneration::~ZStatTimerGeneration() {
   if (ZAbort::should_abort()) {
-    log_info(gc, phases)("%s Aborted", name());
+    log_info(gc, phases)("%s Aborted", _phase->name());
     return;
   }
+
+  const Ticks end = Ticks::now();
+  const Tickspan duration = end - _start;
 
   jfr_tracer()->report_end(end);
 
   ZCollectedHeap::heap()->print_heap_after_gc();
 
-  const Tickspan duration = end - start;
-  ZStatSample(_sampler, duration.value());
+  _phase->sample(duration.value());
 
-  ZGeneration* const generation = ZGeneration::generation(_id);
+  ZGeneration* const generation = ZGeneration::generation(generation_id());
 
   generation->stat_heap()->print_stalls();
   ZStatLoad::print();
@@ -740,77 +805,84 @@ void ZStatPhaseGeneration::register_end(ConcurrentGCTimer* timer, const Ticks& s
   generation->stat_heap()->print(generation);
 
   log_info(gc, phases)("%s " ZSIZE_FMT "->" ZSIZE_FMT " %.3fs",
-                       name(),
+                       _phase->name(),
                        ZSIZE_ARGS(generation->stat_heap()->used_at_collection_start()),
                        ZSIZE_ARGS(generation->stat_heap()->used_at_collection_end()),
                        duration.seconds());
 }
 
-Tickspan ZStatPhasePause::_max;
-
-ZStatPhasePause::ZStatPhasePause(const char* name, ZGenerationId id)
-  : ZStatPhase(id == ZGenerationId::young ? "Young Pause" : "Old Pause", name) {}
-
-const Tickspan& ZStatPhasePause::max() {
-  return _max;
+ZGenerationTracer* ZStatTimerGeneration::jfr_tracer() const {
+  return generation_id() == ZGenerationId::young
+      ? ZGeneration::young()->jfr_tracer()
+      : ZGeneration::old()->jfr_tracer();
 }
 
-void ZStatPhasePause::register_start(ConcurrentGCTimer* timer, const Ticks& start) const {
-  timer->register_gc_pause_start(name(), start);
+ZStatTimerPause::ZStatTimerPause(const ZStatPhasePause& phase, ConcurrentGCTimer* gc_timer)
+  : ZStatTimerWithGeneration(&phase, gc_timer) {
+  _gc_timer->register_gc_pause_start(_phase->name(), _start);
 
   LogTarget(Debug, gc, phases, start) log;
   log_start(log);
 }
 
-void ZStatPhasePause::register_end(ConcurrentGCTimer* timer, const Ticks& start, const Ticks& end) const {
-  timer->register_gc_pause_end(end);
+ZStatTimerPause::ZStatTimerPause(const ZStatPhasePause& phase)
+  : ZStatTimerPause(phase, ZGeneration::generation(phase.generation_id())->gc_timer()) {}
 
-  const Tickspan duration = end - start;
-  ZStatSample(_sampler, duration.value());
+ZStatTimerPause::~ZStatTimerPause() {
+  const Ticks end = Ticks::now();
+  const Tickspan duration = end - _start;
+
+  _gc_timer->register_gc_pause_end(end);
+
+  _phase->sample(duration.value());
 
   // Track max pause time
-  if (_max < duration) {
-    _max = duration;
-  }
+  ZStatPhasePause::register_pause(duration);
 
   // Track minimum mutator utilization
-  ZStatMMU::register_pause(start, end);
+  ZStatMMU::register_pause(_start, end);
 
   LogTarget(Info, gc, phases) log;
   log_end(log, duration);
 }
 
-ZStatPhaseConcurrent::ZStatPhaseConcurrent(const char* name, ZGenerationId id)
-  : ZStatPhase(id == ZGenerationId::young ? "Young Phase" : "Old Phase", name) {}
-
-void ZStatPhaseConcurrent::register_start(ConcurrentGCTimer* timer, const Ticks& start) const {
-  timer->register_gc_concurrent_start(name(), start);
+ZStatTimerConcurrent::ZStatTimerConcurrent(const ZStatPhaseConcurrent& phase, ConcurrentGCTimer* gc_timer)
+  : ZStatTimerWithGeneration(&phase, gc_timer) {
+  _gc_timer->register_gc_concurrent_start(_phase->name(), _start);
 
   LogTarget(Debug, gc, phases, start) log;
   log_start(log);
 }
 
-void ZStatPhaseConcurrent::register_end(ConcurrentGCTimer* timer, const Ticks& start, const Ticks& end) const {
+ZStatTimerConcurrent::ZStatTimerConcurrent(const ZStatPhaseConcurrent& phase)
+  : ZStatTimerConcurrent(phase, ZGeneration::generation(phase.generation_id())->gc_timer()) {}
+
+ZStatTimerConcurrent::~ZStatTimerConcurrent() {
   if (ZAbort::should_abort()) {
     return;
   }
 
-  timer->register_gc_concurrent_end(end);
+  const Ticks end = Ticks::now();
+  const Tickspan duration = end - _start;
 
-  const Tickspan duration = end - start;
-  ZStatSample(_sampler, duration.value());
+  _gc_timer->register_gc_concurrent_end(end);
+
+  _phase->sample(duration.value());
 
   LogTarget(Info, gc, phases) log;
   log_end(log, duration);
 }
 
-ZStatSubPhase::ZStatSubPhase(const char* name, ZGenerationId id)
-  : ZStatPhase(id == ZGenerationId::young ? "Young Subphase" : "Old Subphase", name) {}
+ZStatTimerSubPhase::ZStatTimerSubPhase(const ZStatSubPhase* phase, ConcurrentGCTimer* gc_timer)
+  : ZStatTimerWithGeneration(phase, gc_timer) {
 
-void ZStatSubPhase::register_start(ConcurrentGCTimer* timer, const Ticks& start) const {
-  if (timer != nullptr && !ZAbort::should_abort()) {
+  if (_phase == nullptr) {
+    return;
+  }
+
+  if (_gc_timer != nullptr && !ZAbort::should_abort()) {
     assert(!Thread::current()->is_Worker_thread(), "Unexpected timer value");
-    timer->register_gc_phase_start(name(), start);
+    _gc_timer->register_gc_phase_start(_phase->name(), _start);
   }
 
   if (Thread::current()->is_Worker_thread()) {
@@ -822,20 +894,25 @@ void ZStatSubPhase::register_start(ConcurrentGCTimer* timer, const Ticks& start)
   }
 }
 
-void ZStatSubPhase::register_end(ConcurrentGCTimer* timer, const Ticks& start, const Ticks& end) const {
-  if (ZAbort::should_abort()) {
+ZStatTimerSubPhase::ZStatTimerSubPhase(const ZStatSubPhase& phase)
+  : ZStatTimerSubPhase(&phase, ZGeneration::generation(phase.generation_id())->gc_timer()) {}
+
+ZStatTimerSubPhase::~ZStatTimerSubPhase() {
+  if (ZAbort::should_abort() || _phase == nullptr) {
     return;
   }
 
-  if (timer != nullptr) {
+  const Ticks end = Ticks::now();
+  const Tickspan duration = end - _start;
+
+  if (_gc_timer != nullptr) {
     assert(!Thread::current()->is_Worker_thread(), "Unexpected timer value");
-    timer->register_gc_phase_end(end);
+    _gc_timer->register_gc_phase_end(end);
   }
 
-  ZTracer::report_thread_phase(name(), start, end);
+  ZTracer::report_thread_phase(_phase->name(), _start, end);
 
-  const Tickspan duration = end - start;
-  ZStatSample(_sampler, duration.value());
+  _phase->sample(duration.value());
 
   if (Thread::current()->is_Worker_thread()) {
     LogTarget(Trace, gc, phases) log;
@@ -846,42 +923,47 @@ void ZStatSubPhase::register_end(ConcurrentGCTimer* timer, const Ticks& start, c
   }
 }
 
-ZStatCriticalPhase::ZStatCriticalPhase(const char* name, bool verbose)
-  : ZStatPhase("Critical", name),
-    _counter("Critical", name, ZStatUnitOpsPerSecond),
-    _verbose(verbose) {}
-
-void ZStatCriticalPhase::register_start(ConcurrentGCTimer* timer, const Ticks& start) const {
+ZStatTimerCritical::ZStatTimerCritical(const ZStatCriticalPhase& phase, bool verbose, ZStatPhaseContext* context)
+  : ZStatTimer(&phase, nullptr /* gc_timer */),
+    _verbose(verbose),
+    _context(context) {
   // This is called from sensitive contexts, for example before an allocation stall
   // has been resolved. This means we must not access any oops in here since that
   // could lead to infinite recursion. Without access to the thread name we can't
   // really log anything useful here.
 }
 
-void ZStatCriticalPhase::register_end(ConcurrentGCTimer* timer, const Ticks& start, const Ticks& end) const {
-  ZTracer::report_thread_phase(name(), start, end);
+ZStatTimerCritical::~ZStatTimerCritical() {
+  const Ticks end = Ticks::now();
+  const Tickspan duration = end - _start;
 
-  const Tickspan duration = end - start;
-  ZStatSample(_sampler, duration.value());
-  ZStatInc(_counter);
+  ZTracer::report_thread_phase(_phase->name(), _start, end);
+
+  static_cast<const ZStatCriticalPhase*>(_phase)->critical_sample(duration.value());
 
   if (_verbose) {
     LogTarget(Info, gc) log;
-    log_end(log, duration, true /* thread */);
+    log_end(log, duration, true /* thread */, _context);
   } else {
     LogTarget(Debug, gc) log;
-    log_end(log, duration, true /* thread */);
+    log_end(log, duration, true /* thread */, _context);
   }
 }
 
-ZStatTimerYoung::ZStatTimerYoung(const ZStatPhase& phase)
-  : ZStatTimer(phase, ZGeneration::young()->gc_timer()) {}
+const char* ZStatPhaseStallContext::description() {
+  stringStream ss(_buffer, BufferSize);
+  ss.print("%zu%s ", byte_size_in_exact_unit(_size), exact_unit_for_byte_size(_size));
 
-ZStatTimerOld::ZStatTimerOld(const ZStatPhase& phase)
-  : ZStatTimer(phase, ZGeneration::old()->gc_timer()) {}
+  // Careful! The context object needs to outlive the usage of the returned string.
+  return ss.base();
+}
+
+ZStatTimerStall::ZStatTimerStall(const ZStatCriticalPhase& phase, size_t size)
+  : _context(size),
+    _timer(phase, true /* verbose */, &_context) {}
 
 ZStatTimerWorker::ZStatTimerWorker(const ZStatPhase& phase)
-  : ZStatTimer(phase, nullptr /* gc_timer */) {
+  : ZStatTimer(&phase, nullptr /* gc_timer */) {
   assert(Thread::current()->is_Worker_thread(), "Should only be called by worker thread");
 }
 

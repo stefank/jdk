@@ -106,7 +106,16 @@ ZDriverUnlocker::~ZDriverUnlocker() {
 }
 
 ZDriver::ZDriver()
-  : _gc_cause(GCCause::_no_gc) {}
+  : _used_at_start(),
+    _gc_cause(GCCause::_no_gc) {}
+
+void ZDriver::set_used_at_start(size_t used) {
+  _used_at_start = used;
+}
+
+size_t ZDriver::used_at_start() const {
+  return _used_at_start;
+}
 
 void ZDriver::set_gc_cause(GCCause::Cause cause) {
   _gc_cause = cause;
@@ -120,8 +129,7 @@ ZDriverMinor::ZDriverMinor()
   : ZDriver(),
     _port(),
     _gc_timer(),
-    _jfr_tracer(),
-    _used_at_start() {
+    _jfr_tracer() {
   ZDriver::set_minor(this);
   set_name("ZDriverMinor");
   create_and_start();
@@ -157,20 +165,12 @@ GCTracer* ZDriverMinor::jfr_tracer() {
   return &_jfr_tracer;
 }
 
-void ZDriverMinor::set_used_at_start(size_t used) {
-  _used_at_start = used;
-}
-
-size_t ZDriverMinor::used_at_start() const {
-  return _used_at_start;
-}
-
 class ZDriverScopeMinor : public StackObj {
 private:
   GCIdMark                     _gc_id;
   GCCause::Cause               _gc_cause;
   ZGCCauseSetter<ZDriverMinor> _gc_cause_setter;
-  ZStatTimer                   _stat_timer;
+  ZStatTimerCollection         _stat_timer;
   ZServiceabilityCycleTracer   _tracer;
 
 public:
@@ -318,8 +318,7 @@ ZDriverMajor::ZDriverMajor()
   : ZDriver(),
     _port(),
     _gc_timer(),
-    _jfr_tracer(),
-    _used_at_start() {
+    _jfr_tracer() {
   ZDriver::set_major(this);
   set_name("ZDriverMajor");
   create_and_start();
@@ -370,20 +369,12 @@ GCTracer* ZDriverMajor::jfr_tracer() {
   return &_jfr_tracer;
 }
 
-void ZDriverMajor::set_used_at_start(size_t used) {
-  _used_at_start = used;
-}
-
-size_t ZDriverMajor::used_at_start() const {
-  return _used_at_start;
-}
-
 class ZDriverScopeMajor : public StackObj {
 private:
   GCIdMark                     _gc_id;
   GCCause::Cause               _gc_cause;
   ZGCCauseSetter<ZDriverMajor> _gc_cause_setter;
-  ZStatTimer                   _stat_timer;
+  ZStatTimerCollection         _stat_timer;
   ZServiceabilityCycleTracer   _tracer;
 
 public:

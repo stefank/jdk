@@ -26,6 +26,7 @@
 
 #include "gc/shared/gcCause.hpp"
 #include "gc/shared/gcTimer.hpp"
+#include "gc/z/zDriver.hpp"
 #include "gc/z/zGenerationId.hpp"
 #include "gc/z/zLock.hpp"
 #include "gc/z/zMetronome.hpp"
@@ -39,6 +40,7 @@
 #include "utilities/ticks.hpp"
 
 class GCTracer;
+class ZDriver;
 class ZGeneration;
 class ZPage;
 class ZPageAllocatorStats;
@@ -209,131 +211,192 @@ public:
 //
 // Stat phases
 //
+
+struct ZStatPhaseContext {
+  virtual const char* description() = 0;
+};
+
 class ZStatPhase {
 protected:
   const ZStatSampler _sampler;
 
   ZStatPhase(const char* group, const char* name);
 
-  void log_start(LogTargetHandle log, bool thread = false) const;
-  void log_end(LogTargetHandle log, const Tickspan& duration, bool thread = false) const;
-
 public:
   const char* name() const;
 
-  virtual void register_start(ConcurrentGCTimer* timer, const Ticks& start) const = 0;
-  virtual void register_end(ConcurrentGCTimer* timer, const Ticks& start, const Ticks& end) const = 0;
+  void sample(uint64_t value) const;
 };
 
 class ZStatPhaseCollection : public ZStatPhase {
 private:
   const bool _minor;
 
-  GCTracer* jfr_tracer() const;
-
-  void set_used_at_start(size_t used) const;
-  size_t used_at_start() const;
-
 public:
   ZStatPhaseCollection(const char* name, bool minor);
 
-  virtual void register_start(ConcurrentGCTimer* timer, const Ticks& start) const;
-  virtual void register_end(ConcurrentGCTimer* timer, const Ticks& start, const Ticks& end) const;
+  bool minor() const;
 };
 
-class ZStatPhaseGeneration : public ZStatPhase {
-private:
-  const ZGenerationId _id;
+class ZStatPhaseWithGeneration : public ZStatPhase {
+protected:
+  ZGenerationId _generation_id;
 
-  ZGenerationTracer* jfr_tracer() const;
+  ZStatPhaseWithGeneration(const char* group, const char* name, ZGenerationId id);
 
 public:
-  ZStatPhaseGeneration(const char* name, ZGenerationId id);
-
-  virtual void register_start(ConcurrentGCTimer* timer, const Ticks& start) const;
-  virtual void register_end(ConcurrentGCTimer* timer, const Ticks& start, const Ticks& end) const;
+  ZGenerationId generation_id() const;
 };
 
-class ZStatPhasePause : public ZStatPhase {
+class ZStatPhaseGeneration : public ZStatPhaseWithGeneration {
+public:
+  ZStatPhaseGeneration(const char* name, ZGenerationId id);
+};
+
+class ZStatPhasePause : public ZStatPhaseWithGeneration {
 private:
   static Tickspan _max; // Max pause time
 
 public:
   ZStatPhasePause(const char* name, ZGenerationId id);
 
-  static const Tickspan& max();
+  static void register_pause(const Tickspan& duration);
 
-  virtual void register_start(ConcurrentGCTimer* timer, const Ticks& start) const;
-  virtual void register_end(ConcurrentGCTimer* timer, const Ticks& start, const Ticks& end) const;
+  static const Tickspan& max();
 };
 
-class ZStatPhaseConcurrent : public ZStatPhase {
+class ZStatPhaseConcurrent : public ZStatPhaseWithGeneration {
 public:
   ZStatPhaseConcurrent(const char* name, ZGenerationId id);
-
-  virtual void register_start(ConcurrentGCTimer* timer, const Ticks& start) const;
-  virtual void register_end(ConcurrentGCTimer* timer, const Ticks& start, const Ticks& end) const;
 };
 
-class ZStatSubPhase : public ZStatPhase {
+class ZStatSubPhase : public ZStatPhaseWithGeneration {
 public:
   ZStatSubPhase(const char* name, ZGenerationId id);
-
-  virtual void register_start(ConcurrentGCTimer* timer, const Ticks& start) const;
-  virtual void register_end(ConcurrentGCTimer* timer, const Ticks& start, const Ticks& end) const;
 };
 
 class ZStatCriticalPhase : public ZStatPhase {
 private:
   const ZStatCounter _counter;
-  const bool         _verbose;
 
 public:
-  ZStatCriticalPhase(const char* name, bool verbose = true);
+  ZStatCriticalPhase(const char* name);
 
-  virtual void register_start(ConcurrentGCTimer* timer, const Ticks& start) const;
-  virtual void register_end(ConcurrentGCTimer* timer, const Ticks& start, const Ticks& end) const;
+  void critical_sample(uint64_t) const;
 };
 
 //
 // Stat timer
 //
 class ZStatTimer : public StackObj {
-private:
+protected:
   ConcurrentGCTimer* const _gc_timer;
-  const ZStatPhase&        _phase;
+  const ZStatPhase*        _phase;
   const Ticks              _start;
+  ZStatPhaseContext* const _context;
 
-public:
-  ZStatTimer(const ZStatPhase& phase, ConcurrentGCTimer* gc_timer)
+protected:
+  ZStatTimer(const ZStatPhase* phase, ConcurrentGCTimer* gc_timer, ZStatPhaseContext* context = nullptr)
     : _gc_timer(gc_timer),
       _phase(phase),
-      _start(Ticks::now()) {
-    _phase.register_start(_gc_timer, _start);
-  }
+      _start(Ticks::now()),
+      _context(context) {}
 
-  ZStatTimer(const ZStatSubPhase& phase)
-    : ZStatTimer(phase, nullptr /* timer */) {
-  }
-
-  ZStatTimer(const ZStatCriticalPhase& phase)
-    : ZStatTimer(phase, nullptr /* timer */) {
-  }
-
-  ~ZStatTimer() {
-    const Ticks end = Ticks::now();
-    _phase.register_end(_gc_timer, _start, end);
-  }
+  void log_start(LogTargetHandle log, bool thread = false) const;
+  void log_end(LogTargetHandle log, const Tickspan& duration, bool thread = false, ZStatPhaseContext* context = nullptr) const;
 };
 
-class ZStatTimerYoung : public ZStatTimer {
+class ZStatTimerCollection : public ZStatTimer {
+private:
+  bool minor() const;
+
+  ZDriver* driver() const;
+
+  void set_used_at_start(size_t used) const;
+  size_t used_at_start() const;
+
+  GCCause::Cause gc_cause() const;
+  GCTracer* jfr_tracer() const;
+
 public:
-  ZStatTimerYoung(const ZStatPhase& phase);
+  ZStatTimerCollection(const ZStatPhaseCollection& phase, ConcurrentGCTimer* gc_timer);
+  ~ZStatTimerCollection();
 };
 
-class ZStatTimerOld : public ZStatTimer {
+class ZStatTimerWithGeneration : public ZStatTimer {
+protected:
+  ZStatTimerWithGeneration(const ZStatPhaseWithGeneration* phase, ConcurrentGCTimer* gc_timer);
+
+  ZGenerationId generation_id() const;
+};
+
+class ZStatTimerGeneration : public ZStatTimerWithGeneration {
+private:
+  ZGenerationTracer* jfr_tracer() const;
+
 public:
-  ZStatTimerOld(const ZStatPhase& phase);
+  ZStatTimerGeneration(const ZStatPhaseGeneration& phase, ConcurrentGCTimer* gc_timer);
+  ~ZStatTimerGeneration();
+};
+
+class ZStatTimerPause : public ZStatTimerWithGeneration {
+private:
+  ZStatTimerPause(const ZStatPhasePause& phase, ConcurrentGCTimer* gc_timer);
+
+public:
+  ZStatTimerPause(const ZStatPhasePause& phase);
+  ~ZStatTimerPause();
+};
+
+class ZStatTimerConcurrent : public ZStatTimerWithGeneration {
+private:
+  ZStatTimerConcurrent(const ZStatPhaseConcurrent& phase, ConcurrentGCTimer* gc_timer);
+
+public:
+  ZStatTimerConcurrent(const ZStatPhaseConcurrent& phase);
+  ~ZStatTimerConcurrent();
+};
+
+class ZStatTimerSubPhase : public ZStatTimerWithGeneration {
+public:
+  ZStatTimerSubPhase(const ZStatSubPhase* phase, ConcurrentGCTimer* gc_timer);
+
+  ZStatTimerSubPhase(const ZStatSubPhase& phase);
+  ~ZStatTimerSubPhase();
+};
+
+class ZStatTimerCritical : public ZStatTimer {
+private:
+  const bool               _verbose;
+  ZStatPhaseContext* const _context;
+
+public:
+  explicit ZStatTimerCritical(const ZStatCriticalPhase& phase, bool verbose = false, ZStatPhaseContext* context = nullptr);
+  ~ZStatTimerCritical();
+};
+
+class ZStatPhaseStallContext : public ZStatPhaseContext {
+private:
+  static constexpr size_t BufferSize = 64;
+
+  char         _buffer[BufferSize];
+  const size_t _size;
+
+public:
+  ZStatPhaseStallContext(size_t size)
+    : _buffer(),
+      _size(size) {}
+
+  virtual const char* description();
+};
+
+class ZStatTimerStall {
+private:
+  ZStatPhaseStallContext _context;
+  ZStatTimerCritical     _timer;
+
+public:
+  ZStatTimerStall(const ZStatCriticalPhase& phase, size_t size);
 };
 
 class ZStatTimerWorker : public ZStatTimer {
