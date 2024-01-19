@@ -25,11 +25,16 @@
  * @test
  * @summary Stress test that reaches the process limit for thread count, or time limit.
  * @key stress
+ * @library /test/lib
  * @run main/othervm -Xmx1g ThreadCountLimit
  */
 
 import java.util.concurrent.CountDownLatch;
 import java.util.ArrayList;
+
+import jdk.test.lib.Platform;
+import jdk.test.lib.process.OutputAnalyzer;
+import jdk.test.lib.process.ProcessTools;
 
 public class ThreadCountLimit {
 
@@ -52,7 +57,37 @@ public class ThreadCountLimit {
     }
   }
 
-  public static void main(String[] args) {
+  // Limit the number of threads that we're allowed to create
+  private static String ULIMIT_CMD = "ulimit -u 10000";
+
+  public static void main(String[] args) throws Exception {
+    if (args.length == 0) {
+      // Called from the driver process. Forks the test process.
+
+      if (Platform.isLinux()) {
+        // The test command
+        String JAVA_CMD = ProcessTools.getCommandLine(
+            ProcessTools.createTestJavaProcessBuilder(ThreadCountLimit.class.getName()));
+
+        // On Linux this test sometimes hit the limit for the maximum number of memory mappings,
+        // which leads to various other failure modes. Run this test with a limit on how many
+        // threads that the process is allowed to create.
+
+        // Call back into this function, with args.length > 0, and the with the ulimit set
+        ProcessTools.executeCommand("bash", "-c", ULIMIT_CMD + " && " + JAVA_CMD + " dummy")
+            .shouldHaveExitValue(0);
+      } else {
+        // Other platforms don't seem to get the same problems,
+        // so just run the test without any extra limits set.
+        test();
+      }
+    } else {
+      // Run the actual test code
+      test();
+    }
+  }
+
+  public static void test() {
     CountDownLatch startSignal = new CountDownLatch(1);
     ArrayList<Worker> workers = new ArrayList<Worker>();
 
@@ -111,6 +146,8 @@ public class ThreadCountLimit {
     } else if (reachedNativeOOM) {
        System.out.println("INFO: reached this process thread count limit with " +
                            countAtNativeOOM + " threads created");
+    } else {
+      System.out.println("INFO: Completed with " + countAtTimeLimit + " threads created");
     }
   }
 }
