@@ -241,7 +241,7 @@ bool LIRGenerator::strength_reduce_multiply(LIR_Opr left, jint c, LIR_Opr result
   return false;
 }
 
-void LIRGenerator::store_stack_parameter (LIR_Opr item, ByteSize offset_from_sp) {
+void LIRGenerator::store_stack_parameter (LIR_Opr item, BytesInt offset_from_sp) {
   BasicType type = item->type();
   __ store(item, new LIR_Address(FrameMap::Z_SP_opr, in_bytes(offset_from_sp), type));
 }
@@ -851,7 +851,7 @@ void LIRGenerator::do_NewMultiArray(NewMultiArray* x) {
     size->load_nonconstant(32);
     // FrameMap::_reserved_argument_area_size includes the dimensions varargs, because
     // it's initialized to hir()->max_stack() when the FrameMap is created.
-    store_stack_parameter(size->result(), in_ByteSize(i*sizeof(jint) + FrameMap::first_available_sp_in_frame));
+    store_stack_parameter(size->result(), in_BytesInt(i*sizeof(jint) + FrameMap::first_available_sp_in_frame));
   }
 
   LIR_Opr klass_reg = FrameMap::Z_R3_metadata_opr;

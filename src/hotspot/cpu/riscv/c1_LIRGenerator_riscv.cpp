@@ -248,7 +248,7 @@ bool LIRGenerator::strength_reduce_multiply(LIR_Opr left, jint c, LIR_Opr result
   return false;
 }
 
-void LIRGenerator::store_stack_parameter (LIR_Opr item, ByteSize offset_from_sp) {
+void LIRGenerator::store_stack_parameter (LIR_Opr item, BytesInt offset_from_sp) {
   BasicType type = item->type();
   __ store(item, new LIR_Address(FrameMap::sp_opr, in_bytes(offset_from_sp), type));
 }
@@ -928,7 +928,7 @@ void LIRGenerator::do_NewMultiArray(NewMultiArray* x) {
     LIRItem* size = items->at(i);
     size->load_item();
 
-    store_stack_parameter(size->result(), in_ByteSize(i * BytesPerInt));
+    store_stack_parameter(size->result(), in_BytesInt(i * BytesPerInt));
   }
 
   LIR_Opr klass_reg = FrameMap::r10_metadata_opr;

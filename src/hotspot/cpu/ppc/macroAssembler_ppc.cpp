@@ -1949,7 +1949,7 @@ void MacroAssembler::lookup_virtual_method(Register recv_klass,
 
   assert_different_registers(recv_klass, method_result, vtable_index.register_or_noreg());
 
-  const ByteSize base = Klass::vtable_start_offset();
+  const BytesInt base = Klass::vtable_start_offset();
   assert(vtableEntry::size() * wordSize == wordSize, "adjust the scaling in the code below");
 
   if (vtable_index.is_register()) {

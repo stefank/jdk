@@ -227,15 +227,15 @@ class ResolvedMethodEntry {
   void remove_unshareable_info();
 
   // Offsets
-  static ByteSize klass_offset()                     { return byte_offset_of(ResolvedMethodEntry, _entry_specific._interface_klass); }
-  static ByteSize method_offset()                    { return byte_offset_of(ResolvedMethodEntry, _method);       }
-  static ByteSize resolved_references_index_offset() { return byte_offset_of(ResolvedMethodEntry, _entry_specific._resolved_references_index); }
-  static ByteSize table_index_offset()               { return byte_offset_of(ResolvedMethodEntry, _entry_specific._table_index);       }
-  static ByteSize num_parameters_offset()            { return byte_offset_of(ResolvedMethodEntry, _number_of_parameters);      }
-  static ByteSize type_offset()                      { return byte_offset_of(ResolvedMethodEntry, _tos_state); }
-  static ByteSize flags_offset()                     { return byte_offset_of(ResolvedMethodEntry, _flags);        }
-  static ByteSize bytecode1_offset()                 { return byte_offset_of(ResolvedMethodEntry, _bytecode1);        }
-  static ByteSize bytecode2_offset()                 { return byte_offset_of(ResolvedMethodEntry, _bytecode2);        }
+  static BytesInt klass_offset()                     { return byte_offset_of(ResolvedMethodEntry, _entry_specific._interface_klass); }
+  static BytesInt method_offset()                    { return byte_offset_of(ResolvedMethodEntry, _method);       }
+  static BytesInt resolved_references_index_offset() { return byte_offset_of(ResolvedMethodEntry, _entry_specific._resolved_references_index); }
+  static BytesInt table_index_offset()               { return byte_offset_of(ResolvedMethodEntry, _entry_specific._table_index);       }
+  static BytesInt num_parameters_offset()            { return byte_offset_of(ResolvedMethodEntry, _number_of_parameters);      }
+  static BytesInt type_offset()                      { return byte_offset_of(ResolvedMethodEntry, _tos_state); }
+  static BytesInt flags_offset()                     { return byte_offset_of(ResolvedMethodEntry, _flags);        }
+  static BytesInt bytecode1_offset()                 { return byte_offset_of(ResolvedMethodEntry, _bytecode1);        }
+  static BytesInt bytecode2_offset()                 { return byte_offset_of(ResolvedMethodEntry, _bytecode2);        }
 
 };
 

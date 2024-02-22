@@ -936,7 +936,7 @@ void LibraryCallKit::generate_string_range_check(Node* array, Node* offset, Node
   }
 }
 
-Node* LibraryCallKit::current_thread_helper(Node*& tls_output, ByteSize handle_offset,
+Node* LibraryCallKit::current_thread_helper(Node*& tls_output, BytesInt handle_offset,
                                             bool is_immutable) {
   ciKlass* thread_klass = env()->Thread_klass();
   const Type* thread_type

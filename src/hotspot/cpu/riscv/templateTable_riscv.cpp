@@ -1620,9 +1620,9 @@ void TemplateTable::float_cmp(bool is_float, int unordered_result) {
 
 void TemplateTable::branch(bool is_jsr, bool is_wide) {
   __ profile_taken_branch(x10, x11);
-  const ByteSize be_offset = MethodCounters::backedge_counter_offset() +
+  const BytesInt be_offset = MethodCounters::backedge_counter_offset() +
                              InvocationCounter::counter_offset();
-  const ByteSize inv_offset = MethodCounters::invocation_counter_offset() +
+  const BytesInt inv_offset = MethodCounters::invocation_counter_offset() +
                               InvocationCounter::counter_offset();
 
   // load branch displacement
@@ -3030,7 +3030,7 @@ void TemplateTable::jvmti_post_fast_field_mod() {
 void TemplateTable::fast_storefield(TosState state) {
   transition(state, vtos);
 
-  ByteSize base = ConstantPoolCache::base_offset();
+  BytesInt base = ConstantPoolCache::base_offset();
 
   jvmti_post_fast_field_mod();
 

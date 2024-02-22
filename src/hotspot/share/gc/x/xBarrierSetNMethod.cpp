@@ -72,6 +72,6 @@ int* XBarrierSetNMethod::disarmed_guard_value_address() const {
   return (int*)XAddressBadMaskHighOrderBitsAddr;
 }
 
-ByteSize XBarrierSetNMethod::thread_disarmed_guard_value_offset() const {
+BytesInt XBarrierSetNMethod::thread_disarmed_guard_value_offset() const {
   return XThreadLocalData::nmethod_disarmed_offset();
 }

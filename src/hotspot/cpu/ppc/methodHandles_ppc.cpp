@@ -151,7 +151,7 @@ void MethodHandles::jump_from_method_handle(MacroAssembler* _masm, Register meth
   __ cmplwi(CCR0, R19_method, 0);
   __ beq(CCR0, L_no_such_method);
 
-  const ByteSize entry_offset = for_compiler_entry ? Method::from_compiled_offset() :
+  const BytesInt entry_offset = for_compiler_entry ? Method::from_compiled_offset() :
                                                      Method::from_interpreted_offset();
   __ ld(target, in_bytes(entry_offset), R19_method);
   __ mtctr(target);

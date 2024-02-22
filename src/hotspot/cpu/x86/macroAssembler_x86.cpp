@@ -4511,7 +4511,7 @@ void MacroAssembler::lookup_interface_method_stub(Register recv_klass,
 void MacroAssembler::lookup_virtual_method(Register recv_klass,
                                            RegisterOrConstant vtable_index,
                                            Register method_result) {
-  const ByteSize base = Klass::vtable_start_offset();
+  const BytesInt base = Klass::vtable_start_offset();
   assert(vtableEntry::size() * wordSize == wordSize, "else adjust the scaling in the code below");
   Address vtable_entry_addr(recv_klass,
                             vtable_index, Address::times_ptr,

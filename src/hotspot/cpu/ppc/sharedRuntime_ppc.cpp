@@ -1998,8 +1998,8 @@ nmethod *SharedRuntime::generate_native_wrapper(MacroAssembler *masm,
                                               vep_offset,
                                               frame_complete,
                                               stack_slots,
-                                              in_ByteSize(-1),
-                                              in_ByteSize(-1),
+                                              in_BytesInt(-1),
+                                              in_BytesInt(-1),
                                               oop_maps,
                                               exception_offset);
     if (nm == nullptr) return nm;
@@ -2028,8 +2028,8 @@ nmethod *SharedRuntime::generate_native_wrapper(MacroAssembler *masm,
                                        vep_offset,
                                        frame_complete,
                                        stack_slots / VMRegImpl::slots_per_word,
-                                       in_ByteSize(-1),
-                                       in_ByteSize(-1),
+                                       in_BytesInt(-1),
+                                       in_BytesInt(-1),
                                        (OopMapSet*)nullptr);
   }
 
@@ -2667,8 +2667,8 @@ nmethod *SharedRuntime::generate_native_wrapper(MacroAssembler *masm,
                                             vep_start_pc-start_pc,
                                             frame_done_pc-start_pc,
                                             stack_slots / VMRegImpl::slots_per_word,
-                                            (method_is_static ? in_ByteSize(klass_offset) : in_ByteSize(receiver_offset)),
-                                            in_ByteSize(lock_offset),
+                                            (method_is_static ? in_BytesInt(klass_offset) : in_BytesInt(receiver_offset)),
+                                            in_BytesInt(lock_offset),
                                             oop_maps);
 
   return nm;

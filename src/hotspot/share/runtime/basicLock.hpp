@@ -80,8 +80,8 @@ class BasicObjectLock {
   // GC support
   void oops_do(OopClosure* f) { f->do_oop(&_obj); }
 
-  static ByteSize obj_offset()                { return byte_offset_of(BasicObjectLock, _obj);  }
-  static ByteSize lock_offset()               { return byte_offset_of(BasicObjectLock, _lock); }
+  static BytesInt obj_offset()                { return byte_offset_of(BasicObjectLock, _obj);  }
+  static BytesInt lock_offset()               { return byte_offset_of(BasicObjectLock, _lock); }
 };
 
 

@@ -47,7 +47,7 @@ private:
 
 public:
   static int cookie_value() { return COOKIE_VALUE; }
-  static ByteSize cookie_offset() { return byte_offset_of(ContinuationEntry, cookie); }
+  static BytesInt cookie_offset() { return byte_offset_of(ContinuationEntry, cookie); }
 
   void verify_cookie() {
     assert(cookie == COOKIE_VALUE, "Bad cookie: %#x, expected: %#x", cookie, COOKIE_VALUE);
@@ -81,14 +81,14 @@ private:
   uint _pin_count;
 
 public:
-  static ByteSize parent_offset()   { return byte_offset_of(ContinuationEntry, _parent); }
-  static ByteSize cont_offset()     { return byte_offset_of(ContinuationEntry, _cont); }
-  static ByteSize chunk_offset()    { return byte_offset_of(ContinuationEntry, _chunk); }
-  static ByteSize flags_offset()    { return byte_offset_of(ContinuationEntry, _flags); }
-  static ByteSize argsize_offset()  { return byte_offset_of(ContinuationEntry, _argsize); }
-  static ByteSize pin_count_offset(){ return byte_offset_of(ContinuationEntry, _pin_count); }
-  static ByteSize parent_cont_fastpath_offset()      { return byte_offset_of(ContinuationEntry, _parent_cont_fastpath); }
-  static ByteSize parent_held_monitor_count_offset() { return byte_offset_of(ContinuationEntry, _parent_held_monitor_count); }
+  static BytesInt parent_offset()   { return byte_offset_of(ContinuationEntry, _parent); }
+  static BytesInt cont_offset()     { return byte_offset_of(ContinuationEntry, _cont); }
+  static BytesInt chunk_offset()    { return byte_offset_of(ContinuationEntry, _chunk); }
+  static BytesInt flags_offset()    { return byte_offset_of(ContinuationEntry, _flags); }
+  static BytesInt argsize_offset()  { return byte_offset_of(ContinuationEntry, _argsize); }
+  static BytesInt pin_count_offset(){ return byte_offset_of(ContinuationEntry, _pin_count); }
+  static BytesInt parent_cont_fastpath_offset()      { return byte_offset_of(ContinuationEntry, _parent_cont_fastpath); }
+  static BytesInt parent_held_monitor_count_offset() { return byte_offset_of(ContinuationEntry, _parent_held_monitor_count); }
 
 public:
   static size_t size() { return align_up((int)sizeof(ContinuationEntry), 2*wordSize); }

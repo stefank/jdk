@@ -53,11 +53,11 @@ private:
     return thread->gc_data<G1ThreadLocalData>();
   }
 
-  static ByteSize satb_mark_queue_offset() {
+  static BytesInt satb_mark_queue_offset() {
     return Thread::gc_data_offset() + byte_offset_of(G1ThreadLocalData, _satb_mark_queue);
   }
 
-  static ByteSize dirty_card_queue_offset() {
+  static BytesInt dirty_card_queue_offset() {
     return Thread::gc_data_offset() + byte_offset_of(G1ThreadLocalData, _dirty_card_queue);
   }
 
@@ -78,23 +78,23 @@ public:
     return data(thread)->_dirty_card_queue;
   }
 
-  static ByteSize satb_mark_queue_active_offset() {
+  static BytesInt satb_mark_queue_active_offset() {
     return satb_mark_queue_offset() + SATBMarkQueue::byte_offset_of_active();
   }
 
-  static ByteSize satb_mark_queue_index_offset() {
+  static BytesInt satb_mark_queue_index_offset() {
     return satb_mark_queue_offset() + SATBMarkQueue::byte_offset_of_index();
   }
 
-  static ByteSize satb_mark_queue_buffer_offset() {
+  static BytesInt satb_mark_queue_buffer_offset() {
     return satb_mark_queue_offset() + SATBMarkQueue::byte_offset_of_buf();
   }
 
-  static ByteSize dirty_card_queue_index_offset() {
+  static BytesInt dirty_card_queue_index_offset() {
     return dirty_card_queue_offset() + G1DirtyCardQueue::byte_offset_of_index();
   }
 
-  static ByteSize dirty_card_queue_buffer_offset() {
+  static BytesInt dirty_card_queue_buffer_offset() {
     return dirty_card_queue_offset() + G1DirtyCardQueue::byte_offset_of_buf();
   }
 

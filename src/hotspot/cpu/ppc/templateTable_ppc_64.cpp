@@ -3199,7 +3199,7 @@ void TemplateTable::fast_accessfield(TosState state) {
   transition(atos, state);
 
   Label LisVolatile;
-  ByteSize cp_base_offset = ConstantPoolCache::base_offset();
+  BytesInt cp_base_offset = ConstantPoolCache::base_offset();
 
   const Register Rcache        = R3_ARG1,
                  Rclass_or_obj = R17_tos,
@@ -3337,7 +3337,7 @@ void TemplateTable::fast_xaccess(TosState state) {
   transition(vtos, state);
 
   Label LisVolatile;
-  ByteSize cp_base_offset = ConstantPoolCache::base_offset();
+  BytesInt cp_base_offset = ConstantPoolCache::base_offset();
   const Register Rcache        = R3_ARG1,
                  Rclass_or_obj = R17_tos,
                  Roffset       = R22_tmp2,
@@ -3453,7 +3453,7 @@ void TemplateTable::generate_vtable_call(Register Rrecv_klass, Register Rindex, 
   const Register Rtarget_method = Rindex;
 
   // Get target method & entry point.
-  const ByteSize base = Klass::vtable_start_offset();
+  const BytesInt base = Klass::vtable_start_offset();
   // Calc vtable addr scale the vtable index by 8.
   __ sldi(Rindex, Rindex, exact_log2(vtableEntry::size_in_bytes()));
   // Load target.

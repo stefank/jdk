@@ -567,21 +567,21 @@ private:
 
 public:
   // Offsets for cpuid asm stub
-  static ByteSize std_cpuid0_offset() { return byte_offset_of(CpuidInfo, std_max_function); }
-  static ByteSize std_cpuid1_offset() { return byte_offset_of(CpuidInfo, std_cpuid1_eax); }
-  static ByteSize dcp_cpuid4_offset() { return byte_offset_of(CpuidInfo, dcp_cpuid4_eax); }
-  static ByteSize sef_cpuid7_offset() { return byte_offset_of(CpuidInfo, sef_cpuid7_eax); }
-  static ByteSize ext_cpuid1_offset() { return byte_offset_of(CpuidInfo, ext_cpuid1_eax); }
-  static ByteSize ext_cpuid5_offset() { return byte_offset_of(CpuidInfo, ext_cpuid5_eax); }
-  static ByteSize ext_cpuid7_offset() { return byte_offset_of(CpuidInfo, ext_cpuid7_eax); }
-  static ByteSize ext_cpuid8_offset() { return byte_offset_of(CpuidInfo, ext_cpuid8_eax); }
-  static ByteSize ext_cpuid1E_offset() { return byte_offset_of(CpuidInfo, ext_cpuid1E_eax); }
-  static ByteSize tpl_cpuidB0_offset() { return byte_offset_of(CpuidInfo, tpl_cpuidB0_eax); }
-  static ByteSize tpl_cpuidB1_offset() { return byte_offset_of(CpuidInfo, tpl_cpuidB1_eax); }
-  static ByteSize tpl_cpuidB2_offset() { return byte_offset_of(CpuidInfo, tpl_cpuidB2_eax); }
-  static ByteSize xem_xcr0_offset() { return byte_offset_of(CpuidInfo, xem_xcr0_eax); }
-  static ByteSize ymm_save_offset() { return byte_offset_of(CpuidInfo, ymm_save); }
-  static ByteSize zmm_save_offset() { return byte_offset_of(CpuidInfo, zmm_save); }
+  static BytesInt std_cpuid0_offset() { return byte_offset_of(CpuidInfo, std_max_function); }
+  static BytesInt std_cpuid1_offset() { return byte_offset_of(CpuidInfo, std_cpuid1_eax); }
+  static BytesInt dcp_cpuid4_offset() { return byte_offset_of(CpuidInfo, dcp_cpuid4_eax); }
+  static BytesInt sef_cpuid7_offset() { return byte_offset_of(CpuidInfo, sef_cpuid7_eax); }
+  static BytesInt ext_cpuid1_offset() { return byte_offset_of(CpuidInfo, ext_cpuid1_eax); }
+  static BytesInt ext_cpuid5_offset() { return byte_offset_of(CpuidInfo, ext_cpuid5_eax); }
+  static BytesInt ext_cpuid7_offset() { return byte_offset_of(CpuidInfo, ext_cpuid7_eax); }
+  static BytesInt ext_cpuid8_offset() { return byte_offset_of(CpuidInfo, ext_cpuid8_eax); }
+  static BytesInt ext_cpuid1E_offset() { return byte_offset_of(CpuidInfo, ext_cpuid1E_eax); }
+  static BytesInt tpl_cpuidB0_offset() { return byte_offset_of(CpuidInfo, tpl_cpuidB0_eax); }
+  static BytesInt tpl_cpuidB1_offset() { return byte_offset_of(CpuidInfo, tpl_cpuidB1_eax); }
+  static BytesInt tpl_cpuidB2_offset() { return byte_offset_of(CpuidInfo, tpl_cpuidB2_eax); }
+  static BytesInt xem_xcr0_offset() { return byte_offset_of(CpuidInfo, xem_xcr0_eax); }
+  static BytesInt ymm_save_offset() { return byte_offset_of(CpuidInfo, ymm_save); }
+  static BytesInt zmm_save_offset() { return byte_offset_of(CpuidInfo, zmm_save); }
 
   // The value used to check ymm register after signal handle
   static int ymm_test_value()    { return 0xCAFEBABE; }
@@ -862,18 +862,18 @@ public:
 
  public:
   // Offsets for cpuid asm stub brand string
-  static ByteSize proc_name_0_offset() { return byte_offset_of(CpuidInfo, proc_name_0); }
-  static ByteSize proc_name_1_offset() { return byte_offset_of(CpuidInfo, proc_name_1); }
-  static ByteSize proc_name_2_offset() { return byte_offset_of(CpuidInfo, proc_name_2); }
-  static ByteSize proc_name_3_offset() { return byte_offset_of(CpuidInfo, proc_name_3); }
-  static ByteSize proc_name_4_offset() { return byte_offset_of(CpuidInfo, proc_name_4); }
-  static ByteSize proc_name_5_offset() { return byte_offset_of(CpuidInfo, proc_name_5); }
-  static ByteSize proc_name_6_offset() { return byte_offset_of(CpuidInfo, proc_name_6); }
-  static ByteSize proc_name_7_offset() { return byte_offset_of(CpuidInfo, proc_name_7); }
-  static ByteSize proc_name_8_offset() { return byte_offset_of(CpuidInfo, proc_name_8); }
-  static ByteSize proc_name_9_offset() { return byte_offset_of(CpuidInfo, proc_name_9); }
-  static ByteSize proc_name_10_offset() { return byte_offset_of(CpuidInfo, proc_name_10); }
-  static ByteSize proc_name_11_offset() { return byte_offset_of(CpuidInfo, proc_name_11); }
+  static BytesInt proc_name_0_offset() { return byte_offset_of(CpuidInfo, proc_name_0); }
+  static BytesInt proc_name_1_offset() { return byte_offset_of(CpuidInfo, proc_name_1); }
+  static BytesInt proc_name_2_offset() { return byte_offset_of(CpuidInfo, proc_name_2); }
+  static BytesInt proc_name_3_offset() { return byte_offset_of(CpuidInfo, proc_name_3); }
+  static BytesInt proc_name_4_offset() { return byte_offset_of(CpuidInfo, proc_name_4); }
+  static BytesInt proc_name_5_offset() { return byte_offset_of(CpuidInfo, proc_name_5); }
+  static BytesInt proc_name_6_offset() { return byte_offset_of(CpuidInfo, proc_name_6); }
+  static BytesInt proc_name_7_offset() { return byte_offset_of(CpuidInfo, proc_name_7); }
+  static BytesInt proc_name_8_offset() { return byte_offset_of(CpuidInfo, proc_name_8); }
+  static BytesInt proc_name_9_offset() { return byte_offset_of(CpuidInfo, proc_name_9); }
+  static BytesInt proc_name_10_offset() { return byte_offset_of(CpuidInfo, proc_name_10); }
+  static BytesInt proc_name_11_offset() { return byte_offset_of(CpuidInfo, proc_name_11); }
 
   static int64_t maximum_qualified_cpu_frequency(void);
 

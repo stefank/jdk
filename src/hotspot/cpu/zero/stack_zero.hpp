@@ -107,13 +107,13 @@ class ZeroStack {
   void zap(int c) PRODUCT_RETURN;
 
  public:
-  static ByteSize base_offset() {
+  static BytesInt base_offset() {
     return byte_offset_of(ZeroStack, _base);
   }
-  static ByteSize top_offset() {
+  static BytesInt top_offset() {
     return byte_offset_of(ZeroStack, _top);
   }
-  static ByteSize sp_offset() {
+  static BytesInt sp_offset() {
     return byte_offset_of(ZeroStack, _sp);
   }
 };

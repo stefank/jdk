@@ -127,8 +127,8 @@ class Thread: public ThreadShadow {
     _nmethod_disarmed_guard_value = (uint64_t)(uint32_t)value;
   }
 
-  static ByteSize nmethod_disarmed_guard_value_offset() {
-    ByteSize offset = byte_offset_of(Thread, _nmethod_disarmed_guard_value);
+  static BytesInt nmethod_disarmed_guard_value_offset() {
+    BytesInt offset = byte_offset_of(Thread, _nmethod_disarmed_guard_value);
     // At least on x86_64, nmethod entry barrier encodes disarmed value offset
     // in instruction as disp8 immed
     assert(in_bytes(offset) < 128, "Offset >= 128");
@@ -142,7 +142,7 @@ class Thread: public ThreadShadow {
   GCThreadLocalData _gc_data;
 
  public:
-  static ByteSize gc_data_offset() {
+  static BytesInt gc_data_offset() {
     return byte_offset_of(Thread, _gc_data);
   }
 
@@ -593,18 +593,18 @@ protected:
   bool is_inside_jvmti_env_iteration()           { return _jvmti_env_iteration_count > 0; }
 
   // Code generation
-  static ByteSize exception_file_offset()        { return byte_offset_of(Thread, _exception_file); }
-  static ByteSize exception_line_offset()        { return byte_offset_of(Thread, _exception_line); }
+  static BytesInt exception_file_offset()        { return byte_offset_of(Thread, _exception_file); }
+  static BytesInt exception_line_offset()        { return byte_offset_of(Thread, _exception_line); }
 
-  static ByteSize stack_base_offset()            { return byte_offset_of(Thread, _stack_base); }
-  static ByteSize stack_size_offset()            { return byte_offset_of(Thread, _stack_size); }
+  static BytesInt stack_base_offset()            { return byte_offset_of(Thread, _stack_base); }
+  static BytesInt stack_size_offset()            { return byte_offset_of(Thread, _stack_size); }
 
-  static ByteSize tlab_start_offset()            { return byte_offset_of(Thread, _tlab) + ThreadLocalAllocBuffer::start_offset(); }
-  static ByteSize tlab_end_offset()              { return byte_offset_of(Thread, _tlab) + ThreadLocalAllocBuffer::end_offset(); }
-  static ByteSize tlab_top_offset()              { return byte_offset_of(Thread, _tlab) + ThreadLocalAllocBuffer::top_offset(); }
-  static ByteSize tlab_pf_top_offset()           { return byte_offset_of(Thread, _tlab) + ThreadLocalAllocBuffer::pf_top_offset(); }
+  static BytesInt tlab_start_offset()            { return byte_offset_of(Thread, _tlab) + ThreadLocalAllocBuffer::start_offset(); }
+  static BytesInt tlab_end_offset()              { return byte_offset_of(Thread, _tlab) + ThreadLocalAllocBuffer::end_offset(); }
+  static BytesInt tlab_top_offset()              { return byte_offset_of(Thread, _tlab) + ThreadLocalAllocBuffer::top_offset(); }
+  static BytesInt tlab_pf_top_offset()           { return byte_offset_of(Thread, _tlab) + ThreadLocalAllocBuffer::pf_top_offset(); }
 
-  static ByteSize allocated_bytes_offset()       { return byte_offset_of(Thread, _allocated_bytes); }
+  static BytesInt allocated_bytes_offset()       { return byte_offset_of(Thread, _allocated_bytes); }
 
   JFR_ONLY(DEFINE_THREAD_LOCAL_OFFSET_JFR;)
 

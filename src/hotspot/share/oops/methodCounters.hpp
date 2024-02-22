@@ -113,19 +113,19 @@ class MethodCounters : public Metadata {
   InvocationCounter* invocation_counter() { return &_invocation_counter; }
   InvocationCounter* backedge_counter()   { return &_backedge_counter; }
 
-  static ByteSize invocation_counter_offset()    {
+  static BytesInt invocation_counter_offset()    {
     return byte_offset_of(MethodCounters, _invocation_counter);
   }
 
-  static ByteSize backedge_counter_offset()      {
+  static BytesInt backedge_counter_offset()      {
     return byte_offset_of(MethodCounters, _backedge_counter);
   }
 
-  static ByteSize invoke_mask_offset() {
+  static BytesInt invoke_mask_offset() {
     return byte_offset_of(MethodCounters, _invoke_mask);
   }
 
-  static ByteSize backedge_mask_offset() {
+  static BytesInt backedge_mask_offset() {
     return byte_offset_of(MethodCounters, _backedge_mask);
   }
 

@@ -56,12 +56,12 @@ public:
   }
 
   // Compiler support.
-  static ByteSize byte_offset_of_index() {
+  static BytesInt byte_offset_of_index() {
     return PtrQueue::byte_offset_of_index<G1DirtyCardQueue>();
   }
   using PtrQueue::byte_width_of_index;
 
-  static ByteSize byte_offset_of_buf() {
+  static BytesInt byte_offset_of_buf() {
     return PtrQueue::byte_offset_of_buf<G1DirtyCardQueue>();
   }
   using PtrQueue::byte_width_of_buf;

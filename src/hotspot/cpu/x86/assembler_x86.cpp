@@ -193,11 +193,11 @@ Address Address::make_raw(int base, int index, int scale, int disp, relocInfo::r
   }
   bool valid_index = index != rsp->encoding();
   if (valid_index) {
-    Address madr(as_Register(base), as_Register(index), (Address::ScaleFactor)scale, in_ByteSize(disp));
+    Address madr(as_Register(base), as_Register(index), (Address::ScaleFactor)scale, in_BytesInt(disp));
     madr._rspec = rspec;
     return madr;
   } else {
-    Address madr(as_Register(base), noreg, Address::no_scale, in_ByteSize(disp));
+    Address madr(as_Register(base), noreg, Address::no_scale, in_BytesInt(disp));
     madr._rspec = rspec;
     return madr;
   }

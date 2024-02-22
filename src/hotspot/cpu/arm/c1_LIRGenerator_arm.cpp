@@ -343,7 +343,7 @@ bool LIRGenerator::strength_reduce_multiply(LIR_Opr left, jint c, LIR_Opr result
 }
 
 
-void LIRGenerator::store_stack_parameter(LIR_Opr item, ByteSize offset_from_sp) {
+void LIRGenerator::store_stack_parameter(LIR_Opr item, BytesInt offset_from_sp) {
   assert(item->type() == T_INT, "other types are not expected");
   __ store(item, new LIR_Address(FrameMap::SP_opr, in_bytes(offset_from_sp), item->type()));
 }
@@ -1039,7 +1039,7 @@ void LIRGenerator::do_NewMultiArray(NewMultiArray* x) {
     size->load_item();
     LIR_Opr sz = size->result();
     assert(sz->type() == T_INT, "should be");
-    store_stack_parameter(sz, in_ByteSize(i * BytesPerInt));
+    store_stack_parameter(sz, in_BytesInt(i * BytesPerInt));
   }
 
   CodeEmitInfo* info = state_for(x, x->state());

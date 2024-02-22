@@ -2133,9 +2133,9 @@ void TemplateTable::branch(bool is_jsr, bool is_wide) {
   __ profile_taken_branch(rax, rbx); // rax holds updated MDP, rbx
                                      // holds bumped taken count
 
-  const ByteSize be_offset = MethodCounters::backedge_counter_offset() +
+  const BytesInt be_offset = MethodCounters::backedge_counter_offset() +
                              InvocationCounter::counter_offset();
-  const ByteSize inv_offset = MethodCounters::invocation_counter_offset() +
+  const BytesInt inv_offset = MethodCounters::invocation_counter_offset() +
                               InvocationCounter::counter_offset();
 
   // Load up edx with the branch displacement

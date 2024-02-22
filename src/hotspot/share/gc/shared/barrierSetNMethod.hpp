@@ -42,7 +42,7 @@ public:
   bool supports_entry_barrier(nmethod* nm);
 
   virtual bool nmethod_entry_barrier(nmethod* nm);
-  virtual ByteSize thread_disarmed_guard_value_offset() const;
+  virtual BytesInt thread_disarmed_guard_value_offset() const;
   virtual int* disarmed_guard_value_address() const;
 
   int disarmed_guard_value() const;

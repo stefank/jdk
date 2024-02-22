@@ -47,7 +47,7 @@ class Address {
   Address(Register b, address d = 0)
     : _base(b), _index(noreg), _disp((intptr_t)d) {}
 
-  Address(Register b, ByteSize d)
+  Address(Register b, BytesInt d)
     : _base(b), _index(noreg), _disp((intptr_t)d) {}
 
   Address(Register b, intptr_t d)
@@ -175,9 +175,9 @@ struct FunctionDescriptor {
   inline void set_toc(  address toc)   { _toc   = toc; }
   inline void set_env(  address env)   { _env   = env; }
 
-  inline static ByteSize entry_offset() { return byte_offset_of(FunctionDescriptor, _entry); }
-  inline static ByteSize toc_offset()   { return byte_offset_of(FunctionDescriptor, _toc); }
-  inline static ByteSize env_offset()   { return byte_offset_of(FunctionDescriptor, _env); }
+  inline static BytesInt entry_offset() { return byte_offset_of(FunctionDescriptor, _entry); }
+  inline static BytesInt toc_offset()   { return byte_offset_of(FunctionDescriptor, _toc); }
+  inline static BytesInt env_offset()   { return byte_offset_of(FunctionDescriptor, _env); }
 
   // Friend functions can be called without loading toc and env.
   enum {
@@ -1728,7 +1728,7 @@ class Assembler : public AbstractAssembler {
   // 8 bytes
   inline void ldx(  Register d, Register s1, Register s2);
   inline void ld(   Register d, int si16,    Register s1);
-  inline void ld(   Register d, ByteSize si16, Register s1);
+  inline void ld(   Register d, BytesInt si16, Register s1);
   inline void ldu(  Register d, int si16,    Register s1);
 
   // 8 bytes reversed
@@ -1736,7 +1736,7 @@ class Assembler : public AbstractAssembler {
 
   // For convenience. Load pointer into d from b+s1.
   inline void ld_ptr(Register d, int b, Register s1);
-  inline void ld_ptr(Register d, ByteSize b, Register s1);
+  inline void ld_ptr(Register d, BytesInt b, Register s1);
 
   //  PPC 1, section 3.3.3 Fixed-Point Store Instructions
   inline void stwx( Register d, Register s1, Register s2);
@@ -1760,7 +1760,7 @@ class Assembler : public AbstractAssembler {
   inline void stdbrx( Register d, Register s1, Register s2);
 
   inline void st_ptr(Register d, int si16,    Register s1);
-  inline void st_ptr(Register d, ByteSize b, Register s1);
+  inline void st_ptr(Register d, BytesInt b, Register s1);
 
   // PPC 1, section 3.3.13 Move To/From System Register Instructions
   inline void mtlr( Register s1);
@@ -2421,7 +2421,7 @@ class Assembler : public AbstractAssembler {
   inline void lbz(  Register d, int si16);
   inline void ldx(  Register d, Register s2);
   inline void ld(   Register d, int si16);
-  inline void ld(   Register d, ByteSize si16);
+  inline void ld(   Register d, BytesInt si16);
   inline void ldbrx(Register d, Register s2);
   inline void stwx( Register d, Register s2);
   inline void stw(  Register d, int si16);

@@ -185,7 +185,7 @@ class vtableEntry {
   static int size()          { return sizeof(vtableEntry) / wordSize; }
   static int size_in_bytes() { return sizeof(vtableEntry); }
 
-  static ByteSize method_offset() { return byte_offset_of(vtableEntry, _method); }
+  static BytesInt method_offset() { return byte_offset_of(vtableEntry, _method); }
   Method* method() const    { return _method; }
   Method** method_addr()    { return &_method; }
 
@@ -232,8 +232,8 @@ class itableOffsetEntry {
 
   // Static size and offset accessors
   static int size()                            { return sizeof(itableOffsetEntry) / wordSize; }    // size in words
-  static ByteSize interface_offset()  { return byte_offset_of(itableOffsetEntry, _interface); }
-  static ByteSize offset_offset()     { return byte_offset_of(itableOffsetEntry, _offset); }
+  static BytesInt interface_offset()  { return byte_offset_of(itableOffsetEntry, _interface); }
+  static BytesInt offset_offset()     { return byte_offset_of(itableOffsetEntry, _offset); }
 
   friend class klassItable;
 };
@@ -253,7 +253,7 @@ class itableMethodEntry {
 
   // Static size and offset accessors
   static int size()                         { return sizeof(itableMethodEntry) / wordSize; }  // size in words
-  static ByteSize method_offset()  { return byte_offset_of(itableMethodEntry, _method); }
+  static BytesInt method_offset()  { return byte_offset_of(itableMethodEntry, _method); }
 
   friend class klassItable;
 };

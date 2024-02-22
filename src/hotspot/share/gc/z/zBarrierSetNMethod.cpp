@@ -88,6 +88,6 @@ int* ZBarrierSetNMethod::disarmed_guard_value_address() const {
   return (int*)ZPointerStoreGoodMaskLowOrderBitsAddr;
 }
 
-ByteSize ZBarrierSetNMethod::thread_disarmed_guard_value_offset() const {
+BytesInt ZBarrierSetNMethod::thread_disarmed_guard_value_offset() const {
   return ZThreadLocalData::nmethod_disarmed_offset();
 }

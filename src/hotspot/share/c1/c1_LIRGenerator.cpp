@@ -1456,7 +1456,7 @@ void LIRGenerator::do_vthread(Intrinsic* x) {
   do_JavaThreadField(x, JavaThread::vthread_offset());
 }
 
-void LIRGenerator::do_JavaThreadField(Intrinsic* x, ByteSize offset) {
+void LIRGenerator::do_JavaThreadField(Intrinsic* x, BytesInt offset) {
   assert(x->number_of_arguments() == 0, "wrong type");
   LIR_Opr temp = new_register(T_ADDRESS);
   LIR_Opr reg = rlock_result(x);
@@ -3053,7 +3053,7 @@ void LIRGenerator::profile_arguments(ProfileCall* x) {
     if (data != nullptr) {
       if ((data->is_CallTypeData() && data->as_CallTypeData()->has_arguments()) ||
           (data->is_VirtualCallTypeData() && data->as_VirtualCallTypeData()->has_arguments())) {
-        ByteSize extra = data->is_CallTypeData() ? CallTypeData::args_data_offset() : VirtualCallTypeData::args_data_offset();
+        BytesInt extra = data->is_CallTypeData() ? CallTypeData::args_data_offset() : VirtualCallTypeData::args_data_offset();
         int base_offset = md->byte_offset_of_slot(data, extra);
         LIR_Opr mdp = LIR_OprFact::illegalOpr;
         ciTypeStackSlotEntries* args = data->is_CallTypeData() ? ((ciCallTypeData*)data)->args() : ((ciVirtualCallTypeData*)data)->args();

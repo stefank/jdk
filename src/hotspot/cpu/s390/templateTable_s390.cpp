@@ -1882,9 +1882,9 @@ void TemplateTable::branch(bool is_jsr, bool is_wide) {
   __ get_method(method);
   __ profile_taken_branch(mdo, bumped_count);
 
-  const ByteSize ctr_offset = InvocationCounter::counter_offset();
-  const ByteSize be_offset  = MethodCounters::backedge_counter_offset()   + ctr_offset;
-  const ByteSize inv_offset = MethodCounters::invocation_counter_offset() + ctr_offset;
+  const BytesInt ctr_offset = InvocationCounter::counter_offset();
+  const BytesInt be_offset  = MethodCounters::backedge_counter_offset()   + ctr_offset;
+  const BytesInt inv_offset = MethodCounters::invocation_counter_offset() + ctr_offset;
 
   // Get (wide) offset to disp.
   const Register disp = Z_ARG5;

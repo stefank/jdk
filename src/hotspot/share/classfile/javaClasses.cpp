@@ -1748,8 +1748,8 @@ JavaThreadStatus java_lang_Thread::get_thread_status(oop java_thread) {
   GET_FIELDHOLDER_FIELD(java_thread, get_thread_status, JavaThreadStatus::NEW /* not initialized */);
 }
 
-ByteSize java_lang_Thread::thread_id_offset() {
-  return in_ByteSize(_tid_offset);
+BytesInt java_lang_Thread::thread_id_offset() {
+  return in_BytesInt(_tid_offset);
 }
 
 oop java_lang_Thread::park_blocker(oop java_thread) {

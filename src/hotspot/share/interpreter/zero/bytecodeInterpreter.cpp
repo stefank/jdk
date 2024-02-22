@@ -3282,7 +3282,7 @@ run:
         // has occurred and to pick the preserved args copy them to the deoptimized frame's
         // java expression stack. Yuck.
         //
-        THREAD->popframe_preserve_args(in_ByteSize(METHOD->size_of_parameters() * wordSize),
+        THREAD->popframe_preserve_args(in_BytesInt(METHOD->size_of_parameters() * wordSize),
                                 LOCALS_SLOT(METHOD->size_of_parameters() - 1));
         THREAD->set_popframe_condition_bit(JavaThread::popframe_force_deopt_reexecution_bit);
       }

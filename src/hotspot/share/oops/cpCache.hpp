@@ -186,10 +186,10 @@ class ConstantPoolCache: public MetaspaceObj {
   void print_resolved_method_entries(outputStream* st) const;
 
   // Assembly code support
-  static ByteSize resolved_references_offset()     { return byte_offset_of(ConstantPoolCache, _resolved_references);     }
-  static ByteSize invokedynamic_entries_offset()   { return byte_offset_of(ConstantPoolCache, _resolved_indy_entries);   }
-  static ByteSize field_entries_offset()           { return byte_offset_of(ConstantPoolCache, _resolved_field_entries);  }
-  static ByteSize method_entries_offset()          { return byte_offset_of(ConstantPoolCache, _resolved_method_entries); }
+  static BytesInt resolved_references_offset()     { return byte_offset_of(ConstantPoolCache, _resolved_references);     }
+  static BytesInt invokedynamic_entries_offset()   { return byte_offset_of(ConstantPoolCache, _resolved_indy_entries);   }
+  static BytesInt field_entries_offset()           { return byte_offset_of(ConstantPoolCache, _resolved_field_entries);  }
+  static BytesInt method_entries_offset()          { return byte_offset_of(ConstantPoolCache, _resolved_method_entries); }
 
 #if INCLUDE_CDS
   void remove_unshareable_info();
@@ -210,7 +210,7 @@ class ConstantPoolCache: public MetaspaceObj {
   ConstantPool* constant_pool() const          { return _constant_pool; }
 
   // Code generation
-  static ByteSize base_offset()                  { return in_ByteSize(sizeof(ConstantPoolCache)); }
+  static BytesInt base_offset()                  { return in_BytesInt(sizeof(ConstantPoolCache)); }
 
 #if INCLUDE_JVMTI
   // RedefineClasses() API support:

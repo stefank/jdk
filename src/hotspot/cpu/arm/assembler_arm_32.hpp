@@ -55,7 +55,7 @@ class AsmOperand {
     encode(imm_8);
   }
 
-  AsmOperand(ByteSize bytesize_8) :
+  AsmOperand(BytesInt bytesize_8) :
     AsmOperand(in_bytes(bytesize_8)) {}
 
   AsmOperand(Register rm, AsmShift shift, int shift_imm) {

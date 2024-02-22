@@ -133,7 +133,7 @@ void MethodHandles::jump_from_method_handle(MacroAssembler* _masm, bool for_comp
     __ cmp(Rtemp, 0);
     __ ldr(PC, Address(Rmethod, Method::interpreter_entry_offset()), ne);
   }
-  const ByteSize entry_offset = for_compiler_entry ? Method::from_compiled_offset() :
+  const BytesInt entry_offset = for_compiler_entry ? Method::from_compiled_offset() :
                                                      Method::from_interpreted_offset();
 
   __ indirect_jump(Address(Rmethod, entry_offset), Rtemp);

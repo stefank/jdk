@@ -258,16 +258,16 @@ class Address {
   }
 
   // The following overloads are used in connection with the
-  // ByteSize type (see sizes.hpp).  They simplify the use of
-  // ByteSize'd arguments in assembly code.
+  // BytesInt type (see sizes.hpp).  They simplify the use of
+  // BytesInt'd arguments in assembly code.
 
-  Address(Register base, ByteSize disp)
+  Address(Register base, BytesInt disp)
     : Address(base, in_bytes(disp)) {}
 
-  Address(Register base, Register index, ScaleFactor scale, ByteSize disp)
+  Address(Register base, Register index, ScaleFactor scale, BytesInt disp)
     : Address(base, index, scale, in_bytes(disp)) {}
 
-  Address(Register base, RegisterOrConstant index, ScaleFactor scale, ByteSize disp)
+  Address(Register base, RegisterOrConstant index, ScaleFactor scale, BytesInt disp)
     : Address(base, index, scale, in_bytes(disp)) {}
 
   Address plus_disp(int disp) const {

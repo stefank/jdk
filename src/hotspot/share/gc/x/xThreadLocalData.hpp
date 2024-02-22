@@ -79,12 +79,12 @@ public:
     }
   }
 
-  static ByteSize address_bad_mask_offset() {
+  static BytesInt address_bad_mask_offset() {
     return Thread::gc_data_offset() + byte_offset_of(XThreadLocalData, _address_bad_mask);
   }
 
-  static ByteSize nmethod_disarmed_offset() {
-    return address_bad_mask_offset() + in_ByteSize(XAddressBadMaskHighOrderBitsOffset);
+  static BytesInt nmethod_disarmed_offset() {
+    return address_bad_mask_offset() + in_BytesInt(XAddressBadMaskHighOrderBitsOffset);
   }
 };
 

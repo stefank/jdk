@@ -2027,9 +2027,9 @@ void TemplateTable::branch(bool is_jsr, bool is_wide) {
 
   __ profile_taken_branch(R0_tmp, Rbumped_taken_count); // R0 holds updated MDP, Rbumped_taken_count holds bumped taken count
 
-  const ByteSize be_offset = MethodCounters::backedge_counter_offset() +
+  const BytesInt be_offset = MethodCounters::backedge_counter_offset() +
                              InvocationCounter::counter_offset();
-  const ByteSize inv_offset = MethodCounters::invocation_counter_offset() +
+  const BytesInt inv_offset = MethodCounters::invocation_counter_offset() +
                               InvocationCounter::counter_offset();
   const int method_offset = frame::interpreter_frame_method_offset * wordSize;
 
@@ -3111,7 +3111,7 @@ void TemplateTable::getstatic(int byte_no) {
 // Blows volatile registers R0-R3, Rtemp, LR,
 // except cache and index registers which are preserved.
 void TemplateTable::jvmti_post_field_mod(Register Rcache, Register Rindex, bool is_static) {
-  ByteSize cp_base_offset = ConstantPoolCache::base_offset();
+  BytesInt cp_base_offset = ConstantPoolCache::base_offset();
   assert_different_registers(Rcache, Rindex, R1, Rtemp);
 
   if (__ can_post_field_modification()) {
@@ -3438,7 +3438,7 @@ void TemplateTable::jvmti_post_fast_field_mod(TosState state) {
 void TemplateTable::fast_storefield(TosState state) {
   transition(state, vtos);
 
-  ByteSize base = ConstantPoolCache::base_offset();
+  BytesInt base = ConstantPoolCache::base_offset();
 
   jvmti_post_fast_field_mod(state);
 
@@ -3713,7 +3713,7 @@ void TemplateTable::invokevirtual_helper(Register index,
   __ profile_virtual_call(R0_tmp, recv_klass);
 
   // get target Method* & entry point
-  const ByteSize base = Klass::vtable_start_offset();
+  const BytesInt base = Klass::vtable_start_offset();
   assert(vtableEntry::size() == 1, "adjust the scaling in the code below");
   __ add(Rtemp, recv_klass, AsmOperand(index, lsl, LogHeapWordSize));
   __ ldr(Rmethod, Address(Rtemp, base + vtableEntry::method_offset()));

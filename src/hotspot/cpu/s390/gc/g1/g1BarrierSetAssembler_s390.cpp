@@ -581,8 +581,8 @@ void G1BarrierSetAssembler::generate_c1_post_barrier_runtime_stub(StubAssembler*
   // Save registers used below (see assertion in G1PreBarrierStub::emit_code()).
   __ z_stg(r2, 1*BytesPerWord + FrameMap::first_available_sp_in_frame, Z_SP);
 
-  ByteSize dirty_card_q_index_byte_offset = G1ThreadLocalData::dirty_card_queue_index_offset();
-  ByteSize dirty_card_q_buf_byte_offset = G1ThreadLocalData::dirty_card_queue_buffer_offset();
+  BytesInt dirty_card_q_index_byte_offset = G1ThreadLocalData::dirty_card_queue_index_offset();
+  BytesInt dirty_card_q_buf_byte_offset = G1ThreadLocalData::dirty_card_queue_buffer_offset();
 
   __ bind(restart);
 

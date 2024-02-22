@@ -82,7 +82,7 @@ private:
 public:
 
   // Miscellaneous
-  static ByteSize counter_offset()               { return byte_offset_of(InvocationCounter, _counter); }
+  static BytesInt counter_offset()               { return byte_offset_of(InvocationCounter, _counter); }
 };
 
 #endif // SHARE_INTERPRETER_INVOCATIONCOUNTER_HPP

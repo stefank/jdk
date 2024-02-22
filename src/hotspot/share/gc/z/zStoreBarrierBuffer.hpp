@@ -34,8 +34,8 @@ struct ZStoreBarrierEntry {
   volatile zpointer* _p;
   zpointer           _prev;
 
-  static ByteSize p_offset();
-  static ByteSize prev_offset();
+  static BytesInt p_offset();
+  static BytesInt prev_offset();
 };
 
 class ZStoreBarrierBuffer : public CHeapObj<mtGC> {
@@ -78,8 +78,8 @@ private:
 public:
   ZStoreBarrierBuffer();
 
-  static ByteSize buffer_offset();
-  static ByteSize current_offset();
+  static BytesInt buffer_offset();
+  static BytesInt current_offset();
 
   static ZStoreBarrierBuffer* buffer_for_store(bool heal);
 

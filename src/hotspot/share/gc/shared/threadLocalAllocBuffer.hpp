@@ -181,10 +181,10 @@ public:
   }
 
   // Code generation support
-  static ByteSize start_offset()                 { return byte_offset_of(ThreadLocalAllocBuffer, _start); }
-  static ByteSize end_offset()                   { return byte_offset_of(ThreadLocalAllocBuffer, _end); }
-  static ByteSize top_offset()                   { return byte_offset_of(ThreadLocalAllocBuffer, _top); }
-  static ByteSize pf_top_offset()                { return byte_offset_of(ThreadLocalAllocBuffer, _pf_top); }
+  static BytesInt start_offset()                 { return byte_offset_of(ThreadLocalAllocBuffer, _start); }
+  static BytesInt end_offset()                   { return byte_offset_of(ThreadLocalAllocBuffer, _end); }
+  static BytesInt top_offset()                   { return byte_offset_of(ThreadLocalAllocBuffer, _top); }
+  static BytesInt pf_top_offset()                { return byte_offset_of(ThreadLocalAllocBuffer, _pf_top); }
 };
 
 class ThreadLocalAllocStats : public StackObj {

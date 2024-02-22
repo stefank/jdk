@@ -93,18 +93,18 @@ public:
 protected:
   // To support compiler.
   template<typename Derived>
-  static ByteSize byte_offset_of_index() {
+  static BytesInt byte_offset_of_index() {
     return byte_offset_of(Derived, _index);
   }
 
-  static constexpr ByteSize byte_width_of_index() { return in_ByteSize(sizeof(size_t)); }
+  static constexpr BytesInt byte_width_of_index() { return in_BytesInt(sizeof(size_t)); }
 
   template<typename Derived>
-  static ByteSize byte_offset_of_buf() {
+  static BytesInt byte_offset_of_buf() {
     return byte_offset_of(Derived, _buf);
   }
 
-  static ByteSize byte_width_of_buf() { return in_ByteSize(_element_size); }
+  static BytesInt byte_width_of_buf() { return in_BytesInt(_element_size); }
 };
 
 // A PtrQueueSet represents resources common to a set of pointer queues.

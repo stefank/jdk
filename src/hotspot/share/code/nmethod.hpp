@@ -245,8 +245,8 @@ class nmethod : public CompiledMethod {
   // to be byte offsets from the Java stack pointer for maximum code
   // sharing between platforms. JVMTI's GetLocalInstance() uses these
   // offsets to find the receiver for non-static native wrapper frames.
-  ByteSize _native_receiver_sp_offset;
-  ByteSize _native_basic_lock_sp_offset;
+  BytesInt _native_receiver_sp_offset;
+  BytesInt _native_basic_lock_sp_offset;
 
   CompLevel _comp_level;               // compilation level
 
@@ -272,8 +272,8 @@ class nmethod : public CompiledMethod {
           CodeOffsets* offsets,
           CodeBuffer *code_buffer,
           int frame_size,
-          ByteSize basic_lock_owner_sp_offset, /* synchronized natives only */
-          ByteSize basic_lock_sp_offset,       /* synchronized natives only */
+          BytesInt basic_lock_owner_sp_offset, /* synchronized natives only */
+          BytesInt basic_lock_sp_offset,       /* synchronized natives only */
           OopMapSet* oop_maps);
 
   // Creation support
@@ -354,8 +354,8 @@ class nmethod : public CompiledMethod {
   // Only used for unit tests.
   nmethod()
     : CompiledMethod(),
-      _native_receiver_sp_offset(in_ByteSize(-1)),
-      _native_basic_lock_sp_offset(in_ByteSize(-1)),
+      _native_receiver_sp_offset(in_BytesInt(-1)),
+      _native_basic_lock_sp_offset(in_BytesInt(-1)),
       _is_unloading_state(0) {}
 
 
@@ -365,8 +365,8 @@ class nmethod : public CompiledMethod {
                                      int vep_offset,
                                      int frame_complete,
                                      int frame_size,
-                                     ByteSize receiver_sp_offset,
-                                     ByteSize basic_lock_sp_offset,
+                                     BytesInt receiver_sp_offset,
+                                     BytesInt basic_lock_sp_offset,
                                      OopMapSet* oop_maps,
                                      int exception_handler = -1);
 
@@ -687,17 +687,17 @@ public:
   virtual bool is_dependent_on_method(Method* dependee);
 
   // JVMTI's GetLocalInstance() support
-  ByteSize native_receiver_sp_offset() {
+  BytesInt native_receiver_sp_offset() {
     return _native_receiver_sp_offset;
   }
-  ByteSize native_basic_lock_sp_offset() {
+  BytesInt native_basic_lock_sp_offset() {
     return _native_basic_lock_sp_offset;
   }
 
   // support for code generation
-  static ByteSize verified_entry_point_offset() { return byte_offset_of(nmethod, _verified_entry_point); }
-  static ByteSize osr_entry_point_offset()      { return byte_offset_of(nmethod, _osr_entry_point); }
-  static ByteSize state_offset()                { return byte_offset_of(nmethod, _state); }
+  static BytesInt verified_entry_point_offset() { return byte_offset_of(nmethod, _verified_entry_point); }
+  static BytesInt osr_entry_point_offset()      { return byte_offset_of(nmethod, _osr_entry_point); }
+  static BytesInt state_offset()                { return byte_offset_of(nmethod, _state); }
 
   virtual void metadata_do(MetadataClosure* f);
 

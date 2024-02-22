@@ -1860,7 +1860,7 @@ void Deoptimization::deoptimize_frame(JavaThread* thread, intptr_t* id) {
 JRT_LEAF(void, Deoptimization::popframe_preserve_args(JavaThread* thread, int bytes_to_save, void* start_address))
 {
   assert(thread == JavaThread::current(), "pre-condition");
-  thread->popframe_preserve_args(in_ByteSize(bytes_to_save), start_address);
+  thread->popframe_preserve_args(in_BytesInt(bytes_to_save), start_address);
 }
 JRT_END
 

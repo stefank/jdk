@@ -286,7 +286,7 @@ bool LIRGenerator::strength_reduce_multiply(LIR_Opr left, jint c, LIR_Opr result
 }
 
 
-void LIRGenerator::store_stack_parameter (LIR_Opr item, ByteSize offset_from_sp) {
+void LIRGenerator::store_stack_parameter (LIR_Opr item, BytesInt offset_from_sp) {
   BasicType type = item->type();
   __ store(item, new LIR_Address(FrameMap::rsp_opr, in_bytes(offset_from_sp), type));
 }
@@ -1395,7 +1395,7 @@ void LIRGenerator::do_NewMultiArray(NewMultiArray* x) {
     LIRItem* size = items->at(i);
     size->load_nonconstant();
 
-    store_stack_parameter(size->result(), in_ByteSize(i*4));
+    store_stack_parameter(size->result(), in_BytesInt(i*4));
   }
 
   LIR_Opr klass_reg = FrameMap::rax_metadata_opr;
@@ -1554,7 +1554,7 @@ LIR_Opr LIRGenerator::getThreadPointer() {
 }
 
 void LIRGenerator::trace_block_entry(BlockBegin* block) {
-  store_stack_parameter(LIR_OprFact::intConst(block->block_id()), in_ByteSize(0));
+  store_stack_parameter(LIR_OprFact::intConst(block->block_id()), in_BytesInt(0));
   LIR_OprList* args = new LIR_OprList();
   address func = CAST_FROM_FN_PTR(address, Runtime1::trace_block_entry);
   __ call_runtime_leaf(func, LIR_OprFact::illegalOpr, LIR_OprFact::illegalOpr, args);

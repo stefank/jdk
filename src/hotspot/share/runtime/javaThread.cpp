@@ -1832,7 +1832,7 @@ JvmtiThreadState* JavaThread::rebind_to_jvmti_thread_state_of(oop thread_oop) {
 #endif
 
 // JVMTI PopFrame support
-void JavaThread::popframe_preserve_args(ByteSize size_in_bytes, void* start) {
+void JavaThread::popframe_preserve_args(BytesInt size_in_bytes, void* start) {
   assert(_popframe_preserved_args == nullptr, "should not wipe out old PopFrame preserved arguments");
   if (in_bytes(size_in_bytes) != 0) {
     _popframe_preserved_args = NEW_C_HEAP_ARRAY(char, in_bytes(size_in_bytes), mtThread);
@@ -1845,14 +1845,14 @@ void* JavaThread::popframe_preserved_args() {
   return _popframe_preserved_args;
 }
 
-ByteSize JavaThread::popframe_preserved_args_size() {
-  return in_ByteSize(_popframe_preserved_args_size);
+BytesInt JavaThread::popframe_preserved_args_size() {
+  return in_BytesInt(_popframe_preserved_args_size);
 }
 
-WordSize JavaThread::popframe_preserved_args_size_in_words() {
+WordsInt JavaThread::popframe_preserved_args_size_in_words() {
   int sz = in_bytes(popframe_preserved_args_size());
   assert(sz % wordSize == 0, "argument size must be multiple of wordSize");
-  return in_WordSize(sz / wordSize);
+  return in_WordsInt(sz / wordSize);
 }
 
 void JavaThread::popframe_free_preserved_args() {

@@ -171,7 +171,7 @@ class JvmtiEnvBase : public CHeapObj<mtInternal> {
 
   const void* get_env_local_storage() { return _env_local_storage; }
 
-  static ByteSize jvmti_external_offset() {
+  static BytesInt jvmti_external_offset() {
     return byte_offset_of(JvmtiEnvBase, _jvmti_external);
   };
 

@@ -35,7 +35,7 @@
   frame pd_last_frame();
 
  public:
-  static ByteSize last_Java_fp_offset()          {
+  static BytesInt last_Java_fp_offset()          {
     return byte_offset_of(JavaThread, _anchor) + JavaFrameAnchor::last_Java_fp_offset();
   }
 

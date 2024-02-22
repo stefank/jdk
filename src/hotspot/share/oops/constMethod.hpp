@@ -422,20 +422,20 @@ public:
   bool    contains(address bcp) const  { return code_base() <= bcp
                                                      && bcp < code_end(); }
   // Offset to bytecodes
-  static ByteSize codes_offset()
-                            { return in_ByteSize(sizeof(ConstMethod)); }
+  static BytesInt codes_offset()
+                            { return in_BytesInt(sizeof(ConstMethod)); }
 
-  static ByteSize constants_offset()
+  static BytesInt constants_offset()
                             { return byte_offset_of(ConstMethod, _constants); }
 
-  static ByteSize max_stack_offset()
+  static BytesInt max_stack_offset()
                             { return byte_offset_of(ConstMethod, _max_stack); }
-  static ByteSize size_of_locals_offset()
+  static BytesInt size_of_locals_offset()
                             { return byte_offset_of(ConstMethod, _max_locals); }
-  static ByteSize size_of_parameters_offset()
+  static BytesInt size_of_parameters_offset()
                             { return byte_offset_of(ConstMethod, _size_of_parameters); }
 
-  static ByteSize result_type_offset()
+  static BytesInt result_type_offset()
                             { return byte_offset_of(ConstMethod, _result_type); }
 
   // Unique id for the method

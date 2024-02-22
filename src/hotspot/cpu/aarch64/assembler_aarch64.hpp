@@ -427,7 +427,7 @@ class Address {
     _nonliteral(r, noreg, o)
   {}
 
-  Address(Register r, ByteSize disp) : Address(r, in_bytes(disp)) {}
+  Address(Register r, BytesInt disp) : Address(r, in_bytes(disp)) {}
 
   Address(Register r, Register r1, extend ext = lsl()) :
     _mode(base_plus_offset_reg),

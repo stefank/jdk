@@ -608,26 +608,26 @@ public:
   static void print_touched_methods(outputStream* out);
 
   // interpreter support
-  static ByteSize const_offset()                 { return byte_offset_of(Method, _constMethod       ); }
-  static ByteSize access_flags_offset()          { return byte_offset_of(Method, _access_flags      ); }
-  static ByteSize from_compiled_offset()         { return byte_offset_of(Method, _from_compiled_entry); }
-  static ByteSize code_offset()                  { return byte_offset_of(Method, _code); }
+  static BytesInt const_offset()                 { return byte_offset_of(Method, _constMethod       ); }
+  static BytesInt access_flags_offset()          { return byte_offset_of(Method, _access_flags      ); }
+  static BytesInt from_compiled_offset()         { return byte_offset_of(Method, _from_compiled_entry); }
+  static BytesInt code_offset()                  { return byte_offset_of(Method, _code); }
 
-  static ByteSize method_counters_offset()       {
+  static BytesInt method_counters_offset()       {
     return byte_offset_of(Method, _method_counters);
   }
 #ifndef PRODUCT
-  static ByteSize compiled_invocation_counter_offset() { return byte_offset_of(Method, _compiled_invocation_count); }
+  static BytesInt compiled_invocation_counter_offset() { return byte_offset_of(Method, _compiled_invocation_count); }
 #endif // not PRODUCT
-  static ByteSize native_function_offset()       { return in_ByteSize(sizeof(Method));                 }
-  static ByteSize from_interpreted_offset()      { return byte_offset_of(Method, _from_interpreted_entry ); }
-  static ByteSize interpreter_entry_offset()     { return byte_offset_of(Method, _i2i_entry ); }
-  static ByteSize signature_handler_offset()     { return in_ByteSize(sizeof(Method) + wordSize);      }
-  static ByteSize itable_index_offset()          { return byte_offset_of(Method, _vtable_index ); }
+  static BytesInt native_function_offset()       { return in_BytesInt(sizeof(Method));                 }
+  static BytesInt from_interpreted_offset()      { return byte_offset_of(Method, _from_interpreted_entry ); }
+  static BytesInt interpreter_entry_offset()     { return byte_offset_of(Method, _i2i_entry ); }
+  static BytesInt signature_handler_offset()     { return in_BytesInt(sizeof(Method) + wordSize);      }
+  static BytesInt itable_index_offset()          { return byte_offset_of(Method, _vtable_index ); }
 
   // for code generation
-  static ByteSize method_data_offset()  { return byte_offset_of(Method, _method_data); }
-  static ByteSize intrinsic_id_offset() { return byte_offset_of(Method, _intrinsic_id); }
+  static BytesInt method_data_offset()  { return byte_offset_of(Method, _method_data); }
+  static BytesInt intrinsic_id_offset() { return byte_offset_of(Method, _intrinsic_id); }
   static int intrinsic_id_size_in_bytes()        { return sizeof(u2); }
 
   // Static methods that are used to implement member methods where an exposed this pointer

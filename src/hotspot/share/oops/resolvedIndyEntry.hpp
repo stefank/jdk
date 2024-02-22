@@ -132,11 +132,11 @@ public:
   void remove_unshareable_info();
 
   // Offsets
-  static ByteSize method_offset()                    { return byte_offset_of(ResolvedIndyEntry, _method);                    }
-  static ByteSize resolved_references_index_offset() { return byte_offset_of(ResolvedIndyEntry, _resolved_references_index); }
-  static ByteSize result_type_offset()               { return byte_offset_of(ResolvedIndyEntry, _return_type);               }
-  static ByteSize num_parameters_offset()            { return byte_offset_of(ResolvedIndyEntry, _number_of_parameters);      }
-  static ByteSize flags_offset()                     { return byte_offset_of(ResolvedIndyEntry, _flags);                     }
+  static BytesInt method_offset()                    { return byte_offset_of(ResolvedIndyEntry, _method);                    }
+  static BytesInt resolved_references_index_offset() { return byte_offset_of(ResolvedIndyEntry, _resolved_references_index); }
+  static BytesInt result_type_offset()               { return byte_offset_of(ResolvedIndyEntry, _return_type);               }
+  static BytesInt num_parameters_offset()            { return byte_offset_of(ResolvedIndyEntry, _number_of_parameters);      }
+  static BytesInt flags_offset()                     { return byte_offset_of(ResolvedIndyEntry, _flags);                     }
 };
 
 #endif // SHARE_OOPS_RESOLVEDINDYENTRY_HPP

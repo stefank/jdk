@@ -214,11 +214,11 @@ private:
 
   static int Knob_SpinLimit;
 
-  static ByteSize owner_offset()       { return byte_offset_of(ObjectMonitor, _owner); }
-  static ByteSize recursions_offset()  { return byte_offset_of(ObjectMonitor, _recursions); }
-  static ByteSize cxq_offset()         { return byte_offset_of(ObjectMonitor, _cxq); }
-  static ByteSize succ_offset()        { return byte_offset_of(ObjectMonitor, _succ); }
-  static ByteSize EntryList_offset()   { return byte_offset_of(ObjectMonitor, _EntryList); }
+  static BytesInt owner_offset()       { return byte_offset_of(ObjectMonitor, _owner); }
+  static BytesInt recursions_offset()  { return byte_offset_of(ObjectMonitor, _recursions); }
+  static BytesInt cxq_offset()         { return byte_offset_of(ObjectMonitor, _cxq); }
+  static BytesInt succ_offset()        { return byte_offset_of(ObjectMonitor, _succ); }
+  static BytesInt EntryList_offset()   { return byte_offset_of(ObjectMonitor, _EntryList); }
 
   // ObjectMonitor references can be ORed with markWord::monitor_value
   // as part of the ObjectMonitor tagging mechanism. When we combine an

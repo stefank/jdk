@@ -285,13 +285,13 @@ class JfrThreadLocal {
   static void on_java_thread_start(JavaThread* starter, JavaThread* startee);
 
   // Code generation
-  static ByteSize java_event_writer_offset();
-  static ByteSize java_buffer_offset();
-  static ByteSize vthread_id_offset();
-  static ByteSize vthread_offset();
-  static ByteSize vthread_epoch_offset();
-  static ByteSize vthread_excluded_offset();
-  static ByteSize notified_offset();
+  static BytesInt java_event_writer_offset();
+  static BytesInt java_buffer_offset();
+  static BytesInt vthread_id_offset();
+  static BytesInt vthread_offset();
+  static BytesInt vthread_epoch_offset();
+  static BytesInt vthread_excluded_offset();
+  static BytesInt notified_offset();
 
   friend class JfrJavaThread;
   friend class JfrCheckpointManager;

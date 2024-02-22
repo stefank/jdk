@@ -67,7 +67,7 @@ private:
     return thread->gc_data<ShenandoahThreadLocalData>();
   }
 
-  static ByteSize satb_mark_queue_offset() {
+  static BytesInt satb_mark_queue_offset() {
     return Thread::gc_data_offset() + byte_offset_of(ShenandoahThreadLocalData, _satb_mark_queue);
   }
 
@@ -158,19 +158,19 @@ public:
   }
 
   // Offsets
-  static ByteSize satb_mark_queue_active_offset() {
+  static BytesInt satb_mark_queue_active_offset() {
     return satb_mark_queue_offset() + SATBMarkQueue::byte_offset_of_active();
   }
 
-  static ByteSize satb_mark_queue_index_offset() {
+  static BytesInt satb_mark_queue_index_offset() {
     return satb_mark_queue_offset() + SATBMarkQueue::byte_offset_of_index();
   }
 
-  static ByteSize satb_mark_queue_buffer_offset() {
+  static BytesInt satb_mark_queue_buffer_offset() {
     return satb_mark_queue_offset() + SATBMarkQueue::byte_offset_of_buf();
   }
 
-  static ByteSize gc_state_offset() {
+  static BytesInt gc_state_offset() {
     return Thread::gc_data_offset() + byte_offset_of(ShenandoahThreadLocalData, _gc_state);
   }
 };

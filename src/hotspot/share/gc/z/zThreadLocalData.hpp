@@ -120,27 +120,27 @@ public:
     return data(thread)->_invisible_root;
   }
 
-  static ByteSize load_bad_mask_offset() {
+  static BytesInt load_bad_mask_offset() {
     return Thread::gc_data_offset() + byte_offset_of(ZThreadLocalData, _load_bad_mask);
   }
 
-  static ByteSize mark_bad_mask_offset() {
+  static BytesInt mark_bad_mask_offset() {
     return Thread::gc_data_offset() + byte_offset_of(ZThreadLocalData, _mark_bad_mask);
   }
 
-  static ByteSize store_bad_mask_offset() {
+  static BytesInt store_bad_mask_offset() {
     return Thread::gc_data_offset() + byte_offset_of(ZThreadLocalData, _store_bad_mask);
   }
 
-  static ByteSize store_good_mask_offset() {
+  static BytesInt store_good_mask_offset() {
     return Thread::gc_data_offset() + byte_offset_of(ZThreadLocalData, _store_good_mask);
   }
 
-  static ByteSize nmethod_disarmed_offset() {
+  static BytesInt nmethod_disarmed_offset() {
     return Thread::gc_data_offset() + byte_offset_of(ZThreadLocalData, _nmethod_disarmed);
   }
 
-  static ByteSize store_barrier_buffer_offset() {
+  static BytesInt store_barrier_buffer_offset() {
     return Thread::gc_data_offset() + byte_offset_of(ZThreadLocalData, _store_barrier_buffer);
   }
 };

@@ -307,7 +307,7 @@ bool LIRGenerator::strength_reduce_multiply(LIR_Opr left, jint c, LIR_Opr result
 }
 
 
-void LIRGenerator::store_stack_parameter(LIR_Opr item, ByteSize offset_from_sp) {
+void LIRGenerator::store_stack_parameter(LIR_Opr item, BytesInt offset_from_sp) {
   BasicType t = item->type();
   LIR_Opr sp_opr = FrameMap::SP_opr;
   __ move(item, new LIR_Address(sp_opr, in_bytes(offset_from_sp), t));
@@ -997,7 +997,7 @@ void LIRGenerator::do_NewMultiArray(NewMultiArray* x) {
     // FrameMap::_reserved_argument_area_size includes the dimensions
     // varargs, because it's initialized to hir()->max_stack() when the
     // FrameMap is created.
-    store_stack_parameter(size->result(), in_ByteSize(i*sizeof(jint) + FrameMap::first_available_sp_in_frame));
+    store_stack_parameter(size->result(), in_BytesInt(i*sizeof(jint) + FrameMap::first_available_sp_in_frame));
   }
 
   const LIR_Opr klass_reg = FrameMap::R4_metadata_opr; // Used by slow path.

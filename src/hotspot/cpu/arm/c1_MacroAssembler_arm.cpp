@@ -186,7 +186,7 @@ int C1_MacroAssembler::lock_object(Register hdr, Register obj, Register disp_hdr
   assert_different_registers(hdr, obj, disp_hdr, tmp2);
 
   assert(BasicObjectLock::lock_offset() == 0, "adjust this code");
-  const ByteSize obj_offset = BasicObjectLock::obj_offset();
+  const BytesInt obj_offset = BasicObjectLock::obj_offset();
   const int mark_offset = BasicLock::displaced_header_offset_in_bytes();
 
   // save object being locked into the BasicObjectLock
@@ -257,7 +257,7 @@ void C1_MacroAssembler::unlock_object(Register hdr, Register obj, Register disp_
   Register tmp2 = Rtemp;
 
   assert(BasicObjectLock::lock_offset() == 0, "adjust this code");
-  const ByteSize obj_offset = BasicObjectLock::obj_offset();
+  const BytesInt obj_offset = BasicObjectLock::obj_offset();
   const int mark_offset = BasicLock::displaced_header_offset_in_bytes();
 
   Label done;

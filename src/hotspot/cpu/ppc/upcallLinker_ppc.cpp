@@ -334,7 +334,7 @@ address UpcallLinker::make_upcall_stub(jobject receiver, Method* entry,
     = UpcallStub::create(name,
                          &buffer,
                          receiver,
-                         in_ByteSize(frame_data_offset));
+                         in_BytesInt(frame_data_offset));
   if (blob == nullptr) {
     return nullptr;
   }

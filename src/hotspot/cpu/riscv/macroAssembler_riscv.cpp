@@ -2649,7 +2649,7 @@ void MacroAssembler::lookup_interface_method_stub(Register recv_klass,
 void MacroAssembler::lookup_virtual_method(Register recv_klass,
                                            RegisterOrConstant vtable_index,
                                            Register method_result) {
-  const ByteSize base = Klass::vtable_start_offset();
+  const BytesInt base = Klass::vtable_start_offset();
   assert(vtableEntry::size() * wordSize == 8,
          "adjust the scaling in the code below");
   int vtable_offset_in_bytes = in_bytes(base + vtableEntry::method_offset());

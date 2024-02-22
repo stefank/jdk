@@ -125,7 +125,7 @@ int* BarrierSetNMethod::disarmed_guard_value_address() const {
   return (int*) &_current_phase;
 }
 
-ByteSize BarrierSetNMethod::thread_disarmed_guard_value_offset() const {
+BytesInt BarrierSetNMethod::thread_disarmed_guard_value_offset() const {
   return Thread::nmethod_disarmed_guard_value_offset();
 }
 

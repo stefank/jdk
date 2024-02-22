@@ -134,7 +134,7 @@ class LibraryCallKit : public GraphKit {
                              RegionNode* region);
   void  generate_string_range_check(Node* array, Node* offset,
                                     Node* length, bool char_count);
-  Node* current_thread_helper(Node* &tls_output, ByteSize handle_offset,
+  Node* current_thread_helper(Node* &tls_output, BytesInt handle_offset,
                               bool is_immutable);
   Node* generate_current_thread(Node* &tls_output);
   Node* generate_virtual_thread(Node* threadObj);

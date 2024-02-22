@@ -674,9 +674,9 @@ ciParametersTypeData* ciMethodData::parameters_type_data() const {
   return parameter_data_size() != 0 ? new ciParametersTypeData(data_layout_at(_parameters_data_offset)) : nullptr;
 }
 
-ByteSize ciMethodData::offset_of_slot(ciProfileData* data, ByteSize slot_offset_in_data) {
+BytesInt ciMethodData::offset_of_slot(ciProfileData* data, BytesInt slot_offset_in_data) {
   // Get offset within MethodData* of the data array
-  ByteSize data_offset = MethodData::data_offset();
+  BytesInt data_offset = MethodData::data_offset();
 
   // Get cell offset of the ProfileData within data array
   int cell_offset = dp_to_di(data->dp());
@@ -684,7 +684,7 @@ ByteSize ciMethodData::offset_of_slot(ciProfileData* data, ByteSize slot_offset_
   // Add in counter_offset, the # of bytes into the ProfileData of counter or flag
   int offset = in_bytes(data_offset) + cell_offset + in_bytes(slot_offset_in_data);
 
-  return in_ByteSize(offset);
+  return in_BytesInt(offset);
 }
 
 ciArgInfoData *ciMethodData::arg_info() const {
@@ -704,7 +704,7 @@ void ciMethodData::print_impl(outputStream* st) {
   ciMetadata::print_impl(st);
 }
 
-void ciMethodData::dump_replay_data_type_helper(outputStream* out, int round, int& count, ProfileData* pdata, ByteSize offset, ciKlass* k) {
+void ciMethodData::dump_replay_data_type_helper(outputStream* out, int round, int& count, ProfileData* pdata, BytesInt offset, ciKlass* k) {
   if (k != nullptr) {
     if (round == 0) {
       count++;

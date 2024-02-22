@@ -72,8 +72,8 @@ inline vtableEntry* Klass::start_of_vtable() const {
   return (vtableEntry*) ((address)this + in_bytes(vtable_start_offset()));
 }
 
-inline ByteSize Klass::vtable_start_offset() {
-  return in_ByteSize(InstanceKlass::header_size() * wordSize);
+inline BytesInt Klass::vtable_start_offset() {
+  return in_BytesInt(InstanceKlass::header_size() * wordSize);
 }
 
 #endif // SHARE_OOPS_KLASS_INLINE_HPP

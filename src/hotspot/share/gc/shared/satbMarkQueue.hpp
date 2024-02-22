@@ -66,21 +66,21 @@ public:
 #endif // PRODUCT
 
   // Compiler support.
-  static ByteSize byte_offset_of_index() {
+  static BytesInt byte_offset_of_index() {
     return PtrQueue::byte_offset_of_index<SATBMarkQueue>();
   }
   using PtrQueue::byte_width_of_index;
 
-  static ByteSize byte_offset_of_buf() {
+  static BytesInt byte_offset_of_buf() {
     return PtrQueue::byte_offset_of_buf<SATBMarkQueue>();
   }
   using PtrQueue::byte_width_of_buf;
 
-  static ByteSize byte_offset_of_active() {
+  static BytesInt byte_offset_of_active() {
     return byte_offset_of(SATBMarkQueue, _active);
   }
 
-  static ByteSize byte_width_of_active() { return in_ByteSize(sizeof(bool)); }
+  static BytesInt byte_width_of_active() { return in_BytesInt(sizeof(bool)); }
 };
 
 class SATBMarkQueueSet: public PtrQueueSet {

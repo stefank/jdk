@@ -39,18 +39,18 @@
   frame pd_last_frame();
 
  public:
-  static ByteSize last_Java_fp_offset()          {
+  static BytesInt last_Java_fp_offset()          {
     return byte_offset_of(JavaThread, _anchor) + JavaFrameAnchor::last_Java_fp_offset();
   }
 
-  static ByteSize card_table_base_offset()       { return byte_offset_of(JavaThread, _card_table_base); }
+  static BytesInt card_table_base_offset()       { return byte_offset_of(JavaThread, _card_table_base); }
 
 private:
   // Set to "this" if pd_get_top_frame should ignore this thread for now.
   JavaThread *_in_top_frame_unsafe_section;
 
 public:
-  static ByteSize in_top_frame_unsafe_section_offset() { return byte_offset_of(JavaThread, _in_top_frame_unsafe_section); }
+  static BytesInt in_top_frame_unsafe_section_offset() { return byte_offset_of(JavaThread, _in_top_frame_unsafe_section); }
   bool in_top_frame_unsafe_section() { return _in_top_frame_unsafe_section == this; }
 
   bool pd_get_top_frame_for_signal_handler(frame* fr_addr, void* ucontext, bool isInJava);

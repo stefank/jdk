@@ -33,19 +33,19 @@
 #include "utilities/ostream.hpp"
 #include "utilities/vmError.hpp"
 
-ByteSize ZStoreBarrierEntry::p_offset() {
+BytesInt ZStoreBarrierEntry::p_offset() {
   return byte_offset_of(ZStoreBarrierEntry, _p);
 }
 
-ByteSize ZStoreBarrierEntry::prev_offset() {
+BytesInt ZStoreBarrierEntry::prev_offset() {
   return byte_offset_of(ZStoreBarrierEntry, _prev);
 }
 
-ByteSize ZStoreBarrierBuffer::buffer_offset() {
+BytesInt ZStoreBarrierBuffer::buffer_offset() {
   return byte_offset_of(ZStoreBarrierBuffer, _buffer);
 }
 
-ByteSize ZStoreBarrierBuffer::current_offset() {
+BytesInt ZStoreBarrierBuffer::current_offset() {
   return byte_offset_of(ZStoreBarrierBuffer, _current);
 }
 

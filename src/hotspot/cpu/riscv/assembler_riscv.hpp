@@ -223,7 +223,7 @@ class Address {
     _nonliteral(r, noreg, o)
   {}
 
-  Address(Register r, ByteSize disp) : Address(r, in_bytes(disp)) {}
+  Address(Register r, BytesInt disp) : Address(r, in_bytes(disp)) {}
 
   Address(address target, const RelocationHolder& rspec) :
     _mode(literal),

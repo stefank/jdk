@@ -121,7 +121,7 @@ void InterpreterMacroAssembler::load_earlyret_value(TosState state) {
   const Address oop_addr(thread_state, JvmtiThreadState::earlyret_oop_offset());
   const Address val_addr(thread_state, JvmtiThreadState::earlyret_value_offset());
   const Address val_addr_hi(thread_state, JvmtiThreadState::earlyret_value_offset()
-                             + in_ByteSize(wordSize));
+                             + in_BytesInt(wordSize));
 
   Register zero = zero_register(Rtemp);
 

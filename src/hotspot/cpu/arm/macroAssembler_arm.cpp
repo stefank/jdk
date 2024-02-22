@@ -95,7 +95,7 @@ void AddressLiteral::set_rspec(relocInfo::relocType rtype) {
 void MacroAssembler::lookup_virtual_method(Register recv_klass,
                                            Register vtable_index,
                                            Register method_result) {
-  const ByteSize base_offset = Klass::vtable_start_offset() + vtableEntry::method_offset();
+  const BytesInt base_offset = Klass::vtable_start_offset() + vtableEntry::method_offset();
   assert(vtableEntry::size() * wordSize == wordSize, "adjust the scaling in the code below");
   add(recv_klass, recv_klass, AsmOperand(vtable_index, lsl, LogBytesPerWord));
   ldr(method_result, Address(recv_klass, base_offset));

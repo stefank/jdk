@@ -29,7 +29,7 @@
 #include "jfr/support/jfrTraceIdExtension.hpp"
 
 #define DEFINE_KLASS_TRACE_ID_OFFSET \
-  static ByteSize trace_id_offset() { return byte_offset_of(InstanceKlass, _trace_id); }
+  static BytesInt trace_id_offset() { return byte_offset_of(InstanceKlass, _trace_id); }
 
 #define KLASS_TRACE_ID_OFFSET InstanceKlass::trace_id_offset()
 

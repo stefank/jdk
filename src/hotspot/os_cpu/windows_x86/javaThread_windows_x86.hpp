@@ -40,7 +40,7 @@
   frame pd_last_frame();
 
  public:
-  static ByteSize last_Java_fp_offset()          {
+  static BytesInt last_Java_fp_offset()          {
     return byte_offset_of(JavaThread, _anchor) + JavaFrameAnchor::last_Java_fp_offset();
   }
 
@@ -49,8 +49,8 @@
 
    bool pd_get_top_frame_for_profiling(frame* fr_addr, void* ucontext, bool isInJava);
 
-  static ByteSize windows_saved_rsi_offset() { return byte_offset_of(JavaThread, _windows_saved_rsi); }
-  static ByteSize windows_saved_rdi_offset() { return byte_offset_of(JavaThread, _windows_saved_rdi); }
+  static BytesInt windows_saved_rsi_offset() { return byte_offset_of(JavaThread, _windows_saved_rsi); }
+  static BytesInt windows_saved_rdi_offset() { return byte_offset_of(JavaThread, _windows_saved_rdi); }
 private:
   bool pd_get_top_frame(frame* fr_addr, void* ucontext, bool isInJava);
 

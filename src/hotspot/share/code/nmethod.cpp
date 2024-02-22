@@ -495,8 +495,8 @@ nmethod* nmethod::new_native_nmethod(const methodHandle& method,
   int vep_offset,
   int frame_complete,
   int frame_size,
-  ByteSize basic_lock_owner_sp_offset,
-  ByteSize basic_lock_sp_offset,
+  BytesInt basic_lock_owner_sp_offset,
+  BytesInt basic_lock_sp_offset,
   OopMapSet* oop_maps,
   int exception_handler) {
   code_buffer->finalize_oop_references(method);
@@ -636,8 +636,8 @@ nmethod::nmethod(
   CodeOffsets* offsets,
   CodeBuffer* code_buffer,
   int frame_size,
-  ByteSize basic_lock_owner_sp_offset,
-  ByteSize basic_lock_sp_offset,
+  BytesInt basic_lock_owner_sp_offset,
+  BytesInt basic_lock_sp_offset,
   OopMapSet* oop_maps )
   : CompiledMethod(method, "native nmethod", type, nmethod_size, sizeof(nmethod), code_buffer, offsets->value(CodeOffsets::Frame_Complete), frame_size, oop_maps, false, true),
   _compiled_ic_data(nullptr),
@@ -787,8 +787,8 @@ nmethod::nmethod(
   : CompiledMethod(method, "nmethod", type, nmethod_size, sizeof(nmethod), code_buffer, offsets->value(CodeOffsets::Frame_Complete), frame_size, oop_maps, false, true),
   _compiled_ic_data(nullptr),
   _is_unlinked(false),
-  _native_receiver_sp_offset(in_ByteSize(-1)),
-  _native_basic_lock_sp_offset(in_ByteSize(-1)),
+  _native_receiver_sp_offset(in_BytesInt(-1)),
+  _native_basic_lock_sp_offset(in_BytesInt(-1)),
   _is_unloading_state(0)
 {
   assert(debug_info->oop_recorder() == code_buffer->oop_recorder(), "shared OR");

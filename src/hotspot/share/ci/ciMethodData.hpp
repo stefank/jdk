@@ -465,7 +465,7 @@ private:
   void load_remaining_extra_data();
   ciProfileData* bci_to_extra_data(int bci, ciMethod* m, bool& two_free_slots);
 
-  void dump_replay_data_type_helper(outputStream* out, int round, int& count, ProfileData* pdata, ByteSize offset, ciKlass* k);
+  void dump_replay_data_type_helper(outputStream* out, int round, int& count, ProfileData* pdata, BytesInt offset, ciKlass* k);
   template<class T> void dump_replay_data_call_type_helper(outputStream* out, int round, int& count, T* call_type_data);
   template<class T> void dump_replay_data_receiver_type_helper(outputStream* out, int round, int& count, T* call_type_data);
   void dump_replay_data_extra_data_helper(outputStream* out, int round, int& count);
@@ -585,8 +585,8 @@ public:
   ciParametersTypeData* parameters_type_data() const;
 
   // Code generation helper
-  ByteSize offset_of_slot(ciProfileData* data, ByteSize slot_offset_in_data);
-  int      byte_offset_of_slot(ciProfileData* data, ByteSize slot_offset_in_data) { return in_bytes(offset_of_slot(data, slot_offset_in_data)); }
+  BytesInt offset_of_slot(ciProfileData* data, BytesInt slot_offset_in_data);
+  int      byte_offset_of_slot(ciProfileData* data, BytesInt slot_offset_in_data) { return in_bytes(offset_of_slot(data, slot_offset_in_data)); }
 
 #ifndef PRODUCT
   // printing support for method data

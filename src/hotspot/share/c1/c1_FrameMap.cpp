@@ -210,7 +210,7 @@ bool FrameMap::finalize_frame(int nof_slots) {
   return validate_frame();
 }
 
-VMReg FrameMap::sp_offset2vmreg(ByteSize offset) const {
+VMReg FrameMap::sp_offset2vmreg(BytesInt offset) const {
   int offset_in_bytes = in_bytes(offset);
   assert(offset_in_bytes % 4 == 0, "must be multiple of 4 bytes");
   assert(offset_in_bytes / 4 < framesize() + oop_map_arg_count(), "out of range");
@@ -218,7 +218,7 @@ VMReg FrameMap::sp_offset2vmreg(ByteSize offset) const {
 }
 
 
-bool FrameMap::location_for_sp_offset(ByteSize byte_offset_from_sp,
+bool FrameMap::location_for_sp_offset(BytesInt byte_offset_from_sp,
                                       Location::Type loc_type,
                                       Location* loc) const {
   int offset = in_bytes(byte_offset_from_sp);
@@ -234,13 +234,13 @@ bool FrameMap::location_for_sp_offset(ByteSize byte_offset_from_sp,
 
 bool FrameMap::locations_for_slot  (int index, Location::Type loc_type,
                                      Location* loc, Location* second) const {
-  ByteSize offset_from_sp = sp_offset_for_slot(index);
+  BytesInt offset_from_sp = sp_offset_for_slot(index);
   if (!location_for_sp_offset(offset_from_sp, loc_type, loc)) {
     return false;
   }
   if (second != nullptr) {
     // two word item
-    offset_from_sp = offset_from_sp + in_ByteSize(4);
+    offset_from_sp = offset_from_sp + in_BytesInt(4);
     return location_for_sp_offset(offset_from_sp, loc_type, second);
   }
   return true;
@@ -251,21 +251,21 @@ bool FrameMap::locations_for_slot  (int index, Location::Type loc_type,
 //////////////////////
 
 
-ByteSize FrameMap::sp_offset_for_slot(const int index) const {
+BytesInt FrameMap::sp_offset_for_slot(const int index) const {
   if (index < argcount()) {
     int offset = _argument_locations->at(index);
     assert(offset != -1, "not a memory argument");
     assert(offset >= framesize() * 4, "argument inside of frame");
-    return in_ByteSize(offset);
+    return in_BytesInt(offset);
   }
-  ByteSize offset = sp_offset_for_spill(index - argcount());
+  BytesInt offset = sp_offset_for_spill(index - argcount());
   assert(in_bytes(offset) < framesize() * 4, "spill outside of frame");
   return offset;
 }
 
 
-ByteSize FrameMap::sp_offset_for_double_slot(const int index) const {
-  ByteSize offset = sp_offset_for_slot(index);
+BytesInt FrameMap::sp_offset_for_double_slot(const int index) const {
+  BytesInt offset = sp_offset_for_slot(index);
   if (index >= argcount()) {
     assert(in_bytes(offset) + 4 < framesize() * 4, "spill outside of frame");
   }
@@ -273,26 +273,26 @@ ByteSize FrameMap::sp_offset_for_double_slot(const int index) const {
 }
 
 
-ByteSize FrameMap::sp_offset_for_spill(const int index) const {
+BytesInt FrameMap::sp_offset_for_spill(const int index) const {
   assert(index >= 0 && index < _num_spills, "out of range");
   int offset = align_up(first_available_sp_in_frame + _reserved_argument_area_size, (int)sizeof(double)) +
     index * spill_slot_size_in_bytes;
-  return in_ByteSize(offset);
+  return in_BytesInt(offset);
 }
 
-ByteSize FrameMap::sp_offset_for_monitor_base(const int index) const {
+BytesInt FrameMap::sp_offset_for_monitor_base(const int index) const {
   int end_of_spills = align_up(first_available_sp_in_frame + _reserved_argument_area_size, (int)sizeof(double)) +
     _num_spills * spill_slot_size_in_bytes;
   int offset = align_up(end_of_spills, HeapWordSize) + index * (int)sizeof(BasicObjectLock);
-  return in_ByteSize(offset);
+  return in_BytesInt(offset);
 }
 
-ByteSize FrameMap::sp_offset_for_monitor_lock(int index) const {
+BytesInt FrameMap::sp_offset_for_monitor_lock(int index) const {
   check_monitor_index(index);
   return sp_offset_for_monitor_base(index) + BasicObjectLock::lock_offset();
 }
 
-ByteSize FrameMap::sp_offset_for_monitor_object(int index) const {
+BytesInt FrameMap::sp_offset_for_monitor_object(int index) const {
   check_monitor_index(index);
   return sp_offset_for_monitor_base(index) + BasicObjectLock::obj_offset();
 }
@@ -322,7 +322,7 @@ VMReg FrameMap::regname(LIR_Opr opr) const {
   } else if (opr->is_address()) {
     LIR_Address* addr = opr->as_address_ptr();
     assert(addr->base() == stack_pointer(), "sp based addressing only");
-    return sp_offset2vmreg(in_ByteSize(addr->index()->as_jint()));
+    return sp_offset2vmreg(in_BytesInt(addr->index()->as_jint()));
   }
   ShouldNotReachHere();
   return VMRegImpl::Bad();

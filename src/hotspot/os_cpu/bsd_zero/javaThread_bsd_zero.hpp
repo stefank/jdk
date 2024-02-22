@@ -53,10 +53,10 @@
   }
 
  public:
-  static ByteSize zero_stack_offset() {
+  static BytesInt zero_stack_offset() {
     return byte_offset_of(JavaThread, _zero_stack);
   }
-  static ByteSize top_zero_frame_offset() {
+  static BytesInt top_zero_frame_offset() {
     return byte_offset_of(JavaThread, _top_zero_frame);
   }
 
@@ -80,7 +80,7 @@
   frame pd_last_frame();
 
  public:
-  static ByteSize last_Java_fp_offset() {
+  static BytesInt last_Java_fp_offset() {
     return byte_offset_of(JavaThread, _anchor) +
       JavaFrameAnchor::last_Java_fp_offset();
   }

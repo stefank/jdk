@@ -133,17 +133,17 @@ class FrameMap : public CompilationResourceObj {
   static void fpu_range_check (int rnr)          { assert(0 <= rnr && rnr < nof_fpu_regs, "fpu register number is too big"); }
 #endif
 
-  ByteSize sp_offset_for_monitor_base(const int idx) const;
+  BytesInt sp_offset_for_monitor_base(const int idx) const;
 
-  Address make_new_address(ByteSize sp_offset) const;
+  Address make_new_address(BytesInt sp_offset) const;
 
-  ByteSize sp_offset_for_slot(const int idx) const;
-  ByteSize sp_offset_for_double_slot(const int idx) const;
-  ByteSize sp_offset_for_spill(const int idx) const;
-  ByteSize sp_offset_for_monitor_lock(int monitor_index) const;
-  ByteSize sp_offset_for_monitor_object(int monitor_index) const;
+  BytesInt sp_offset_for_slot(const int idx) const;
+  BytesInt sp_offset_for_double_slot(const int idx) const;
+  BytesInt sp_offset_for_spill(const int idx) const;
+  BytesInt sp_offset_for_monitor_lock(int monitor_index) const;
+  BytesInt sp_offset_for_monitor_object(int monitor_index) const;
 
-  VMReg sp_offset2vmreg(ByteSize offset) const;
+  VMReg sp_offset2vmreg(BytesInt offset) const;
 
   // platform dependent hook used to check that frame is properly
   // addressable on the platform.  Used by arm, ppc to verify that all
@@ -167,7 +167,7 @@ class FrameMap : public CompilationResourceObj {
   CallingConvention* java_calling_convention(const BasicTypeArray* signature, bool outgoing);
 
   // deopt support
-  ByteSize sp_offset_for_orig_pc() { return sp_offset_for_monitor_base(_num_monitors); }
+  BytesInt sp_offset_for_orig_pc() { return sp_offset_for_monitor_base(_num_monitors); }
 
   static LIR_Opr as_opr(Register r) {
     return LIR_OprFact::single_cpu(cpu_reg2rnr(r));
@@ -189,7 +189,7 @@ class FrameMap : public CompilationResourceObj {
 
   int   reserved_argument_area_size () const     { return _reserved_argument_area_size; }
   int   framesize                   () const     { assert(_framesize != -1, "hasn't been calculated"); return _framesize; }
-  ByteSize framesize_in_bytes       () const     { return in_ByteSize(framesize() * 4); }
+  BytesInt framesize_in_bytes       () const     { return in_BytesInt(framesize() * 4); }
   int   num_monitors                () const     { return _num_monitors; }
   int   num_spills                  () const     { assert(_num_spills >= 0, "not set"); return _num_spills; }
   int   argcount              () const     { assert(_argcount >= 0, "not set"); return _argcount; }
@@ -200,10 +200,10 @@ class FrameMap : public CompilationResourceObj {
 
   // convenience routines
   Address address_for_slot(int index, int sp_adjust = 0) const {
-    return make_new_address(sp_offset_for_slot(index) + in_ByteSize(sp_adjust));
+    return make_new_address(sp_offset_for_slot(index) + in_BytesInt(sp_adjust));
   }
   Address address_for_double_slot(int index, int sp_adjust = 0) const {
-    return make_new_address(sp_offset_for_double_slot(index) + in_ByteSize(sp_adjust));
+    return make_new_address(sp_offset_for_double_slot(index) + in_BytesInt(sp_adjust));
   }
   Address address_for_monitor_lock(int monitor_index) const {
     return make_new_address(sp_offset_for_monitor_lock(monitor_index));
@@ -216,7 +216,7 @@ class FrameMap : public CompilationResourceObj {
   // to Location object. Returns true if the stack frame offset was legal
   // (as defined by Location::legal_offset_in_bytes()), false otherwise.
   // Do not use the returned location if this returns false.
-  bool location_for_sp_offset(ByteSize byte_offset_from_sp,
+  bool location_for_sp_offset(BytesInt byte_offset_from_sp,
                               Location::Type loc_type, Location* loc) const;
 
   bool location_for_monitor_lock  (int monitor_index, Location* loc) const {

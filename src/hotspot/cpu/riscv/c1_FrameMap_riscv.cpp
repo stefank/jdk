@@ -323,7 +323,7 @@ void FrameMap::initialize() {
 }
 
 
-Address FrameMap::make_new_address(ByteSize sp_offset) const {
+Address FrameMap::make_new_address(BytesInt sp_offset) const {
   return Address(sp, in_bytes(sp_offset));
 }
 

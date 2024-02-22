@@ -244,31 +244,31 @@ JfrStackFrame* JfrThreadLocal::install_stackframes() const {
   return _stackframes;
 }
 
-ByteSize JfrThreadLocal::java_event_writer_offset() {
+BytesInt JfrThreadLocal::java_event_writer_offset() {
   return byte_offset_of(JfrThreadLocal, _java_event_writer);
 }
 
-ByteSize JfrThreadLocal::java_buffer_offset() {
+BytesInt JfrThreadLocal::java_buffer_offset() {
   return byte_offset_of(JfrThreadLocal, _java_buffer);
 }
 
-ByteSize JfrThreadLocal::vthread_id_offset() {
+BytesInt JfrThreadLocal::vthread_id_offset() {
   return byte_offset_of(JfrThreadLocal, _vthread_id);
 }
 
-ByteSize JfrThreadLocal::vthread_offset() {
+BytesInt JfrThreadLocal::vthread_offset() {
   return byte_offset_of(JfrThreadLocal, _vthread);
 }
 
-ByteSize JfrThreadLocal::vthread_epoch_offset() {
+BytesInt JfrThreadLocal::vthread_epoch_offset() {
   return byte_offset_of(JfrThreadLocal, _vthread_epoch);
 }
 
-ByteSize JfrThreadLocal::vthread_excluded_offset() {
+BytesInt JfrThreadLocal::vthread_excluded_offset() {
   return byte_offset_of(JfrThreadLocal, _vthread_excluded);
 }
 
-ByteSize JfrThreadLocal::notified_offset() {
+BytesInt JfrThreadLocal::notified_offset() {
   return byte_offset_of(JfrThreadLocal, _notified);
 }
 

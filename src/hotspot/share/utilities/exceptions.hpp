@@ -83,7 +83,7 @@ class ThreadShadow: public CHeapObj<mtThread> {
   int  exception_line() const                    { return _exception_line; }
 
   // Code generation support
-  static ByteSize pending_exception_offset()     { return byte_offset_of(ThreadShadow, _pending_exception); }
+  static BytesInt pending_exception_offset()     { return byte_offset_of(ThreadShadow, _pending_exception); }
 
   // use THROW whenever possible!
   void set_pending_exception(oop exception, const char* file, int line);

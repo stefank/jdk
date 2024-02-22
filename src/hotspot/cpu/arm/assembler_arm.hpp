@@ -89,7 +89,7 @@ class Address {
     _offset_op = add_offset;
   }
 
-  Address(Register rn, ByteSize offset, AsmOffset mode = basic_offset) :
+  Address(Register rn, BytesInt offset, AsmOffset mode = basic_offset) :
     Address(rn, in_bytes(offset), mode) {}
 
   Address(Register rn, Register rm, AsmShift shift = lsl,

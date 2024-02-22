@@ -389,7 +389,7 @@ void InterpreterMacroAssembler::load_earlyret_value(TosState state) {
   movl(val_addr, NULL_WORD);
 #else
   const Address val_addr1(rcx, JvmtiThreadState::earlyret_value_offset()
-                             + in_ByteSize(wordSize));
+                             + in_BytesInt(wordSize));
   switch (state) {
     case atos: movptr(rax, oop_addr);
                movptr(oop_addr, NULL_WORD);

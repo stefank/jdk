@@ -46,8 +46,8 @@
 
 // Implementation of ThreadShadow
 void check_ThreadShadow() {
-  const ByteSize offset1 = byte_offset_of(ThreadShadow, _pending_exception);
-  const ByteSize offset2 = Thread::pending_exception_offset();
+  const BytesInt offset1 = byte_offset_of(ThreadShadow, _pending_exception);
+  const BytesInt offset2 = Thread::pending_exception_offset();
   if (offset1 != offset2) fatal("ThreadShadow::_pending_exception is not positioned correctly");
 }
 

@@ -520,10 +520,10 @@ class JvmtiThreadState : public CHeapObj<mtInternal> {
   void set_earlyret_value(jvalue val, TosState tos)  { _earlyret_tos = tos;  _earlyret_value = val;  }
   void clr_earlyret_value()                          { _earlyret_tos = ilgl; _earlyret_value.j = 0L; }
 
-  static ByteSize earlyret_state_offset() { return byte_offset_of(JvmtiThreadState, _earlyret_state); }
-  static ByteSize earlyret_tos_offset()   { return byte_offset_of(JvmtiThreadState, _earlyret_tos); }
-  static ByteSize earlyret_oop_offset()   { return byte_offset_of(JvmtiThreadState, _earlyret_oop); }
-  static ByteSize earlyret_value_offset() { return byte_offset_of(JvmtiThreadState, _earlyret_value); }
+  static BytesInt earlyret_state_offset() { return byte_offset_of(JvmtiThreadState, _earlyret_state); }
+  static BytesInt earlyret_tos_offset()   { return byte_offset_of(JvmtiThreadState, _earlyret_tos); }
+  static BytesInt earlyret_oop_offset()   { return byte_offset_of(JvmtiThreadState, _earlyret_oop); }
+  static BytesInt earlyret_value_offset() { return byte_offset_of(JvmtiThreadState, _earlyret_value); }
 
   void oops_do(OopClosure* f, CodeBlobClosure* cf) NOT_JVMTI_RETURN; // GC support
   void nmethods_do(CodeBlobClosure* cf) NOT_JVMTI_RETURN;

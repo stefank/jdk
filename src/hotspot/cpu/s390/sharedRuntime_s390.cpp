@@ -1319,8 +1319,8 @@ nmethod *SharedRuntime::generate_native_wrapper(MacroAssembler *masm,
                                        vep_offset,
                                        frame_complete,
                                        stack_slots / VMRegImpl::slots_per_word,
-                                       in_ByteSize(-1),
-                                       in_ByteSize(-1),
+                                       in_BytesInt(-1),
+                                       in_BytesInt(-1),
                                        (OopMapSet *) nullptr);
   }
 
@@ -1875,7 +1875,7 @@ nmethod *SharedRuntime::generate_native_wrapper(MacroAssembler *masm,
 
   Label no_reguard;
 
-  __ z_cli(Address(Z_thread, JavaThread::stack_guard_state_offset() + in_ByteSize(sizeof(StackOverflow::StackGuardState) - 1)),
+  __ z_cli(Address(Z_thread, JavaThread::stack_guard_state_offset() + in_BytesInt(sizeof(StackOverflow::StackGuardState) - 1)),
            StackOverflow::stack_guard_yellow_reserved_disabled);
 
   __ z_bre(no_reguard);
@@ -2035,8 +2035,8 @@ nmethod *SharedRuntime::generate_native_wrapper(MacroAssembler *masm,
                                             (int)(wrapper_VEPStart-wrapper_CodeStart),
                                             (int)(wrapper_FrameDone-wrapper_CodeStart),
                                             stack_slots / VMRegImpl::slots_per_word,
-                                            (method_is_static ? in_ByteSize(klass_offset) : in_ByteSize(receiver_offset)),
-                                            in_ByteSize(lock_offset),
+                                            (method_is_static ? in_BytesInt(klass_offset) : in_BytesInt(receiver_offset)),
+                                            in_BytesInt(lock_offset),
                                             oop_maps);
 
   return nm;

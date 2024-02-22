@@ -27,38 +27,30 @@
 
 #include "utilities/globalDefinitions.hpp"
 
-// The following two classes are used to represent 'sizes' and 'offsets' in the VM;
-// they serve as 'unit' types. ByteSize is used for sizes measured in bytes, while
-// WordSize is used for sizes measured in machine words (i.e., 32bit or 64bit words
+// The following classes are used to represent 'sizes' and 'offsets' in the VM;
+// they serve as 'unit' types. BytesInt is used for sizes measured in bytes, while
+// WordsInt is used for sizes measured in machine words (i.e., 32bit or 64bit words
 // depending on platform).
-//
-// These classes should help doing a transition from (currently) word-size based offsets
-// to byte-size based offsets in the VM (this will be important if we desire to pack
-// objects more densely in the VM for 64bit machines). Such a transition should proceed
-// in two steps to minimize the risk of introducing hard-to-find bugs:
-//
-// a) first transition the whole VM into a form where all sizes are strongly typed
-// b) change all WordSize's to ByteSize's where desired and fix the compilation errors
 
-enum class WordSize : int {};
+enum class WordsInt : int {};
 
-constexpr WordSize in_WordSize(int size) { return static_cast<WordSize>(size); }
-constexpr int      in_words(WordSize x)  { return static_cast<int>(x); }
+constexpr WordsInt in_WordsInt(int size) { return static_cast<WordsInt>(size); }
+constexpr int      in_words(WordsInt x)  { return static_cast<int>(x); }
 
-enum class ByteSize : int {};
+enum class BytesInt : int {};
 
-constexpr ByteSize in_ByteSize(int size) { return static_cast<ByteSize>(size); }
-constexpr int      in_bytes(ByteSize x)  { return static_cast<int>(x); }
+constexpr BytesInt in_BytesInt(int size) { return static_cast<BytesInt>(size); }
+constexpr int      in_bytes(BytesInt x)  { return static_cast<int>(x); }
 
-constexpr ByteSize operator + (ByteSize x, ByteSize y) { return in_ByteSize(in_bytes(x) + in_bytes(y)); }
-constexpr ByteSize operator - (ByteSize x, ByteSize y) { return in_ByteSize(in_bytes(x) - in_bytes(y)); }
-constexpr ByteSize operator * (ByteSize x, int      y) { return in_ByteSize(in_bytes(x) * y          ); }
+constexpr BytesInt operator + (BytesInt x, BytesInt y) { return in_BytesInt(in_bytes(x) + in_bytes(y)); }
+constexpr BytesInt operator - (BytesInt x, BytesInt y) { return in_BytesInt(in_bytes(x) - in_bytes(y)); }
+constexpr BytesInt operator * (BytesInt x, int      y) { return in_BytesInt(in_bytes(x) * y          ); }
 
-constexpr bool     operator == (ByteSize x, int     y) { return in_bytes(x) == y; }
-constexpr bool     operator != (ByteSize x, int     y) { return in_bytes(x) != y; }
+constexpr bool     operator == (BytesInt x, int     y) { return in_bytes(x) == y; }
+constexpr bool     operator != (BytesInt x, int     y) { return in_bytes(x) != y; }
 
 // Use the following #define to get C++ field member offsets
 
-#define byte_offset_of(klass,field)   in_ByteSize((int)offset_of(klass, field))
+#define byte_offset_of(klass,field)   in_BytesInt((int)offset_of(klass, field))
 
 #endif // SHARE_UTILITIES_SIZES_HPP

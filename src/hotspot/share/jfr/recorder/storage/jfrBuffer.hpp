@@ -177,8 +177,8 @@ class JfrBuffer {
   void clear_context();
 
   // Code generation
-  static ByteSize pos_offset();
-  static ByteSize flags_offset();
+  static BytesInt pos_offset();
+  static BytesInt flags_offset();
 
 };
 

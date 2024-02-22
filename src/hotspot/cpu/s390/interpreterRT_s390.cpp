@@ -37,7 +37,7 @@
 
 // Access macros for Java and C arguments.
 // First Java argument is at index-1.
-#define locals_j_arg_at(index) Address(Z_R1/*locals*/, in_ByteSize((-(index)*wordSize)))
+#define locals_j_arg_at(index) Address(Z_R1/*locals*/, in_BytesInt((-(index)*wordSize)))
 
 #define __ _masm->
 

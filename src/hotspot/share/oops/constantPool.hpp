@@ -262,10 +262,10 @@ class ConstantPool : public Metadata {
   inline u2 invokedynamic_bootstrap_ref_index_at(int indy_index) const;
 
   // Assembly code support
-  static ByteSize tags_offset()         { return byte_offset_of(ConstantPool, _tags); }
-  static ByteSize cache_offset()        { return byte_offset_of(ConstantPool, _cache); }
-  static ByteSize pool_holder_offset()  { return byte_offset_of(ConstantPool, _pool_holder); }
-  static ByteSize resolved_klasses_offset()    { return byte_offset_of(ConstantPool, _resolved_klasses); }
+  static BytesInt tags_offset()         { return byte_offset_of(ConstantPool, _tags); }
+  static BytesInt cache_offset()        { return byte_offset_of(ConstantPool, _cache); }
+  static BytesInt pool_holder_offset()  { return byte_offset_of(ConstantPool, _pool_holder); }
+  static BytesInt resolved_klasses_offset()    { return byte_offset_of(ConstantPool, _resolved_klasses); }
 
   // Storing constants
 

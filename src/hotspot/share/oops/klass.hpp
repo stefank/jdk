@@ -385,19 +385,19 @@ protected:
  public:
 
   // Compiler support
-  static ByteSize super_offset()                 { return byte_offset_of(Klass, _super); }
-  static ByteSize super_check_offset_offset()    { return byte_offset_of(Klass, _super_check_offset); }
-  static ByteSize primary_supers_offset()        { return byte_offset_of(Klass, _primary_supers); }
-  static ByteSize secondary_super_cache_offset() { return byte_offset_of(Klass, _secondary_super_cache); }
-  static ByteSize secondary_supers_offset()      { return byte_offset_of(Klass, _secondary_supers); }
-  static ByteSize java_mirror_offset()           { return byte_offset_of(Klass, _java_mirror); }
-  static ByteSize class_loader_data_offset()     { return byte_offset_of(Klass, _class_loader_data); }
-  static ByteSize modifier_flags_offset()        { return byte_offset_of(Klass, _modifier_flags); }
-  static ByteSize layout_helper_offset()         { return byte_offset_of(Klass, _layout_helper); }
-  static ByteSize access_flags_offset()          { return byte_offset_of(Klass, _access_flags); }
+  static BytesInt super_offset()                 { return byte_offset_of(Klass, _super); }
+  static BytesInt super_check_offset_offset()    { return byte_offset_of(Klass, _super_check_offset); }
+  static BytesInt primary_supers_offset()        { return byte_offset_of(Klass, _primary_supers); }
+  static BytesInt secondary_super_cache_offset() { return byte_offset_of(Klass, _secondary_super_cache); }
+  static BytesInt secondary_supers_offset()      { return byte_offset_of(Klass, _secondary_supers); }
+  static BytesInt java_mirror_offset()           { return byte_offset_of(Klass, _java_mirror); }
+  static BytesInt class_loader_data_offset()     { return byte_offset_of(Klass, _class_loader_data); }
+  static BytesInt modifier_flags_offset()        { return byte_offset_of(Klass, _modifier_flags); }
+  static BytesInt layout_helper_offset()         { return byte_offset_of(Klass, _layout_helper); }
+  static BytesInt access_flags_offset()          { return byte_offset_of(Klass, _access_flags); }
 #if INCLUDE_JVMCI
-  static ByteSize subklass_offset()              { return byte_offset_of(Klass, _subklass); }
-  static ByteSize next_sibling_offset()          { return byte_offset_of(Klass, _next_sibling); }
+  static BytesInt subklass_offset()              { return byte_offset_of(Klass, _subklass); }
+  static BytesInt next_sibling_offset()          { return byte_offset_of(Klass, _next_sibling); }
 #endif
 
   // Unpacking layout_helper:
@@ -567,8 +567,8 @@ protected:
  public:
   Method* method_at_vtable(int index);
 
-  static ByteSize vtable_start_offset();
-  static ByteSize vtable_length_offset() {
+  static BytesInt vtable_start_offset();
+  static BytesInt vtable_length_offset() {
     return byte_offset_of(Klass, _vtable_len);
   }
 

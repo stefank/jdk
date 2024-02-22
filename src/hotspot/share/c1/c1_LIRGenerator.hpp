@@ -259,7 +259,7 @@ class LIRGenerator: public InstructionVisitor, public BlockClosure {
   void do_currentCarrierThread(Intrinsic* x);
   void do_scopedValueCache(Intrinsic* x);
   void do_vthread(Intrinsic* x);
-  void do_JavaThreadField(Intrinsic* x, ByteSize offset);
+  void do_JavaThreadField(Intrinsic* x, BytesInt offset);
   void do_FmaIntrinsic(Intrinsic* x);
   void do_MathIntrinsic(Intrinsic* x);
   void do_LibmIntrinsic(Intrinsic* x);
@@ -347,7 +347,7 @@ class LIRGenerator: public InstructionVisitor, public BlockClosure {
   // machine dependent.  returns true if it emitted code for the multiply
   bool strength_reduce_multiply(LIR_Opr left, jint constant, LIR_Opr result, LIR_Opr tmp);
 
-  void store_stack_parameter (LIR_Opr opr, ByteSize offset_from_sp_in_bytes);
+  void store_stack_parameter (LIR_Opr opr, BytesInt offset_from_sp_in_bytes);
 
   void klass2reg_with_patching(LIR_Opr r, ciMetadata* obj, CodeEmitInfo* info, bool need_resolve = false);
 

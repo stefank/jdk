@@ -72,8 +72,8 @@ private:
   static inline int to_index(uint32_t offset);
 
 public:
-  static ByteSize top_offset()  { return byte_offset_of(LockStack, _top); }
-  static ByteSize base_offset() { return byte_offset_of(LockStack, _base); }
+  static BytesInt top_offset()  { return byte_offset_of(LockStack, _top); }
+  static BytesInt base_offset() { return byte_offset_of(LockStack, _base); }
 
   LockStack(JavaThread* jt);
 

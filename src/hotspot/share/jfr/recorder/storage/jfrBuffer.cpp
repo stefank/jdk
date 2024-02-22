@@ -260,10 +260,10 @@ void JfrBuffer::clear_context() {
   set(&_context, 0);
 }
 
-ByteSize JfrBuffer::pos_offset() {
+BytesInt JfrBuffer::pos_offset() {
   return byte_offset_of(JfrBuffer, _pos);
 }
 
-ByteSize JfrBuffer::flags_offset() {
+BytesInt JfrBuffer::flags_offset() {
   return byte_offset_of(JfrBuffer, _flags);
 }

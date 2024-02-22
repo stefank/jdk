@@ -732,7 +732,7 @@ void DeoptimizationBlob::print_value_on(outputStream* st) const {
 
 // Implementation of UpcallStub
 
-UpcallStub::UpcallStub(const char* name, CodeBuffer* cb, int size, jobject receiver, ByteSize frame_data_offset) :
+UpcallStub::UpcallStub(const char* name, CodeBuffer* cb, int size, jobject receiver, BytesInt frame_data_offset) :
   RuntimeBlob(name, cb, sizeof(UpcallStub), size, CodeOffsets::frame_never_safe, 0 /* no frame size */,
               /* oop maps = */ nullptr, /* caller must gc arguments = */ false),
   _receiver(receiver),
@@ -744,7 +744,7 @@ void* UpcallStub::operator new(size_t s, unsigned size) throw() {
   return CodeCache::allocate(size, CodeBlobType::NonNMethod);
 }
 
-UpcallStub* UpcallStub::create(const char* name, CodeBuffer* cb, jobject receiver, ByteSize frame_data_offset) {
+UpcallStub* UpcallStub::create(const char* name, CodeBuffer* cb, jobject receiver, BytesInt frame_data_offset) {
   ThreadInVMfromUnknown __tiv;  // get to VM state in case we block on CodeCache_lock
 
   UpcallStub* blob = nullptr;

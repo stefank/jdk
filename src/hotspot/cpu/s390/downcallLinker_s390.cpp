@@ -240,7 +240,7 @@ void DowncallLinker::StubGenerator::generate() {
     __ set_thread_state(_thread_in_Java);
 
     __ block_comment("reguard stack check");
-    __ z_cli(Address(Z_thread, JavaThread::stack_guard_state_offset() + in_ByteSize(sizeof(StackOverflow::StackGuardState) - 1)),
+    __ z_cli(Address(Z_thread, JavaThread::stack_guard_state_offset() + in_BytesInt(sizeof(StackOverflow::StackGuardState) - 1)),
         StackOverflow::stack_guard_yellow_reserved_disabled);
     __ z_bre(L_reguard);
     __ bind(L_after_reguard);

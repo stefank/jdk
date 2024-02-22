@@ -743,80 +743,80 @@ private:
   }
 
   // Misc. accessors/mutators
-  static ByteSize scopedValueCache_offset()       { return byte_offset_of(JavaThread, _scopedValueCache); }
+  static BytesInt scopedValueCache_offset()       { return byte_offset_of(JavaThread, _scopedValueCache); }
 
   // For assembly stub generation
-  static ByteSize threadObj_offset()             { return byte_offset_of(JavaThread, _threadObj); }
-  static ByteSize vthread_offset()               { return byte_offset_of(JavaThread, _vthread); }
-  static ByteSize jni_environment_offset()       { return byte_offset_of(JavaThread, _jni_environment); }
-  static ByteSize pending_jni_exception_check_fn_offset() {
+  static BytesInt threadObj_offset()             { return byte_offset_of(JavaThread, _threadObj); }
+  static BytesInt vthread_offset()               { return byte_offset_of(JavaThread, _vthread); }
+  static BytesInt jni_environment_offset()       { return byte_offset_of(JavaThread, _jni_environment); }
+  static BytesInt pending_jni_exception_check_fn_offset() {
     return byte_offset_of(JavaThread, _pending_jni_exception_check_fn);
   }
-  static ByteSize last_Java_sp_offset() {
+  static BytesInt last_Java_sp_offset() {
     return byte_offset_of(JavaThread, _anchor) + JavaFrameAnchor::last_Java_sp_offset();
   }
-  static ByteSize last_Java_pc_offset() {
+  static BytesInt last_Java_pc_offset() {
     return byte_offset_of(JavaThread, _anchor) + JavaFrameAnchor::last_Java_pc_offset();
   }
-  static ByteSize frame_anchor_offset() {
+  static BytesInt frame_anchor_offset() {
     return byte_offset_of(JavaThread, _anchor);
   }
-  static ByteSize callee_target_offset()         { return byte_offset_of(JavaThread, _callee_target); }
-  static ByteSize vm_result_offset()             { return byte_offset_of(JavaThread, _vm_result); }
-  static ByteSize vm_result_2_offset()           { return byte_offset_of(JavaThread, _vm_result_2); }
-  static ByteSize thread_state_offset()          { return byte_offset_of(JavaThread, _thread_state); }
-  static ByteSize polling_word_offset()          { return byte_offset_of(JavaThread, _poll_data) + byte_offset_of(SafepointMechanism::ThreadData, _polling_word);}
-  static ByteSize polling_page_offset()          { return byte_offset_of(JavaThread, _poll_data) + byte_offset_of(SafepointMechanism::ThreadData, _polling_page);}
-  static ByteSize saved_exception_pc_offset()    { return byte_offset_of(JavaThread, _saved_exception_pc); }
-  static ByteSize osthread_offset()              { return byte_offset_of(JavaThread, _osthread); }
+  static BytesInt callee_target_offset()         { return byte_offset_of(JavaThread, _callee_target); }
+  static BytesInt vm_result_offset()             { return byte_offset_of(JavaThread, _vm_result); }
+  static BytesInt vm_result_2_offset()           { return byte_offset_of(JavaThread, _vm_result_2); }
+  static BytesInt thread_state_offset()          { return byte_offset_of(JavaThread, _thread_state); }
+  static BytesInt polling_word_offset()          { return byte_offset_of(JavaThread, _poll_data) + byte_offset_of(SafepointMechanism::ThreadData, _polling_word);}
+  static BytesInt polling_page_offset()          { return byte_offset_of(JavaThread, _poll_data) + byte_offset_of(SafepointMechanism::ThreadData, _polling_page);}
+  static BytesInt saved_exception_pc_offset()    { return byte_offset_of(JavaThread, _saved_exception_pc); }
+  static BytesInt osthread_offset()              { return byte_offset_of(JavaThread, _osthread); }
 #if INCLUDE_JVMCI
-  static ByteSize pending_deoptimization_offset() { return byte_offset_of(JavaThread, _pending_deoptimization); }
-  static ByteSize pending_monitorenter_offset()  { return byte_offset_of(JavaThread, _pending_monitorenter); }
-  static ByteSize jvmci_alternate_call_target_offset() { return byte_offset_of(JavaThread, _jvmci._alternate_call_target); }
-  static ByteSize jvmci_implicit_exception_pc_offset() { return byte_offset_of(JavaThread, _jvmci._implicit_exception_pc); }
-  static ByteSize jvmci_counters_offset()        { return byte_offset_of(JavaThread, _jvmci_counters); }
+  static BytesInt pending_deoptimization_offset() { return byte_offset_of(JavaThread, _pending_deoptimization); }
+  static BytesInt pending_monitorenter_offset()  { return byte_offset_of(JavaThread, _pending_monitorenter); }
+  static BytesInt jvmci_alternate_call_target_offset() { return byte_offset_of(JavaThread, _jvmci._alternate_call_target); }
+  static BytesInt jvmci_implicit_exception_pc_offset() { return byte_offset_of(JavaThread, _jvmci._implicit_exception_pc); }
+  static BytesInt jvmci_counters_offset()        { return byte_offset_of(JavaThread, _jvmci_counters); }
 #endif // INCLUDE_JVMCI
-  static ByteSize exception_oop_offset()         { return byte_offset_of(JavaThread, _exception_oop); }
-  static ByteSize exception_pc_offset()          { return byte_offset_of(JavaThread, _exception_pc); }
-  static ByteSize exception_handler_pc_offset()  { return byte_offset_of(JavaThread, _exception_handler_pc); }
-  static ByteSize is_method_handle_return_offset() { return byte_offset_of(JavaThread, _is_method_handle_return); }
+  static BytesInt exception_oop_offset()         { return byte_offset_of(JavaThread, _exception_oop); }
+  static BytesInt exception_pc_offset()          { return byte_offset_of(JavaThread, _exception_pc); }
+  static BytesInt exception_handler_pc_offset()  { return byte_offset_of(JavaThread, _exception_handler_pc); }
+  static BytesInt is_method_handle_return_offset() { return byte_offset_of(JavaThread, _is_method_handle_return); }
 
-  static ByteSize active_handles_offset()        { return byte_offset_of(JavaThread, _active_handles); }
+  static BytesInt active_handles_offset()        { return byte_offset_of(JavaThread, _active_handles); }
 
   // StackOverflow offsets
-  static ByteSize stack_overflow_limit_offset()  {
+  static BytesInt stack_overflow_limit_offset()  {
     return byte_offset_of(JavaThread, _stack_overflow_state._stack_overflow_limit);
   }
-  static ByteSize stack_guard_state_offset()     {
+  static BytesInt stack_guard_state_offset()     {
     return byte_offset_of(JavaThread, _stack_overflow_state._stack_guard_state);
   }
-  static ByteSize reserved_stack_activation_offset() {
+  static BytesInt reserved_stack_activation_offset() {
     return byte_offset_of(JavaThread, _stack_overflow_state._reserved_stack_activation);
   }
-  static ByteSize shadow_zone_safe_limit()  {
+  static BytesInt shadow_zone_safe_limit()  {
     return byte_offset_of(JavaThread, _stack_overflow_state._shadow_zone_safe_limit);
   }
-  static ByteSize shadow_zone_growth_watermark()  {
+  static BytesInt shadow_zone_growth_watermark()  {
     return byte_offset_of(JavaThread, _stack_overflow_state._shadow_zone_growth_watermark);
   }
 
-  static ByteSize suspend_flags_offset()         { return byte_offset_of(JavaThread, _suspend_flags); }
+  static BytesInt suspend_flags_offset()         { return byte_offset_of(JavaThread, _suspend_flags); }
 
-  static ByteSize do_not_unlock_if_synchronized_offset() { return byte_offset_of(JavaThread, _do_not_unlock_if_synchronized); }
-  static ByteSize should_post_on_exceptions_flag_offset() {
+  static BytesInt do_not_unlock_if_synchronized_offset() { return byte_offset_of(JavaThread, _do_not_unlock_if_synchronized); }
+  static BytesInt should_post_on_exceptions_flag_offset() {
     return byte_offset_of(JavaThread, _should_post_on_exceptions_flag);
   }
-  static ByteSize doing_unsafe_access_offset() { return byte_offset_of(JavaThread, _doing_unsafe_access); }
-  NOT_PRODUCT(static ByteSize requires_cross_modify_fence_offset()  { return byte_offset_of(JavaThread, _requires_cross_modify_fence); })
+  static BytesInt doing_unsafe_access_offset() { return byte_offset_of(JavaThread, _doing_unsafe_access); }
+  NOT_PRODUCT(static BytesInt requires_cross_modify_fence_offset()  { return byte_offset_of(JavaThread, _requires_cross_modify_fence); })
 
-  static ByteSize cont_entry_offset()         { return byte_offset_of(JavaThread, _cont_entry); }
-  static ByteSize cont_fastpath_offset()      { return byte_offset_of(JavaThread, _cont_fastpath); }
-  static ByteSize held_monitor_count_offset() { return byte_offset_of(JavaThread, _held_monitor_count); }
+  static BytesInt cont_entry_offset()         { return byte_offset_of(JavaThread, _cont_entry); }
+  static BytesInt cont_fastpath_offset()      { return byte_offset_of(JavaThread, _cont_fastpath); }
+  static BytesInt held_monitor_count_offset() { return byte_offset_of(JavaThread, _held_monitor_count); }
 
 #if INCLUDE_JVMTI
-  static ByteSize is_in_VTMS_transition_offset()     { return byte_offset_of(JavaThread, _is_in_VTMS_transition); }
-  static ByteSize is_in_tmp_VTMS_transition_offset() { return byte_offset_of(JavaThread, _is_in_tmp_VTMS_transition); }
-  static ByteSize is_disable_suspend_offset()        { return byte_offset_of(JavaThread, _is_disable_suspend); }
+  static BytesInt is_in_VTMS_transition_offset()     { return byte_offset_of(JavaThread, _is_in_VTMS_transition); }
+  static BytesInt is_in_tmp_VTMS_transition_offset() { return byte_offset_of(JavaThread, _is_in_tmp_VTMS_transition); }
+  static BytesInt is_disable_suspend_offset()        { return byte_offset_of(JavaThread, _is_disable_suspend); }
 #endif
 
   // Returns the jni environment for this thread
@@ -1015,7 +1015,7 @@ private:
   // returns it. JvmtiThreadState::state_for() will return null only if
   // the specified JavaThread is exiting.
   JvmtiThreadState *jvmti_thread_state() const                                   { return _jvmti_thread_state; }
-  static ByteSize jvmti_thread_state_offset()                                    { return byte_offset_of(JavaThread, _jvmti_thread_state); }
+  static BytesInt jvmti_thread_state_offset()                                    { return byte_offset_of(JavaThread, _jvmti_thread_state); }
 
 #if INCLUDE_JVMTI
   // Rebind JVMTI thread state from carrier to virtual or from virtual to carrier.
@@ -1040,7 +1040,7 @@ private:
   void set_popframe_condition(PopCondition c)         { _popframe_condition = c; }
   void set_popframe_condition_bit(PopCondition c)     { _popframe_condition |= c; }
   void clear_popframe_condition()                     { _popframe_condition = popframe_inactive; }
-  static ByteSize popframe_condition_offset()         { return byte_offset_of(JavaThread, _popframe_condition); }
+  static BytesInt popframe_condition_offset()         { return byte_offset_of(JavaThread, _popframe_condition); }
   bool has_pending_popframe()                         { return (popframe_condition() & popframe_pending_bit) != 0; }
   bool popframe_forcing_deopt_reexecution()           { return (popframe_condition() & popframe_force_deopt_reexecution_bit) != 0; }
 
@@ -1059,10 +1059,10 @@ private:
   int      _popframe_preserved_args_size;
 
  public:
-  void  popframe_preserve_args(ByteSize size_in_bytes, void* start);
+  void  popframe_preserve_args(BytesInt size_in_bytes, void* start);
   void* popframe_preserved_args();
-  ByteSize popframe_preserved_args_size();
-  WordSize popframe_preserved_args_size_in_words();
+  BytesInt popframe_preserved_args_size();
+  WordsInt popframe_preserved_args_size_in_words();
   void  popframe_free_preserved_args();
 
 
@@ -1080,7 +1080,7 @@ private:
 
  public:
   // used by the interpreter for fullspeed debugging support (see above)
-  static ByteSize interp_only_mode_offset() { return byte_offset_of(JavaThread, _interp_only_mode); }
+  static BytesInt interp_only_mode_offset() { return byte_offset_of(JavaThread, _interp_only_mode); }
   bool is_interp_only_mode()                { return (_interp_only_mode != 0); }
   int get_interp_only_mode()                { return _interp_only_mode; }
   int set_interp_only_mode(int val)         { return _interp_only_mode = val; }
@@ -1156,12 +1156,12 @@ private:
 public:
   LockStack& lock_stack() { return _lock_stack; }
 
-  static ByteSize lock_stack_offset()      { return byte_offset_of(JavaThread, _lock_stack); }
+  static BytesInt lock_stack_offset()      { return byte_offset_of(JavaThread, _lock_stack); }
   // Those offsets are used in code generators to access the LockStack that is embedded in this
   // JavaThread structure. Those accesses are relative to the current thread, which
   // is typically in a dedicated register.
-  static ByteSize lock_stack_top_offset()  { return lock_stack_offset() + LockStack::top_offset(); }
-  static ByteSize lock_stack_base_offset() { return lock_stack_offset() + LockStack::base_offset(); }
+  static BytesInt lock_stack_top_offset()  { return lock_stack_offset() + LockStack::top_offset(); }
+  static BytesInt lock_stack_base_offset() { return lock_stack_offset() + LockStack::base_offset(); }
 
   static OopStorage* thread_oop_storage();
 

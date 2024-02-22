@@ -81,11 +81,11 @@ class CompiledICData : public CHeapObj<mtCode> {
   Klass*    itable_defc_klass() const { return _itable_defc_klass; }
   Klass*    itable_refc_klass() const { return _itable_refc_klass; }
 
-  static ByteSize speculated_method_offset() { return byte_offset_of(CompiledICData, _speculated_method); }
-  static ByteSize speculated_klass_offset()  { return byte_offset_of(CompiledICData, _speculated_klass); }
+  static BytesInt speculated_method_offset() { return byte_offset_of(CompiledICData, _speculated_method); }
+  static BytesInt speculated_klass_offset()  { return byte_offset_of(CompiledICData, _speculated_klass); }
 
-  static ByteSize itable_defc_klass_offset() { return byte_offset_of(CompiledICData, _itable_defc_klass); }
-  static ByteSize itable_refc_klass_offset() { return byte_offset_of(CompiledICData, _itable_refc_klass); }
+  static BytesInt itable_defc_klass_offset() { return byte_offset_of(CompiledICData, _itable_defc_klass); }
+  static BytesInt itable_refc_klass_offset() { return byte_offset_of(CompiledICData, _itable_refc_klass); }
 
   void initialize(CallInfo* call_info, Klass* receiver_klass);
 

@@ -760,8 +760,8 @@ nmethod* SharedRuntime::generate_native_wrapper(MacroAssembler* masm,
                                        vep_offset,
                                        frame_complete,
                                        stack_slots / VMRegImpl::slots_per_word,
-                                       in_ByteSize(-1),
-                                       in_ByteSize(-1),
+                                       in_BytesInt(-1),
+                                       in_BytesInt(-1),
                                        (OopMapSet*)nullptr);
   }
   // Arguments for JNI method include JNIEnv and Class if static
@@ -1332,8 +1332,8 @@ nmethod* SharedRuntime::generate_native_wrapper(MacroAssembler* masm,
                                      vep_offset,
                                      frame_complete,
                                      stack_slots / VMRegImpl::slots_per_word,
-                                     in_ByteSize(method_is_static ? klass_offset : receiver_offset),
-                                     in_ByteSize(lock_slot_offset * VMRegImpl::stack_slot_size),
+                                     in_BytesInt(method_is_static ? klass_offset : receiver_offset),
+                                     in_BytesInt(lock_slot_offset * VMRegImpl::stack_slot_size),
                                      oop_maps);
 }
 

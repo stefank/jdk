@@ -73,7 +73,7 @@ class ZeroEntry {
   }
 
  public:
-  static ByteSize entry_point_offset() {
+  static BytesInt entry_point_offset() {
     return byte_offset_of(ZeroEntry, _entry_point);
   }
 };

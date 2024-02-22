@@ -202,10 +202,10 @@ class Address {
     if (roc.is_constant()) _disp += roc.as_constant(); else _index = roc.as_register();
   }
 
-  Address(Register base, ByteSize disp) :
+  Address(Register base, BytesInt disp) :
     Address(base, in_bytes(disp)) {}
 
-  Address(Register base, Register index, ByteSize disp) :
+  Address(Register base, Register index, BytesInt disp) :
     Address(base, index, in_bytes(disp)) {}
 
   // Aborts if disp is a register and base and index are set already.

@@ -32,12 +32,12 @@
 #define DEFINE_THREAD_LOCAL_FIELD_JFR mutable JfrThreadLocal _jfr_thread_local
 
 #define DEFINE_THREAD_LOCAL_OFFSET_JFR \
-  static ByteSize jfr_thread_local_offset() { return byte_offset_of(Thread, _jfr_thread_local); }
+  static BytesInt jfr_thread_local_offset() { return byte_offset_of(Thread, _jfr_thread_local); }
 
 #define THREAD_LOCAL_OFFSET_JFR Thread::jfr_thread_local_offset()
 
 #define DEFINE_THREAD_LOCAL_TRACE_ID_OFFSET_JFR \
-  static ByteSize trace_id_offset() { return byte_offset_of(JfrThreadLocal, _trace_id); }
+  static BytesInt trace_id_offset() { return byte_offset_of(JfrThreadLocal, _trace_id); }
 
 #define DEFINE_THREAD_LOCAL_ACCESSOR_JFR \
   JfrThreadLocal* jfr_thread_local() const { return &_jfr_thread_local; }

@@ -237,20 +237,20 @@ public:
   }
 
   // Low-level support for code generation.
-  static ByteSize header_offset() {
+  static BytesInt header_offset() {
     return byte_offset_of(DataLayout, _header);
   }
-  static ByteSize tag_offset() {
+  static BytesInt tag_offset() {
     return byte_offset_of(DataLayout, _header._struct._tag);
   }
-  static ByteSize flags_offset() {
+  static BytesInt flags_offset() {
     return byte_offset_of(DataLayout, _header._struct._flags);
   }
-  static ByteSize bci_offset() {
+  static BytesInt bci_offset() {
     return byte_offset_of(DataLayout, _header._struct._bci);
   }
-  static ByteSize cell_offset(int index) {
-    return byte_offset_of(DataLayout, _cells) + in_ByteSize(index * cell_size);
+  static BytesInt cell_offset(int index) {
+    return byte_offset_of(DataLayout, _cells) + in_BytesInt(index * cell_size);
   }
   // Return a value which, when or-ed as a byte into _flags, sets the flag.
   static u1 flag_number_to_constant(u1 flag_number) {
@@ -378,7 +378,7 @@ protected:
   }
 
   // two convenient imports for use by subclasses:
-  static ByteSize cell_offset(int index) {
+  static BytesInt cell_offset(int index) {
     return DataLayout::cell_offset(index);
   }
   static u1 flag_number_to_constant(u1 flag_number) {
@@ -564,7 +564,7 @@ public:
     return flag_number_to_constant(null_seen_flag);
   }
 
-  static ByteSize bit_data_size() {
+  static BytesInt bit_data_size() {
     return cell_offset(bit_cell_count);
   }
 
@@ -607,10 +607,10 @@ public:
   }
 
   // Code generation support
-  static ByteSize count_offset() {
+  static BytesInt count_offset() {
     return cell_offset(count_off);
   }
-  static ByteSize counter_data_size() {
+  static BytesInt counter_data_size() {
     return cell_offset(counter_cell_count);
   }
 
@@ -680,11 +680,11 @@ public:
   }
 
   // Code generation support
-  static ByteSize taken_offset() {
+  static BytesInt taken_offset() {
     return cell_offset(taken_off_set);
   }
 
-  static ByteSize displacement_offset() {
+  static BytesInt displacement_offset() {
     return cell_offset(displacement_off_set);
   }
 
@@ -860,15 +860,15 @@ public:
     _pd->set_intptr_at(type_offset_in_cells(i), k);
   }
 
-  static ByteSize per_arg_size() {
-    return in_ByteSize(per_arg_cell_count * DataLayout::cell_size);
+  static BytesInt per_arg_size() {
+    return in_BytesInt(per_arg_cell_count * DataLayout::cell_size);
   }
 
   static int per_arg_count() {
     return per_arg_cell_count;
   }
 
-  ByteSize type_offset(int i) const {
+  BytesInt type_offset(int i) const {
     return DataLayout::cell_offset(type_offset_in_cells(i));
   }
 
@@ -907,11 +907,11 @@ public:
     return cell_count;
   }
 
-  static ByteSize size() {
-    return in_ByteSize(cell_count * DataLayout::cell_size);
+  static BytesInt size() {
+    return in_BytesInt(cell_count * DataLayout::cell_size);
   }
 
-  ByteSize type_offset() {
+  BytesInt type_offset() {
     return DataLayout::cell_offset(_base_off);
   }
 
@@ -959,24 +959,24 @@ public:
   static bool return_profiling_enabled();
 
   // Code generation support
-  static ByteSize cell_count_offset() {
-    return in_ByteSize(cell_count_local_offset() * DataLayout::cell_size);
+  static BytesInt cell_count_offset() {
+    return in_BytesInt(cell_count_local_offset() * DataLayout::cell_size);
   }
 
-  static ByteSize args_data_offset() {
-    return in_ByteSize(header_cell_count() * DataLayout::cell_size);
+  static BytesInt args_data_offset() {
+    return in_BytesInt(header_cell_count() * DataLayout::cell_size);
   }
 
-  static ByteSize stack_slot_offset(int i) {
-    return in_ByteSize(stack_slot_local_offset(i) * DataLayout::cell_size);
+  static BytesInt stack_slot_offset(int i) {
+    return in_BytesInt(stack_slot_local_offset(i) * DataLayout::cell_size);
   }
 
-  static ByteSize argument_type_offset(int i) {
-    return in_ByteSize(argument_type_local_offset(i) * DataLayout::cell_size);
+  static BytesInt argument_type_offset(int i) {
+    return in_BytesInt(argument_type_local_offset(i) * DataLayout::cell_size);
   }
 
-  static ByteSize return_only_size() {
-    return ReturnTypeEntry::size() + in_ByteSize(header_cell_count() * DataLayout::cell_size);
+  static BytesInt return_only_size() {
+    return ReturnTypeEntry::size() + in_BytesInt(header_cell_count() * DataLayout::cell_size);
   }
 
 };
@@ -1087,15 +1087,15 @@ public:
   }
 
   // Code generation support
-  static ByteSize args_data_offset() {
+  static BytesInt args_data_offset() {
     return cell_offset(CounterData::static_cell_count()) + TypeEntriesAtCall::args_data_offset();
   }
 
-  ByteSize argument_type_offset(int i) {
+  BytesInt argument_type_offset(int i) {
     return _args.type_offset(i);
   }
 
-  ByteSize return_type_offset() {
+  BytesInt return_type_offset() {
     return _ret.type_offset();
   }
 
@@ -1206,13 +1206,13 @@ public:
   }
 
   // Code generation support
-  static ByteSize receiver_offset(uint row) {
+  static BytesInt receiver_offset(uint row) {
     return cell_offset(receiver_cell_index(row));
   }
-  static ByteSize receiver_count_offset(uint row) {
+  static BytesInt receiver_count_offset(uint row) {
     return cell_offset(receiver_count_cell_index(row));
   }
-  static ByteSize receiver_type_data_size() {
+  static BytesInt receiver_type_data_size() {
     return cell_offset(static_cell_count());
   }
 
@@ -1247,7 +1247,7 @@ public:
   }
 
   // Direct accessors
-  static ByteSize virtual_call_data_size() {
+  static BytesInt virtual_call_data_size() {
     return cell_offset(static_cell_count());
   }
 
@@ -1361,15 +1361,15 @@ public:
   }
 
   // Code generation support
-  static ByteSize args_data_offset() {
+  static BytesInt args_data_offset() {
     return cell_offset(VirtualCallData::static_cell_count()) + TypeEntriesAtCall::args_data_offset();
   }
 
-  ByteSize argument_type_offset(int i) {
+  BytesInt argument_type_offset(int i) {
     return _args.type_offset(i);
   }
 
-  ByteSize return_type_offset() {
+  BytesInt return_type_offset() {
     return _ret.type_offset();
   }
 
@@ -1463,13 +1463,13 @@ public:
   address fixup_ret(int return_bci, MethodData* mdo);
 
   // Code generation support
-  static ByteSize bci_offset(uint row) {
+  static BytesInt bci_offset(uint row) {
     return cell_offset(bci_cell_index(row));
   }
-  static ByteSize bci_count_offset(uint row) {
+  static BytesInt bci_count_offset(uint row) {
     return cell_offset(bci_count_cell_index(row));
   }
-  static ByteSize bci_displacement_offset(uint row) {
+  static BytesInt bci_displacement_offset(uint row) {
     return cell_offset(bci_displacement_cell_index(row));
   }
 
@@ -1530,10 +1530,10 @@ public:
   }
 
   // Code generation support
-  static ByteSize not_taken_offset() {
+  static BytesInt not_taken_offset() {
     return cell_offset(not_taken_off_set);
   }
-  static ByteSize branch_data_size() {
+  static BytesInt branch_data_size() {
     return cell_offset(branch_cell_count);
   }
 
@@ -1577,7 +1577,7 @@ protected:
   }
 
   // Code generation support for subclasses.
-  static ByteSize array_element_offset(int index) {
+  static BytesInt array_element_offset(int index) {
     return cell_offset(array_start_off_set + index);
   }
 
@@ -1599,10 +1599,10 @@ public:
   }
 
   // Code generation support
-  static ByteSize array_len_offset() {
+  static BytesInt array_len_offset() {
     return cell_offset(array_len_off_set);
   }
-  static ByteSize array_start_offset() {
+  static BytesInt array_start_offset() {
     return cell_offset(array_start_off_set);
   }
 };
@@ -1672,28 +1672,28 @@ public:
   }
 
   // Code generation support
-  static ByteSize default_count_offset() {
+  static BytesInt default_count_offset() {
     return array_element_offset(default_count_off_set);
   }
-  static ByteSize default_displacement_offset() {
+  static BytesInt default_displacement_offset() {
     return array_element_offset(default_disaplacement_off_set);
   }
-  static ByteSize case_count_offset(int index) {
+  static BytesInt case_count_offset(int index) {
     return case_array_offset() +
            (per_case_size() * index) +
            relative_count_offset();
   }
-  static ByteSize case_array_offset() {
+  static BytesInt case_array_offset() {
     return array_element_offset(case_array_start);
   }
-  static ByteSize per_case_size() {
-    return in_ByteSize(per_case_cell_count) * cell_size;
+  static BytesInt per_case_size() {
+    return in_BytesInt(per_case_cell_count) * cell_size;
   }
-  static ByteSize relative_count_offset() {
-    return in_ByteSize(relative_count_off_set) * cell_size;
+  static BytesInt relative_count_offset() {
+    return in_BytesInt(relative_count_off_set) * cell_size;
   }
-  static ByteSize relative_displacement_offset() {
-    return in_ByteSize(relative_displacement_off_set) * cell_size;
+  static BytesInt relative_displacement_offset() {
+    return in_BytesInt(relative_displacement_off_set) * cell_size;
   }
 
   // Specific initialization.
@@ -1785,11 +1785,11 @@ public:
 
   virtual void print_data_on(outputStream* st, const char* extra = nullptr) const;
 
-  static ByteSize stack_slot_offset(int i) {
+  static BytesInt stack_slot_offset(int i) {
     return cell_offset(stack_slot_local_offset(i));
   }
 
-  static ByteSize type_offset(int i) {
+  static BytesInt type_offset(int i) {
     return cell_offset(type_local_offset(i));
   }
 };
@@ -1849,7 +1849,7 @@ public:
     set_intptr_at(speculative_trap_method, (intptr_t)m);
   }
 
-  static ByteSize method_offset() {
+  static BytesInt method_offset() {
     return cell_offset(speculative_trap_method);
   }
 
@@ -2040,7 +2040,7 @@ public:
     }
 
     // Support for code generation
-    static ByteSize trap_history_offset() {
+    static BytesInt trap_history_offset() {
       return byte_offset_of(CompilerCounters, _trap_hist._array);
     }
   };
@@ -2281,7 +2281,7 @@ public:
     Atomic::store(&_rtm_state, (int)rstate);
   }
 
-  static ByteSize rtm_state_offset() {
+  static BytesInt rtm_state_offset() {
     return byte_offset_of(MethodData, _rtm_state);
   }
 #endif
@@ -2465,31 +2465,31 @@ public:
   }
 
   // Support for code generation
-  static ByteSize data_offset() {
+  static BytesInt data_offset() {
     return byte_offset_of(MethodData, _data[0]);
   }
 
-  static ByteSize trap_history_offset() {
+  static BytesInt trap_history_offset() {
     return byte_offset_of(MethodData, _compiler_counters) + CompilerCounters::trap_history_offset();
   }
 
-  static ByteSize invocation_counter_offset() {
+  static BytesInt invocation_counter_offset() {
     return byte_offset_of(MethodData, _invocation_counter);
   }
 
-  static ByteSize backedge_counter_offset() {
+  static BytesInt backedge_counter_offset() {
     return byte_offset_of(MethodData, _backedge_counter);
   }
 
-  static ByteSize invoke_mask_offset() {
+  static BytesInt invoke_mask_offset() {
     return byte_offset_of(MethodData, _invoke_mask);
   }
 
-  static ByteSize backedge_mask_offset() {
+  static BytesInt backedge_mask_offset() {
     return byte_offset_of(MethodData, _backedge_mask);
   }
 
-  static ByteSize parameters_type_data_di_offset() {
+  static BytesInt parameters_type_data_di_offset() {
     return byte_offset_of(MethodData, _parameters_type_data_di);
   }
 

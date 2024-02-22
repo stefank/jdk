@@ -33,7 +33,7 @@
 
 // This file specializes the assembler with interpreter-specific macros
 
-typedef ByteSize (*OffsetFunction)(uint);
+typedef BytesInt (*OffsetFunction)(uint);
 
 class InterpreterMacroAssembler: public MacroAssembler {
  protected:

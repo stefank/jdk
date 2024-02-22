@@ -65,7 +65,7 @@ class ObjArrayKlass : public ArrayKlass {
   PackageEntry* package() const;
 
   // Compiler/Interpreter offset
-  static ByteSize element_klass_offset() { return byte_offset_of(ObjArrayKlass, _element_klass); }
+  static BytesInt element_klass_offset() { return byte_offset_of(ObjArrayKlass, _element_klass); }
 
   // Dispatched operation
   bool can_be_primary_super_slow() const;
