@@ -1284,7 +1284,7 @@ void GraphBuilder::convert(Bytecodes::Code op, BasicType from, BasicType to) {
 
 void GraphBuilder::increment() {
   int index = stream()->get_index();
-  int delta = stream()->is_wide() ? (signed short)Bytes::get_Java_u2(stream()->cur_bcp() + 4) : (signed char)(stream()->cur_bcp()[2]);
+  int delta = stream()->is_wide() ? (signed short)BytesAccess::get_Java_u2(stream()->cur_bcp() + 4) : (signed char)(stream()->cur_bcp()[2]);
   load_local(intType, index);
   ipush(append(new Constant(new IntConstant(delta))));
   arithmetic_op(intType, Bytecodes::_iadd);
@@ -2798,7 +2798,7 @@ BlockEnd* GraphBuilder::iterate_bytecodes_for_block(int bci) {
       case Bytecodes::_dconst_0       : dpush(append(new Constant(new DoubleConstant( 0)))); break;
       case Bytecodes::_dconst_1       : dpush(append(new Constant(new DoubleConstant( 1)))); break;
       case Bytecodes::_bipush         : ipush(append(new Constant(new IntConstant(((signed char*)s.cur_bcp())[1])))); break;
-      case Bytecodes::_sipush         : ipush(append(new Constant(new IntConstant((short)Bytes::get_Java_u2(s.cur_bcp()+1))))); break;
+      case Bytecodes::_sipush         : ipush(append(new Constant(new IntConstant((short)BytesAccess::get_Java_u2(s.cur_bcp()+1))))); break;
       case Bytecodes::_ldc            : // fall through
       case Bytecodes::_ldc_w          : // fall through
       case Bytecodes::_ldc2_w         : load_constant(); break;

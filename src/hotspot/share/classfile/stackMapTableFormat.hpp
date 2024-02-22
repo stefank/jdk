@@ -92,21 +92,21 @@ class verification_type_info {
 
   u2 cpool_index() const {
     assert(is_object(), "This type has no cp_index");
-    return Bytes::get_Java_u2(cpool_index_addr());
+    return BytesAccess::get_Java_u2(cpool_index_addr());
   }
   void set_cpool_index(u2 idx) {
     assert(is_object(), "This type has no cp_index");
-    Bytes::put_Java_u2(cpool_index_addr(), idx);
+    BytesAccess::put_Java_u2(cpool_index_addr(), idx);
   }
 
   u2 bci() const {
     assert(is_uninitialized(), "This type has no bci");
-    return Bytes::get_Java_u2(bci_addr());
+    return BytesAccess::get_Java_u2(bci_addr());
   }
 
   void set_bci(u2 bci) {
     assert(is_uninitialized(), "This type has no bci");
-    Bytes::put_Java_u2(bci_addr(), bci);
+    BytesAccess::put_Java_u2(bci_addr(), bci);
   }
 
   void copy_from(verification_type_info* from) {
@@ -298,11 +298,11 @@ class same_frame_extended : public stack_map_frame {
 
   size_t size() const { return calculate_size(); }
   int offset_delta() const {
-    return Bytes::get_Java_u2(offset_delta_addr()) + 1;
+    return BytesAccess::get_Java_u2(offset_delta_addr()) + 1;
   }
 
   void set_offset_delta(int offset_delta) {
-    Bytes::put_Java_u2(offset_delta_addr(), checked_cast<u2>(offset_delta - 1));
+    BytesAccess::put_Java_u2(offset_delta_addr(), checked_cast<u2>(offset_delta - 1));
   }
 
   int number_of_types() const { return 0; }
@@ -434,11 +434,11 @@ class same_locals_1_stack_item_extended : public stack_map_frame {
 
   size_t size() const { return calculate_size(types()); }
   int offset_delta() const {
-    return Bytes::get_Java_u2(offset_delta_addr()) + 1;
+    return BytesAccess::get_Java_u2(offset_delta_addr()) + 1;
   }
 
   void set_offset_delta(int offset_delta) {
-    Bytes::put_Java_u2(offset_delta_addr(), checked_cast<u2>(offset_delta - 1));
+    BytesAccess::put_Java_u2(offset_delta_addr(), checked_cast<u2>(offset_delta - 1));
   }
 
   void set_type(verification_type_info* vti) {
@@ -505,10 +505,10 @@ class chop_frame : public stack_map_frame {
 
   size_t size() const { return calculate_size(); }
   int offset_delta() const {
-    return Bytes::get_Java_u2(offset_delta_addr()) + 1;
+    return BytesAccess::get_Java_u2(offset_delta_addr()) + 1;
   }
   void set_offset_delta(int offset_delta) {
-    Bytes::put_Java_u2(offset_delta_addr(), checked_cast<u2>(offset_delta - 1));
+    BytesAccess::put_Java_u2(offset_delta_addr(), checked_cast<u2>(offset_delta - 1));
   }
 
   int chops() const {
@@ -595,11 +595,11 @@ class append_frame : public stack_map_frame {
 
   size_t size() const { return calculate_size(number_of_types(), types()); }
   int offset_delta() const {
-    return Bytes::get_Java_u2(offset_delta_addr()) + 1;
+    return BytesAccess::get_Java_u2(offset_delta_addr()) + 1;
   }
 
   void set_offset_delta(int offset_delta) {
-    Bytes::put_Java_u2(offset_delta_addr(), checked_cast<u2>(offset_delta - 1));
+    BytesAccess::put_Java_u2(offset_delta_addr(), checked_cast<u2>(offset_delta - 1));
   }
 
   void set_appends(int appends) {
@@ -728,9 +728,9 @@ class full_frame : public stack_map_frame {
   }
 
   int offset_delta() const {
-    return Bytes::get_Java_u2(offset_delta_addr()) + 1;
+    return BytesAccess::get_Java_u2(offset_delta_addr()) + 1;
   }
-  int num_locals() const { return Bytes::get_Java_u2(num_locals_addr()); }
+  int num_locals() const { return BytesAccess::get_Java_u2(num_locals_addr()); }
   verification_type_info* locals() const {
     return verification_type_info::at(locals_addr());
   }
@@ -742,20 +742,20 @@ class full_frame : public stack_map_frame {
     return (address)vti;
   }
   int stack_slots(address end_of_locals) const {
-    return Bytes::get_Java_u2(stack_slots_addr(end_of_locals));
+    return BytesAccess::get_Java_u2(stack_slots_addr(end_of_locals));
   }
   verification_type_info* stack(address end_of_locals) const {
     return verification_type_info::at(stack_addr(end_of_locals));
   }
 
   void set_offset_delta(int offset_delta) {
-    Bytes::put_Java_u2(offset_delta_addr(), checked_cast<u2>(offset_delta - 1));
+    BytesAccess::put_Java_u2(offset_delta_addr(), checked_cast<u2>(offset_delta - 1));
   }
   void set_num_locals(int num_locals) {
-    Bytes::put_Java_u2(num_locals_addr(), checked_cast<u2>(num_locals));
+    BytesAccess::put_Java_u2(num_locals_addr(), checked_cast<u2>(num_locals));
   }
   void set_stack_slots(address end_of_locals, int stack_slots) {
-    Bytes::put_Java_u2(stack_slots_addr(end_of_locals), checked_cast<u2>(stack_slots));
+    BytesAccess::put_Java_u2(stack_slots_addr(end_of_locals), checked_cast<u2>(stack_slots));
   }
 
   // These return only the locals.  Extra processing is required for stack
@@ -916,14 +916,14 @@ class stack_map_table {
   }
 
   u2 number_of_entries() const {
-    return Bytes::get_Java_u2(number_of_entries_addr());
+    return BytesAccess::get_Java_u2(number_of_entries_addr());
   }
   stack_map_frame* entries() const {
     return stack_map_frame::at(entries_addr());
   }
 
   void set_number_of_entries(u2 num) {
-    Bytes::put_Java_u2(number_of_entries_addr(), num);
+    BytesAccess::put_Java_u2(number_of_entries_addr(), num);
   }
 };
 
@@ -948,18 +948,18 @@ class stack_map_table_attribute {
   }
 
   u2 name_index() const {
-    return Bytes::get_Java_u2(name_index_addr()); }
+    return BytesAccess::get_Java_u2(name_index_addr()); }
   u4 attribute_length() const {
-    return Bytes::get_Java_u4(attribute_length_addr()); }
+    return BytesAccess::get_Java_u4(attribute_length_addr()); }
   stack_map_table* table() const {
     return stack_map_table::at(stack_map_table_addr());
   }
 
   void set_name_index(u2 idx) {
-    Bytes::put_Java_u2(name_index_addr(), idx);
+    BytesAccess::put_Java_u2(name_index_addr(), idx);
   }
   void set_attribute_length(u4 len) {
-    Bytes::put_Java_u4(attribute_length_addr(), len);
+    BytesAccess::put_Java_u4(attribute_length_addr(), len);
   }
 };
 

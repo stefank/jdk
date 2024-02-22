@@ -2187,7 +2187,7 @@ void VM_RedefineClasses::rewrite_cp_refs_in_method(methodHandle method,
             // Rewriter::rewrite_method() does not rewrite ldc -> ldc_w.
             // See comment below for difference between put_Java_u2()
             // and put_native_u2().
-            Bytes::put_Java_u2(bcp, new_index);
+            BytesAccess::put_Java_u2(bcp, new_index);
 
             Relocator rc(method, nullptr /* no RelocatorListener needed */);
             methodHandle m;
@@ -2232,7 +2232,7 @@ void VM_RedefineClasses::rewrite_cp_refs_in_method(methodHandle method,
       case Bytecodes::_putstatic      :
       {
         address p = bcp + 1;
-        int cp_index = Bytes::get_Java_u2(p);
+        int cp_index = BytesAccess::get_Java_u2(p);
         u2 new_index = find_new_index(cp_index);
         if (new_index != 0) {
           // the original index is mapped so update w/ new value
@@ -2244,7 +2244,7 @@ void VM_RedefineClasses::rewrite_cp_refs_in_method(methodHandle method,
           // Since we are updating the constant pool index prior to
           // verification and ConstantPoolCache initialization, we
           // need to keep the new index in Java byte order.
-          Bytes::put_Java_u2(p, new_index);
+          BytesAccess::put_Java_u2(p, new_index);
         }
       } break;
       default:
@@ -2288,7 +2288,7 @@ bool VM_RedefineClasses::rewrite_cp_refs_in_annotations_typeArray(
     return false;
   }
 
-  u2 num_annotations = Bytes::get_Java_u2((address)
+  u2 num_annotations = BytesAccess::get_Java_u2((address)
                          annotations_typeArray->adr_at(byte_i_ref));
   byte_i_ref += 2;
 
@@ -2332,7 +2332,7 @@ bool VM_RedefineClasses::rewrite_cp_refs_in_annotation_struct(
   u2 type_index = rewrite_cp_ref_in_annotation_data(annotations_typeArray,
                     byte_i_ref, "type_index");
 
-  u2 num_element_value_pairs = Bytes::get_Java_u2((address)
+  u2 num_element_value_pairs = BytesAccess::get_Java_u2((address)
                                  annotations_typeArray->adr_at(byte_i_ref));
   byte_i_ref += 2;
 
@@ -2378,11 +2378,11 @@ u2 VM_RedefineClasses::rewrite_cp_ref_in_annotation_data(
 
   address cp_index_addr = (address)
     annotations_typeArray->adr_at(byte_i_ref);
-  u2 old_cp_index = Bytes::get_Java_u2(cp_index_addr);
+  u2 old_cp_index = BytesAccess::get_Java_u2(cp_index_addr);
   u2 new_cp_index = find_new_index(old_cp_index);
   if (new_cp_index != 0) {
     log_debug(redefine, class, annotation)("mapped old %s=%d", trace_mesg, old_cp_index);
-    Bytes::put_Java_u2(cp_index_addr, new_cp_index);
+    BytesAccess::put_Java_u2(cp_index_addr, new_cp_index);
     old_cp_index = new_cp_index;
   }
   byte_i_ref += 2;
@@ -2513,7 +2513,7 @@ bool VM_RedefineClasses::rewrite_cp_refs_in_element_value(
 
       // For the above tag value, value.array_value is the right union
       // field. This is an array of nested element_value.
-      u2 num_values = Bytes::get_Java_u2((address)
+      u2 num_values = BytesAccess::get_Java_u2((address)
                         annotations_typeArray->adr_at(byte_i_ref));
       byte_i_ref += 2;
       log_debug(redefine, class, annotation)("num_values=%d", num_values);
@@ -2779,7 +2779,7 @@ bool VM_RedefineClasses::rewrite_cp_refs_in_type_annotations_typeArray(
     return false;
   }
 
-  u2 num_annotations = Bytes::get_Java_u2((address)
+  u2 num_annotations = BytesAccess::get_Java_u2((address)
                          type_annotations_typeArray->adr_at(byte_i_ref));
   byte_i_ref += 2;
 
@@ -2925,7 +2925,7 @@ bool VM_RedefineClasses::skip_type_annotation_target(
         return false;
       }
 
-      u2 supertype_index = Bytes::get_Java_u2((address)
+      u2 supertype_index = BytesAccess::get_Java_u2((address)
                              type_annotations_typeArray->adr_at(byte_i_ref));
       byte_i_ref += 2;
 
@@ -3015,7 +3015,7 @@ bool VM_RedefineClasses::skip_type_annotation_target(
         return false;
       }
 
-      u2 throws_type_index = Bytes::get_Java_u2((address)
+      u2 throws_type_index = BytesAccess::get_Java_u2((address)
                                type_annotations_typeArray->adr_at(byte_i_ref));
       byte_i_ref += 2;
 
@@ -3046,7 +3046,7 @@ bool VM_RedefineClasses::skip_type_annotation_target(
         return false;
       }
 
-      u2 table_length = Bytes::get_Java_u2((address)
+      u2 table_length = BytesAccess::get_Java_u2((address)
                           type_annotations_typeArray->adr_at(byte_i_ref));
       byte_i_ref += 2;
 
@@ -3080,7 +3080,7 @@ bool VM_RedefineClasses::skip_type_annotation_target(
         return false;
       }
 
-      u2 exception_table_index = Bytes::get_Java_u2((address)
+      u2 exception_table_index = BytesAccess::get_Java_u2((address)
                                    type_annotations_typeArray->adr_at(byte_i_ref));
       byte_i_ref += 2;
 
@@ -3111,7 +3111,7 @@ bool VM_RedefineClasses::skip_type_annotation_target(
         return false;
       }
 
-      u2 offset = Bytes::get_Java_u2((address)
+      u2 offset = BytesAccess::get_Java_u2((address)
                     type_annotations_typeArray->adr_at(byte_i_ref));
       byte_i_ref += 2;
 
@@ -3147,7 +3147,7 @@ bool VM_RedefineClasses::skip_type_annotation_target(
         return false;
       }
 
-      u2 offset = Bytes::get_Java_u2((address)
+      u2 offset = BytesAccess::get_Java_u2((address)
                     type_annotations_typeArray->adr_at(byte_i_ref));
       byte_i_ref += 2;
       u1 type_argument_index = type_annotations_typeArray->at(byte_i_ref);
@@ -3247,7 +3247,7 @@ void VM_RedefineClasses::rewrite_cp_refs_in_stack_map_table(
   address stackmap_end = stackmap_p + stackmap_data->length();
 
   assert(stackmap_p + 2 <= stackmap_end, "no room for number_of_entries");
-  u2 number_of_entries = Bytes::get_Java_u2(stackmap_p);
+  u2 number_of_entries = BytesAccess::get_Java_u2(stackmap_p);
   stackmap_p += 2;
 
   log_debug(redefine, class, stackmap)("number_of_entries=%u", number_of_entries);
@@ -3349,7 +3349,7 @@ void VM_RedefineClasses::rewrite_cp_refs_in_stack_map_table(
         "no room for smallest full_frame");
       stackmap_p += 2;
 
-      u2 number_of_locals = Bytes::get_Java_u2(stackmap_p);
+      u2 number_of_locals = BytesAccess::get_Java_u2(stackmap_p);
       stackmap_p += 2;
 
       for (u2 locals_i = 0; locals_i < number_of_locals; locals_i++) {
@@ -3359,7 +3359,7 @@ void VM_RedefineClasses::rewrite_cp_refs_in_stack_map_table(
 
       // Use the largest size for the number_of_stack_items, but only get
       // the right number of bytes.
-      u2 number_of_stack_items = Bytes::get_Java_u2(stackmap_p);
+      u2 number_of_stack_items = BytesAccess::get_Java_u2(stackmap_p);
       stackmap_p += 2;
 
       for (u2 stack_i = 0; stack_i < number_of_stack_items; stack_i++) {
@@ -3447,11 +3447,11 @@ void VM_RedefineClasses::rewrite_cp_refs_in_verification_type_info(
   case ITEM_Object:
   {
     assert(stackmap_p_ref + 2 <= stackmap_end, "no room for cpool_index");
-    u2 cpool_index = Bytes::get_Java_u2(stackmap_p_ref);
+    u2 cpool_index = BytesAccess::get_Java_u2(stackmap_p_ref);
     u2 new_cp_index = find_new_index(cpool_index);
     if (new_cp_index != 0) {
       log_debug(redefine, class, stackmap)("mapped old cpool_index=%d", cpool_index);
-      Bytes::put_Java_u2(stackmap_p_ref, new_cp_index);
+      BytesAccess::put_Java_u2(stackmap_p_ref, new_cp_index);
       cpool_index = new_cp_index;
     }
     stackmap_p_ref += 2;

@@ -367,18 +367,18 @@ public:
 
   // handle unaligned access
   static inline uint16_t ld_c_instr(address addr) {
-    return Bytes::get_native_u2(addr);
+    return BytesAccess::get_native_u2(addr);
   }
   static inline void sd_c_instr(address addr, uint16_t c_instr) {
-    Bytes::put_native_u2(addr, c_instr);
+    BytesAccess::put_native_u2(addr, c_instr);
   }
 
   // handle unaligned access
   static inline uint32_t ld_instr(address addr) {
-    return Bytes::get_native_u4(addr);
+    return BytesAccess::get_native_u4(addr);
   }
   static inline void sd_instr(address addr, uint32_t instr) {
-    Bytes::put_native_u4(addr, instr);
+    BytesAccess::put_native_u4(addr, instr);
   }
 
   static inline uint32_t extract(uint32_t val, unsigned msb, unsigned lsb) {

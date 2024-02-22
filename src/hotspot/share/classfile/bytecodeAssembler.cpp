@@ -112,7 +112,7 @@ void BytecodeAssembler::append(u1 imm_u1) {
 void BytecodeAssembler::append(u2 imm_u2) {
   _code->append(0);
   _code->append(0);
-  Bytes::put_Java_u2(_code->adr_at(_code->length() - 2), imm_u2);
+  BytesAccess::put_Java_u2(_code->adr_at(_code->length() - 2), imm_u2);
 }
 
 void BytecodeAssembler::append(u4 imm_u4) {
@@ -120,7 +120,7 @@ void BytecodeAssembler::append(u4 imm_u4) {
   _code->append(0);
   _code->append(0);
   _code->append(0);
-  Bytes::put_Java_u4(_code->adr_at(_code->length() - 4), imm_u4);
+  BytesAccess::put_Java_u4(_code->adr_at(_code->length() - 4), imm_u4);
 }
 
 void BytecodeAssembler::dup() {

@@ -1039,7 +1039,7 @@ static int skip_annotation(const u1* buffer, int limit, int index) {
   // annotation := atype:u2 do(nmem:u2) {member:u2 value}
   // value := switch (tag:u1) { ... }
   SAFE_ADD(index, limit, 4); // skip atype and read nmem
-  int nmem = Bytes::get_Java_u2((address)buffer + index - 2);
+  int nmem = BytesAccess::get_Java_u2((address)buffer + index - 2);
   while (--nmem >= 0 && index < limit) {
     SAFE_ADD(index, limit, 2); // skip member
     index = skip_annotation_value(buffer, limit, index);
@@ -1080,7 +1080,7 @@ static int skip_annotation_value(const u1* buffer, int limit, int index) {
     case '[':
     {
       SAFE_ADD(index, limit, 2); // read nval
-      int nval = Bytes::get_Java_u2((address)buffer + index - 2);
+      int nval = BytesAccess::get_Java_u2((address)buffer + index - 2);
       while (--nval >= 0 && index < limit) {
         index = skip_annotation_value(buffer, limit, index);
       }
@@ -1110,7 +1110,7 @@ static void parse_annotations(const ConstantPool* const cp,
   // annotations := do(nann:u2) {annotation}
   int index = 2; // read nann
   if (index >= limit)  return;
-  int nann = Bytes::get_Java_u2((address)buffer + index - 2);
+  int nann = BytesAccess::get_Java_u2((address)buffer + index - 2);
   enum {  // initial annotation layout
     atype_off = 0,      // utf8 such as 'Ljava/lang/annotation/Retention;'
     count_off = 2,      // u2   such as 1 (one value)
@@ -1134,13 +1134,13 @@ static void parse_annotations(const ConstantPool* const cp,
     int index0 = index;
     index = skip_annotation(buffer, limit, index);
     const u1* const abase = buffer + index0;
-    const int atype = Bytes::get_Java_u2((address)abase + atype_off);
-    const int count = Bytes::get_Java_u2((address)abase + count_off);
+    const int atype = BytesAccess::get_Java_u2((address)abase + atype_off);
+    const int count = BytesAccess::get_Java_u2((address)abase + count_off);
     const Symbol* const aname = check_symbol_at(cp, atype);
     if (aname == nullptr)  break;  // invalid annotation name
     const Symbol* member = nullptr;
     if (count >= 1) {
-      const int member_index = Bytes::get_Java_u2((address)abase + member_off);
+      const int member_index = BytesAccess::get_Java_u2((address)abase + member_off);
       member = check_symbol_at(cp, member_index);
       if (member == nullptr)  break;  // invalid member name
     }
@@ -1154,7 +1154,7 @@ static void parse_annotations(const ConstantPool* const cp,
       // @Deprecated can specify forRemoval=true
       const u1* offset = abase + member_off;
       for (int i = 0; i < count; ++i) {
-        int member_index = Bytes::get_Java_u2((address)offset);
+        int member_index = BytesAccess::get_Java_u2((address)offset);
         offset += 2;
         member = check_symbol_at(cp, member_index);
         if (member == vmSymbols::since()) {
@@ -1164,7 +1164,7 @@ static void parse_annotations(const ConstantPool* const cp,
         }
         if (member == vmSymbols::for_removal()) {
           assert(*((address)offset) == b_tag_val, "invariant");
-          const u2 boolean_value_index = Bytes::get_Java_u2((address)offset + 1);
+          const u2 boolean_value_index = BytesAccess::get_Java_u2((address)offset + 1);
           if (cp->int_at(boolean_value_index) == 1) {
             // forRemoval == true
             coll->set_annotation(AnnotationCollector::_java_lang_Deprecated_for_removal);
@@ -1193,7 +1193,7 @@ static void parse_annotations(const ConstantPool* const cp,
         && s_size == (index - index0)  // match size
         && s_tag_val == *(abase + tag_off)
         && member == vmSymbols::value_name()) {
-        group_index = Bytes::get_Java_u2((address)abase + s_con_off);
+        group_index = BytesAccess::get_Java_u2((address)abase + s_con_off);
         if (cp->symbol_at(group_index)->utf8_length() == 0) {
           group_index = 0; // default contended group
         }
@@ -1751,12 +1751,12 @@ class Classfile_LVT_Element {
 
 static void copy_lvt_element(const Classfile_LVT_Element* const src,
                              LocalVariableTableElement* const lvt) {
-  lvt->start_bci           = Bytes::get_Java_u2((u1*) &src->start_bci);
-  lvt->length              = Bytes::get_Java_u2((u1*) &src->length);
-  lvt->name_cp_index       = Bytes::get_Java_u2((u1*) &src->name_cp_index);
-  lvt->descriptor_cp_index = Bytes::get_Java_u2((u1*) &src->descriptor_cp_index);
+  lvt->start_bci           = BytesAccess::get_Java_u2((u1*) &src->start_bci);
+  lvt->length              = BytesAccess::get_Java_u2((u1*) &src->length);
+  lvt->name_cp_index       = BytesAccess::get_Java_u2((u1*) &src->name_cp_index);
+  lvt->descriptor_cp_index = BytesAccess::get_Java_u2((u1*) &src->descriptor_cp_index);
   lvt->signature_cp_index  = 0;
-  lvt->slot                = Bytes::get_Java_u2((u1*) &src->slot);
+  lvt->slot                = BytesAccess::get_Java_u2((u1*) &src->slot);
 }
 
 // Function is used to parse both attributes:
@@ -2765,9 +2765,9 @@ Method* ClassFileParser::parse_method(const ClassFileStream* const cfs,
   if (method_parameters_length > 0) {
     MethodParametersElement* elem = m->constMethod()->method_parameters_start();
     for (int i = 0; i < method_parameters_length; i++) {
-      elem[i].name_cp_index = Bytes::get_Java_u2((address)method_parameters_data);
+      elem[i].name_cp_index = BytesAccess::get_Java_u2((address)method_parameters_data);
       method_parameters_data += 2;
-      elem[i].flags = Bytes::get_Java_u2((address)method_parameters_data);
+      elem[i].flags = BytesAccess::get_Java_u2((address)method_parameters_data);
       method_parameters_data += 2;
     }
   }

@@ -635,11 +635,11 @@ int ExceptionMessageBuilder::do_instruction(int bci) {
         }
       } else {
         if (raw_code == Bytecodes::_fast_aldc_w) {
-          cp_index = Bytes::get_native_u2(code_base + pos);
+          cp_index = BytesAccess::get_native_u2(code_base + pos);
           cp_index = cp->object_to_cp_index(cp_index);
         }
         else {
-          cp_index = Bytes::get_Java_u2(code_base + pos);
+          cp_index = BytesAccess::get_Java_u2(code_base + pos);
         }
       }
 
@@ -681,7 +681,7 @@ int ExceptionMessageBuilder::do_instruction(int bci) {
     case Bytecodes::_astore:
       int index;
       if (is_wide) {
-        index = Bytes::get_Java_u2(code_base + bci + 2);
+        index = BytesAccess::get_Java_u2(code_base + bci + 2);
       } else {
         index = *(uint8_t*) (code_base + bci + 1);
       }
@@ -902,20 +902,20 @@ int ExceptionMessageBuilder::do_instruction(int bci) {
     case Bytecodes::_ifnull:
     case Bytecodes::_ifnonnull:
       stack->pop(-Bytecodes::depth(code));
-      dest_bci = bci + (int16_t) Bytes::get_Java_u2(code_base + pos);
+      dest_bci = bci + (int16_t) BytesAccess::get_Java_u2(code_base + pos);
       break;
 
     case Bytecodes::_jsr:
       // NOTE: Bytecodes has wrong depth for jsr.
       stack->push(bci, T_ADDRESS);
-      dest_bci = bci + (int16_t) Bytes::get_Java_u2(code_base + pos);
+      dest_bci = bci + (int16_t) BytesAccess::get_Java_u2(code_base + pos);
       flow_ended = true;
       break;
 
     case Bytecodes::_jsr_w: {
       // NOTE: Bytecodes has wrong depth for jsr.
       stack->push(bci, T_ADDRESS);
-      dest_bci = bci + (int32_t) Bytes::get_Java_u4(code_base + pos);
+      dest_bci = bci + (int32_t) BytesAccess::get_Java_u4(code_base + pos);
       flow_ended = true;
       break;
     }
@@ -930,12 +930,12 @@ int ExceptionMessageBuilder::do_instruction(int bci) {
     case Bytecodes::_tableswitch: {
       stack->pop(1);
       pos = (pos + 3) & ~3;
-      dest_bci = bci + (int32_t) Bytes::get_Java_u4(code_base + pos);
-      int low = (int32_t) Bytes::get_Java_u4(code_base + pos + 4);
-      int high = (int32_t) Bytes::get_Java_u4(code_base + pos + 8);
+      dest_bci = bci + (int32_t) BytesAccess::get_Java_u4(code_base + pos);
+      int low = (int32_t) BytesAccess::get_Java_u4(code_base + pos + 4);
+      int high = (int32_t) BytesAccess::get_Java_u4(code_base + pos + 8);
 
       for (int64_t i = low; i <= high; ++i) {
-        dests.push(bci + (int32_t) Bytes::get_Java_u4(code_base + pos + 12 + 4 * (i - low)));
+        dests.push(bci + (int32_t) BytesAccess::get_Java_u4(code_base + pos + 12 + 4 * (i - low)));
       }
 
       break;
@@ -944,11 +944,11 @@ int ExceptionMessageBuilder::do_instruction(int bci) {
     case Bytecodes::_lookupswitch: {
       stack->pop(1);
       pos = (pos + 3) & ~3;
-      dest_bci = bci + (int32_t) Bytes::get_Java_u4(code_base + pos);
-      int nr_of_dests = (int32_t) Bytes::get_Java_u4(code_base + pos + 4);
+      dest_bci = bci + (int32_t) BytesAccess::get_Java_u4(code_base + pos);
+      int nr_of_dests = (int32_t) BytesAccess::get_Java_u4(code_base + pos + 4);
 
       for (int i = 0; i < nr_of_dests; ++i) {
-        dests.push(bci + (int32_t) Bytes::get_Java_u4(code_base + pos + 12 + 8 * i));
+        dests.push(bci + (int32_t) BytesAccess::get_Java_u4(code_base + pos + 12 + 8 * i));
       }
 
       break;
@@ -968,7 +968,7 @@ int ExceptionMessageBuilder::do_instruction(int bci) {
     case Bytecodes::_getstatic:
     case Bytecodes::_getfield: {
       // Find out the type of the field accessed.
-      int cp_index = Bytes::get_native_u2(code_base + pos);
+      int cp_index = BytesAccess::get_native_u2(code_base + pos);
       ConstantPool* cp = _method->constants();
       int name_and_type_index = cp->name_and_type_ref_index_at(cp_index, code);
       int type_index = cp->signature_ref_index_at(name_and_type_index);
@@ -982,7 +982,7 @@ int ExceptionMessageBuilder::do_instruction(int bci) {
 
     case Bytecodes::_putstatic:
     case Bytecodes::_putfield: {
-      int cp_index = Bytes::get_native_u2(code_base + pos);
+      int cp_index = BytesAccess::get_native_u2(code_base + pos);
       ConstantPool* cp = _method->constants();
       int name_and_type_index = cp->name_and_type_ref_index_at(cp_index, code);
       int type_index = cp->signature_ref_index_at(name_and_type_index);
@@ -1001,9 +1001,9 @@ int ExceptionMessageBuilder::do_instruction(int bci) {
       int cp_index;
 
       if (code == Bytecodes::_invokedynamic) {
-        cp_index = ((int) Bytes::get_native_u4(code_base + pos));
+        cp_index = ((int) BytesAccess::get_native_u4(code_base + pos));
       } else {
-        cp_index = Bytes::get_native_u2(code_base + pos);
+        cp_index = BytesAccess::get_native_u2(code_base + pos);
       }
 
       int name_and_type_index = cp->name_and_type_ref_index_at(cp_index, code);
@@ -1043,14 +1043,14 @@ int ExceptionMessageBuilder::do_instruction(int bci) {
 
    case Bytecodes::_goto:
       stack->pop(-Bytecodes::depth(code));
-      dest_bci = bci + (int16_t) Bytes::get_Java_u2(code_base + pos);
+      dest_bci = bci + (int16_t) BytesAccess::get_Java_u2(code_base + pos);
       flow_ended = true;
       break;
 
 
    case Bytecodes::_goto_w:
       stack->pop(-Bytecodes::depth(code));
-      dest_bci = bci + (int32_t) Bytes::get_Java_u4(code_base + pos);
+      dest_bci = bci + (int32_t) BytesAccess::get_Java_u4(code_base + pos);
       flow_ended = true;
       break;
 
@@ -1132,7 +1132,7 @@ int ExceptionMessageBuilder::get_NPE_null_slot(int bci) {
     case Bytecodes::_dastore:
       return 3;
     case Bytecodes::_putfield: {
-        int cp_index = Bytes::get_native_u2(code_base + pos);
+        int cp_index = BytesAccess::get_native_u2(code_base + pos);
         ConstantPool* cp = _method->constants();
         int name_and_type_index = cp->name_and_type_ref_index_at(cp_index, code);
         int type_index = cp->signature_ref_index_at(name_and_type_index);
@@ -1143,7 +1143,7 @@ int ExceptionMessageBuilder::get_NPE_null_slot(int bci) {
     case Bytecodes::_invokevirtual:
     case Bytecodes::_invokespecial:
     case Bytecodes::_invokeinterface: {
-        int cp_index = Bytes::get_native_u2(code_base+ pos);
+        int cp_index = BytesAccess::get_native_u2(code_base+ pos);
         ConstantPool* cp = _method->constants();
         int name_and_type_index = cp->name_and_type_ref_index_at(cp_index, code);
         int name_index = cp->name_ref_index_at(name_and_type_index);
@@ -1261,7 +1261,7 @@ bool ExceptionMessageBuilder::print_NPE_cause0(outputStream* os, int bci, int sl
     case Bytecodes::_aload: {
       int index;
       if (is_wide) {
-        index = Bytes::get_Java_u2(code_base + source_bci + 2);
+        index = BytesAccess::get_Java_u2(code_base + source_bci + 2);
       } else {
         index = *(uint8_t*) (code_base + source_bci + 1);
       }
@@ -1299,7 +1299,7 @@ bool ExceptionMessageBuilder::print_NPE_cause0(outputStream* os, int bci, int sl
       return true;
     }
     case Bytecodes::_sipush: {
-      u2 con = Bytes::get_Java_u2(code_base + source_bci + 1);
+      u2 con = BytesAccess::get_Java_u2(code_base + source_bci + 1);
       os->print("%d", con);
       return true;
     }
@@ -1326,7 +1326,7 @@ bool ExceptionMessageBuilder::print_NPE_cause0(outputStream* os, int bci, int sl
     }
 
     case Bytecodes::_getstatic: {
-      int cp_index = Bytes::get_native_u2(code_base + pos);
+      int cp_index = BytesAccess::get_native_u2(code_base + pos);
       print_field_and_class(os, _method, cp_index, code);
       return true;
     }
@@ -1337,7 +1337,7 @@ bool ExceptionMessageBuilder::print_NPE_cause0(outputStream* os, int bci, int sl
       if (print_NPE_cause0(os, source_bci, 0, max_detail - 1, inner_expr)) {
         os->print(".");
       }
-      int cp_index = Bytes::get_native_u2(code_base + pos);
+      int cp_index = BytesAccess::get_native_u2(code_base + pos);
       os->print("%s", get_field_name(_method, cp_index, code));
       return true;
     }
@@ -1346,7 +1346,7 @@ bool ExceptionMessageBuilder::print_NPE_cause0(outputStream* os, int bci, int sl
     case Bytecodes::_invokespecial:
     case Bytecodes::_invokestatic:
     case Bytecodes::_invokeinterface: {
-      int cp_index = Bytes::get_native_u2(code_base + pos);
+      int cp_index = BytesAccess::get_native_u2(code_base + pos);
       if (max_detail == _max_cause_detail && !inner_expr) {
         os->print(" because the return value of \"");
       }
@@ -1414,7 +1414,7 @@ void ExceptionMessageBuilder::print_NPE_failed_action(outputStream *os, int bci)
     case Bytecodes::_monitorexit:
       os->print("Cannot exit synchronized block"); break;
     case Bytecodes::_getfield: {
-        int cp_index = Bytes::get_native_u2(code_base + pos);
+        int cp_index = BytesAccess::get_native_u2(code_base + pos);
         ConstantPool* cp = _method->constants();
         int name_and_type_index = cp->name_and_type_ref_index_at(cp_index, code);
         int name_index = cp->name_ref_index_at(name_and_type_index);
@@ -1422,13 +1422,13 @@ void ExceptionMessageBuilder::print_NPE_failed_action(outputStream *os, int bci)
         os->print("Cannot read field \"%s\"", name->as_C_string());
       } break;
     case Bytecodes::_putfield: {
-        int cp_index = Bytes::get_native_u2(code_base + pos);
+        int cp_index = BytesAccess::get_native_u2(code_base + pos);
         os->print("Cannot assign field \"%s\"", get_field_name(_method, cp_index, code));
       } break;
     case Bytecodes::_invokevirtual:
     case Bytecodes::_invokespecial:
     case Bytecodes::_invokeinterface: {
-        int cp_index = Bytes::get_native_u2(code_base+ pos);
+        int cp_index = BytesAccess::get_native_u2(code_base+ pos);
         os->print("Cannot invoke \"");
         print_method_name(os, _method, cp_index, code);
         os->print("\"");

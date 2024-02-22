@@ -981,15 +981,15 @@ void JvmtiClassFileReconstituter::write_u1(u1 x) {
 }
 
 void JvmtiClassFileReconstituter::write_u2(u2 x) {
-  Bytes::put_Java_u2(writeable_address(2), x);
+  BytesAccess::put_Java_u2(writeable_address(2), x);
 }
 
 void JvmtiClassFileReconstituter::write_u4(u4 x) {
-  Bytes::put_Java_u4(writeable_address(4), x);
+  BytesAccess::put_Java_u4(writeable_address(4), x);
 }
 
 void JvmtiClassFileReconstituter::write_u8(u8 x) {
-  Bytes::put_Java_u8(writeable_address(8), x);
+  BytesAccess::put_Java_u8(writeable_address(8), x);
 }
 
 void JvmtiClassFileReconstituter::copy_bytecodes(const methodHandle& mh,
@@ -1028,10 +1028,10 @@ void JvmtiClassFileReconstituter::copy_bytecodes(const methodHandle& mh,
       case Bytecodes::_putstatic       :  // fall through
       case Bytecodes::_getfield        :  // fall through
       case Bytecodes::_putfield        :  {
-        int field_index = Bytes::get_native_u2(bcp+1);
+        int field_index = BytesAccess::get_native_u2(bcp+1);
         u2 pool_index = mh->constants()->resolved_field_entry_at(field_index)->constant_pool_index();
         assert(pool_index < mh->constants()->length(), "sanity check");
-        Bytes::put_Java_u2((address)(p+1), pool_index);     // java byte ordering
+        BytesAccess::put_Java_u2((address)(p+1), pool_index);     // java byte ordering
         break;
       }
       case Bytecodes::_invokevirtual   :  // fall through
@@ -1044,18 +1044,18 @@ void JvmtiClassFileReconstituter::copy_bytecodes(const methodHandle& mh,
                (code == Bytecodes::_invokedynamic   && len == 5),
                "sanity check");
 
-        int cpci = Bytes::get_native_u2(bcp+1);
+        int cpci = BytesAccess::get_native_u2(bcp+1);
         bool is_invokedynamic = (code == Bytecodes::_invokedynamic);
         int pool_index;
         if (is_invokedynamic) {
-          cpci = Bytes::get_native_u4(bcp+1);
+          cpci = BytesAccess::get_native_u4(bcp+1);
           pool_index = mh->constants()->resolved_indy_entry_at(mh->constants()->decode_invokedynamic_index(cpci))->constant_pool_index();
         } else {
           // cache cannot be pre-fetched since some classes won't have it yet
           pool_index = mh->constants()->resolved_method_entry_at(cpci)->constant_pool_index();
         }
         assert(pool_index < mh->constants()->length(), "sanity check");
-        Bytes::put_Java_u2((address)(p+1), (u2)pool_index);     // java byte ordering
+        BytesAccess::put_Java_u2((address)(p+1), (u2)pool_index);     // java byte ordering
         if (is_invokedynamic)  *(p+3) = *(p+4) = 0;
         break;
       }
@@ -1063,11 +1063,11 @@ void JvmtiClassFileReconstituter::copy_bytecodes(const methodHandle& mh,
         is_wide = true; // fall through
       case Bytecodes::_ldc: {
         if (bs.raw_code() == Bytecodes::_fast_aldc || bs.raw_code() == Bytecodes::_fast_aldc_w) {
-          int cpci = is_wide ? Bytes::get_native_u2(bcp+1) : (u1)(*(bcp+1));
+          int cpci = is_wide ? BytesAccess::get_native_u2(bcp+1) : (u1)(*(bcp+1));
           int i = mh->constants()->object_to_cp_index(cpci);
           assert(i < mh->constants()->length(), "sanity check");
           if (is_wide) {
-            Bytes::put_Java_u2((address)(p+1), (u2)i);     // java byte ordering
+            BytesAccess::put_Java_u2((address)(p+1), (u2)i);     // java byte ordering
           } else {
             *(p+1) = (u1)i;
           }

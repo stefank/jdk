@@ -188,29 +188,29 @@ void Rewriter::rewrite_Object_init(const methodHandle& method, TRAPS) {
 void Rewriter::rewrite_field_reference(address bcp, int offset, bool reverse) {
   address p = bcp + offset;
   if (!reverse) {
-    int cp_index = Bytes::get_Java_u2(p);
+    int cp_index = BytesAccess::get_Java_u2(p);
     int field_entry_index = _cp_map.at(cp_index);
-    Bytes::put_native_u2(p, checked_cast<u2>(field_entry_index));
+    BytesAccess::put_native_u2(p, checked_cast<u2>(field_entry_index));
   } else {
-    int field_entry_index = Bytes::get_native_u2(p);
+    int field_entry_index = BytesAccess::get_native_u2(p);
     int pool_index = _initialized_field_entries.at(field_entry_index).constant_pool_index();
-    Bytes::put_Java_u2(p, checked_cast<u2>(pool_index));
+    BytesAccess::put_Java_u2(p, checked_cast<u2>(pool_index));
   }
 }
 
 void Rewriter::rewrite_method_reference(address bcp, int offset, bool reverse) {
   address p = bcp + offset;
   if (!reverse) {
-    int  cp_index    = Bytes::get_Java_u2(p);
+    int  cp_index    = BytesAccess::get_Java_u2(p);
     int  method_entry_index = _cp_map.at(cp_index);
-    Bytes::put_native_u2(p, (u2)method_entry_index);
+    BytesAccess::put_native_u2(p, (u2)method_entry_index);
     if (!_method_handle_invokers.is_empty()) {
       maybe_rewrite_invokehandle(p - 1, cp_index, method_entry_index, reverse);
     }
   } else {
-    int method_entry_index = Bytes::get_native_u2(p);
+    int method_entry_index = BytesAccess::get_native_u2(p);
     int pool_index = _initialized_method_entries.at(method_entry_index).constant_pool_index();
-    Bytes::put_Java_u2(p, (u2)pool_index);
+    BytesAccess::put_Java_u2(p, (u2)pool_index);
     if (!_method_handle_invokers.is_empty()) {
       maybe_rewrite_invokehandle(p - 1, pool_index, method_entry_index, reverse);
     }
@@ -224,10 +224,10 @@ void Rewriter::rewrite_method_reference(address bcp, int offset, bool reverse) {
 void Rewriter::rewrite_invokespecial(address bcp, int offset, bool reverse, bool* invokespecial_error) {
   address p = bcp + offset;
   if (!reverse) {
-    int cp_index = Bytes::get_Java_u2(p);
+    int cp_index = BytesAccess::get_Java_u2(p);
     if (_pool->tag_at(cp_index).is_interface_method()) {
       _initialized_method_entries.push(ResolvedMethodEntry((u2)cp_index));
-      Bytes::put_native_u2(p, (u2)_method_entry_index);
+      BytesAccess::put_native_u2(p, (u2)_method_entry_index);
       _method_entry_index++;
       if (_method_entry_index != (int)(u2)_method_entry_index) {
         *invokespecial_error = true;
@@ -294,7 +294,7 @@ void Rewriter::rewrite_invokedynamic(address bcp, int offset, bool reverse) {
   address p = bcp + offset;
   assert(p[-1] == Bytecodes::_invokedynamic, "not invokedynamic bytecode");
   if (!reverse) {
-    int cp_index = Bytes::get_Java_u2(p);
+    int cp_index = BytesAccess::get_Java_u2(p);
     int resolved_index = add_invokedynamic_resolved_references_entry(cp_index, -1); // Indy no longer has a CPCE
     // Replace the trailing four bytes with an index to the array of
     // indy resolution information in the CPC. There is one entry for
@@ -305,7 +305,7 @@ void Rewriter::rewrite_invokedynamic(address bcp, int offset, bool reverse) {
     // must have a five-byte instruction format.  (Of course, other JVM
     // implementations can use the bytes for other purposes.)
     // Note: We use native_u4 format exclusively for 4-byte indexes.
-    Bytes::put_native_u4(p, ConstantPool::encode_invokedynamic_index(_invokedynamic_index));
+    BytesAccess::put_native_u4(p, ConstantPool::encode_invokedynamic_index(_invokedynamic_index));
     _invokedynamic_index++;
 
     // Collect invokedynamic information before creating ResolvedInvokeDynamicInfo array
@@ -313,12 +313,12 @@ void Rewriter::rewrite_invokedynamic(address bcp, int offset, bool reverse) {
   } else {
     // Should do nothing since we are not patching this bytecode
     int cache_index = ConstantPool::decode_invokedynamic_index(
-                        Bytes::get_native_u4(p));
+                        BytesAccess::get_native_u4(p));
     int cp_index = _initialized_indy_entries.at(cache_index).constant_pool_index();
     assert(_pool->tag_at(cp_index).is_invoke_dynamic(), "wrong index");
     // zero out 4 bytes
-    Bytes::put_Java_u4(p, 0);
-    Bytes::put_Java_u2(p, (u2)cp_index);
+    BytesAccess::put_Java_u4(p, 0);
+    BytesAccess::put_Java_u2(p, (u2)cp_index);
   }
 }
 
@@ -328,7 +328,7 @@ void Rewriter::maybe_rewrite_ldc(address bcp, int offset, bool is_wide,
   if (!reverse) {
     assert((*bcp) == (is_wide ? Bytecodes::_ldc_w : Bytecodes::_ldc), "not ldc bytecode");
     address p = bcp + offset;
-    int cp_index = is_wide ? Bytes::get_Java_u2(p) : (u1)(*p);
+    int cp_index = is_wide ? BytesAccess::get_Java_u2(p) : (u1)(*p);
     constantTag tag = _pool->tag_at(cp_index).value();
 
     if (tag.is_method_handle() ||
@@ -342,7 +342,7 @@ void Rewriter::maybe_rewrite_ldc(address bcp, int offset, bool is_wide,
       if (is_wide) {
         (*bcp) = Bytecodes::_fast_aldc_w;
         assert(ref_index == (u2)ref_index, "index overflow");
-        Bytes::put_native_u2(p, (u2)ref_index);
+        BytesAccess::put_native_u2(p, (u2)ref_index);
       } else {
         (*bcp) = Bytecodes::_fast_aldc;
         assert(ref_index == (u1)ref_index, "index overflow");
@@ -354,12 +354,12 @@ void Rewriter::maybe_rewrite_ldc(address bcp, int offset, bool is_wide,
               (is_wide ? Bytecodes::_fast_aldc_w : Bytecodes::_fast_aldc);
     if ((*bcp) == rewritten_bc) {
       address p = bcp + offset;
-      int ref_index = is_wide ? Bytes::get_native_u2(p) : (u1)(*p);
+      int ref_index = is_wide ? BytesAccess::get_native_u2(p) : (u1)(*p);
       int pool_index = resolved_references_entry_to_pool_index(ref_index);
       if (is_wide) {
         (*bcp) = Bytecodes::_ldc_w;
         assert(pool_index == (u2)pool_index, "index overflow");
-        Bytes::put_Java_u2(p, (u2)pool_index);
+        BytesAccess::put_Java_u2(p, (u2)pool_index);
       } else {
         (*bcp) = Bytecodes::_ldc;
         assert(pool_index == (u1)pool_index, "index overflow");
@@ -444,7 +444,7 @@ void Rewriter::scan_method(Thread* thread, Method* method, bool reverse, bool* i
           // The check is performed after verification and only if verification has
           // succeeded. Therefore, the class is guaranteed to be well-formed.
           InstanceKlass* klass = method->method_holder();
-          u2 bc_index = Bytes::get_Java_u2(bcp + prefix_length + 1);
+          u2 bc_index = BytesAccess::get_Java_u2(bcp + prefix_length + 1);
           constantPoolHandle cp(thread, method->constants());
           Symbol* ref_class_name = cp->klass_name_at(cp->uncached_klass_ref_index_at(bc_index));
 

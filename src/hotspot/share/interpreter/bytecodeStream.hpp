@@ -156,7 +156,7 @@ class RawBytecodeStream: public BaseBytecodeStream {
  private:
   u2  get_index_u2_raw(address p) const {
     assert_raw_index_size(2); assert_raw_stream(true);
-    return Bytes::get_Java_u2(p);
+    return BytesAccess::get_Java_u2(p);
   }
 };
 

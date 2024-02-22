@@ -324,7 +324,7 @@ class ConstantPool : public Metadata {
   void long_at_put(int cp_index, jlong l) {
     tag_at_put(cp_index, JVM_CONSTANT_Long);
     // *long_at_addr(which) = l;
-    Bytes::put_native_u8((address)long_at_addr(cp_index), *((u8*) &l));
+    BytesAccess::put_native_u8((address)long_at_addr(cp_index), *((u8*) &l));
   }
 
   void float_at_put(int cp_index, jfloat f) {
@@ -336,7 +336,7 @@ class ConstantPool : public Metadata {
     tag_at_put(cp_index, JVM_CONSTANT_Double);
     // *double_at_addr(which) = d;
     // u8 temp = *(u8*) &d;
-    Bytes::put_native_u8((address) double_at_addr(cp_index), *((u8*) &d));
+    BytesAccess::put_native_u8((address) double_at_addr(cp_index), *((u8*) &d));
   }
 
   Symbol** symbol_at_addr(int cp_index) const {
@@ -421,7 +421,7 @@ class ConstantPool : public Metadata {
   jlong long_at(int cp_index) {
     assert(tag_at(cp_index).is_long(), "Corrupted constant pool");
     // return *long_at_addr(cp_index);
-    u8 tmp = Bytes::get_native_u8((address)&base()[cp_index]);
+    u8 tmp = BytesAccess::get_native_u8((address)&base()[cp_index]);
     return *((jlong*)&tmp);
   }
 
@@ -432,7 +432,7 @@ class ConstantPool : public Metadata {
 
   jdouble double_at(int cp_index) {
     assert(tag_at(cp_index).is_double(), "Corrupted constant pool");
-    u8 tmp = Bytes::get_native_u8((address)&base()[cp_index]);
+    u8 tmp = BytesAccess::get_native_u8((address)&base()[cp_index]);
     return *((jdouble*)&tmp);
   }
 

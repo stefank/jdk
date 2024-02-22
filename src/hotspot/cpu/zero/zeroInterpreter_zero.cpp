@@ -600,7 +600,7 @@ int ZeroInterpreter::getter_entry(Method* method, intptr_t UNUSED, TRAPS) {
 
   assert(method->is_getter(), "Expect the particular bytecode shape");
   u1* code = method->code_base();
-  u2 index = Bytes::get_native_u2(&code[2]);
+  u2 index = BytesAccess::get_native_u2(&code[2]);
 
   // Get the entry from the constant pool cache, and drop into
   // the slow path if it has not been resolved
@@ -691,7 +691,7 @@ int ZeroInterpreter::setter_entry(Method* method, intptr_t UNUSED, TRAPS) {
 
   assert(method->is_setter(), "Expect the particular bytecode shape");
   u1* code = method->code_base();
-  u2 index = Bytes::get_native_u2(&code[3]);
+  u2 index = BytesAccess::get_native_u2(&code[3]);
 
   // Get the entry from the constant pool cache, and drop into
   // the slow path if it has not been resolved

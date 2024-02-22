@@ -111,7 +111,7 @@ Bytecodes::Code ciBytecodeStream::next_wide_or_table(Bytecodes::Code bc) {
                                 // table_base[0] is default far_dest
     // Table has 2 lead elements (default, length), then pairs of u4 values.
     // So load table length, and compute address at end of table
-    _pc = (address)&_table_base[2+ 2*Bytes::get_Java_u4((address)&_table_base[1])];
+    _pc = (address)&_table_base[2+ 2*BytesAccess::get_Java_u4((address)&_table_base[1])];
     break;
 
   case Bytecodes::_tableswitch: {
@@ -119,8 +119,8 @@ Bytecodes::Code ciBytecodeStream::next_wide_or_table(Bytecodes::Code bc) {
     _pc += (_start-_pc)&3;      // Word align
     _table_base = (jint*)_pc;   // Capture for later usage
                                 // table_base[0] is default far_dest
-    int lo = Bytes::get_Java_u4((address)&_table_base[1]);// Low bound
-    int hi = Bytes::get_Java_u4((address)&_table_base[2]);// High bound
+    int lo = BytesAccess::get_Java_u4((address)&_table_base[1]);// Low bound
+    int hi = BytesAccess::get_Java_u4((address)&_table_base[2]);// High bound
     int len = hi - lo + 1;      // Dense table size
     _pc = (address)&_table_base[3+len]; // Skip past table
     break;

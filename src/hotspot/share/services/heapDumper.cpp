@@ -495,19 +495,19 @@ void AbstractDumpWriter::write_u1(u1 x) {
 
 void AbstractDumpWriter::write_u2(u2 x) {
   u2 v;
-  Bytes::put_Java_u2((address)&v, x);
+  BytesAccess::put_Java_u2((address)&v, x);
   WRITE_KNOWN_TYPE(&v, 2);
 }
 
 void AbstractDumpWriter::write_u4(u4 x) {
   u4 v;
-  Bytes::put_Java_u4((address)&v, x);
+  BytesAccess::put_Java_u4((address)&v, x);
   WRITE_KNOWN_TYPE(&v, 4);
 }
 
 void AbstractDumpWriter::write_u8(u8 x) {
   u8 v;
-  Bytes::put_Java_u8((address)&v, x);
+  BytesAccess::put_Java_u8((address)&v, x);
   WRITE_KNOWN_TYPE(&v, 8);
 }
 
@@ -553,7 +553,7 @@ void AbstractDumpWriter::finish_dump_segment() {
     // (in which case the segment length was already set to the correct value initially).
     if (!_is_huge_sub_record) {
       assert(position() > dump_segment_header_size, "Dump segment should have some content");
-      Bytes::put_Java_u4((address) (buffer() + 5),
+      BytesAccess::put_Java_u4((address) (buffer() + 5),
                          (u4) (position() - dump_segment_header_size));
     } else {
       // Finish process huge sub record
@@ -579,7 +579,7 @@ void AbstractDumpWriter::start_sub_record(u1 tag, u4 len) {
     // Will be fixed up later if we add more sub-records.  If this is a huge sub-record,
     // this is already the correct length, since we don't add more sub-records.
     write_u4(len);
-    assert(Bytes::get_Java_u4((address)(buffer() + 5)) == len, "Inconsistent size!");
+    assert(BytesAccess::get_Java_u4((address)(buffer() + 5)) == len, "Inconsistent size!");
     _in_dump_segment = true;
     _is_huge_sub_record = len > buffer_size() - dump_segment_header_size;
   } else if (_is_huge_sub_record || (len > buffer_size() - position())) {

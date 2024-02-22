@@ -87,12 +87,12 @@ class Relocator : public ResourceObj {
   void code_at_put(int bci, Bytecodes::Code code) { code_array()[bci] = (char) code; }
 
   // get and set signed integers in the code_array
-  inline int   int_at(int bci) const               { return Bytes::get_Java_u4(&code_array()[bci]); }
-  inline void  int_at_put(int bci, int value)      { Bytes::put_Java_u4(&code_array()[bci], value); }
+  inline int   int_at(int bci) const               { return BytesAccess::get_Java_u4(&code_array()[bci]); }
+  inline void  int_at_put(int bci, int value)      { BytesAccess::put_Java_u4(&code_array()[bci], value); }
 
   // get and set signed shorts in the code_array
-  inline short short_at(int bci) const            { return (short)Bytes::get_Java_u2(&code_array()[bci]); }
-  inline void  short_at_put(int bci, short value) { Bytes::put_Java_u2((address) &code_array()[bci], value); }
+  inline short short_at(int bci) const            { return (short)BytesAccess::get_Java_u2(&code_array()[bci]); }
+  inline void  short_at_put(int bci, short value) { BytesAccess::put_Java_u2((address) &code_array()[bci], value); }
 
   // get the address of in the code_array
   inline char* addr_at(int bci) const             { return (char*) &code_array()[bci]; }

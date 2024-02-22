@@ -97,7 +97,7 @@ class StackMapStream : StackObj {
     if (_data == nullptr || _index >= _data->length() - 1) {
       stackmap_format_error("access beyond the end of attribute", CHECK_0);
     }
-    u2 res = Bytes::get_Java_u2(_data->adr_at(_index));
+    u2 res = BytesAccess::get_Java_u2(_data->adr_at(_index));
     _index += 2;
     return res;
   }

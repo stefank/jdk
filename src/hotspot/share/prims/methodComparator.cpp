@@ -241,11 +241,11 @@ bool MethodComparator::args_same(Bytecodes::Code const c_old,  Bytecodes::Code c
       return false;
     if (!s_old->is_wide()) {
       // We could use get_index_u1 and get_constant_u1, but it's simpler to grab both bytes at once:
-      if (Bytes::get_Java_u2(s_old->bcp() + 1) != Bytes::get_Java_u2(s_new->bcp() + 1))
+      if (BytesAccess::get_Java_u2(s_old->bcp() + 1) != BytesAccess::get_Java_u2(s_new->bcp() + 1))
         return false;
     } else {
       // We could use get_index_u2 and get_constant_u2, but it's simpler to grab all four bytes at once:
-      if (Bytes::get_Java_u4(s_old->bcp() + 1) != Bytes::get_Java_u4(s_new->bcp() + 1))
+      if (BytesAccess::get_Java_u4(s_old->bcp() + 1) != BytesAccess::get_Java_u4(s_new->bcp() + 1))
         return false;
     }
     break;

@@ -828,7 +828,7 @@ run:
 
           /* Push a 2-byte signed integer constant onto the stack. */
       CASE(_sipush):
-          SET_STACK_INT((int16_t)Bytes::get_Java_u2(pc + 1), 0);
+          SET_STACK_INT((int16_t)BytesAccess::get_Java_u2(pc + 1), 0);
           UPDATE_PC_AND_TOS_AND_CONTINUE(3, 1);
 
           /* load from local variable */
@@ -981,7 +981,7 @@ run:
           UPDATE_PC_AND_TOS_AND_CONTINUE(2, -2);
 
       CASE(_wide): {
-          uint16_t reg = Bytes::get_Java_u2(pc + 2);
+          uint16_t reg = BytesAccess::get_Java_u2(pc + 2);
 
           opcode = pc[1];
 
@@ -1026,7 +1026,7 @@ run:
                   UPDATE_PC_AND_TOS_AND_CONTINUE(4, -2);
 
               case Bytecodes::_iinc: {
-                  int16_t offset = (int16_t)Bytes::get_Java_u2(pc+4);
+                  int16_t offset = (int16_t)BytesAccess::get_Java_u2(pc+4);
                   // Be nice to see what this generates.... QQQ
                   SET_LOCALS_INT(LOCALS_INT(reg) + offset, reg);
                   UPDATE_PC_AND_CONTINUE(6);
@@ -1342,7 +1342,7 @@ run:
 #define COMPARISON_OP(name, comparison)                                      \
       CASE(_if_icmp##name): {                                                \
           int skip = (STACK_INT(-2) comparison STACK_INT(-1))                \
-                      ? (int16_t)Bytes::get_Java_u2(pc + 1) : 3;             \
+                      ? (int16_t)BytesAccess::get_Java_u2(pc + 1) : 3;       \
           address branch_pc = pc;                                            \
           UPDATE_PC_AND_TOS(skip, -2);                                       \
           DO_BACKEDGE_CHECKS(skip, branch_pc);                               \
@@ -1350,7 +1350,7 @@ run:
       }                                                                      \
       CASE(_if##name): {                                                     \
           int skip = (STACK_INT(-1) comparison 0)                            \
-                      ? (int16_t)Bytes::get_Java_u2(pc + 1) : 3;             \
+                      ? (int16_t)BytesAccess::get_Java_u2(pc + 1) : 3;       \
           address branch_pc = pc;                                            \
           UPDATE_PC_AND_TOS(skip, -1);                                       \
           DO_BACKEDGE_CHECKS(skip, branch_pc);                               \
@@ -1361,7 +1361,7 @@ run:
       COMPARISON_OP(name, comparison)                                        \
       CASE(_if_acmp##name): {                                                \
           int skip = (STACK_OBJECT(-2) comparison STACK_OBJECT(-1))          \
-                       ? (int16_t)Bytes::get_Java_u2(pc + 1) : 3;            \
+                       ? (int16_t)BytesAccess::get_Java_u2(pc + 1) : 3;      \
           address branch_pc = pc;                                            \
           UPDATE_PC_AND_TOS(skip, -2);                                       \
           DO_BACKEDGE_CHECKS(skip, branch_pc);                               \
@@ -1370,8 +1370,8 @@ run:
 
 #define NULL_COMPARISON_NOT_OP(name)                                         \
       CASE(_if##name): {                                                     \
-          int skip = (!(STACK_OBJECT(-1) == nullptr))                           \
-                      ? (int16_t)Bytes::get_Java_u2(pc + 1) : 3;             \
+          int skip = (!(STACK_OBJECT(-1) == nullptr))                        \
+                      ? (int16_t)BytesAccess::get_Java_u2(pc + 1) : 3;       \
           address branch_pc = pc;                                            \
           UPDATE_PC_AND_TOS(skip, -1);                                       \
           DO_BACKEDGE_CHECKS(skip, branch_pc);                               \
@@ -1380,8 +1380,8 @@ run:
 
 #define NULL_COMPARISON_OP(name)                                             \
       CASE(_if##name): {                                                     \
-          int skip = ((STACK_OBJECT(-1) == nullptr))                            \
-                      ? (int16_t)Bytes::get_Java_u2(pc + 1) : 3;             \
+          int skip = ((STACK_OBJECT(-1) == nullptr))                         \
+                      ? (int16_t)BytesAccess::get_Java_u2(pc + 1) : 3;       \
           address branch_pc = pc;                                            \
           UPDATE_PC_AND_TOS(skip, -1);                                       \
           DO_BACKEDGE_CHECKS(skip, branch_pc);                               \
@@ -1401,14 +1401,14 @@ run:
       CASE(_tableswitch): {
           jint* lpc  = (jint*)VMalignWordUp(pc+1);
           int32_t  key  = STACK_INT(-1);
-          int32_t  low  = Bytes::get_Java_u4((address)&lpc[1]);
-          int32_t  high = Bytes::get_Java_u4((address)&lpc[2]);
+          int32_t  low  = BytesAccess::get_Java_u4((address)&lpc[1]);
+          int32_t  high = BytesAccess::get_Java_u4((address)&lpc[2]);
           int32_t  skip;
           key -= low;
           if (((uint32_t) key > (uint32_t)(high - low))) {
-            skip = Bytes::get_Java_u4((address)&lpc[0]);
+            skip = BytesAccess::get_Java_u4((address)&lpc[0]);
           } else {
-            skip = Bytes::get_Java_u4((address)&lpc[key + 3]);
+            skip = BytesAccess::get_Java_u4((address)&lpc[key + 3]);
           }
           // Does this really need a full backedge check (osr)?
           address branch_pc = pc;
@@ -1422,12 +1422,12 @@ run:
       CASE(_lookupswitch): {
           jint* lpc  = (jint*)VMalignWordUp(pc+1);
           int32_t  key  = STACK_INT(-1);
-          int32_t  skip = Bytes::get_Java_u4((address) lpc); /* default amount */
-          int32_t  npairs = Bytes::get_Java_u4((address) &lpc[1]);
+          int32_t  skip = BytesAccess::get_Java_u4((address) lpc); /* default amount */
+          int32_t  npairs = BytesAccess::get_Java_u4((address) &lpc[1]);
           while (--npairs >= 0) {
             lpc += 2;
-            if (key == (int32_t)Bytes::get_Java_u4((address)lpc)) {
-              skip = Bytes::get_Java_u4((address)&lpc[1]);
+            if (key == (int32_t)BytesAccess::get_Java_u4((address)lpc)) {
+              skip = BytesAccess::get_Java_u4((address)&lpc[1]);
               break;
             }
           }
@@ -1724,7 +1724,7 @@ run:
       CASE(_getstatic):
         {
           u2 index;
-          index = Bytes::get_native_u2(pc+1);
+          index = BytesAccess::get_native_u2(pc+1);
           ResolvedFieldEntry* entry = cp->resolved_field_entry_at(index);
 
           // QQQ Need to make this as inlined as possible. Probably need to
@@ -1849,7 +1849,7 @@ run:
       CASE(_nofast_putfield):
       CASE(_putstatic):
         {
-          u2 index = Bytes::get_native_u2(pc+1);
+          u2 index = BytesAccess::get_native_u2(pc+1);
           ResolvedFieldEntry* entry = cp->resolved_field_entry_at(index);
 
           // Interpreter runtime does not expect "nofast" opcodes,
@@ -1975,7 +1975,7 @@ run:
         }
 
       CASE(_new): {
-        u2 index = Bytes::get_Java_u2(pc+1);
+        u2 index = BytesAccess::get_Java_u2(pc+1);
 
         // Attempt TLAB allocation first.
         //
@@ -2026,7 +2026,7 @@ run:
         UPDATE_PC_AND_TOS_AND_CONTINUE(3, 1);
       }
       CASE(_anewarray): {
-        u2 index = Bytes::get_Java_u2(pc+1);
+        u2 index = BytesAccess::get_Java_u2(pc+1);
         jint size = STACK_INT(-1);
         CALL_VM(InterpreterRuntime::anewarray(THREAD, METHOD->constants(), index, size),
                 handle_exception);
@@ -2057,7 +2057,7 @@ run:
       CASE(_checkcast):
           if (STACK_OBJECT(-1) != nullptr) {
             VERIFY_OOP(STACK_OBJECT(-1));
-            u2 index = Bytes::get_Java_u2(pc+1);
+            u2 index = BytesAccess::get_Java_u2(pc+1);
             // Constant pool may have actual klass or unresolved klass. If it is
             // unresolved we must resolve it.
             if (METHOD->constants()->tag_at(index).is_unresolved_klass()) {
@@ -2083,7 +2083,7 @@ run:
             SET_STACK_INT(0, -1);
           } else {
             VERIFY_OOP(STACK_OBJECT(-1));
-            u2 index = Bytes::get_Java_u2(pc+1);
+            u2 index = BytesAccess::get_Java_u2(pc+1);
             // Constant pool may have actual klass or unresolved klass. If it is
             // unresolved we must resolve it.
             if (METHOD->constants()->tag_at(index).is_unresolved_klass()) {
@@ -2112,7 +2112,7 @@ run:
           if (opcode == Bytecodes::_ldc) {
             index = pc[1];
           } else {
-            index = Bytes::get_Java_u2(pc+1);
+            index = BytesAccess::get_Java_u2(pc+1);
             incr = 3;
             wide = true;
           }
@@ -2182,7 +2182,7 @@ run:
 
       CASE(_ldc2_w):
         {
-          u2 index = Bytes::get_Java_u2(pc+1);
+          u2 index = BytesAccess::get_Java_u2(pc+1);
 
           ConstantPool* constants = METHOD->constants();
           switch (constants->tag_at(index).value()) {
@@ -2226,7 +2226,7 @@ run:
           index = pc[1];
           incr = 2;
         } else {
-          index = Bytes::get_native_u2(pc+1);
+          index = BytesAccess::get_native_u2(pc+1);
           incr = 3;
         }
 
@@ -2249,7 +2249,7 @@ run:
       }
 
       CASE(_invokedynamic): {
-        u4 index = cp->constant_pool()->decode_invokedynamic_index(Bytes::get_native_u4(pc+1)); // index is originally negative
+        u4 index = cp->constant_pool()->decode_invokedynamic_index(BytesAccess::get_native_u4(pc+1)); // index is originally negative
         ResolvedIndyEntry* indy_info = cp->resolved_indy_entry_at(index);
         if (!indy_info->is_resolved()) {
           CALL_VM(InterpreterRuntime::resolve_from_cache(THREAD, (Bytecodes::Code)opcode),
@@ -2275,7 +2275,7 @@ run:
 
       CASE(_invokehandle): {
 
-        u2 index = Bytes::get_native_u2(pc+1);
+        u2 index = BytesAccess::get_native_u2(pc+1);
         ResolvedMethodEntry* entry = cp->resolved_method_entry_at(index);
 
         if (! entry->is_resolved((Bytecodes::Code) opcode)) {
@@ -2302,7 +2302,7 @@ run:
       }
 
       CASE(_invokeinterface): {
-        u2 index = Bytes::get_native_u2(pc+1);
+        u2 index = BytesAccess::get_native_u2(pc+1);
 
         // QQQ Need to make this as inlined as possible. Probably need to split all the bytecode cases
         // out so c++ compiler has a chance for constant prop to fold everything possible away.
@@ -2426,7 +2426,7 @@ run:
       CASE(_invokevirtual):
       CASE(_invokespecial):
       CASE(_invokestatic): {
-        u2 index = Bytes::get_native_u2(pc+1);
+        u2 index = BytesAccess::get_native_u2(pc+1);
 
         ResolvedMethodEntry* entry = cp->resolved_method_entry_at(index);
         // QQQ Need to make this as inlined as possible. Probably need to split all the bytecode cases
@@ -2535,7 +2535,7 @@ run:
 
       CASE(_goto):
       {
-          int16_t offset = (int16_t)Bytes::get_Java_u2(pc + 1);
+          int16_t offset = (int16_t)BytesAccess::get_Java_u2(pc + 1);
           address branch_pc = pc;
           UPDATE_PC(offset);
           DO_BACKEDGE_CHECKS(offset, branch_pc);
@@ -2551,7 +2551,7 @@ run:
 
       CASE(_goto_w):
       {
-          int32_t offset = Bytes::get_Java_u4(pc + 1);
+          int32_t offset = BytesAccess::get_Java_u4(pc + 1);
           address branch_pc = pc;
           UPDATE_PC(offset);
           DO_BACKEDGE_CHECKS(offset, branch_pc);
@@ -2584,7 +2584,7 @@ run:
       }
 
       CASE(_fast_agetfield): {
-        u2 index = Bytes::get_native_u2(pc+1);
+        u2 index = BytesAccess::get_native_u2(pc+1);
         ResolvedFieldEntry* entry = cp->resolved_field_entry_at(index);
         int field_offset = entry->field_offset();
 
@@ -2599,7 +2599,7 @@ run:
       }
 
       CASE(_fast_bgetfield): {
-        u2 index = Bytes::get_native_u2(pc+1);
+        u2 index = BytesAccess::get_native_u2(pc+1);
         ResolvedFieldEntry* entry = cp->resolved_field_entry_at(index);
         int field_offset = entry->field_offset();
 
@@ -2613,7 +2613,7 @@ run:
       }
 
       CASE(_fast_cgetfield): {
-        u2 index = Bytes::get_native_u2(pc+1);
+        u2 index = BytesAccess::get_native_u2(pc+1);
         ResolvedFieldEntry* entry = cp->resolved_field_entry_at(index);
         int field_offset = entry->field_offset();
 
@@ -2627,7 +2627,7 @@ run:
       }
 
       CASE(_fast_dgetfield): {
-        u2 index = Bytes::get_native_u2(pc+1);
+        u2 index = BytesAccess::get_native_u2(pc+1);
         ResolvedFieldEntry* entry = cp->resolved_field_entry_at(index);
         int field_offset = entry->field_offset();
 
@@ -2642,7 +2642,7 @@ run:
       }
 
       CASE(_fast_fgetfield): {
-        u2 index = Bytes::get_native_u2(pc+1);
+        u2 index = BytesAccess::get_native_u2(pc+1);
         ResolvedFieldEntry* entry = cp->resolved_field_entry_at(index);
         int field_offset = entry->field_offset();
 
@@ -2656,7 +2656,7 @@ run:
       }
 
       CASE(_fast_igetfield): {
-        u2 index = Bytes::get_native_u2(pc+1);
+        u2 index = BytesAccess::get_native_u2(pc+1);
         ResolvedFieldEntry* entry = cp->resolved_field_entry_at(index);
         int field_offset = entry->field_offset();
 
@@ -2670,7 +2670,7 @@ run:
       }
 
       CASE(_fast_lgetfield): {
-        u2 index = Bytes::get_native_u2(pc+1);
+        u2 index = BytesAccess::get_native_u2(pc+1);
         ResolvedFieldEntry* entry = cp->resolved_field_entry_at(index);
         int field_offset = entry->field_offset();
 
@@ -2685,7 +2685,7 @@ run:
       }
 
       CASE(_fast_sgetfield): {
-        u2 index = Bytes::get_native_u2(pc+1);
+        u2 index = BytesAccess::get_native_u2(pc+1);
         ResolvedFieldEntry* entry = cp->resolved_field_entry_at(index);
         int field_offset = entry->field_offset();
 
@@ -2699,7 +2699,7 @@ run:
       }
 
       CASE(_fast_aputfield): {
-        u2 index = Bytes::get_native_u2(pc+1);
+        u2 index = BytesAccess::get_native_u2(pc+1);
         ResolvedFieldEntry* entry = cp->resolved_field_entry_at(index);
 
         oop obj = STACK_OBJECT(-2);
@@ -2714,7 +2714,7 @@ run:
       }
 
       CASE(_fast_bputfield): {
-        u2 index = Bytes::get_native_u2(pc+1);
+        u2 index = BytesAccess::get_native_u2(pc+1);
         ResolvedFieldEntry* entry = cp->resolved_field_entry_at(index);
 
         oop obj = STACK_OBJECT(-2);
@@ -2729,7 +2729,7 @@ run:
       }
 
       CASE(_fast_zputfield): {
-        u2 index = Bytes::get_native_u2(pc+1);
+        u2 index = BytesAccess::get_native_u2(pc+1);
         ResolvedFieldEntry* entry = cp->resolved_field_entry_at(index);
 
         oop obj = STACK_OBJECT(-2);
@@ -2744,7 +2744,7 @@ run:
       }
 
       CASE(_fast_cputfield): {
-        u2 index = Bytes::get_native_u2(pc+1);
+        u2 index = BytesAccess::get_native_u2(pc+1);
         ResolvedFieldEntry* entry = cp->resolved_field_entry_at(index);
 
         oop obj = STACK_OBJECT(-2);
@@ -2759,7 +2759,7 @@ run:
       }
 
       CASE(_fast_dputfield): {
-        u2 index = Bytes::get_native_u2(pc+1);
+        u2 index = BytesAccess::get_native_u2(pc+1);
         ResolvedFieldEntry* entry = cp->resolved_field_entry_at(index);
 
         oop obj = STACK_OBJECT(-3);
@@ -2774,7 +2774,7 @@ run:
       }
 
       CASE(_fast_fputfield): {
-        u2 index = Bytes::get_native_u2(pc+1);
+        u2 index = BytesAccess::get_native_u2(pc+1);
         ResolvedFieldEntry* entry = cp->resolved_field_entry_at(index);
 
         oop obj = STACK_OBJECT(-2);
@@ -2789,7 +2789,7 @@ run:
       }
 
       CASE(_fast_iputfield): {
-        u2 index = Bytes::get_native_u2(pc+1);
+        u2 index = BytesAccess::get_native_u2(pc+1);
         ResolvedFieldEntry* entry = cp->resolved_field_entry_at(index);
 
         oop obj = STACK_OBJECT(-2);
@@ -2804,7 +2804,7 @@ run:
       }
 
       CASE(_fast_lputfield): {
-        u2 index = Bytes::get_native_u2(pc+1);
+        u2 index = BytesAccess::get_native_u2(pc+1);
         ResolvedFieldEntry* entry = cp->resolved_field_entry_at(index);
 
         oop obj = STACK_OBJECT(-3);
@@ -2819,7 +2819,7 @@ run:
       }
 
       CASE(_fast_sputfield): {
-        u2 index = Bytes::get_native_u2(pc+1);
+        u2 index = BytesAccess::get_native_u2(pc+1);
         ResolvedFieldEntry* entry = cp->resolved_field_entry_at(index);
 
         oop obj = STACK_OBJECT(-2);
@@ -2841,7 +2841,7 @@ run:
       }
 
       CASE(_fast_aaccess_0): {
-        u2 index = Bytes::get_native_u2(pc+2);
+        u2 index = BytesAccess::get_native_u2(pc+2);
         ResolvedFieldEntry* entry = cp->resolved_field_entry_at(index);
         int field_offset = entry->field_offset();
 
@@ -2857,7 +2857,7 @@ run:
       }
 
       CASE(_fast_iaccess_0): {
-        u2 index = Bytes::get_native_u2(pc+2);
+        u2 index = BytesAccess::get_native_u2(pc+2);
         ResolvedFieldEntry* entry = cp->resolved_field_entry_at(index);
         int field_offset = entry->field_offset();
 
@@ -2872,7 +2872,7 @@ run:
       }
 
       CASE(_fast_faccess_0): {
-        u2 index = Bytes::get_native_u2(pc+2);
+        u2 index = BytesAccess::get_native_u2(pc+2);
         ResolvedFieldEntry* entry = cp->resolved_field_entry_at(index);
         int field_offset = entry->field_offset();
 
@@ -2887,7 +2887,7 @@ run:
       }
 
       CASE(_fast_invokevfinal): {
-        u2 index = Bytes::get_native_u2(pc+1);
+        u2 index = BytesAccess::get_native_u2(pc+1);
         ResolvedMethodEntry* entry = cp->resolved_method_entry_at(index);
 
         assert(entry->is_resolved(Bytecodes::_invokevirtual), "Should be resolved before rewriting");

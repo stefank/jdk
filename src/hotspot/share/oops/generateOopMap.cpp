@@ -2410,7 +2410,7 @@ bool GenerateOopMap::rewrite_load_or_store(BytecodeStream *bcs, Bytecodes::Code 
     assert(newIlen == 4, "Wrong instruction length");
     *(bcp + 0) = Bytecodes::_wide;
     *(bcp + 1) = bcN;
-    Bytes::put_Java_u2(bcp+2, (u2)varNo);
+    BytesAccess::put_Java_u2(bcp+2, (u2)varNo);
   }
 
   if (newIlen != ilen) {

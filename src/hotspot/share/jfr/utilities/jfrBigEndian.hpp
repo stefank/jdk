@@ -69,17 +69,17 @@ inline u1 JfrBigEndian::read_bytes(const address location) {
 
 template <>
 inline u2 JfrBigEndian::read_bytes(const address location) {
-  return Bytes::get_Java_u2(location);
+  return BytesAccess::get_Java_u2(location);
 }
 
 template <>
 inline u4 JfrBigEndian::read_bytes(const address location) {
-  return Bytes::get_Java_u4(location);
+  return BytesAccess::get_Java_u4(location);
 }
 
 template <>
 inline u8 JfrBigEndian::read_bytes(const address location) {
-  return Bytes::get_Java_u8(location);
+  return BytesAccess::get_Java_u8(location);
 }
 
 template <typename R, typename T>

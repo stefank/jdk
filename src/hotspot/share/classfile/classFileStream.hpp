@@ -107,7 +107,7 @@ class ClassFileStream: public ResourceObj {
 
   // Read u2 from stream
   u2 get_u2_fast() const {
-    u2 res = Bytes::get_Java_u2((address)_current);
+    u2 res = BytesAccess::get_Java_u2((address)_current);
     _current += 2;
     return res;
   }
@@ -122,14 +122,14 @@ class ClassFileStream: public ResourceObj {
 
   // Read u4 from stream
   u4 get_u4_fast() const {
-    u4 res = Bytes::get_Java_u4((address)_current);
+    u4 res = BytesAccess::get_Java_u4((address)_current);
     _current += 4;
     return res;
   }
 
   // Read u8 from stream
   u8 get_u8_fast() const {
-    u8 res = Bytes::get_Java_u8((address)_current);
+    u8 res = BytesAccess::get_Java_u8((address)_current);
     _current += 8;
     return res;
   }

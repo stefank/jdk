@@ -29,7 +29,7 @@
 #include "memory/allStatic.hpp"
 #include "utilities/byteswap.hpp"
 
-class Bytes: AllStatic {
+class BytesAccess: AllStatic {
  public:
   // Efficient reading and writing of unaligned unsigned data in platform-specific byte ordering
   // (no special code is needed since x86 CPUs can access unaligned data)

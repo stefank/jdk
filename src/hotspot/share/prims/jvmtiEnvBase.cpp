@@ -153,15 +153,15 @@ JvmtiEnvBase::is_valid() {
 
   switch (sizeof(_magic)) {
   case 2:
-    value = Bytes::get_native_u2((address)&_magic);
+    value = BytesAccess::get_native_u2((address)&_magic);
     break;
 
   case 4:
-    value = Bytes::get_native_u4((address)&_magic);
+    value = BytesAccess::get_native_u4((address)&_magic);
     break;
 
   case 8:
-    value = Bytes::get_native_u8((address)&_magic);
+    value = BytesAccess::get_native_u8((address)&_magic);
     break;
 
   default:

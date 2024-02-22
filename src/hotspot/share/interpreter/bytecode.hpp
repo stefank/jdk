@@ -49,11 +49,11 @@ class Bytecode: public StackObj {
   address aligned_addr_at    (int offset)        const     { return align_up(addr_at(offset), jintSize); }
 
   // Word access:
-  int     get_Java_u2_at     (int offset)        const     { return Bytes::get_Java_u2(addr_at(offset)); }
-  int     get_Java_u4_at     (int offset)        const     { return Bytes::get_Java_u4(addr_at(offset)); }
-  int     get_aligned_Java_u4_at(int offset)     const     { return Bytes::get_Java_u4(aligned_addr_at(offset)); }
-  int     get_native_u2_at   (int offset)        const     { return Bytes::get_native_u2(addr_at(offset)); }
-  int     get_native_u4_at   (int offset)        const     { return Bytes::get_native_u4(addr_at(offset)); }
+  int     get_Java_u2_at     (int offset)        const     { return BytesAccess::get_Java_u2(addr_at(offset)); }
+  int     get_Java_u4_at     (int offset)        const     { return BytesAccess::get_Java_u4(addr_at(offset)); }
+  int     get_aligned_Java_u4_at(int offset)     const     { return BytesAccess::get_Java_u4(aligned_addr_at(offset)); }
+  int     get_native_u2_at   (int offset)        const     { return BytesAccess::get_native_u2(addr_at(offset)); }
+  int     get_native_u4_at   (int offset)        const     { return BytesAccess::get_native_u4(addr_at(offset)); }
 
  public:
   Bytecode(Method* method, address bcp): _bcp(bcp), _code(Bytecodes::code_at(method, addr_at(0))) {
@@ -79,15 +79,15 @@ class Bytecode: public StackObj {
     assert_same_format_as(bc, is_wide); assert_index_size(2, bc, is_wide);
     address p = addr_at(is_wide ? 2 : 1);
     if (can_use_native_byte_order(bc, is_wide)) {
-      return Bytes::get_native_u2(p);
+      return BytesAccess::get_native_u2(p);
     } else {
-      return Bytes::get_Java_u2(p);
+      return BytesAccess::get_Java_u2(p);
     }
   }
   int get_index_u4(Bytecodes::Code bc) const {
     assert_same_format_as(bc); assert_index_size(4, bc);
     assert(can_use_native_byte_order(bc), "");
-    return Bytes::get_native_u4(addr_at(1));
+    return BytesAccess::get_native_u4(addr_at(1));
   }
   bool has_index_u4(Bytecodes::Code bc) const {
     return bc == Bytecodes::_invokedynamic;
@@ -95,11 +95,11 @@ class Bytecode: public StackObj {
 
   int get_offset_s2(Bytecodes::Code bc) const {
     assert_same_format_as(bc); assert_offset_size(2, bc);
-    return (jshort) Bytes::get_Java_u2(addr_at(1));
+    return (jshort) BytesAccess::get_Java_u2(addr_at(1));
   }
   int get_offset_s4(Bytecodes::Code bc) const {
     assert_same_format_as(bc); assert_offset_size(4, bc);
-    return (jint) Bytes::get_Java_u4(addr_at(1));
+    return (jint) BytesAccess::get_Java_u4(addr_at(1));
   }
 
   int get_constant_u1(int offset, Bytecodes::Code bc) const {
@@ -108,7 +108,7 @@ class Bytecode: public StackObj {
   }
   int get_constant_u2(int offset, Bytecodes::Code bc, bool is_wide = false) const {
     assert_same_format_as(bc, is_wide); assert_constant_size(2, offset, bc, is_wide);
-    return (jshort) Bytes::get_Java_u2(addr_at(offset));
+    return (jshort) BytesAccess::get_Java_u2(addr_at(offset));
   }
 
   // These are used locally and also from bytecode streams.
@@ -129,7 +129,7 @@ class LookupswitchPair {
   const address _bcp;
 
   address addr_at            (int offset)        const     { return _bcp + offset; }
-  int     get_Java_u4_at     (int offset)        const     { return Bytes::get_Java_u4(addr_at(offset)); }
+  int     get_Java_u4_at     (int offset)        const     { return BytesAccess::get_Java_u4(addr_at(offset)); }
 
  public:
   LookupswitchPair(address bcp): _bcp(bcp) {}

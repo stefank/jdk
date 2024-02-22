@@ -316,14 +316,14 @@ C2V_VMENTRY_NULL(jbyteArray, getBytecode, (JNIEnv* env, jobject, ARGUMENT_PAIR(m
         case Bytecodes::_invokestatic:
         case Bytecodes::_invokeinterface:
         case Bytecodes::_invokehandle: {
-          int cp_index = Bytes::get_native_u2((address) reconstituted_code + (bci + 1));
-          Bytes::put_Java_u2((address) reconstituted_code + (bci + 1), (u2) cp_index);
+          int cp_index = BytesAccess::get_native_u2((address) reconstituted_code + (bci + 1));
+          BytesAccess::put_Java_u2((address) reconstituted_code + (bci + 1), (u2) cp_index);
           break;
         }
 
         case Bytecodes::_invokedynamic: {
-          int cp_index = Bytes::get_native_u4((address) reconstituted_code + (bci + 1));
-          Bytes::put_Java_u4((address) reconstituted_code + (bci + 1), (u4) cp_index);
+          int cp_index = BytesAccess::get_native_u4((address) reconstituted_code + (bci + 1));
+          BytesAccess::put_Java_u4((address) reconstituted_code + (bci + 1), (u4) cp_index);
           break;
         }
 
@@ -342,10 +342,10 @@ C2V_VMENTRY_NULL(jbyteArray, getBytecode, (JNIEnv* env, jobject, ARGUMENT_PAIR(m
         }
 
         case Bytecodes::_fast_aldc_w: {
-          int cpc_index = Bytes::get_native_u2((address) reconstituted_code + (bci + 1));
+          int cpc_index = BytesAccess::get_native_u2((address) reconstituted_code + (bci + 1));
           int cp_index = method->constants()->object_to_cp_index(cpc_index);
           assert(cp_index < method->constants()->length(), "sanity check");
-          Bytes::put_Java_u2((address) reconstituted_code + (bci + 1), (u2) cp_index);
+          BytesAccess::put_Java_u2((address) reconstituted_code + (bci + 1), (u2) cp_index);
           break;
         }
 

@@ -469,10 +469,10 @@ static nmethod* counter_overflow_helper(JavaThread* current, int branch_bci, Met
       case Bytecodes::_if_icmpeq: case Bytecodes::_if_acmpeq: case Bytecodes::_ifeq:
       case Bytecodes::_if_icmpne: case Bytecodes::_if_acmpne: case Bytecodes::_ifne:
       case Bytecodes::_ifnull: case Bytecodes::_ifnonnull: case Bytecodes::_goto:
-        offset = (int16_t)Bytes::get_Java_u2(pc + 1);
+        offset = (int16_t)BytesAccess::get_Java_u2(pc + 1);
         break;
       case Bytecodes::_goto_w:
-        offset = Bytes::get_Java_u4(pc + 1);
+        offset = BytesAccess::get_Java_u4(pc + 1);
         break;
       default: ;
     }

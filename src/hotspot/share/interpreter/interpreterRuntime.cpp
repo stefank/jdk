@@ -1499,7 +1499,7 @@ JRT_ENTRY(void, InterpreterRuntime::member_name_arg_or_null(JavaThread* current,
     return;
   }
   ConstantPool* cpool = method->constants();
-  int cp_index = Bytes::get_native_u2(bcp + 1);
+  int cp_index = BytesAccess::get_native_u2(bcp + 1);
   Symbol* cname = cpool->klass_name_at(cpool->klass_ref_index_at(cp_index, code));
   Symbol* mname = cpool->name_ref_at(cp_index, code);
 

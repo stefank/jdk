@@ -379,7 +379,7 @@ address AbstractInterpreter::deopt_continue_after_entry(Method* method, address 
       // since the cache entry might not be initialized:
       // (NOT needed for the old calling convention)
       if (!is_top_frame) {
-        int index = Bytes::get_native_u2(bcp+1);
+        int index = BytesAccess::get_native_u2(bcp+1);
         method->constants()->cache()->resolved_method_entry_at(index)->set_num_parameters(callee_parameters);
       }
       break;
@@ -393,7 +393,7 @@ address AbstractInterpreter::deopt_continue_after_entry(Method* method, address 
       // since the cache entry might not be initialized:
       // (NOT needed for the old calling convention)
       if (!is_top_frame) {
-        int index = Bytes::get_native_u4(bcp+1);
+        int index = BytesAccess::get_native_u4(bcp+1);
         int indy_index = method->constants()->decode_invokedynamic_index(index);
         method->constants()->resolved_indy_entry_at(indy_index)->set_num_parameters(callee_parameters);
       }

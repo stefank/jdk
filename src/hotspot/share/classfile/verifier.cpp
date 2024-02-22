@@ -2245,13 +2245,13 @@ void ClassVerifier::verify_switch(
     }
   }
 
-  int default_offset = (int) Bytes::get_Java_u4(aligned_bcp);
+  int default_offset = (int) BytesAccess::get_Java_u4(aligned_bcp);
   int keys, delta;
   current_frame->pop_stack(
     VerificationType::integer_type(), CHECK_VERIFY(this));
   if (bcs->raw_code() == Bytecodes::_tableswitch) {
-    jint low = (jint)Bytes::get_Java_u4(aligned_bcp + jintSize);
-    jint high = (jint)Bytes::get_Java_u4(aligned_bcp + 2*jintSize);
+    jint low = (jint)BytesAccess::get_Java_u4(aligned_bcp + jintSize);
+    jint high = (jint)BytesAccess::get_Java_u4(aligned_bcp + 2*jintSize);
     if (low > high) {
       verify_error(ErrorContext::bad_code(bci),
           "low must be less than or equal to high in tableswitch");
@@ -2265,7 +2265,7 @@ void ClassVerifier::verify_switch(
     keys = (int)keys64;
     delta = 1;
   } else {
-    keys = (int)Bytes::get_Java_u4(aligned_bcp + jintSize);
+    keys = (int)BytesAccess::get_Java_u4(aligned_bcp + jintSize);
     if (keys < 0) {
       verify_error(ErrorContext::bad_code(bci),
                    "number of keys in lookupswitch less than 0");
@@ -2274,8 +2274,8 @@ void ClassVerifier::verify_switch(
     delta = 2;
     // Make sure that the lookupswitch items are sorted
     for (int i = 0; i < (keys - 1); i++) {
-      jint this_key = Bytes::get_Java_u4(aligned_bcp + (2+2*i)*jintSize);
-      jint next_key = Bytes::get_Java_u4(aligned_bcp + (2+2*i+2)*jintSize);
+      jint this_key = BytesAccess::get_Java_u4(aligned_bcp + (2+2*i)*jintSize);
+      jint next_key = BytesAccess::get_Java_u4(aligned_bcp + (2+2*i+2)*jintSize);
       if (this_key >= next_key) {
         verify_error(ErrorContext::bad_code(bci),
                      "Bad lookupswitch instruction");
@@ -2289,7 +2289,7 @@ void ClassVerifier::verify_switch(
     // Because check_jump_target() may safepoint, the bytecode could have
     // moved, which means 'aligned_bcp' is no good and needs to be recalculated.
     aligned_bcp = align_up(bcs->bcp() + 1, jintSize);
-    target = bci + (jint)Bytes::get_Java_u4(aligned_bcp+(3+i*delta)*jintSize);
+    target = bci + (jint)BytesAccess::get_Java_u4(aligned_bcp+(3+i*delta)*jintSize);
     stackmap_table->check_jump_target(
       current_frame, target, CHECK_VERIFY(this));
   }
@@ -2588,18 +2588,18 @@ bool ClassVerifier::ends_in_athrow(u4 start_bc_offset) {
       case Bytecodes::_tableswitch:
         {
           address aligned_bcp = align_up(bcs.bcp() + 1, jintSize);
-          int default_offset = Bytes::get_Java_u4(aligned_bcp) + bci;
+          int default_offset = BytesAccess::get_Java_u4(aligned_bcp) + bci;
           int keys, delta;
           if (opcode == Bytecodes::_tableswitch) {
-            jint low = (jint)Bytes::get_Java_u4(aligned_bcp + jintSize);
-            jint high = (jint)Bytes::get_Java_u4(aligned_bcp + 2*jintSize);
+            jint low = (jint)BytesAccess::get_Java_u4(aligned_bcp + jintSize);
+            jint high = (jint)BytesAccess::get_Java_u4(aligned_bcp + 2*jintSize);
             // This is invalid, but let the regular bytecode verifier
             // report this because the user will get a better error message.
             if (low > high) return true;
             keys = high - low + 1;
             delta = 1;
           } else {
-            keys = (int)Bytes::get_Java_u4(aligned_bcp + jintSize);
+            keys = (int)BytesAccess::get_Java_u4(aligned_bcp + jintSize);
             delta = 2;
           }
           // Invalid, let the regular bytecode verifier deal with it.
@@ -2610,7 +2610,7 @@ bool ClassVerifier::ends_in_athrow(u4 start_bc_offset) {
 
           // Push the switch alternatives onto the stack.
           for (int i = 0; i < keys; i++) {
-            int target = bci + (jint)Bytes::get_Java_u4(aligned_bcp+(3+i*delta)*jintSize);
+            int target = bci + (jint)BytesAccess::get_Java_u4(aligned_bcp+(3+i*delta)*jintSize);
             if (target > code_length) return false;
             bci_stack->push(target);
           }
@@ -2711,7 +2711,7 @@ void ClassVerifier::verify_invoke_init(
                    "Expecting new instruction");
       return;
     }
-    u2 new_class_index = Bytes::get_Java_u2(new_bcp + 1);
+    u2 new_class_index = BytesAccess::get_Java_u2(new_bcp + 1);
     if (was_recursively_verified()) return;
     verify_cp_class_type(bci, new_class_index, cp, CHECK_VERIFY(this));
 

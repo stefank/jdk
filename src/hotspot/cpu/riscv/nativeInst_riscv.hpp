@@ -228,18 +228,18 @@ class NativeInstruction {
  protected:
   address addr_at(int offset) const    { return address(this) + offset; }
 
-  jint int_at(int offset) const        { return (jint)Bytes::get_native_u4(addr_at(offset)); }
-  juint uint_at(int offset) const      { return Bytes::get_native_u4(addr_at(offset)); }
+  jint int_at(int offset) const        { return (jint)BytesAccess::get_native_u4(addr_at(offset)); }
+  juint uint_at(int offset) const      { return BytesAccess::get_native_u4(addr_at(offset)); }
 
-  address ptr_at(int offset) const     { return (address)Bytes::get_native_u8(addr_at(offset)); }
+  address ptr_at(int offset) const     { return (address)BytesAccess::get_native_u8(addr_at(offset)); }
 
-  oop  oop_at (int offset) const       { return cast_to_oop(Bytes::get_native_u8(addr_at(offset))); }
+  oop  oop_at (int offset) const       { return cast_to_oop(BytesAccess::get_native_u8(addr_at(offset))); }
 
 
-  void set_int_at(int offset, jint i)        { Bytes::put_native_u4(addr_at(offset), i); }
-  void set_uint_at(int offset, jint i)       { Bytes::put_native_u4(addr_at(offset), i); }
-  void set_ptr_at (int offset, address ptr)  { Bytes::put_native_u8(addr_at(offset), (u8)ptr); }
-  void set_oop_at (int offset, oop o)        { Bytes::put_native_u8(addr_at(offset), cast_from_oop<u8>(o)); }
+  void set_int_at(int offset, jint i)        { BytesAccess::put_native_u4(addr_at(offset), i); }
+  void set_uint_at(int offset, jint i)       { BytesAccess::put_native_u4(addr_at(offset), i); }
+  void set_ptr_at (int offset, address ptr)  { BytesAccess::put_native_u8(addr_at(offset), (u8)ptr); }
+  void set_oop_at (int offset, oop o)        { BytesAccess::put_native_u8(addr_at(offset), cast_from_oop<u8>(o)); }
 
  public:
 

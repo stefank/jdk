@@ -1889,7 +1889,7 @@ static void print_cpool_bytes(jint cnt, u1 *bytes) {
         break;
       }
       case JVM_CONSTANT_Utf8: {
-        u2 len = Bytes::get_Java_u2(bytes);
+        u2 len = BytesAccess::get_Java_u2(bytes);
         char str[128];
         if (len > 127) {
            len = 127;
@@ -1901,67 +1901,67 @@ static void print_cpool_bytes(jint cnt, u1 *bytes) {
         break;
       }
       case JVM_CONSTANT_Integer: {
-        u4 val = Bytes::get_Java_u4(bytes);
+        u4 val = BytesAccess::get_Java_u4(bytes);
         printf("int          %d", *(int *) &val);
         ent_size = 4;
         break;
       }
       case JVM_CONSTANT_Float: {
-        u4 val = Bytes::get_Java_u4(bytes);
+        u4 val = BytesAccess::get_Java_u4(bytes);
         printf("float        %5.3ff", *(float *) &val);
         ent_size = 4;
         break;
       }
       case JVM_CONSTANT_Long: {
-        u8 val = Bytes::get_Java_u8(bytes);
+        u8 val = BytesAccess::get_Java_u8(bytes);
         printf("long         " INT64_FORMAT, (int64_t) *(jlong *) &val);
         ent_size = 8;
         idx++; // Long takes two cpool slots
         break;
       }
       case JVM_CONSTANT_Double: {
-        u8 val = Bytes::get_Java_u8(bytes);
+        u8 val = BytesAccess::get_Java_u8(bytes);
         printf("double       %5.3fd", *(jdouble *)&val);
         ent_size = 8;
         idx++; // Double takes two cpool slots
         break;
       }
       case JVM_CONSTANT_Class: {
-        idx1 = Bytes::get_Java_u2(bytes);
+        idx1 = BytesAccess::get_Java_u2(bytes);
         printf("class        #%03d", idx1);
         ent_size = 2;
         break;
       }
       case JVM_CONSTANT_String: {
-        idx1 = Bytes::get_Java_u2(bytes);
+        idx1 = BytesAccess::get_Java_u2(bytes);
         printf("String       #%03d", idx1);
         ent_size = 2;
         break;
       }
       case JVM_CONSTANT_Fieldref: {
-        idx1 = Bytes::get_Java_u2(bytes);
-        idx2 = Bytes::get_Java_u2(bytes+2);
+        idx1 = BytesAccess::get_Java_u2(bytes);
+        idx2 = BytesAccess::get_Java_u2(bytes+2);
         printf("Field        #%03d, #%03d", (int) idx1, (int) idx2);
         ent_size = 4;
         break;
       }
       case JVM_CONSTANT_Methodref: {
-        idx1 = Bytes::get_Java_u2(bytes);
-        idx2 = Bytes::get_Java_u2(bytes+2);
+        idx1 = BytesAccess::get_Java_u2(bytes);
+        idx2 = BytesAccess::get_Java_u2(bytes+2);
         printf("Method       #%03d, #%03d", idx1, idx2);
         ent_size = 4;
         break;
       }
       case JVM_CONSTANT_InterfaceMethodref: {
-        idx1 = Bytes::get_Java_u2(bytes);
-        idx2 = Bytes::get_Java_u2(bytes+2);
+        idx1 = BytesAccess::get_Java_u2(bytes);
+        idx2 = BytesAccess::get_Java_u2(bytes+2);
         printf("InterfMethod #%03d, #%03d", idx1, idx2);
         ent_size = 4;
         break;
       }
       case JVM_CONSTANT_NameAndType: {
-        idx1 = Bytes::get_Java_u2(bytes);
-        idx2 = Bytes::get_Java_u2(bytes+2);
+        idx1 = BytesAccess::get_Java_u2(bytes);
+        idx2 = BytesAccess::get_Java_u2(bytes+2);
         printf("NameAndType  #%03d, #%03d", idx1, idx2);
         ent_size = 4;
         break;
@@ -2113,7 +2113,7 @@ int ConstantPool::copy_cpool_bytes(int cpool_size,
         char*     str = sym->as_utf8();
         // Warning! It's crashing on x86 with len = sym->utf8_length()
         int       len = (int) strlen(str);
-        Bytes::put_Java_u2((address) (bytes+1), (u2) len);
+        BytesAccess::put_Java_u2((address) (bytes+1), (u2) len);
         for (int i = 0; i < len; i++) {
             bytes[3+i] = (u1) str[i];
         }
@@ -2122,23 +2122,23 @@ int ConstantPool::copy_cpool_bytes(int cpool_size,
       }
       case JVM_CONSTANT_Integer: {
         jint val = int_at(idx);
-        Bytes::put_Java_u4((address) (bytes+1), *(u4*)&val);
+        BytesAccess::put_Java_u4((address) (bytes+1), *(u4*)&val);
         break;
       }
       case JVM_CONSTANT_Float: {
         jfloat val = float_at(idx);
-        Bytes::put_Java_u4((address) (bytes+1), *(u4*)&val);
+        BytesAccess::put_Java_u4((address) (bytes+1), *(u4*)&val);
         break;
       }
       case JVM_CONSTANT_Long: {
         jlong val = long_at(idx);
-        Bytes::put_Java_u8((address) (bytes+1), *(u8*)&val);
+        BytesAccess::put_Java_u8((address) (bytes+1), *(u8*)&val);
         idx++;             // Long takes two cpool slots
         break;
       }
       case JVM_CONSTANT_Double: {
         jdouble val = double_at(idx);
-        Bytes::put_Java_u8((address) (bytes+1), *(u8*)&val);
+        BytesAccess::put_Java_u8((address) (bytes+1), *(u8*)&val);
         idx++;             // Double takes two cpool slots
         break;
       }
@@ -2149,7 +2149,7 @@ int ConstantPool::copy_cpool_bytes(int cpool_size,
         Symbol* sym = klass_name_at(idx);
         idx1 = tbl->symbol_to_value(sym);
         assert(idx1 != 0, "Have not found a hashtable entry");
-        Bytes::put_Java_u2((address) (bytes+1), idx1);
+        BytesAccess::put_Java_u2((address) (bytes+1), idx1);
         DBG(printf("JVM_CONSTANT_Class: idx=#%03hd, %s", idx1, sym->as_utf8()));
         break;
       }
@@ -2158,7 +2158,7 @@ int ConstantPool::copy_cpool_bytes(int cpool_size,
         Symbol* sym = unresolved_string_at(idx);
         idx1 = tbl->symbol_to_value(sym);
         assert(idx1 != 0, "Have not found a hashtable entry");
-        Bytes::put_Java_u2((address) (bytes+1), idx1);
+        BytesAccess::put_Java_u2((address) (bytes+1), idx1);
         DBG(printf("JVM_CONSTANT_String: idx=#%03hd, %s", idx1, sym->as_utf8()));
         break;
       }
@@ -2167,30 +2167,30 @@ int ConstantPool::copy_cpool_bytes(int cpool_size,
       case JVM_CONSTANT_InterfaceMethodref: {
         idx1 = uncached_klass_ref_index_at(idx);
         idx2 = uncached_name_and_type_ref_index_at(idx);
-        Bytes::put_Java_u2((address) (bytes+1), idx1);
-        Bytes::put_Java_u2((address) (bytes+3), idx2);
+        BytesAccess::put_Java_u2((address) (bytes+1), idx1);
+        BytesAccess::put_Java_u2((address) (bytes+3), idx2);
         DBG(printf("JVM_CONSTANT_Methodref: %hd %hd", idx1, idx2));
         break;
       }
       case JVM_CONSTANT_NameAndType: {
         idx1 = name_ref_index_at(idx);
         idx2 = signature_ref_index_at(idx);
-        Bytes::put_Java_u2((address) (bytes+1), idx1);
-        Bytes::put_Java_u2((address) (bytes+3), idx2);
+        BytesAccess::put_Java_u2((address) (bytes+1), idx1);
+        BytesAccess::put_Java_u2((address) (bytes+3), idx2);
         DBG(printf("JVM_CONSTANT_NameAndType: %hd %hd", idx1, idx2));
         break;
       }
       case JVM_CONSTANT_ClassIndex: {
         *bytes = JVM_CONSTANT_Class;
         idx1 = checked_cast<u2>(klass_index_at(idx));
-        Bytes::put_Java_u2((address) (bytes+1), idx1);
+        BytesAccess::put_Java_u2((address) (bytes+1), idx1);
         DBG(printf("JVM_CONSTANT_ClassIndex: %hd", idx1));
         break;
       }
       case JVM_CONSTANT_StringIndex: {
         *bytes = JVM_CONSTANT_String;
         idx1 = checked_cast<u2>(string_index_at(idx));
-        Bytes::put_Java_u2((address) (bytes+1), idx1);
+        BytesAccess::put_Java_u2((address) (bytes+1), idx1);
         DBG(printf("JVM_CONSTANT_StringIndex: %hd", idx1));
         break;
       }
@@ -2200,7 +2200,7 @@ int ConstantPool::copy_cpool_bytes(int cpool_size,
         int kind = method_handle_ref_kind_at(idx);
         idx1 = checked_cast<u2>(method_handle_index_at(idx));
         *(bytes+1) = (unsigned char) kind;
-        Bytes::put_Java_u2((address) (bytes+2), idx1);
+        BytesAccess::put_Java_u2((address) (bytes+2), idx1);
         DBG(printf("JVM_CONSTANT_MethodHandle: %d %hd", kind, idx1));
         break;
       }
@@ -2208,7 +2208,7 @@ int ConstantPool::copy_cpool_bytes(int cpool_size,
       case JVM_CONSTANT_MethodTypeInError: {
         *bytes = JVM_CONSTANT_MethodType;
         idx1 = checked_cast<u2>(method_type_index_at(idx));
-        Bytes::put_Java_u2((address) (bytes+1), idx1);
+        BytesAccess::put_Java_u2((address) (bytes+1), idx1);
         DBG(printf("JVM_CONSTANT_MethodType: %hd", idx1));
         break;
       }
@@ -2218,8 +2218,8 @@ int ConstantPool::copy_cpool_bytes(int cpool_size,
         idx1 = extract_low_short_from_int(*int_at_addr(idx));
         idx2 = extract_high_short_from_int(*int_at_addr(idx));
         assert(idx2 == bootstrap_name_and_type_ref_index_at(idx), "correct half of u4");
-        Bytes::put_Java_u2((address) (bytes+1), idx1);
-        Bytes::put_Java_u2((address) (bytes+3), idx2);
+        BytesAccess::put_Java_u2((address) (bytes+1), idx1);
+        BytesAccess::put_Java_u2((address) (bytes+3), idx2);
         DBG(printf("JVM_CONSTANT_Dynamic: %hd %hd", idx1, idx2));
         break;
       }
@@ -2228,8 +2228,8 @@ int ConstantPool::copy_cpool_bytes(int cpool_size,
         idx1 = extract_low_short_from_int(*int_at_addr(idx));
         idx2 = extract_high_short_from_int(*int_at_addr(idx));
         assert(idx2 == bootstrap_name_and_type_ref_index_at(idx), "correct half of u4");
-        Bytes::put_Java_u2((address) (bytes+1), idx1);
-        Bytes::put_Java_u2((address) (bytes+3), idx2);
+        BytesAccess::put_Java_u2((address) (bytes+1), idx1);
+        BytesAccess::put_Java_u2((address) (bytes+3), idx2);
         DBG(printf("JVM_CONSTANT_InvokeDynamic: %hd %hd", idx1, idx2));
         break;
       }
