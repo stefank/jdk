@@ -64,12 +64,12 @@ void MetachunkList::verify() const {
 
 #endif // ASSERT
 
-size_t MetachunkList::calc_committed_word_size() const {
+Words MetachunkList::calc_committed_word_size() const {
   if (_first != nullptr && _first->is_dead()) {
     // list used for chunk header pool; dead chunks have no size.
-    return 0;
+    return Words(0);
   }
-  size_t s = 0;
+  Words s = Words(0);
   for (Metachunk* c = _first; c != nullptr; c = c->next()) {
     assert(c->is_dead() == false, "Sanity");
     s += c->committed_words();
@@ -77,12 +77,12 @@ size_t MetachunkList::calc_committed_word_size() const {
   return s;
 }
 
-size_t MetachunkList::calc_word_size() const {
+Words MetachunkList::calc_word_size() const {
   if (_first != nullptr && _first->is_dead()) {
     // list used for chunk header pool; dead chunks have no size.
-    return 0;
+    return Words(0);
   }
-  size_t s = 0;
+  Words s = Words(0);
   for (Metachunk* c = _first; c != nullptr; c = c->next()) {
     assert(c->is_dead() == false, "Sanity");
     s += c->committed_words();

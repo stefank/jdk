@@ -32,7 +32,7 @@
 using metaspace::Settings;
 
 void ChunkGtestContext::checked_alloc_chunk_0(Metachunk** p_return_value, chunklevel_t preferred_level, chunklevel_t max_level,
-                                                      size_t min_committed_size) {
+                                              Words min_committed_size) {
 
   *p_return_value = nullptr;
 
@@ -44,7 +44,7 @@ void ChunkGtestContext::checked_alloc_chunk_0(Metachunk** p_return_value, chunkl
     ASSERT_GE(c->level(), preferred_level);
     ASSERT_GE(c->committed_words(), min_committed_size);
     ASSERT_EQ(c->committed_words(), c->free_below_committed_words());
-    ASSERT_EQ(c->used_words(), (size_t)0);
+    ASSERT_EQ(c->used_words(), Words(0));
     ASSERT_TRUE(c->is_in_use());
     ASSERT_FALSE(c->is_free());
     ASSERT_FALSE(c->is_dead());
@@ -76,7 +76,7 @@ void ChunkGtestContext::checked_alloc_chunk_0(Metachunk** p_return_value, chunkl
 }
 
 // Test pattern established when allocating from the chunk with allocate_from_chunk_with_tests().
-void ChunkGtestContext::test_pattern(Metachunk* c, size_t word_size) {
+void ChunkGtestContext::test_pattern(Metachunk* c, Words word_size) {
   check_range_for_pattern(c->base(), word_size, (uintx)c);
 }
 
@@ -86,33 +86,33 @@ void ChunkGtestContext::return_chunk(Metachunk* c) {
   cm().return_chunk(c);
 }
 
- void ChunkGtestContext::allocate_from_chunk(MetaWord** p_return_value, Metachunk* c, size_t word_size) {
+ void ChunkGtestContext::allocate_from_chunk(MetaWord** p_return_value, Metachunk* c, Words word_size) {
 
-  size_t used_before = c->used_words();
-  size_t free_before = c->free_words();
-  size_t free_below_committed_before = c->free_below_committed_words();
-  const MetaWord* top_before = c->top();
+   Words used_before = c->used_words();
+   Words free_before = c->free_words();
+   Words free_below_committed_before = c->free_below_committed_words();
+   const MetaWord* top_before = c->top();
 
-  MetaWord* p = c->allocate(word_size);
-  EXPECT_NOT_NULL(p);
-  EXPECT_EQ(c->used_words(), used_before + word_size);
-  EXPECT_EQ(c->free_words(), free_before - word_size);
-  EXPECT_EQ(c->free_below_committed_words(), free_below_committed_before - word_size);
-  EXPECT_EQ(c->top(), top_before + word_size);
+   MetaWord* p = c->allocate(word_size);
+   EXPECT_NOT_NULL(p);
+   EXPECT_EQ(c->used_words(), used_before + word_size);
+   EXPECT_EQ(c->free_words(), free_before - word_size);
+   EXPECT_EQ(c->free_below_committed_words(), free_below_committed_before - word_size);
+   EXPECT_EQ(c->top(), top_before + word_size);
 
-  // Old content should be preserved
-  test_pattern(c, used_before);
+   // Old content should be preserved
+   test_pattern(c, used_before);
 
-  // Fill newly allocated range too
-  fill_range_with_pattern(p, word_size, (uintx)c);
+   // Fill newly allocated range too
+   fill_range_with_pattern(p, word_size, (uintx)c);
 
-  *p_return_value = p;
-}
+   *p_return_value = p;
+ }
 
-void ChunkGtestContext::commit_chunk_with_test(Metachunk* c, size_t additional_size) {
+void ChunkGtestContext::commit_chunk_with_test(Metachunk* c, Words additional_size) {
 
-  size_t used_before = c->used_words();
-  size_t free_before = c->free_words();
+  Words used_before = c->used_words();
+  Words free_before = c->free_words();
   const MetaWord* top_before = c->top();
 
   c->set_in_use();
@@ -131,11 +131,11 @@ void ChunkGtestContext::commit_chunk_with_test(Metachunk* c, size_t additional_s
 
 }
 
-void ChunkGtestContext::commit_chunk_expect_failure(Metachunk* c, size_t additional_size) {
+void ChunkGtestContext::commit_chunk_expect_failure(Metachunk* c, Words additional_size) {
 
-  size_t used_before = c->used_words();
-  size_t free_before = c->free_words();
-  size_t free_below_committed_before = c->free_below_committed_words();
+  Words used_before = c->used_words();
+  Words free_before = c->free_words();
+  Words free_below_committed_before = c->free_below_committed_words();
   const MetaWord* top_before = c->top();
 
   c->set_in_use();
@@ -158,8 +158,8 @@ void ChunkGtestContext::uncommit_chunk_with_test(Metachunk* c) {
     c->reset_used_words();
     c->uncommit();
 
-    EXPECT_EQ(c->free_below_committed_words(), (size_t)0);
-    EXPECT_EQ(c->used_words(), (size_t)0);
+    EXPECT_EQ(c->free_below_committed_words(), Words(0));
+    EXPECT_EQ(c->used_words(), Words(0));
     EXPECT_EQ(c->free_words(), c->word_size());
     EXPECT_EQ(c->top(), c->base());
     EXPECT_TRUE(c->is_fully_uncommitted());
@@ -167,4 +167,3 @@ void ChunkGtestContext::uncommit_chunk_with_test(Metachunk* c) {
 }
 
 /////// SparseArray<T> ////////////////
-

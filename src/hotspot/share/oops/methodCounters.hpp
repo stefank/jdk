@@ -60,10 +60,10 @@ class MethodCounters : public Metadata {
 
   void deallocate_contents(ClassLoaderData* loader_data) {}
 
-  static int method_counters_size() {
-    return align_up((int)sizeof(MethodCounters), wordSize) / wordSize;
+  static Words method_counters_size() {
+    return in_Words(align_up((int)sizeof(MethodCounters), wordSize) / wordSize);
   }
-  virtual int size() const {
+  virtual Words size() const {
     return method_counters_size();
   }
   MetaspaceObj::Type type() const { return MethodCountersType; }

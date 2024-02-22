@@ -39,8 +39,8 @@ public:
   PSGenerationPool(PSOldGen* pool, const char* name, bool support_usage_threshold);
 
   MemoryUsage get_memory_usage();
-  size_t used_in_bytes() { return _old_gen->used_in_bytes(); }
-  size_t max_size() const { return _old_gen->reserved().byte_size(); }
+  Bytes used_in_bytes() { return _old_gen->used_in_bytes(); }
+  Bytes max_size() const { return _old_gen->reserved().byte_size(); }
 };
 
 class EdenMutableSpacePool : public CollectedMemoryPool {
@@ -56,8 +56,8 @@ public:
 
   MutableSpace* space()                     { return _space; }
   MemoryUsage get_memory_usage();
-  size_t used_in_bytes()                    { return space()->used_in_bytes(); }
-  size_t max_size() const {
+  Bytes used_in_bytes()                    { return space()->used_in_bytes(); }
+  Bytes max_size() const {
     // Eden's max_size = max_size of Young Gen - the current committed size of survivor spaces
     return _young_gen->max_gen_size() -
            _young_gen->from_space()->capacity_in_bytes() -
@@ -76,13 +76,13 @@ public:
 
   MemoryUsage get_memory_usage();
 
-  size_t used_in_bytes() {
+  Bytes used_in_bytes() {
     return _young_gen->from_space()->used_in_bytes();
   }
-  size_t committed_in_bytes() {
+  Bytes committed_in_bytes() {
     return _young_gen->from_space()->capacity_in_bytes();
   }
-  size_t max_size() const {
+  Bytes max_size() const {
     // Return current committed size of the from-space
     return _young_gen->from_space()->capacity_in_bytes();
   }

@@ -37,15 +37,15 @@
 #include "runtime/java.hpp"
 #include "utilities/align.hpp"
 
-PSOldGen::PSOldGen(ReservedSpace rs, size_t initial_size, size_t min_size,
-                   size_t max_size, const char* perf_data_name, int level):
+PSOldGen::PSOldGen(ReservedSpace rs, Bytes initial_size, Bytes min_size,
+                   Bytes max_size, const char* perf_data_name, int level):
   _min_gen_size(min_size),
   _max_gen_size(max_size)
 {
   initialize(rs, initial_size, GenAlignment, perf_data_name, level);
 }
 
-void PSOldGen::initialize(ReservedSpace rs, size_t initial_size, size_t alignment,
+void PSOldGen::initialize(ReservedSpace rs, Bytes initial_size, Bytes alignment,
                           const char* perf_data_name, int level) {
   initialize_virtual_space(rs, initial_size, alignment);
   initialize_work(perf_data_name, level);
@@ -54,8 +54,8 @@ void PSOldGen::initialize(ReservedSpace rs, size_t initial_size, size_t alignmen
 }
 
 void PSOldGen::initialize_virtual_space(ReservedSpace rs,
-                                        size_t initial_size,
-                                        size_t alignment) {
+                                        Bytes initial_size,
+                                        Bytes alignment) {
 
   _virtual_space = new PSVirtualSpace(rs, alignment);
   if (!_virtual_space->expand_by(initial_size)) {
@@ -124,16 +124,16 @@ void PSOldGen::initialize_performance_counters(const char* perf_data_name, int l
 // Assume that the generation has been allocated if its
 // reserved size is not 0.
 bool  PSOldGen::is_allocated() {
-  return virtual_space()->reserved_size() != 0;
+  return virtual_space()->reserved_size() != Bytes(0);
 }
 
 size_t PSOldGen::num_iterable_blocks() const {
-  return (object_space()->used_in_bytes() + IterateBlockSize - 1) / IterateBlockSize;
+  return (object_space()->used_in_bytes() + IterateBlockSize - Bytes(1)) / IterateBlockSize;
 }
 
 void PSOldGen::object_iterate_block(ObjectClosure* cl, size_t block_index) {
-  size_t block_word_size = IterateBlockSize / HeapWordSize;
-  assert((block_word_size % BOTConstants::card_size_in_words()) == 0,
+  Words block_word_size = to_Words(IterateBlockSize);
+  assert(is_aligned(block_word_size, BOTConstants::card_size_in_words()),
          "To ensure fast object_start calls");
 
   MutableSpace *space = object_space();
@@ -155,8 +155,8 @@ void PSOldGen::object_iterate_block(ObjectClosure* cl, size_t block_index) {
   }
 }
 
-bool PSOldGen::expand_for_allocate(size_t word_size) {
-  assert(word_size > 0, "allocating zero words?");
+bool PSOldGen::expand_for_allocate(Words word_size) {
+  assert(word_size > Words(0), "allocating zero words?");
   bool result = true;
   {
     MutexLocker x(PSOldGenExpand_lock);
@@ -167,7 +167,7 @@ bool PSOldGen::expand_for_allocate(size_t word_size) {
     // the space we need before we can allocate it, regardless of whether we
     // expand.  That's okay, we'll just try expanding again.
     if (object_space()->needs_expand(word_size)) {
-      result = expand(word_size*HeapWordSize);
+      result = expand(to_Bytes(word_size));
     }
   }
   if (GCExpandToAllocateDelayMillis > 0) {
@@ -176,20 +176,20 @@ bool PSOldGen::expand_for_allocate(size_t word_size) {
   return result;
 }
 
-bool PSOldGen::expand(size_t bytes) {
+bool PSOldGen::expand(Bytes bytes) {
   assert_lock_strong(PSOldGenExpand_lock);
   assert_locked_or_safepoint(Heap_lock);
-  assert(bytes > 0, "precondition");
-  const size_t alignment = virtual_space()->alignment();
-  size_t aligned_bytes  = align_up(bytes, alignment);
-  size_t aligned_expand_bytes = align_up(MinHeapDeltaBytes, alignment);
+  assert(bytes > Bytes(0), "precondition");
+  const Bytes alignment = virtual_space()->alignment();
+  Bytes aligned_bytes  = align_up(bytes, alignment);
+  Bytes aligned_expand_bytes = align_up(in_Bytes(MinHeapDeltaBytes), alignment);
 
   if (UseNUMA) {
     // With NUMA we use round-robin page allocation for the old gen. Expand by at least
     // providing a page per lgroup. Alignment is larger or equal to the page size.
     aligned_expand_bytes = MAX2(aligned_expand_bytes, alignment * os::numa_get_groups_num());
   }
-  if (aligned_bytes == 0) {
+  if (aligned_bytes == Bytes(0)) {
     // The alignment caused the number of bytes to wrap.  A call to expand
     // implies a best effort to expand by "bytes" but not a guarantee.  Align
     // down to give a best effort.  This is likely the most that the generation
@@ -214,10 +214,10 @@ bool PSOldGen::expand(size_t bytes) {
   return success;
 }
 
-bool PSOldGen::expand_by(size_t bytes) {
+bool PSOldGen::expand_by(Bytes bytes) {
   assert_lock_strong(PSOldGenExpand_lock);
   assert_locked_or_safepoint(Heap_lock);
-  assert(bytes > 0, "precondition");
+  assert(bytes > Bytes(0), "precondition");
   bool result = virtual_space()->expand_by(bytes);
   if (result) {
     if (ZapUnusedHeapArea) {
@@ -241,8 +241,8 @@ bool PSOldGen::expand_by(size_t bytes) {
   }
 
   if (result) {
-    size_t new_mem_size = virtual_space()->committed_size();
-    size_t old_mem_size = new_mem_size - bytes;
+    Bytes new_mem_size = virtual_space()->committed_size();
+    Bytes old_mem_size = new_mem_size - bytes;
     log_debug(gc)("Expanding %s from " SIZE_FORMAT "K by " SIZE_FORMAT "K to " SIZE_FORMAT "K",
                   name(), old_mem_size/K, bytes/K, new_mem_size/K);
   }
@@ -255,25 +255,25 @@ bool PSOldGen::expand_to_reserved() {
   assert_locked_or_safepoint(Heap_lock);
 
   bool result = false;
-  const size_t remaining_bytes = virtual_space()->uncommitted_size();
-  if (remaining_bytes > 0) {
+  const Bytes remaining_bytes = virtual_space()->uncommitted_size();
+  if (remaining_bytes > Bytes(0)) {
     result = expand_by(remaining_bytes);
     DEBUG_ONLY(if (!result) log_warning(gc)("grow to reserve failed"));
   }
   return result;
 }
 
-void PSOldGen::shrink(size_t bytes) {
+void PSOldGen::shrink(Bytes bytes) {
   assert_lock_strong(PSOldGenExpand_lock);
   assert_locked_or_safepoint(Heap_lock);
 
-  size_t size = align_down(bytes, virtual_space()->alignment());
-  if (size > 0) {
+  Bytes size = align_down(bytes, virtual_space()->alignment());
+  if (size > Bytes(0)) {
     virtual_space()->shrink_by(bytes);
     post_resize();
 
-    size_t new_mem_size = virtual_space()->committed_size();
-    size_t old_mem_size = new_mem_size + bytes;
+    Bytes new_mem_size = virtual_space()->committed_size();
+    Bytes old_mem_size = new_mem_size + bytes;
     log_debug(gc)("Shrinking %s from " SIZE_FORMAT "K by " SIZE_FORMAT "K to " SIZE_FORMAT "K",
                   name(), old_mem_size/K, bytes/K, new_mem_size/K);
   }
@@ -282,16 +282,16 @@ void PSOldGen::shrink(size_t bytes) {
 void PSOldGen::complete_loaded_archive_space(MemRegion archive_space) {
   HeapWord* cur = archive_space.start();
   while (cur < archive_space.end()) {
-    size_t word_size = cast_to_oop(cur)->size();
+    Words word_size = cast_to_oop(cur)->size();
     _start_array.update_for_block(cur, cur + word_size);
     cur += word_size;
   }
 }
 
-void PSOldGen::resize(size_t desired_free_space) {
-  const size_t alignment = virtual_space()->alignment();
-  const size_t size_before = virtual_space()->committed_size();
-  size_t new_size = used_in_bytes() + desired_free_space;
+void PSOldGen::resize(Bytes desired_free_space) {
+  const Bytes alignment = virtual_space()->alignment();
+  const Bytes size_before = virtual_space()->committed_size();
+  Bytes new_size = used_in_bytes() + desired_free_space;
   if (new_size < used_in_bytes()) {
     // Overflowed the addition.
     new_size = max_gen_size();
@@ -301,7 +301,7 @@ void PSOldGen::resize(size_t desired_free_space) {
 
   new_size = align_up(new_size, alignment);
 
-  const size_t current_size = capacity_in_bytes();
+  const Bytes current_size = capacity_in_bytes();
 
   log_trace(gc, ergo)("AdaptiveSizePolicy::old generation size: "
     "desired free: " SIZE_FORMAT " used: " SIZE_FORMAT
@@ -315,11 +315,11 @@ void PSOldGen::resize(size_t desired_free_space) {
     return;
   }
   if (new_size > current_size) {
-    size_t change_bytes = new_size - current_size;
+    Bytes change_bytes = new_size - current_size;
     MutexLocker x(PSOldGenExpand_lock);
     expand(change_bytes);
   } else {
-    size_t change_bytes = current_size - new_size;
+    Bytes change_bytes = current_size - new_size;
     MutexLocker x(PSOldGenExpand_lock);
     shrink(change_bytes);
   }
@@ -338,7 +338,7 @@ void PSOldGen::post_resize() {
   // First construct a memregion representing the new size
   MemRegion new_memregion((HeapWord*)virtual_space()->low(),
     (HeapWord*)virtual_space()->high());
-  size_t new_word_size = new_memregion.word_size();
+  Words new_word_size = new_memregion.word_size();
 
   start_array()->set_covered_region(new_memregion);
   ParallelScavengeHeap::heap()->card_table()->resize_covered_region(new_memregion);
@@ -355,7 +355,7 @@ void PSOldGen::post_resize() {
                              MutableSpace::SetupPages,
                              workers);
 
-  assert(new_word_size == heap_word_size(object_space()->capacity_in_bytes()),
+  assert(new_word_size == heap_word_size(untype(object_space()->capacity_in_bytes())),
     "Sanity");
 }
 

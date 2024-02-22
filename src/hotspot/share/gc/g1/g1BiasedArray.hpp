@@ -27,6 +27,7 @@
 
 #include "memory/allocation.hpp"
 #include "memory/memRegion.hpp"
+#include "utilities/align.hpp"
 #include "utilities/debug.hpp"
 #include "utilities/powerOfTwo.hpp"
 
@@ -52,11 +53,11 @@ protected:
   G1BiasedMappedArrayBase();
 
   // Allocate a new array, generic version.
-  address create_new_base_array(size_t length, size_t elem_size);
+  address create_new_base_array(size_t length, Bytes elem_size);
 
   // Initialize the members of this class. The biased start address of this array
   // is the bias (in elements) multiplied by the element size.
-  void initialize_base(address base, size_t length, size_t bias, size_t elem_size, uint shift_by) {
+  void initialize_base(address base, size_t length, size_t bias, Bytes elem_size, uint shift_by) {
     assert(base != nullptr, "just checking");
     assert(length > 0, "just checking");
     assert(shift_by < sizeof(uintptr_t) * 8, "Shifting by %u, larger than word size?", shift_by);
@@ -69,20 +70,20 @@ protected:
 
   // Allocate and initialize this array to cover the heap addresses in the range
   // of [bottom, end).
-  void initialize(HeapWord* bottom, HeapWord* end, size_t target_elem_size_in_bytes, size_t mapping_granularity_in_bytes) {
-    assert(mapping_granularity_in_bytes > 0, "just checking");
+  void initialize(HeapWord* bottom, HeapWord* end, Bytes target_elem_size_in_bytes, Bytes mapping_granularity_in_bytes) {
+    assert(mapping_granularity_in_bytes > Bytes(0), "just checking");
     assert(is_power_of_2(mapping_granularity_in_bytes),
            "mapping granularity must be power of 2, is " SIZE_FORMAT, mapping_granularity_in_bytes);
-    assert((uintptr_t)bottom % mapping_granularity_in_bytes == 0,
+    assert(is_aligned(bottom, untype(mapping_granularity_in_bytes)),
            "bottom mapping area address must be a multiple of mapping granularity " SIZE_FORMAT ", is  " PTR_FORMAT,
            mapping_granularity_in_bytes, p2i(bottom));
-    assert((uintptr_t)end % mapping_granularity_in_bytes == 0,
+    assert(is_aligned(end, untype(mapping_granularity_in_bytes)),
            "end mapping area address must be a multiple of mapping granularity " SIZE_FORMAT ", is " PTR_FORMAT,
            mapping_granularity_in_bytes, p2i(end));
-    size_t num_target_elems = pointer_delta(end, bottom, mapping_granularity_in_bytes);
-    idx_t bias = (uintptr_t)bottom / mapping_granularity_in_bytes;
+    size_t num_target_elems = pointer_delta(end, bottom, untype(mapping_granularity_in_bytes));
+    idx_t bias = (uintptr_t)bottom / untype(mapping_granularity_in_bytes);
     address base = create_new_base_array(num_target_elems, target_elem_size_in_bytes);
-    initialize_base(base, num_target_elems, bias, target_elem_size_in_bytes, log2i_exact(mapping_granularity_in_bytes));
+    initialize_base(base, num_target_elems, bias, target_elem_size_in_bytes, log2i_exact(untype(mapping_granularity_in_bytes)));
   }
 
   size_t bias() const { return _bias; }
@@ -198,8 +199,8 @@ public:
   G1BiasedMappedArray() {}
 
   // Allocate and initialize this array to cover the heap addresses in the given MemRegion.
-  void initialize(MemRegion region, size_t mapping_granularity) {
-    G1BiasedMappedArrayBase::initialize(region.start(), region.end(), sizeof(T), mapping_granularity);
+  void initialize(MemRegion region, Bytes mapping_granularity) {
+    G1BiasedMappedArrayBase::initialize(region.start(), region.end(), in_Bytes(sizeof(T)), mapping_granularity);
     this->clear();
   }
 };

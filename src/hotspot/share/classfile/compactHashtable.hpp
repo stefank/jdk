@@ -47,13 +47,13 @@ class SerializeClosure;
 class CompactHashtableStats {
 public:
   int hashentry_count;
-  int hashentry_bytes;
+  Bytes hashentry_bytes;
   int bucket_count;
-  int bucket_bytes;
+  Bytes bucket_bytes;
 
   CompactHashtableStats() :
-    hashentry_count(0), hashentry_bytes(0),
-    bucket_count(0), bucket_bytes(0) {}
+    hashentry_count(0), hashentry_bytes(Bytes(0)),
+    bucket_count(0), bucket_bytes(Bytes(0)) {}
 };
 
 #if INCLUDE_CDS
@@ -135,7 +135,7 @@ private:
 public:
   void dump(SimpleCompactHashtable *cht, const char* table_name);
 
-  static size_t estimate_size(int num_entries);
+  static Bytes estimate_size(int num_entries);
 };
 #endif // INCLUDE_CDS
 
@@ -231,7 +231,7 @@ public:
     return _entry_count;
   }
 
-  static size_t calculate_header_size();
+  static Bytes calculate_header_size();
 };
 
 template <

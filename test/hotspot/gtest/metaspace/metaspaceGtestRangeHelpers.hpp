@@ -79,7 +79,7 @@ public:
   // Number of values in range
   Td size() const       { return _size; }
 
-  bool is_empty() const { return size() == 0; }
+  bool is_empty() const { return size() == Td(0); }
 
   bool contains(T v) const {
     return v >= _start && v < end();
@@ -95,12 +95,14 @@ public:
   }
 
   // a range with a given size, starting at 0
-  Range(Td size) : _start(0), _size(size) {}
+  Range(Td size) : _start(T(0)), _size(size) {}
 
   // Return a random offset
   Td random_offset() const {
     assert(!is_empty(), "Range too small");
-    Td v = random_uncapped_offset() % size();
+    Td offset = random_uncapped_offset();
+    // Td v = offset % size();
+    Td v = offset -  (offset / size()) * offset;
     return v;
   }
 
@@ -146,7 +148,7 @@ public:
 
   // Return a non-empty aligned random sub range.
   Range<T, Td> random_aligned_subrange(Td alignment) const {
-    assert(alignment > 0, "Sanity");
+    assert(alignment > Td(0), "Sanity");
     assert(range_is_aligned(alignment), "Outer range needs to be aligned"); // to keep matters simple
     assert(_size >= alignment, "Outer range too small.");
     Td sz = MAX2((Td)1, random_offset());
@@ -156,9 +158,9 @@ public:
 
   // Return a subrange of given size at a random aligned start position
   Range<T, Td> random_aligned_sized_subrange(Td subrange_size, Td alignment) const {
-    assert(alignment > 0, "Sanity");
+    assert(alignment > T(0), "Sanity");
     assert(range_is_aligned(alignment), "Outer range needs to be aligned"); // to keep matters simple
-    assert(subrange_size > 0 && subrange_size <= _size &&
+    assert(subrange_size > T(0) && subrange_size <= _size &&
            is_aligned(subrange_size, alignment), "invalid subrange size");
     if (_size == subrange_size) {
       return *this;
@@ -172,6 +174,7 @@ public:
 
 typedef Range<int, int> IntRange;
 typedef Range<size_t, size_t> SizeRange;
+typedef Range<Words, Words> WordsRange;
 typedef Range<chunklevel_t, int> ChunkLevelRange;
 
 struct ChunkLevelRanges : public AllStatic {

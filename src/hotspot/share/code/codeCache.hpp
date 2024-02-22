@@ -101,7 +101,7 @@ class CodeCache : AllStatic {
   static uint8_t           _unloading_cycle;          // Global state for recognizing old nmethods that need to be unloaded
   static uint64_t          _gc_epoch;                 // Global state for tracking when nmethods were found to be on-stack
   static uint64_t          _cold_gc_count;            // Global state for determining how many GCs are needed before an nmethod is cold
-  static size_t            _last_unloading_used;
+  static Bytes             _last_unloading_used;
   static double            _last_unloading_time;
   static TruncatedSeq      _unloading_gc_intervals;
   static TruncatedSeq      _unloading_allocation_rates;
@@ -120,7 +120,7 @@ class CodeCache : AllStatic {
   static CodeHeap* get_code_heap(CodeBlobType code_blob_type);         // Returns the CodeHeap for the given CodeBlobType
   // Returns the name of the VM option to set the size of the corresponding CodeHeap
   static const char* get_code_heap_flag_name(CodeBlobType code_blob_type);
-  static ReservedCodeSpace reserve_heap_memory(size_t size, size_t rs_ps); // Reserves one continuous chunk of memory for the CodeHeaps
+  static ReservedCodeSpace reserve_heap_memory(Bytes size, Bytes rs_ps); // Reserves one continuous chunk of memory for the CodeHeaps
 
   // Iteration
   static CodeBlob* first_blob(CodeHeap* heap);                // Returns the first CodeBlob on the given CodeHeap
@@ -151,7 +151,7 @@ class CodeCache : AllStatic {
   static CodeBlob* allocate(uint size, CodeBlobType code_blob_type, bool handle_alloc_failure = true, CodeBlobType orig_code_blob_type = CodeBlobType::All); // allocates a new CodeBlob
   static void commit(CodeBlob* cb);                        // called when the allocated CodeBlob has been filled
   static void free(CodeBlob* cb);                          // frees a CodeBlob
-  static void free_unused_tail(CodeBlob* cb, size_t used); // frees the unused tail of a CodeBlob (only used by TemplateInterpreter::initialize())
+  static void free_unused_tail(CodeBlob* cb, Bytes used);  // frees the unused tail of a CodeBlob (only used by TemplateInterpreter::initialize())
   static bool contains(void *p);                           // returns whether p is included
   static bool contains(nmethod* nm);                       // returns whether nm is included
   static void blobs_do(void f(CodeBlob* cb));              // iterates over all CodeBlobs
@@ -242,10 +242,10 @@ class CodeCache : AllStatic {
   static address high_bound(CodeBlobType code_blob_type);
 
   // Profiling
-  static size_t capacity();
-  static size_t unallocated_capacity(CodeBlobType code_blob_type);
-  static size_t unallocated_capacity();
-  static size_t max_capacity();
+  static Bytes capacity();
+  static Bytes unallocated_capacity(CodeBlobType code_blob_type);
+  static Bytes unallocated_capacity();
+  static Bytes max_capacity();
 
   static double reverse_free_ratio();
 
@@ -327,7 +327,7 @@ class CodeCache : AllStatic {
 
   // CodeHeap State Analytics.
   // interface methods for CodeHeap printing, called by CompileBroker
-  static void aggregate(outputStream *out, size_t granularity);
+  static void aggregate(outputStream *out, Bytes granularity);
   static void discard(outputStream *out);
   static void print_usedSpace(outputStream *out);
   static void print_freeSpace(outputStream *out);

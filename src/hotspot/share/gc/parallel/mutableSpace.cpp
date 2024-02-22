@@ -35,7 +35,7 @@
 #include "utilities/align.hpp"
 #include "utilities/macros.hpp"
 
-MutableSpace::MutableSpace(size_t alignment) :
+MutableSpace::MutableSpace(Bytes alignment) :
   _mangler(nullptr),
   _last_setup_region(),
   _alignment(alignment),
@@ -43,7 +43,7 @@ MutableSpace::MutableSpace(size_t alignment) :
   _top(nullptr),
   _end(nullptr)
 {
-  assert(MutableSpace::alignment() % os::vm_page_size() == 0,
+  assert(is_aligned(MutableSpace::alignment(), os::vm_page_size()),
          "Space should be aligned");
   _mangler = new MutableSpaceMangler(this);
 }
@@ -52,7 +52,7 @@ MutableSpace::~MutableSpace() {
   delete _mangler;
 }
 
-void MutableSpace::numa_setup_pages(MemRegion mr, size_t page_size, bool clear_space) {
+void MutableSpace::numa_setup_pages(MemRegion mr, Bytes page_size, bool clear_space) {
   if (!mr.is_empty()) {
     HeapWord *start = align_up(mr.start(), page_size);
     HeapWord *end =   align_down(mr.end(), page_size);
@@ -60,7 +60,7 @@ void MutableSpace::numa_setup_pages(MemRegion mr, size_t page_size, bool clear_s
       size_t size = pointer_delta(end, start, sizeof(char));
       if (clear_space) {
         // Prefer page reallocation to migration.
-        os::free_memory((char*)start, size, page_size);
+        os::free_memory((char*)start, size, untype(page_size));
       }
       os::numa_make_global((char*)start, size);
     }
@@ -91,7 +91,7 @@ void MutableSpace::initialize(MemRegion mr,
         intersection = MemRegion(mr.end(), mr.end());
       }
       // All the sizes below are in words.
-      size_t head_size = 0, tail_size = 0;
+      Words head_size = Words(0), tail_size = Words(0);
       if (mr.start() <= intersection.start()) {
         head_size = pointer_delta(intersection.start(), mr.start());
       }
@@ -100,11 +100,11 @@ void MutableSpace::initialize(MemRegion mr,
       }
       // Limit the amount of page manipulation if necessary.
       if (NUMASpaceResizeRate > 0 && !AlwaysPreTouch) {
-        const size_t change_size = head_size + tail_size;
+        const Words change_size = head_size + tail_size;
         const float setup_rate_words = NUMASpaceResizeRate >> LogBytesPerWord;
-        head_size = MIN2((size_t)(setup_rate_words * head_size / change_size),
+        head_size = MIN2(in_Words((size_t)(setup_rate_words * head_size / change_size)),
                          head_size);
-        tail_size = MIN2((size_t)(setup_rate_words * tail_size / change_size),
+        tail_size = MIN2(in_Words((size_t)(setup_rate_words * tail_size / change_size)),
                          tail_size);
       }
       head = MemRegion(intersection.start() - head_size, intersection.start());
@@ -112,7 +112,7 @@ void MutableSpace::initialize(MemRegion mr,
     }
     assert(mr.contains(head) && mr.contains(tail), "Sanity");
 
-    size_t page_size = alignment();
+    Bytes page_size = alignment();
 
     if (UseNUMA) {
       numa_setup_pages(head, page_size, clear_space);
@@ -120,7 +120,7 @@ void MutableSpace::initialize(MemRegion mr,
     }
 
     if (AlwaysPreTouch) {
-      size_t pretouch_page_size = UseLargePages ? page_size : os::vm_page_size();
+      Bytes pretouch_page_size = UseLargePages ? page_size : in_Bytes(os::vm_page_size());
       PretouchTask::pretouch("ParallelGC PreTouch head", (char*)head.start(), (char*)head.end(),
                              pretouch_page_size, pretouch_workers);
 
@@ -184,7 +184,7 @@ void MutableSpace::set_top_for_allocations() {
 }
 #endif
 
-HeapWord* MutableSpace::cas_allocate(size_t size) {
+HeapWord* MutableSpace::cas_allocate(Words size) {
   do {
     // Read top before end, else the range check may pass when it shouldn't.
     // If end is read first, other threads may advance end and top such that
@@ -210,13 +210,13 @@ HeapWord* MutableSpace::cas_allocate(size_t size) {
 }
 
 // Try to deallocate previous allocation. Returns true upon success.
-bool MutableSpace::cas_deallocate(HeapWord *obj, size_t size) {
+bool MutableSpace::cas_deallocate(HeapWord *obj, Words size) {
   HeapWord* expected_top = obj + size;
   return Atomic::cmpxchg(top_addr(), expected_top, obj) == expected_top;
 }
 
 // Only used by oldgen allocation.
-bool MutableSpace::needs_expand(size_t word_size) const {
+bool MutableSpace::needs_expand(Words word_size) const {
   assert_lock_strong(PSOldGenExpand_lock);
   // Holding the lock means end is stable.  So while top may be advancing
   // via concurrent allocations, there is no need to order the reads of top
@@ -255,7 +255,7 @@ void MutableSpace::object_iterate(ObjectClosure* cl) {
 void MutableSpace::print_short() const { print_short_on(tty); }
 void MutableSpace::print_short_on( outputStream* st) const {
   st->print(" space " SIZE_FORMAT "K, %d%% used", capacity_in_bytes() / K,
-            (int) ((double) used_in_bytes() * 100 / capacity_in_bytes()));
+            (int) ((double) used_in_bytes() * 100 / untype(capacity_in_bytes())));
 }
 
 void MutableSpace::print() const { print_on(tty); }

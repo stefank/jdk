@@ -687,7 +687,7 @@ void FieldLayoutBuilder::epilogue() {
   // Pass back information needed for InstanceKlass creation
 
   _info->oop_map_blocks = nonstatic_oop_maps;
-  _info->_instance_size = align_object_size(instance_end / wordSize);
+  _info->_instance_size = (int)align_object_size(to_Words(in_Bytes(instance_end)));
   _info->_static_field_size = static_fields_size;
   _info->_nonstatic_field_size = (nonstatic_field_end - instanceOopDesc::base_offset_in_bytes()) / heapOopSize;
   _info->_has_nonstatic_fields = _has_nonstatic_fields;

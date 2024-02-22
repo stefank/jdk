@@ -37,8 +37,8 @@
 #include "runtime/threadSMR.hpp"
 #include "utilities/copy.hpp"
 
-size_t       ThreadLocalAllocBuffer::_max_size = 0;
-int          ThreadLocalAllocBuffer::_reserve_for_allocation_prefetch = 0;
+Words        ThreadLocalAllocBuffer::_max_size = Words(0);
+Words        ThreadLocalAllocBuffer::_reserve_for_allocation_prefetch = Words(0);
 unsigned int ThreadLocalAllocBuffer::_target_refills = 0;
 
 ThreadLocalAllocBuffer::ThreadLocalAllocBuffer() :
@@ -47,27 +47,27 @@ ThreadLocalAllocBuffer::ThreadLocalAllocBuffer() :
   _pf_top(nullptr),
   _end(nullptr),
   _allocation_end(nullptr),
-  _desired_size(0),
-  _refill_waste_limit(0),
-  _allocated_before_last_gc(0),
-  _bytes_since_last_sample_point(0),
+  _desired_size(Words(0)),
+  _refill_waste_limit(Words(0)),
+  _allocated_before_last_gc(Bytes(0)),
+  _bytes_since_last_sample_point(Bytes(0)),
   _number_of_refills(0),
   _refill_waste(0),
   _gc_waste(0),
   _slow_allocations(0),
-  _allocated_size(0),
+  _allocated_size(Words(0)),
   _allocation_fraction(TLABAllocationWeight) {
 
   // do nothing. TLABs must be inited by initialize() calls
 }
 
-size_t ThreadLocalAllocBuffer::initial_refill_waste_limit()     { return desired_size() / TLABRefillWasteFraction; }
-size_t ThreadLocalAllocBuffer::min_size()                       { return align_object_size(MinTLABSize / HeapWordSize) + alignment_reserve(); }
-size_t ThreadLocalAllocBuffer::refill_waste_limit_increment()   { return TLABWasteIncrement; }
+Words ThreadLocalAllocBuffer::initial_refill_waste_limit()      { return desired_size() / TLABRefillWasteFraction; }
+Words ThreadLocalAllocBuffer::min_size()                        { return align_object_size(to_Words(in_Bytes(MinTLABSize))) + alignment_reserve(); }
+Words ThreadLocalAllocBuffer::refill_waste_limit_increment()    { return in_Words(TLABWasteIncrement); }
 
-size_t ThreadLocalAllocBuffer::remaining() {
+Words ThreadLocalAllocBuffer::remaining() {
   if (end() == nullptr) {
-    return 0;
+    return Words(0);
   }
 
   return pointer_delta(hard_end(), top());
@@ -75,19 +75,19 @@ size_t ThreadLocalAllocBuffer::remaining() {
 
 void ThreadLocalAllocBuffer::accumulate_and_reset_statistics(ThreadLocalAllocStats* stats) {
   Thread* thr     = thread();
-  size_t capacity = Universe::heap()->tlab_capacity(thr);
-  size_t used     = Universe::heap()->tlab_used(thr);
+  Bytes capacity = Universe::heap()->tlab_capacity(thr);
+  Bytes used     = Universe::heap()->tlab_used(thr);
 
   _gc_waste += (unsigned)remaining();
-  size_t total_allocated = thr->allocated_bytes();
-  size_t allocated_since_last_gc = total_allocated - _allocated_before_last_gc;
+  Bytes total_allocated = in_Bytes(thr->allocated_bytes());
+  Bytes allocated_since_last_gc = total_allocated - _allocated_before_last_gc;
   _allocated_before_last_gc = total_allocated;
 
   print_stats("gc");
 
   if (_number_of_refills > 0) {
     // Update allocation history if a reasonable amount of eden was allocated.
-    bool update_allocation_history = used > 0.5 * capacity;
+    bool update_allocation_history = untype(used) > 0.5 * untype(capacity);
 
     if (update_allocation_history) {
       // Average the fraction of eden allocated in a tlab by this
@@ -98,7 +98,7 @@ void ThreadLocalAllocBuffer::accumulate_and_reset_statistics(ThreadLocalAllocSta
       // These allocations should ideally not be counted but since it is not possible
       // to filter them out here we just cap the fraction to be at most 1.0.
       // Keep alloc_frac as float and not double to avoid the double to float conversion
-      float alloc_frac = MIN2(1.0f, allocated_since_last_gc / (float) used);
+      float alloc_frac = MIN2(1.0f, untype(allocated_since_last_gc) / (float) used);
       _allocation_fraction.sample(alloc_frac);
     }
 
@@ -155,13 +155,13 @@ void ThreadLocalAllocBuffer::retire_before_allocation() {
 void ThreadLocalAllocBuffer::resize() {
   // Compute the next tlab size using expected allocation amount
   assert(ResizeTLAB, "Should not call this otherwise");
-  size_t alloc = (size_t)(_allocation_fraction.average() *
-                          (Universe::heap()->tlab_capacity(thread()) / HeapWordSize));
-  size_t new_size = alloc / _target_refills;
+  Words alloc = in_Words((size_t)(_allocation_fraction.average() *
+                          (to_Words(Universe::heap()->tlab_capacity(thread())))));
+  Words new_size = alloc / _target_refills;
 
   new_size = clamp(new_size, min_size(), max_size());
 
-  size_t aligned_new_size = align_object_size(new_size);
+  Words aligned_new_size = align_object_size(new_size);
 
   log_trace(gc, tlab)("TLAB new size: thread: " PTR_FORMAT " [id: %2d]"
                       " refills %d  alloc: %8.6f desired_size: " SIZE_FORMAT " -> " SIZE_FORMAT,
@@ -177,12 +177,12 @@ void ThreadLocalAllocBuffer::reset_statistics() {
   _refill_waste      = 0;
   _gc_waste          = 0;
   _slow_allocations  = 0;
-  _allocated_size    = 0;
+  _allocated_size    = Words(0);
 }
 
 void ThreadLocalAllocBuffer::fill(HeapWord* start,
                                   HeapWord* top,
-                                  size_t    new_size) {
+                                  Words     new_size) {
   _number_of_refills++;
   _allocated_size += new_size;
   print_stats("fill");
@@ -212,10 +212,10 @@ void ThreadLocalAllocBuffer::initialize() {
 
   set_desired_size(initial_desired_size());
 
-  size_t capacity = Universe::heap()->tlab_capacity(thread()) / HeapWordSize;
-  if (capacity > 0) {
+  Words capacity = to_Words(Universe::heap()->tlab_capacity(thread()));
+  if (capacity > Words(0)) {
     // Keep alloc_frac as float and not double to avoid the double to float conversion
-    float alloc_frac = desired_size() * target_refills() / (float)capacity;
+    float alloc_frac = untype(desired_size()) * target_refills() / (float)capacity;
     _allocation_fraction.sample(alloc_frac);
   }
 
@@ -253,8 +253,8 @@ void ThreadLocalAllocBuffer::startup_initialization() {
   // +1 for rounding up to next cache line, +1 to be safe
   if (CompilerConfig::is_c2_or_jvmci_compiler_enabled()) {
     int lines =  MAX2(AllocatePrefetchLines, AllocateInstancePrefetchLines) + 2;
-    _reserve_for_allocation_prefetch = (AllocatePrefetchDistance + AllocatePrefetchStepSize * lines) /
-                                       (int)HeapWordSize;
+    _reserve_for_allocation_prefetch = Words((AllocatePrefetchDistance + AllocatePrefetchStepSize * lines) /
+                                       (int)HeapWordSize);
   }
 #endif
 
@@ -267,16 +267,16 @@ void ThreadLocalAllocBuffer::startup_initialization() {
                                min_size(), Thread::current()->tlab().initial_desired_size(), max_size());
 }
 
-size_t ThreadLocalAllocBuffer::initial_desired_size() {
-  size_t init_sz = 0;
+Words ThreadLocalAllocBuffer::initial_desired_size() {
+  Words init_sz = Words(0);
 
   if (TLABSize > 0) {
-    init_sz = TLABSize / HeapWordSize;
+    init_sz = to_Words(in_Bytes(TLABSize));
   } else {
     // Initial size is a function of the average number of allocating threads.
     unsigned int nof_threads = ThreadLocalAllocStats::allocating_threads_avg();
 
-    init_sz  = (Universe::heap()->tlab_capacity(thread()) / HeapWordSize) /
+    init_sz = (to_Words(Universe::heap()->tlab_capacity(thread()))) /
                       (nof_threads * target_refills());
     init_sz = align_object_size(init_sz);
   }
@@ -295,9 +295,9 @@ void ThreadLocalAllocBuffer::print_stats(const char* tag) {
   }
 
   Thread* thrd = thread();
-  size_t waste = _gc_waste + _refill_waste;
+  Words waste = in_Words(_gc_waste + _refill_waste);
   double waste_percent = percent_of(waste, _allocated_size);
-  size_t tlab_used  = Universe::heap()->tlab_used(thrd);
+  Bytes tlab_used  = Universe::heap()->tlab_used(thrd);
   log.trace("TLAB: %s thread: " PTR_FORMAT " [id: %2d]"
             " desired_size: " SIZE_FORMAT "KB"
             " slow allocs: %d  refill waste: " SIZE_FORMAT "B"
@@ -307,19 +307,19 @@ void ThreadLocalAllocBuffer::print_stats(const char* tag) {
             _desired_size / (K / HeapWordSize),
             _slow_allocations, _refill_waste_limit * HeapWordSize,
             _allocation_fraction.average(),
-            _allocation_fraction.average() * tlab_used / K,
+            _allocation_fraction.average() * untype(tlab_used) / K,
             _number_of_refills, waste_percent,
             _gc_waste * HeapWordSize,
             _refill_waste * HeapWordSize);
 }
 
 void ThreadLocalAllocBuffer::set_sample_end(bool reset_byte_accumulation) {
-  size_t heap_words_remaining = pointer_delta(_end, _top);
-  size_t bytes_until_sample = thread()->heap_sampler().bytes_until_sample();
-  size_t words_until_sample = bytes_until_sample / HeapWordSize;
+  Words heap_words_remaining = pointer_delta(_end, _top);
+  Bytes bytes_until_sample = thread()->heap_sampler().bytes_until_sample();
+  Words words_until_sample = to_Words(bytes_until_sample);
 
   if (reset_byte_accumulation) {
-    _bytes_since_last_sample_point = 0;
+    _bytes_since_last_sample_point = Bytes(0);
   }
 
   if (heap_words_remaining > words_until_sample) {
@@ -327,7 +327,7 @@ void ThreadLocalAllocBuffer::set_sample_end(bool reset_byte_accumulation) {
     set_end(new_end);
     _bytes_since_last_sample_point += bytes_until_sample;
   } else {
-    _bytes_since_last_sample_point += heap_words_remaining * HeapWordSize;
+    _bytes_since_last_sample_point += to_Bytes(heap_words_remaining);
   }
 }
 
@@ -383,7 +383,7 @@ ThreadLocalAllocStats::ThreadLocalAllocStats() :
     _allocating_threads(0),
     _total_refills(0),
     _max_refills(0),
-    _total_allocations(0),
+    _total_allocations(Words(0)),
     _total_gc_waste(0),
     _max_gc_waste(0),
     _total_refill_waste(0),
@@ -396,7 +396,7 @@ unsigned int ThreadLocalAllocStats::allocating_threads_avg() {
 }
 
 void ThreadLocalAllocStats::update_fast_allocations(unsigned int refills,
-                                       size_t allocations,
+                                       Words allocations,
                                        size_t gc_waste,
                                        size_t refill_waste) {
   _allocating_threads      += 1;
@@ -431,7 +431,7 @@ void ThreadLocalAllocStats::reset() {
   _allocating_threads      = 0;
   _total_refills           = 0;
   _max_refills             = 0;
-  _total_allocations       = 0;
+  _total_allocations       = Words(0);
   _total_gc_waste          = 0;
   _max_gc_waste            = 0;
   _total_refill_waste      = 0;
@@ -441,13 +441,13 @@ void ThreadLocalAllocStats::reset() {
 }
 
 void ThreadLocalAllocStats::publish() {
-  if (_total_allocations == 0) {
+  if (_total_allocations == Words(0)) {
     return;
   }
 
   _allocating_threads_avg.sample(_allocating_threads);
 
-  const size_t waste = _total_gc_waste + _total_refill_waste;
+  const Words waste = in_Words(_total_gc_waste + _total_refill_waste);
   const double waste_percent = percent_of(waste, _total_allocations);
   log_debug(gc, tlab)("TLAB totals: thrds: %d  refills: %d max: %d"
                       " slow allocs: %d max %d waste: %4.1f%%"
@@ -462,7 +462,7 @@ void ThreadLocalAllocStats::publish() {
     _perf_allocating_threads      ->set_value(_allocating_threads);
     _perf_total_refills           ->set_value(_total_refills);
     _perf_max_refills             ->set_value(_max_refills);
-    _perf_total_allocations       ->set_value(_total_allocations);
+    _perf_total_allocations       ->set_value(untype(_total_allocations));
     _perf_total_gc_waste          ->set_value(_total_gc_waste);
     _perf_max_gc_waste            ->set_value(_max_gc_waste);
     _perf_total_refill_waste      ->set_value(_total_refill_waste);
@@ -472,9 +472,9 @@ void ThreadLocalAllocStats::publish() {
   }
 }
 
-size_t ThreadLocalAllocBuffer::end_reserve() {
-  size_t reserve_size = CollectedHeap::lab_alignment_reserve();
-  return MAX2(reserve_size, (size_t)_reserve_for_allocation_prefetch);
+Words ThreadLocalAllocBuffer::end_reserve() {
+  Words reserve_size = CollectedHeap::lab_alignment_reserve();
+  return MAX2(reserve_size, _reserve_for_allocation_prefetch);
 }
 
 const HeapWord* ThreadLocalAllocBuffer::start_relaxed() const {

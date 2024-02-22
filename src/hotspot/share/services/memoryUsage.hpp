@@ -46,33 +46,33 @@
 
 class MemoryUsage {
 private:
-  size_t _initSize;
-  size_t _used;
-  size_t _committed;
-  size_t _maxSize;
+  Bytes _initSize;
+  Bytes _used;
+  Bytes _committed;
+  Bytes _maxSize;
 
 public:
   // Constructors
-  MemoryUsage(size_t i, size_t u, size_t c, size_t m) :
+  MemoryUsage(Bytes i, Bytes u, Bytes c, Bytes m) :
     _initSize(i), _used(u), _committed(c), _maxSize(m) {};
   MemoryUsage() :
-    _initSize(0), _used(0), _committed(0), _maxSize(0) {};
+    _initSize(Bytes(0)), _used(Bytes(0)), _committed(Bytes(0)), _maxSize(Bytes(0)) {};
 
-  size_t init_size() const { return _initSize; }
-  size_t used()      const { return _used; }
-  size_t committed() const { return _committed; }
-  size_t max_size()  const { return _maxSize; }
+  Bytes init_size() const { return _initSize; }
+  Bytes used()      const { return _used; }
+  Bytes committed() const { return _committed; }
+  Bytes max_size()  const { return _maxSize; }
 
-  static size_t undefined_size() { return SIZE_MAX; }
+  static Bytes undefined_size() { return Bytes(SIZE_MAX); }
 
-  inline static jlong convert_to_jlong(size_t val) {
+  inline static jlong convert_to_jlong(Bytes val) {
     // In the 64-bit vm, a size_t can overflow a jlong (which is signed).
     jlong ret;
     if (val == undefined_size()) {
       ret = -1L;
     } else {
       NOT_LP64(ret = val;)
-      LP64_ONLY(ret = MIN2(val, (size_t)max_jlong);)
+      LP64_ONLY(ret = MIN2(untype(val), (size_t)max_jlong);)
     }
     return ret;
   }

@@ -107,9 +107,11 @@ public:
 
   inline uint region_idx_for(CardValue* p);
 
-  static size_t compute_size(size_t mem_region_size_in_words) {
-    size_t number_of_slots = (mem_region_size_in_words / _card_size_in_words);
-    return ReservedSpace::allocation_align_size_up(number_of_slots);
+  static Bytes compute_size(Words mem_region_size_in_words) {
+    size_t number_of_slots = (mem_region_size_in_words / in_Words(_card_size_in_words));
+    // TODO: Assumption
+    Bytes number_of_slots_as_bytes = in_Bytes(number_of_slots);
+    return ReservedSpace::allocation_align_size_up(number_of_slots_as_bytes);
   }
 
   // Returns how many bytes of the heap a single byte of the Card Table corresponds to.

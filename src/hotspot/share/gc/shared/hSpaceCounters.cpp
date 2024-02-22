@@ -31,8 +31,8 @@
 HSpaceCounters::HSpaceCounters(const char* name_space,
                                const char* name,
                                int ordinal,
-                               size_t max_size,
-                               size_t initial_capacity) {
+                               Bytes max_size,
+                               Bytes initial_capacity) {
 
   if (UsePerfData) {
     EXCEPTION_MARK;
@@ -54,7 +54,7 @@ HSpaceCounters::HSpaceCounters(const char* name_space,
     cname = PerfDataManager::counter_name(_name_space, "capacity");
     _capacity = PerfDataManager::create_variable(SUN_GC, cname,
                                                  PerfData::U_Bytes,
-                                                 initial_capacity, CHECK);
+                                                 untype(initial_capacity), CHECK);
 
     cname = PerfDataManager::counter_name(_name_space, "used");
     _used = PerfDataManager::create_variable(SUN_GC, cname, PerfData::U_Bytes,
@@ -62,7 +62,7 @@ HSpaceCounters::HSpaceCounters(const char* name_space,
 
     cname = PerfDataManager::counter_name(_name_space, "initCapacity");
     PerfDataManager::create_constant(SUN_GC, cname, PerfData::U_Bytes,
-                                     initial_capacity, CHECK);
+                                     untype(initial_capacity), CHECK);
   }
 }
 
@@ -70,15 +70,15 @@ HSpaceCounters::~HSpaceCounters() {
   FREE_C_HEAP_ARRAY(char, _name_space);
 }
 
-void HSpaceCounters::update_capacity(size_t v) {
-  _capacity->set_value(v);
+void HSpaceCounters::update_capacity(Bytes v) {
+  _capacity->set_value(untype(v));
 }
 
-void HSpaceCounters::update_used(size_t v) {
-  _used->set_value(v);
+void HSpaceCounters::update_used(Bytes v) {
+  _used->set_value(untype(v));
 }
 
-void HSpaceCounters::update_all(size_t capacity, size_t used) {
+void HSpaceCounters::update_all(Bytes capacity, Bytes used) {
   update_capacity(capacity);
   update_used(used);
 }

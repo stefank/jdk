@@ -73,23 +73,23 @@ public:
   oop               _class_loader;
   oop               _parent;
 
-  size_t            _chunk_sz;
-  size_t            _block_sz;
+  Bytes             _chunk_sz;
+  Bytes             _block_sz;
   uintx             _classes_count;
 
-  size_t            _hidden_chunk_sz;
-  size_t            _hidden_block_sz;
+  Bytes             _hidden_chunk_sz;
+  Bytes             _hidden_block_sz;
   uintx             _hidden_classes_count;
 
   ClassLoaderStats() :
     _cld(0),
     _class_loader(0),
     _parent(0),
-    _chunk_sz(0),
-    _block_sz(0),
+    _chunk_sz(Bytes(0)),
+    _block_sz(Bytes(0)),
     _classes_count(0),
-    _hidden_chunk_sz(0),
-    _hidden_block_sz(0),
+    _hidden_chunk_sz(Bytes(0)),
+    _hidden_block_sz(Bytes(0)),
     _hidden_classes_count(0) {
   }
 };
@@ -119,8 +119,8 @@ protected:
   StatsTable* _stats;
   uintx   _total_loaders;
   uintx   _total_classes;
-  size_t  _total_chunk_sz;
-  size_t  _total_block_sz;
+  Bytes   _total_chunk_sz;
+  Bytes   _total_block_sz;
 
 public:
   ClassLoaderStatsClosure(outputStream* out) :
@@ -128,8 +128,8 @@ public:
     _stats(new (mtStatistics)StatsTable()),
     _total_loaders(0),
     _total_classes(0),
-    _total_chunk_sz(0),
-    _total_block_sz(0) {
+    _total_chunk_sz(Bytes(0)),
+    _total_block_sz(Bytes(0)) {
   }
 
   ~ClassLoaderStatsClosure() {

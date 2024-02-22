@@ -22,20 +22,20 @@
  */
 
 #include "precompiled.hpp"
-#include "utilities/sizes.hpp"
+#include "utilities/globalDefinitions.hpp"
 #include "unittest.hpp"
 
 TEST(BytesInt, constructors) {
-  EXPECT_EQ(in_bytes(in_BytesInt(10)), 10);
+  EXPECT_EQ(untype(in_BytesInt(10)), 10);
 }
 
 TEST(BytesInt, operators) {
   BytesInt s = in_BytesInt(7);
-  ASSERT_EQ(in_bytes(s + in_BytesInt(3)), 10);
-  ASSERT_EQ(in_bytes(s - in_BytesInt(3)), 4);
-  ASSERT_EQ(in_bytes(s * 3), 21);
+  ASSERT_EQ(untype(s + in_BytesInt(3)), 10);
+  ASSERT_EQ(untype(s - in_BytesInt(3)), 4);
+  ASSERT_EQ(untype(s * 3), 21);
 }
 
 TEST(WordSize, constructors) {
-  EXPECT_EQ(in_words(in_WordsInt(10)), 10);
+  EXPECT_EQ(untype(in_WordsInt(10)), 10);
 }

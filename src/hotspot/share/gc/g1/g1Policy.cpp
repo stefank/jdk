@@ -133,7 +133,7 @@ class G1YoungLengthPredictor {
       return false;
     }
 
-    size_t bytes_to_copy = 0;
+    Bytes bytes_to_copy = Bytes(0);
     const double copy_time_ms = _policy->predict_eden_copy_time_ms(young_length, &bytes_to_copy);
     const double young_other_time_ms = _policy->analytics()->predict_young_other_time_ms(young_length);
     const double pause_time_ms = _base_time_ms + copy_time_ms + young_other_time_ms;
@@ -142,7 +142,7 @@ class G1YoungLengthPredictor {
       return false;
     }
 
-    const size_t free_bytes = (_base_free_regions - young_length) * HeapRegion::GrainBytes;
+    const Bytes free_bytes = (_base_free_regions - young_length) * HeapRegion::GrainBytes;
 
     // When copying, we will likely need more bytes free than is live in the region.
     // Add some safety margin to factor in the confidence of our guess, and the
@@ -152,7 +152,7 @@ class G1YoungLengthPredictor {
     // (100 + TargetPLABWastePct) represents the increase in expected bytes during
     // copying due to anticipated waste in the PLABs.
     const double safety_factor = (100.0 / G1ConfidencePercent) * (100 + TargetPLABWastePct) / 100.0;
-    const size_t expected_bytes_to_copy = (size_t)(safety_factor * bytes_to_copy);
+    const Bytes expected_bytes_to_copy = in_Bytes((size_t)(safety_factor * bytes_to_copy));
 
     if (expected_bytes_to_copy > free_bytes) {
       // end condition 3: out-of-space
@@ -660,15 +660,15 @@ void G1Policy::record_concurrent_refinement_stats(size_t pending_cards,
 }
 
 bool G1Policy::should_retain_evac_failed_region(uint index) const {
-  size_t live_bytes = _g1h->region_at(index)->live_bytes();
+  Bytes live_bytes = _g1h->region_at(index)->live_bytes();
 
 #ifdef ASSERT
   HeapRegion* r = _g1h->region_at(index);
-  assert(live_bytes != 0,
+  assert(live_bytes != Bytes(0),
          "live bytes not set for %u used %zu garbage %zu cm-live %zu pinned %d",
          index, r->used(), r->garbage_bytes(), live_bytes, r->has_pinned_objects());
 #endif
-  size_t threshold = G1RetainRegionLiveThresholdPercent * HeapRegion::GrainBytes / 100;
+  Bytes threshold = G1RetainRegionLiveThresholdPercent * HeapRegion::GrainBytes / 100;
   return live_bytes < threshold;
 }
 
@@ -743,23 +743,23 @@ bool G1Policy::about_to_start_mixed_phase() const {
   return _g1h->concurrent_mark()->cm_thread()->in_progress() || collector_state()->in_young_gc_before_mixed();
 }
 
-bool G1Policy::need_to_start_conc_mark(const char* source, size_t alloc_word_size) {
+bool G1Policy::need_to_start_conc_mark(const char* source, Words alloc_word_size) {
   if (about_to_start_mixed_phase()) {
     return false;
   }
 
-  size_t marking_initiating_used_threshold = _ihop_control->get_conc_mark_start_threshold();
+  Bytes marking_initiating_used_threshold = _ihop_control->get_conc_mark_start_threshold();
 
-  size_t cur_used_bytes = _g1h->non_young_capacity_bytes();
-  size_t alloc_byte_size = alloc_word_size * HeapWordSize;
-  size_t marking_request_bytes = cur_used_bytes + alloc_byte_size;
+  Bytes cur_used_bytes = _g1h->non_young_capacity_bytes();
+  Bytes alloc_byte_size = to_Bytes(alloc_word_size);
+  Bytes marking_request_bytes = cur_used_bytes + alloc_byte_size;
 
   bool result = false;
   if (marking_request_bytes > marking_initiating_used_threshold) {
     result = collector_state()->in_young_only_phase();
     log_debug(gc, ergo, ihop)("%s occupancy: " SIZE_FORMAT "B allocation request: " SIZE_FORMAT "B threshold: " SIZE_FORMAT "B (%1.2f) source: %s",
                               result ? "Request concurrent cycle initiation (occupancy higher than threshold)" : "Do not request concurrent cycle initiation (still doing mixed collections)",
-                              cur_used_bytes, alloc_byte_size, marking_initiating_used_threshold, (double) marking_initiating_used_threshold / _g1h->capacity() * 100, source);
+                              cur_used_bytes, alloc_byte_size, marking_initiating_used_threshold, (double) untype(marking_initiating_used_threshold) / untype(_g1h->capacity()) * 100, source);
   }
   return result;
 }
@@ -1035,7 +1035,7 @@ void G1Policy::update_ihop_prediction(double mutator_time_s,
     // restrained by the heap reserve. Using the actual length would make the
     // prediction too small and the limit the young gen every time we get to the
     // predicted target occupancy.
-    size_t young_gen_size = young_list_desired_length() * HeapRegion::GrainBytes;
+    Bytes young_gen_size = young_list_desired_length() * HeapRegion::GrainBytes;
     _ihop_control->update_allocation_info(mutator_time_s, young_gen_size);
     report = true;
   }
@@ -1088,12 +1088,12 @@ double G1Policy::predict_base_time_ms(size_t pending_cards) const {
   return predict_base_time_ms(pending_cards, card_rs_length, code_root_rs_length);
 }
 
-size_t G1Policy::predict_bytes_to_copy(HeapRegion* hr) const {
-  size_t bytes_to_copy;
+Bytes G1Policy::predict_bytes_to_copy(HeapRegion* hr) const {
+  Bytes bytes_to_copy;
   if (!hr->is_young()) {
     bytes_to_copy = hr->live_bytes();
   } else {
-    bytes_to_copy = (size_t) (hr->used() * hr->surv_rate_prediction(_predictor));
+    bytes_to_copy = in_Bytes((size_t) (hr->used() * hr->surv_rate_prediction(_predictor)));
   }
   return bytes_to_copy;
 }
@@ -1102,11 +1102,11 @@ double G1Policy::predict_young_region_other_time_ms(uint count) const {
   return _analytics->predict_young_other_time_ms(count);
 }
 
-double G1Policy::predict_eden_copy_time_ms(uint count, size_t* bytes_to_copy) const {
+double G1Policy::predict_eden_copy_time_ms(uint count, Bytes* bytes_to_copy) const {
   if (count == 0) {
     return 0.0;
   }
-  size_t const expected_bytes = _eden_surv_rate_group->accum_surv_rate_pred(count - 1) * HeapRegion::GrainBytes;
+  Bytes const expected_bytes = _eden_surv_rate_group->accum_surv_rate_pred(count - 1) * HeapRegion::GrainBytes;
   if (bytes_to_copy != nullptr) {
     *bytes_to_copy = expected_bytes;
   }
@@ -1114,7 +1114,7 @@ double G1Policy::predict_eden_copy_time_ms(uint count, size_t* bytes_to_copy) co
 }
 
 double G1Policy::predict_region_copy_time_ms(HeapRegion* hr, bool for_young_only_phase) const {
-  size_t const bytes_to_copy = predict_bytes_to_copy(hr);
+  Bytes const bytes_to_copy = predict_bytes_to_copy(hr);
   return _analytics->predict_object_copy_time_ms(bytes_to_copy, for_young_only_phase);
 }
 
@@ -1164,19 +1164,19 @@ bool G1Policy::use_adaptive_young_list_length() const {
   return _young_gen_sizer.use_adaptive_young_list_length();
 }
 
-size_t G1Policy::estimate_used_young_bytes_locked() const {
+Bytes G1Policy::estimate_used_young_bytes_locked() const {
   assert_lock_strong(Heap_lock);
   G1Allocator* allocator = _g1h->allocator();
   uint used = _g1h->young_regions_count();
   uint alloc = allocator->num_nodes();
   uint full = used - MIN2(used, alloc);
-  size_t bytes_used = full * HeapRegion::GrainBytes;
+  Bytes bytes_used = full * HeapRegion::GrainBytes;
   return bytes_used + allocator->used_in_alloc_regions();
 }
 
-size_t G1Policy::desired_survivor_size(uint max_regions) const {
-  size_t const survivor_capacity = HeapRegion::GrainWords * max_regions;
-  return (size_t)((((double)survivor_capacity) * TargetSurvivorRatio) / 100);
+Words G1Policy::desired_survivor_size(uint max_regions) const {
+  Words const survivor_capacity = HeapRegion::GrainWords * max_regions;
+  return in_Words((size_t)((((double)survivor_capacity) * TargetSurvivorRatio) / 100));
 }
 
 void G1Policy::print_age_table() {
@@ -1192,12 +1192,12 @@ void G1Policy::update_survivors_policy() {
   // by remaining heap). Otherwise we may cause undesired promotions as we are
   // already getting close to end of the heap, impacting performance even more.
   uint const desired_max_survivor_regions = ceil(max_survivor_regions_d);
-  size_t const survivor_size = desired_survivor_size(desired_max_survivor_regions);
+  Words const survivor_size = desired_survivor_size(desired_max_survivor_regions);
 
   _tenuring_threshold = _survivors_age_table.compute_tenuring_threshold(survivor_size);
   if (UsePerfData) {
     _policy_counters->tenuring_threshold()->set_value(_tenuring_threshold);
-    _policy_counters->desired_survivor_size()->set_value(survivor_size * oopSize);
+    _policy_counters->desired_survivor_size()->set_value(to_bytes(survivor_size));
   }
   // The real maximum survivor size is bounded by the number of regions that can
   // be allocated into.
@@ -1422,7 +1422,7 @@ bool G1Policy::next_gc_should_be_mixed() const {
   return candidates()->has_more_marking_candidates();
 }
 
-size_t G1Policy::allowed_waste_in_collection_set() const {
+Bytes G1Policy::allowed_waste_in_collection_set() const {
   return G1HeapWastePercent * _g1h->capacity() / 100;
 }
 

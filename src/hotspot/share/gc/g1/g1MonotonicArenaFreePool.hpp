@@ -35,7 +35,7 @@
 class G1MonotonicArenaMemoryStats {
 public:
 
-  size_t _num_mem_sizes[G1CardSetConfiguration::num_mem_object_types()];
+  Bytes _num_mem_sizes[G1CardSetConfiguration::num_mem_object_types()];
   size_t _num_segments[G1CardSetConfiguration::num_mem_object_types()];
 
   // Returns all-zero statistics.
@@ -79,7 +79,7 @@ public:
   uint num_free_lists() const { return _num_free_lists; }
 
   G1MonotonicArenaMemoryStats memory_sizes() const;
-  size_t mem_size() const;
+  Bytes mem_size() const;
 
   void print_on(outputStream* out) const;
 };
@@ -90,15 +90,15 @@ class G1MonotonicArenaFreePool::G1ReturnMemoryProcessor : public CHeapObj<mtGC> 
   using SegmentFreeList = G1MonotonicArena::SegmentFreeList;
   using Segment = G1MonotonicArena::Segment;
   SegmentFreeList* _source;
-  size_t _return_to_vm_size;
+  Bytes _return_to_vm_size;
 
   Segment* _first;
-  size_t _unlinked_bytes;
+  Bytes _unlinked_bytes;
   size_t _num_unlinked;
 
 public:
-  explicit G1ReturnMemoryProcessor(size_t return_to_vm) :
-    _source(nullptr), _return_to_vm_size(return_to_vm), _first(nullptr), _unlinked_bytes(0), _num_unlinked(0) {
+  explicit G1ReturnMemoryProcessor(Bytes return_to_vm) :
+    _source(nullptr), _return_to_vm_size(return_to_vm), _first(nullptr), _unlinked_bytes(Bytes(0)), _num_unlinked(0) {
   }
 
   // Updates the instance members about the given free list for
@@ -106,7 +106,7 @@ public:
   // e.g. if there is nothing to return to the VM, do not set the source list.
   void visit_free_list(SegmentFreeList* source);
 
-  bool finished_return_to_vm() const { return _return_to_vm_size == 0; }
+  bool finished_return_to_vm() const { return _return_to_vm_size == Bytes(0); }
   bool finished_return_to_os() const { return _first == nullptr; }
 
   // Returns memory to the VM until the given deadline expires. Returns true if

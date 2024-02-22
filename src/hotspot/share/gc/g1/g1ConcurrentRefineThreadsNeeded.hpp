@@ -47,7 +47,7 @@ public:
   // Update the number of running refinement threads needed to reach the
   // target before the next GC.
   void update(uint active_threads,
-              size_t available_bytes,
+              Bytes available_bytes,
               size_t num_cards,
               size_t target_num_cards);
 

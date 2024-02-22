@@ -41,18 +41,18 @@ ParMarkBitMap::initialize(MemRegion covered_region)
   // an integral number of words.
   assert(is_aligned(bits, (BitsPerWord * 2)), "region size unaligned");
 
-  const size_t words = bits / BitsPerWord;
-  const size_t raw_bytes = words * sizeof(idx_t);
-  const size_t page_sz = os::page_size_for_region_aligned(raw_bytes, 10);
-  const size_t granularity = os::vm_allocation_granularity();
+  const Words words = in_Words(bits / BitsPerWord);
+  const Bytes raw_bytes = to_Bytes(words);
+  const Bytes page_sz = in_Bytes(os::page_size_for_region_aligned(untype(raw_bytes), 10));
+  const Bytes granularity = in_Bytes(os::vm_allocation_granularity());
   _reserved_byte_size = align_up(raw_bytes, MAX2(page_sz, granularity));
 
-  const size_t rs_align = page_sz == os::vm_page_size() ? 0 :
+  const Bytes rs_align = page_sz == in_Bytes(os::vm_page_size()) ? Bytes(0) :
     MAX2(page_sz, granularity);
   ReservedSpace rs(_reserved_byte_size, rs_align, page_sz);
-  const size_t used_page_sz = rs.page_size();
-  os::trace_page_sizes("Mark Bitmap", raw_bytes, raw_bytes,
-                       rs.base(), rs.size(), used_page_sz);
+  const Bytes used_page_sz = rs.page_size();
+  os::trace_page_sizes("Mark Bitmap", untype(raw_bytes), untype(raw_bytes),
+                       rs.base(), untype(rs.size()), untype(used_page_sz));
 
   MemTracker::record_virtual_memory_type((address)rs.base(), mtGC);
 
@@ -62,12 +62,12 @@ ParMarkBitMap::initialize(MemRegion covered_region)
     _region_size = covered_region.word_size();
     BitMap::bm_word_t* map = (BitMap::bm_word_t*)_virtual_space->reserved_low_addr();
     _beg_bits = BitMapView(map,             bits / 2);
-    _end_bits = BitMapView(map + words / 2, bits / 2);
+    _end_bits = BitMapView(map + untype(words) / 2, bits / 2);
     return true;
   }
 
-  _region_start = 0;
-  _region_size = 0;
+  _region_start = nullptr;
+  _region_size = Words(0);
   if (_virtual_space != nullptr) {
     delete _virtual_space;
     _virtual_space = nullptr;
@@ -78,7 +78,7 @@ ParMarkBitMap::initialize(MemRegion covered_region)
 }
 
 bool
-ParMarkBitMap::mark_obj(HeapWord* addr, size_t size)
+ParMarkBitMap::mark_obj(HeapWord* addr, Words size)
 {
   const idx_t beg_bit = addr_to_bit(addr);
   if (_beg_bits.par_set_bit(beg_bit)) {
@@ -96,13 +96,13 @@ ParMarkBitMap::is_live_words_in_range_in_cache(ParCompactionManager* cm, HeapWor
 }
 
 inline void
-ParMarkBitMap::update_live_words_in_range_cache(ParCompactionManager* cm, HeapWord* beg_addr, oop end_obj, size_t result) const {
+ParMarkBitMap::update_live_words_in_range_cache(ParCompactionManager* cm, HeapWord* beg_addr, oop end_obj, Words result) const {
   cm->set_last_query_begin(beg_addr);
   cm->set_last_query_object(end_obj);
   cm->set_last_query_return(result);
 }
 
-size_t
+Words
 ParMarkBitMap::live_words_in_range_helper(HeapWord* beg_addr, oop end_obj) const
 {
   assert(beg_addr <= cast_from_oop<HeapWord*>(end_obj), "bad range");
@@ -124,14 +124,14 @@ ParMarkBitMap::live_words_in_range_helper(HeapWord* beg_addr, oop end_obj) const
   return bits_to_words(live_bits);
 }
 
-size_t
+Words
 ParMarkBitMap::live_words_in_range_use_cache(ParCompactionManager* cm, HeapWord* beg_addr, oop end_oop) const
 {
   HeapWord* last_beg = cm->last_query_begin();
   HeapWord* last_obj = cast_from_oop<HeapWord*>(cm->last_query_object());
   HeapWord* end_obj  = cast_from_oop<HeapWord*>(end_oop);
 
-  size_t last_ret = cm->last_query_return();
+  Words last_ret = cm->last_query_return();
   if (end_obj > last_obj) {
     last_ret = last_ret + live_words_in_range_helper(last_obj, end_oop);
     last_obj = end_obj;
@@ -150,14 +150,14 @@ ParMarkBitMap::live_words_in_range_use_cache(ParCompactionManager* cm, HeapWord*
   return last_ret;
 }
 
-size_t
+Words
 ParMarkBitMap::live_words_in_range(ParCompactionManager* cm, HeapWord* beg_addr, oop end_obj) const
 {
   // Try to reuse result from ParCompactionManager cache first.
   if (is_live_words_in_range_in_cache(cm, beg_addr)) {
     return live_words_in_range_use_cache(cm, beg_addr, end_obj);
   }
-  size_t ret = live_words_in_range_helper(beg_addr, end_obj);
+  Words ret = live_words_in_range_helper(beg_addr, end_obj);
   update_live_words_in_range_cache(cm, beg_addr, end_obj, ret);
   return ret;
 }
@@ -182,7 +182,7 @@ ParMarkBitMap::iterate(ParMarkBitMapClosure* live_closure,
       return incomplete;
     }
 
-    const size_t size = obj_size(cur_beg, cur_end);
+    const Words size = obj_size(cur_beg, cur_end);
     IterationStatus status = live_closure->do_addr(bit_to_addr(cur_beg), size);
     if (status != incomplete) {
       assert(status == would_overflow || status == full, "sanity");
@@ -218,7 +218,7 @@ ParMarkBitMap::iterate(ParMarkBitMapClosure* live_closure,
     // The range starts with dead space.  Look for the next object, then fill.
     cur_beg = find_obj_beg(range_beg + 1, dead_search_end);
     const idx_t dead_space_end = MIN2(cur_beg - 1, dead_range_end - 1);
-    const size_t size = obj_size(range_beg, dead_space_end);
+    const Words size = obj_size(range_beg, dead_space_end);
     dead_closure->do_addr(bit_to_addr(range_beg), size);
   }
 
@@ -230,7 +230,7 @@ ParMarkBitMap::iterate(ParMarkBitMapClosure* live_closure,
       return incomplete;
     }
 
-    const size_t size = obj_size(cur_beg, cur_end);
+    const Words size = obj_size(cur_beg, cur_end);
     IterationStatus status = live_closure->do_addr(bit_to_addr(cur_beg), size);
     if (status != incomplete) {
       assert(status == would_overflow || status == full, "sanity");
@@ -243,7 +243,7 @@ ParMarkBitMap::iterate(ParMarkBitMapClosure* live_closure,
     if (cur_beg > dead_space_beg) {
       // Found dead space; compute the size and invoke the dead closure.
       const idx_t dead_space_end = MIN2(cur_beg - 1, dead_range_end - 1);
-      const size_t size = obj_size(dead_space_beg, dead_space_end);
+      const Words size = obj_size(dead_space_beg, dead_space_end);
       dead_closure->do_addr(bit_to_addr(dead_space_beg), size);
     }
   }

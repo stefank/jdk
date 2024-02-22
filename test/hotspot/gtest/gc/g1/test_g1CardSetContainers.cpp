@@ -189,7 +189,7 @@ void G1CardSetContainersTest::cardset_array_test(uint cards_per_array) {
 }
 
 void G1CardSetContainersTest::cardset_bitmap_test(uint threshold, uint size_in_bits) {
-  uint8_t* cardset_data = NEW_C_HEAP_ARRAY(uint8_t, G1CardSetBitMap::size_in_bytes(size_in_bits), mtGC);
+  uint8_t* cardset_data = NEW_C_HEAP_ARRAY(uint8_t, untype(G1CardSetBitMap::size_in_bytes(size_in_bits)), mtGC);
   G1CardSetBitMap* cards = new (cardset_data) G1CardSetBitMap(1, size_in_bits);
 
   ASSERT_TRUE(cards->contains(1, size_in_bits)); // Added during initialization
@@ -236,8 +236,8 @@ void G1CardSetContainersTest::cardset_bitmap_test(uint threshold, uint size_in_b
 }
 
 TEST_VM_F(G1CardSetContainersTest, basic_cardset_inptr_test) {
-  uint const min = (uint)log2i(HeapRegionBounds::min_size());
-  uint const max = (uint)log2i(HeapRegionBounds::max_size());
+  uint const min = (uint)log2i(untype(HeapRegionBounds::min_size()));
+  uint const max = (uint)log2i(untype(HeapRegionBounds::max_size()));
 
   for (uint i = min; i <= max; i++) {
     G1CardSetContainersTest::cardset_inlineptr_test(i - CardTable::card_shift());

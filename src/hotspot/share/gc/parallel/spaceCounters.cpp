@@ -32,9 +32,9 @@
 #include "utilities/debug.hpp"
 #include "utilities/macros.hpp"
 
-SpaceCounters::SpaceCounters(const char* name, int ordinal, size_t max_size,
+SpaceCounters::SpaceCounters(const char* name, int ordinal, Bytes max_size,
                              MutableSpace* m, GenerationCounters* gc)
-  : _last_used_in_bytes(0), _object_space(m)
+  : _last_used_in_bytes(Bytes(0)), _object_space(m)
 {
   if (UsePerfData) {
     EXCEPTION_MARK;
@@ -56,7 +56,7 @@ SpaceCounters::SpaceCounters(const char* name, int ordinal, size_t max_size,
     cname = PerfDataManager::counter_name(_name_space, "capacity");
     _capacity = PerfDataManager::create_variable(SUN_GC, cname,
                                                  PerfData::U_Bytes,
-                                                 _object_space->capacity_in_bytes(),
+                                                 untype(_object_space->capacity_in_bytes()),
                                                  CHECK);
 
     cname = PerfDataManager::counter_name(_name_space, "used");
@@ -66,7 +66,7 @@ SpaceCounters::SpaceCounters(const char* name, int ordinal, size_t max_size,
 
     cname = PerfDataManager::counter_name(_name_space, "initCapacity");
     PerfDataManager::create_constant(SUN_GC, cname, PerfData::U_Bytes,
-                                     _object_space->capacity_in_bytes(), CHECK);
+                                     untype(_object_space->capacity_in_bytes()), CHECK);
   }
 }
 
@@ -75,9 +75,9 @@ SpaceCounters::~SpaceCounters() {
 }
 
 void SpaceCounters::update_used() {
-  size_t new_used = _object_space->used_in_bytes();
+  Bytes new_used = _object_space->used_in_bytes();
   Atomic::store(&_last_used_in_bytes, new_used);
-  _used->set_value(new_used);
+  _used->set_value(untype(new_used));
 }
 
 jlong SpaceCounters::UsedHelper::take_sample() {
@@ -87,9 +87,9 @@ jlong SpaceCounters::UsedHelper::take_sample() {
   // sampling in that case, using the last recorded value.
   assert(!Heap_lock->owned_by_self(), "precondition");
   if (Heap_lock->try_lock()) {
-    size_t new_used = _counters->_object_space->used_in_bytes();
+    Bytes new_used = _counters->_object_space->used_in_bytes();
     Atomic::store(&_counters->_last_used_in_bytes, new_used);
     Heap_lock->unlock();
   }
-  return Atomic::load(&_counters->_last_used_in_bytes);
+  return untype(Atomic::load(&_counters->_last_used_in_bytes));
 }

@@ -56,13 +56,13 @@ class TenuredGeneration: public Generation {
   // Current shrinking effect: this damps shrinking when the heap gets empty.
   size_t _shrink_factor;
 
-  size_t _min_heap_delta_bytes;   // Minimum amount to expand.
+  Bytes _min_heap_delta_bytes;   // Minimum amount to expand.
 
   // Some statistics from before gc started.
   // These are gathered in the gc_prologue (and should_collect)
   // to control growing/shrinking policy in spite of promotions.
-  size_t _capacity_at_prologue;
-  size_t _used_at_prologue;
+  Bytes _capacity_at_prologue;
+  Bytes _used_at_prologue;
 
   void assert_correct_size_change_locking();
 
@@ -74,10 +74,10 @@ class TenuredGeneration: public Generation {
   // Attempt to expand the generation by "bytes".  Expand by at a
   // minimum "expand_bytes".  Return true if some amount (not
   // necessarily the full "bytes") was done.
-  bool expand(size_t bytes, size_t expand_bytes);
+  bool expand(Bytes bytes, Bytes expand_bytes);
 
   // Shrink generation with specified size
-  void shrink(size_t bytes);
+  void shrink(Bytes bytes);
 
   void compute_new_size_inner();
  public:
@@ -86,13 +86,13 @@ class TenuredGeneration: public Generation {
   TenuredSpace* space() const { return _the_space; }
 
   // Grow generation with specified size (returns false if unable to grow)
-  bool grow_by(size_t bytes);
+  bool grow_by(Bytes bytes);
   // Grow generation to reserved size.
   bool grow_to_reserved();
 
-  size_t capacity() const;
-  size_t used() const;
-  size_t free() const;
+  Bytes capacity() const;
+  Bytes used() const;
+  Bytes free() const;
 
   MemRegion used_region() const { return space()->used_region(); }
   MemRegion prev_used_region() const { return _prev_used_region; }
@@ -101,7 +101,7 @@ class TenuredGeneration: public Generation {
   // Returns true if this generation cannot be expanded further
   // without a GC.
   bool is_maximal_no_gc() const {
-    return _virtual_space.uncommitted_size() == 0;
+    return _virtual_space.uncommitted_size() == Bytes(0);
   }
 
   HeapWord* block_start(const void* p) const;
@@ -111,24 +111,24 @@ class TenuredGeneration: public Generation {
   bool is_in(const void* p) const;
 
   TenuredGeneration(ReservedSpace rs,
-                    size_t initial_byte_size,
-                    size_t min_byte_size,
-                    size_t max_byte_size,
+                    Bytes initial_byte_size,
+                    Bytes min_byte_size,
+                    Bytes max_byte_size,
                     CardTableRS* remset);
 
   // Printing
   const char* name() const { return "tenured generation"; }
   const char* short_name() const { return "Tenured"; }
 
-  size_t contiguous_available() const;
+  Bytes contiguous_available() const;
 
   // Iteration
   void object_iterate(ObjectClosure* blk);
 
   void complete_loaded_archive_space(MemRegion archive_space);
 
-  virtual inline HeapWord* allocate(size_t word_size, bool is_tlab);
-  virtual inline HeapWord* par_allocate(size_t word_size, bool is_tlab);
+  virtual inline HeapWord* allocate(Words word_size, bool is_tlab);
+  virtual inline HeapWord* par_allocate(Words word_size, bool is_tlab);
 
   template <typename OopClosureType>
   void oop_since_save_marks_iterate(OopClosureType* cl);
@@ -139,17 +139,17 @@ class TenuredGeneration: public Generation {
 
   virtual void collect(bool full,
                        bool clear_all_soft_refs,
-                       size_t size,
+                       Words size,
                        bool is_tlab);
 
-  HeapWord* expand_and_allocate(size_t size, bool is_tlab);
+  HeapWord* expand_and_allocate(Words size, bool is_tlab);
 
   void gc_prologue();
   void gc_epilogue();
 
-  bool should_collect(bool   full,
-                      size_t word_size,
-                      bool   is_tlab);
+  bool should_collect(bool  full,
+                      Words word_size,
+                      bool  is_tlab);
 
   // Performance Counter support
   void update_counters();
@@ -164,7 +164,7 @@ class TenuredGeneration: public Generation {
   // likely to succeed without a promotion failure.
   // Promotion of the full amount is not guaranteed but
   // might be attempted in the worst case.
-  bool promotion_attempt_is_safe(size_t max_promoted_in_bytes) const;
+  bool promotion_attempt_is_safe(Bytes max_promoted_in_bytes) const;
 
   // "obj" is the address of an object in young-gen.  Allocate space for "obj"
   // in the old-gen, and copy "obj" into the newly allocated space, if
@@ -172,7 +172,7 @@ class TenuredGeneration: public Generation {
   //
   // The "obj_size" argument is just obj->size(), passed along so the caller can
   // avoid repeating the virtual call to retrieve it.
-  oop promote(oop obj, size_t obj_size);
+  oop promote(oop obj, Words obj_size);
 
   virtual void verify();
   virtual void print_on(outputStream* st) const;

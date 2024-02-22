@@ -121,13 +121,13 @@ class Symbol : public MetaspaceObj {
     max_symbol_length = 0xffff
   };
 
-  static int byte_size(int length) {
+  static Bytes byte_size(int length) {
     // minimum number of natural words needed to hold these bits (no non-heap version)
-    return (int)(sizeof(Symbol) + (length > 2 ? length - 2 : 0));
+    return in_Bytes((sizeof(Symbol) + (length > 2 ? length - 2 : 0)));
   }
-  static int size(int length) {
+  static Words size(int length) {
     // minimum number of natural words needed to hold these bits (no non-heap version)
-    return (int)heap_word_size(byte_size(length));
+    return heap_word_size(untype(byte_size(length)));
   }
 
   Symbol(const u1* name, int length, int refcount);
@@ -144,10 +144,10 @@ class Symbol : public MetaspaceObj {
   // Low-level access (used with care, since not GC-safe)
   const u1* base() const { return &_body[0]; }
 
-  int size()      const     { return size(utf8_length()); }
-  int byte_size() const     { return byte_size(utf8_length()); };
+  Words size()      const     { return size(utf8_length()); }
+  Bytes byte_size() const     { return byte_size(utf8_length()); };
   // length without the _body
-  size_t effective_length() const { return (size_t)byte_size() - sizeof(Symbol); }
+  Bytes effective_length() const { return byte_size() - in_Bytes(sizeof(Symbol)); }
 
   // Symbols should be stored in the read-only region of CDS archive.
   static bool is_read_only_by_default() { return true; }

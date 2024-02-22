@@ -336,11 +336,11 @@ void CodeCache::initialize_heaps() {
   //         Non-nmethods
   //      Profiled nmethods
   // ---------- low ------------
-  ReservedCodeSpace rs = reserve_heap_memory(cache_size, ps);
-  ReservedSpace profiled_space      = rs.first_part(profiled_size);
-  ReservedSpace rest                = rs.last_part(profiled_size);
-  ReservedSpace non_method_space    = rest.first_part(non_nmethod_size);
-  ReservedSpace non_profiled_space  = rest.last_part(non_nmethod_size);
+  ReservedCodeSpace rs = reserve_heap_memory(in_Bytes(cache_size), in_Bytes(ps));
+  ReservedSpace profiled_space      = rs.first_part(in_Bytes(profiled_size));
+  ReservedSpace rest                = rs.last_part(in_Bytes(profiled_size));
+  ReservedSpace non_method_space    = rest.first_part(in_Bytes(non_nmethod_size));
+  ReservedSpace non_profiled_space  = rest.last_part(in_Bytes(non_nmethod_size));
 
   // Register CodeHeaps with LSan as we sometimes embed pointers to malloc memory.
   LSAN_REGISTER_ROOT_REGION(rs.base(), rs.size());
@@ -358,10 +358,10 @@ size_t CodeCache::page_size(bool aligned, size_t min_pages) {
                    os::page_size_for_region_unaligned(ReservedCodeCacheSize, min_pages);
 }
 
-ReservedCodeSpace CodeCache::reserve_heap_memory(size_t size, size_t rs_ps) {
+ReservedCodeSpace CodeCache::reserve_heap_memory(Bytes size, Bytes rs_ps) {
   // Align and reserve space for code cache
-  const size_t rs_align = MAX2(rs_ps, os::vm_allocation_granularity());
-  const size_t rs_size = align_up(size, rs_align);
+  const Bytes rs_align = MAX2(rs_ps, in_Bytes(os::vm_allocation_granularity()));
+  const Bytes rs_size = align_up(size, rs_align);
   ReservedCodeSpace rs(rs_size, rs_align, rs_ps);
   if (!rs.is_reserved()) {
     vm_exit_during_initialization(err_msg("Could not reserve enough space for code cache (" SIZE_FORMAT "K)",
@@ -445,9 +445,9 @@ void CodeCache::add_heap(ReservedSpace rs, const char* name, CodeBlobType code_b
   add_heap(heap);
 
   // Reserve Space
-  size_t size_initial = MIN2((size_t)InitialCodeCacheSize, rs.size());
+  Bytes size_initial = MIN2(in_Bytes(InitialCodeCacheSize), rs.size());
   size_initial = align_up(size_initial, os::vm_page_size());
-  if (!heap->reserve(rs, size_initial, CodeCacheSegmentSize)) {
+  if (!heap->reserve(rs, size_initial, in_Bytes(CodeCacheSegmentSize))) {
     vm_exit_during_initialization(err_msg("Could not reserve enough space in %s (" SIZE_FORMAT "K)",
                                           heap->name(), size_initial/K));
   }
@@ -525,9 +525,9 @@ CodeBlob* CodeCache::allocate(uint size, CodeBlobType code_blob_type, bool handl
   assert(heap != nullptr, "heap is null");
 
   while (true) {
-    cb = (CodeBlob*)heap->allocate(size);
+    cb = (CodeBlob*)heap->allocate(in_Bytes(size));
     if (cb != nullptr) break;
-    if (!heap->expand_by(CodeCacheExpansionSize)) {
+    if (!heap->expand_by(in_Bytes(CodeCacheExpansionSize))) {
       // Save original type for error reporting
       if (orig_code_blob_type == CodeBlobType::All) {
         orig_code_blob_type = code_blob_type;
@@ -606,14 +606,14 @@ void CodeCache::free(CodeBlob* cb) {
   assert(heap->blob_count() >= 0, "sanity check");
 }
 
-void CodeCache::free_unused_tail(CodeBlob* cb, size_t used) {
+void CodeCache::free_unused_tail(CodeBlob* cb, Bytes used) {
   assert_locked_or_safepoint(CodeCache_lock);
   guarantee(cb->is_buffer_blob() && strncmp("Interpreter", cb->name(), 11) == 0, "Only possible for interpreter!");
   print_trace("free_unused_tail", cb);
 
   // We also have to account for the extra space (i.e. header) used by the CodeBlob
   // which provides the memory (see BufferBlob::create() in codeBlob.cpp).
-  used += CodeBlob::align_code_offset(cb->header_size());
+  used += in_Bytes(CodeBlob::align_code_offset(cb->header_size()));
 
   // Get heap for given CodeBlob and deallocate its unused tail
   get_code_heap(cb)->deallocate_tail(cb, used);
@@ -705,14 +705,14 @@ void CodeCache::update_cold_gc_count() {
     return;
   }
 
-  size_t last_used = _last_unloading_used;
+  Bytes last_used = _last_unloading_used;
   double last_time = _last_unloading_time;
 
   double time = os::elapsedTime();
 
-  size_t free = unallocated_capacity();
-  size_t max = max_capacity();
-  size_t used = max - free;
+  Bytes free = unallocated_capacity();
+  Bytes max = max_capacity();
+  Bytes used = max - free;
   double gc_interval = time - last_time;
 
   _unloading_threshold_gc_requested = false;
@@ -734,12 +734,12 @@ void CodeCache::update_cold_gc_count() {
     return;
   }
 
-  double allocation_rate = (used - last_used) / gc_interval;
+  double allocation_rate = untype(used - last_used) / gc_interval;
 
   _unloading_allocation_rates.add(allocation_rate);
   _unloading_gc_intervals.add(gc_interval);
 
-  size_t aggressive_sweeping_free_threshold = StartAggressiveSweepingAt / 100.0 * max;
+  Bytes aggressive_sweeping_free_threshold = StartAggressiveSweepingAt / 100.0 * max;
   if (free < aggressive_sweeping_free_threshold) {
     // We are already in the red zone; be very aggressive to avoid disaster
     // But not more aggressive than 2. This ensures that an nmethod must
@@ -784,9 +784,9 @@ void CodeCache::gc_on_allocation() {
     return;
   }
 
-  size_t free = unallocated_capacity();
-  size_t max = max_capacity();
-  size_t used = max - free;
+  Bytes free = unallocated_capacity();
+  Bytes max = max_capacity();
+  Bytes used = max - free;
   double free_ratio = double(free) / double(max);
   if (free_ratio <= StartAggressiveSweepingAt / 100.0)  {
     // In case the GC is concurrent, we make sure only one thread requests the GC.
@@ -797,12 +797,12 @@ void CodeCache::gc_on_allocation() {
     return;
   }
 
-  size_t last_used = _last_unloading_used;
+  Bytes last_used = _last_unloading_used;
   if (last_used >= used) {
     // No increase since last GC; no need to sweep yet
     return;
   }
-  size_t allocated_since_last = used - last_used;
+  Bytes allocated_since_last = used - last_used;
   double allocated_since_last_ratio = double(allocated_since_last) / double(max);
   double threshold = SweeperThreshold / 100.0;
   double used_ratio = double(used) / double(max);
@@ -835,7 +835,7 @@ uint64_t CodeCache::_gc_epoch = 2;
 uint64_t CodeCache::_cold_gc_count = INT_MAX;
 
 double CodeCache::_last_unloading_time = 0.0;
-size_t CodeCache::_last_unloading_used = 0;
+Bytes CodeCache::_last_unloading_used = Bytes(0);
 volatile bool CodeCache::_unloading_threshold_gc_requested = false;
 TruncatedSeq CodeCache::_unloading_gc_intervals(10 /* samples */);
 TruncatedSeq CodeCache::_unloading_allocation_rates(10 /* samples */);
@@ -949,7 +949,7 @@ void CodeCache::maybe_restart_compiler(size_t freed_memory) {
     log_info(codecache)("Restarting compiler");
     EventJITRestart event;
     event.set_freedMemory(freed_memory);
-    event.set_codeCacheMaxCapacity(CodeCache::max_capacity());
+    event.set_codeCacheMaxCapacity(untype(CodeCache::max_capacity()));
     event.commit();
   }
 }
@@ -1039,29 +1039,29 @@ address CodeCache::high_bound(CodeBlobType code_blob_type) {
   return (heap != nullptr) ? (address)heap->high_boundary() : nullptr;
 }
 
-size_t CodeCache::capacity() {
-  size_t cap = 0;
+Bytes CodeCache::capacity() {
+  Bytes cap = Bytes(0);
   FOR_ALL_ALLOCABLE_HEAPS(heap) {
     cap += (*heap)->capacity();
   }
   return cap;
 }
 
-size_t CodeCache::unallocated_capacity(CodeBlobType code_blob_type) {
+Bytes CodeCache::unallocated_capacity(CodeBlobType code_blob_type) {
   CodeHeap* heap = get_code_heap(code_blob_type);
-  return (heap != nullptr) ? heap->unallocated_capacity() : 0;
+  return (heap != nullptr) ? heap->unallocated_capacity() : Bytes(0);
 }
 
-size_t CodeCache::unallocated_capacity() {
-  size_t unallocated_cap = 0;
+Bytes CodeCache::unallocated_capacity() {
+  Bytes unallocated_cap = Bytes(0);
   FOR_ALL_ALLOCABLE_HEAPS(heap) {
     unallocated_cap += (*heap)->unallocated_capacity();
   }
   return unallocated_cap;
 }
 
-size_t CodeCache::max_capacity() {
-  size_t max_cap = 0;
+Bytes CodeCache::max_capacity() {
+  Bytes max_cap = Bytes(0);
   FOR_ALL_ALLOCABLE_HEAPS(heap) {
     max_cap += (*heap)->max_capacity();
   }
@@ -1149,7 +1149,7 @@ void CodeCache::initialize() {
     // If InitialCodeCacheSize is equal to ReservedCodeCacheSize, then it's more likely
     // users want to use the largest available page.
     const size_t min_pages = (InitialCodeCacheSize == ReservedCodeCacheSize) ? 1 : 8;
-    ReservedCodeSpace rs = reserve_heap_memory(ReservedCodeCacheSize, page_size(false, min_pages));
+    ReservedCodeSpace rs = reserve_heap_memory(in_Bytes(ReservedCodeCacheSize), in_Bytes(page_size(false, min_pages)));
     // Register CodeHeaps with LSan as we sometimes embed pointers to malloc memory.
     LSAN_REGISTER_ROOT_REGION(rs.base(), rs.size());
     add_heap(rs, "CodeCache", CodeBlobType::All);
@@ -1481,7 +1481,7 @@ void CodeCache::report_codemem_full(CodeBlobType code_blob_type, bool print) {
 
     if (full_count == 1) {
       if (PrintCodeHeapAnalytics) {
-        CompileBroker::print_heapinfo(tty, "all", 4096); // details, may be a lot!
+        CompileBroker::print_heapinfo(tty, "all", Bytes(4096)); // details, may be a lot!
       }
     }
   }
@@ -1495,9 +1495,9 @@ void CodeCache::report_codemem_full(CodeBlobType code_blob_type, bool print) {
     event.set_entryCount(heap->blob_count());
     event.set_methodCount(heap->nmethod_count());
     event.set_adaptorCount(heap->adapter_count());
-    event.set_unallocatedCapacity(heap->unallocated_capacity());
+    event.set_unallocatedCapacity(untype(heap->unallocated_capacity()));
     event.set_fullCount(heap->full_count());
-    event.set_codeCacheMaxCapacity(CodeCache::max_capacity());
+    event.set_codeCacheMaxCapacity(untype(CodeCache::max_capacity()));
     event.commit();
   }
 }
@@ -1743,9 +1743,9 @@ void CodeCache::print_summary(outputStream* st, bool detailed) {
       st->print("CodeCache:");
     }
     size_t size = total/K;
-    size_t used = (total - heap->unallocated_capacity())/K;
-    size_t max_used = heap->max_allocated_capacity()/K;
-    size_t free = heap->unallocated_capacity()/K;
+    size_t used = (total - untype(heap->unallocated_capacity()))/K;
+    size_t max_used = untype(heap->max_allocated_capacity())/K;
+    size_t free = untype(heap->unallocated_capacity())/K;
     total_size += size;
     total_used += used;
     total_max_used += max_used;
@@ -1846,7 +1846,7 @@ void CodeCache::write_perf_map(const char* filename) {
 
 //---<  BEGIN  >--- CodeHeap State Analytics.
 
-void CodeCache::aggregate(outputStream *out, size_t granularity) {
+void CodeCache::aggregate(outputStream *out, Bytes granularity) {
   FOR_ALL_ALLOCABLE_HEAPS(heap) {
     CodeHeapState::aggregate(out, (*heap), granularity);
   }

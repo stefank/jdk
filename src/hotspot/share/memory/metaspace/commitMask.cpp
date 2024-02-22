@@ -29,17 +29,18 @@
 #include "memory/metaspace/metaspaceSettings.hpp"
 #include "runtime/stubRoutines.hpp"
 #include "utilities/align.hpp"
+#include "utilities/bitMap.inline.hpp"
 #include "utilities/debug.hpp"
 
 namespace metaspace {
 
-CommitMask::CommitMask(const MetaWord* start, size_t word_size) :
+CommitMask::CommitMask(const MetaWord* start, Words word_size) :
   CHeapBitMap(mask_size(word_size, Settings::commit_granule_words()), mtMetaspace, true),
   _base(start),
   _word_size(word_size),
   _words_per_bit(Settings::commit_granule_words())
 {
-  assert(_word_size > 0 && _words_per_bit > 0 &&
+  assert(_word_size > Words(0) && _words_per_bit > Words(0) &&
          is_aligned(_word_size, _words_per_bit), "Sanity");
 }
 
@@ -66,7 +67,7 @@ void CommitMask::check_pointer_aligned(const MetaWord* p) const {
 }
 // Given a range, check if it points into the range this bitmap covers,
 // and if its borders are aligned to commit granule border.
-void CommitMask::check_range(const MetaWord* start, size_t word_size) const {
+void CommitMask::check_range(const MetaWord* start, Words word_size) const {
   check_pointer_aligned(start);
   assert(is_aligned(word_size, _words_per_bit),
          "Range " SIZE_FORMAT " should be aligned to commit granule size " SIZE_FORMAT ".",
@@ -78,7 +79,7 @@ void CommitMask::verify() const {
   // Walk the whole commit mask.
   // For each 1 bit, check if the associated granule is accessible.
   // For each 0 bit, check if the associated granule is not accessible. Slow mode only.
-  assert(_base != nullptr && _word_size > 0 && _words_per_bit > 0, "Sanity");
+  assert(_base != nullptr && _word_size > Words(0) && _words_per_bit > Words(0), "Sanity");
   assert_is_aligned(_base, _words_per_bit * BytesPerWord);
   assert_is_aligned(_word_size, _words_per_bit);
 }

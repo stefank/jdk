@@ -403,11 +403,11 @@ class MetaspaceObj {
   }
 
   void* operator new(size_t size, ClassLoaderData* loader_data,
-                     size_t word_size,
+                     Words word_size,
                      Type type, JavaThread* thread) throw();
                      // can't use TRAPS from this header file.
   void* operator new(size_t size, ClassLoaderData* loader_data,
-                     size_t word_size,
+                     Words word_size,
                      Type type) throw();
   void operator delete(void* p) { ShouldNotCallThis(); }
 

@@ -89,7 +89,7 @@ void LeakProfiler::emit_events(int64_t cutoff_ticks, bool emit_all, bool skip_bf
   ObjectSampler::release();
 }
 
-void LeakProfiler::sample(HeapWord* object, size_t size, JavaThread* thread) {
+void LeakProfiler::sample(HeapWord* object, Bytes size, JavaThread* thread) {
   assert(is_running(), "invariant");
   assert(thread != nullptr, "invariant");
   assert(thread->thread_state() == _thread_in_vm, "invariant");

@@ -92,7 +92,7 @@ class MallocAllocationSiteWalker : public MallocSiteWalker {
   }
 
   bool do_malloc_site(const MallocSite* site) {
-    if (site->size() > 0) {
+    if (site->size() > Bytes(0)) {
       if (_malloc_sites.add(*site) != nullptr) {
         return true;
       } else {
@@ -120,7 +120,7 @@ class VirtualMemoryAllocationWalker : public VirtualMemoryWalker {
   bool do_allocation_site(const ReservedMemoryRegion* rgn)  {
     assert(rgn->base() >= _last_base, "region unordered?");
     DEBUG_ONLY(_last_base = rgn->base());
-    if (rgn->size() > 0) {
+    if (rgn->size() > Bytes(0)) {
       if (_virtual_memory_regions.add(*rgn) != nullptr) {
         return true;
       } else {

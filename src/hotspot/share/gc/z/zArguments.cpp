@@ -33,7 +33,7 @@
 #include "runtime/java.hpp"
 
 void ZArguments::initialize_alignments() {
-  SpaceAlignment = ZGranuleSize;
+  SpaceAlignment = in_Bytes(ZGranuleSize);
   HeapAlignment = SpaceAlignment;
 }
 

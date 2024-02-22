@@ -209,12 +209,12 @@ void ArchiveHeapLoader::patch_embedded_pointers(FileMapInfo* info,
 // to their runtime addresses.
 struct LoadedArchiveHeapRegion {
   int       _region_index;   // index for FileMapInfo::space_at(index)
-  size_t    _region_size;    // number of bytes in this region
+  Bytes     _region_size;    // number of bytes in this region
   uintptr_t _dumptime_base;  // The dump-time (decoded) address of the first object in this region
   intx      _runtime_offset; // If an object's dump time address P is within in this region, its
                              // runtime address is P + _runtime_offset
   uintptr_t top() {
-    return _dumptime_base + _region_size;
+    return _dumptime_base + untype(_region_size);
   }
 };
 
@@ -262,10 +262,10 @@ class ArchiveHeapLoader::PatchLoadedRegionPointers: public BitMapClosure {
 
 bool ArchiveHeapLoader::init_loaded_region(FileMapInfo* mapinfo, LoadedArchiveHeapRegion* loaded_region,
                                            MemRegion& archive_space) {
-  size_t total_bytes = 0;
+  Bytes total_bytes = (Bytes)0;
   FileMapRegion* r = mapinfo->region_at(MetaspaceShared::hp);
   r->assert_is_heap_region();
-  if (r->used() == 0) {
+  if (r->used() == Bytes(0)) {
     return false;
   }
 
@@ -276,7 +276,7 @@ bool ArchiveHeapLoader::init_loaded_region(FileMapInfo* mapinfo, LoadedArchiveHe
   loaded_region->_dumptime_base = (uintptr_t)mapinfo->heap_region_dumptime_address();
 
   assert(is_aligned(total_bytes, HeapWordSize), "must be");
-  size_t word_size = total_bytes / HeapWordSize;
+  Words word_size = to_Words(total_bytes);
   HeapWord* buffer = Universe::heap()->allocate_loaded_archive_space(word_size);
   if (buffer == nullptr) {
     return false;
@@ -284,7 +284,7 @@ bool ArchiveHeapLoader::init_loaded_region(FileMapInfo* mapinfo, LoadedArchiveHe
 
   archive_space = MemRegion(buffer, word_size);
   _loaded_heap_bottom = (uintptr_t)archive_space.start();
-  _loaded_heap_top    = _loaded_heap_bottom + total_bytes;
+  _loaded_heap_top    = _loaded_heap_bottom + untype(total_bytes);
 
   loaded_region->_runtime_offset = _loaded_heap_bottom - loaded_region->_dumptime_base;
 
@@ -310,7 +310,7 @@ bool ArchiveHeapLoader::load_heap_region_impl(FileMapInfo* mapinfo, LoadedArchiv
   assert(r->mapped_base() == (char*)load_address, "sanity");
   log_info(cds)("Loaded heap    region #%d at base " INTPTR_FORMAT " top " INTPTR_FORMAT
                 " size " SIZE_FORMAT_W(6) " delta " INTX_FORMAT,
-                loaded_region->_region_index, load_address, load_address + loaded_region->_region_size,
+                loaded_region->_region_index, load_address, load_address + untype(loaded_region->_region_size),
                 loaded_region->_region_size, loaded_region->_runtime_offset);
 
   uintptr_t oopmap = bitmap_base + r->oopmap_offset();
@@ -378,7 +378,7 @@ void ArchiveHeapLoader::finish_initialization() {
   if (is_in_use()) {
     patch_native_pointers();
     intptr_t bottom = is_loaded() ? _loaded_heap_bottom : _mapped_heap_bottom;
-    intptr_t roots_oop = bottom + FileMapInfo::current_info()->heap_roots_offset();
+    intptr_t roots_oop = bottom + untype(FileMapInfo::current_info()->heap_roots_offset());
     HeapShared::init_roots(cast_to_oop(roots_oop));
   }
 }
@@ -419,7 +419,7 @@ void ArchiveHeapLoader::fill_failed_loaded_heap() {
     assert(_loaded_heap_top != 0, "must be");
     HeapWord* bottom = (HeapWord*)_loaded_heap_bottom;
     HeapWord* top = (HeapWord*)_loaded_heap_top;
-    Universe::heap()->fill_with_objects(bottom, top - bottom);
+    Universe::heap()->fill_with_objects(bottom, pointer_delta(top, bottom));
   }
 }
 

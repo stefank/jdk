@@ -30,7 +30,7 @@
 
 namespace metaspace {
 
-void FreeBlocks::add_block(MetaWord* p, size_t word_size) {
+void FreeBlocks::add_block(MetaWord* p, Words word_size) {
   if (word_size > MaxSmallBlocksWordSize) {
     _tree.add_block(p, word_size);
   } else {
@@ -38,8 +38,8 @@ void FreeBlocks::add_block(MetaWord* p, size_t word_size) {
   }
 }
 
-MetaWord* FreeBlocks::remove_block(size_t requested_word_size) {
-  size_t real_size = 0;
+MetaWord* FreeBlocks::remove_block(Words requested_word_size) {
+  Words real_size = Words(0);
   MetaWord* p = nullptr;
   if (requested_word_size > MaxSmallBlocksWordSize) {
     p = _tree.remove_block(requested_word_size, &real_size);
@@ -49,7 +49,7 @@ MetaWord* FreeBlocks::remove_block(size_t requested_word_size) {
   if (p != nullptr) {
     // Blocks which are larger than a certain threshold are split and
     //  the remainder is handed back to the manager.
-    const size_t waste = real_size - requested_word_size;
+    const Words waste = real_size - requested_word_size;
     if (waste >= MinWordSize) {
       add_block(p + requested_word_size, waste);
     }

@@ -55,7 +55,7 @@ public:
       _ms = new ClassLoaderMetaspace(_lock, Metaspace::StandardMetaspaceType);
     }
 
-    const MetaspaceObj* p = (MetaspaceObj*) _ms->allocate(42, mdType);
+    const MetaspaceObj* p = (MetaspaceObj*) _ms->allocate(in_Words(42), mdType);
 
     // Test MetaspaceObj::is_metaspace_object
     ASSERT_TRUE(MetaspaceObj::is_valid(p));

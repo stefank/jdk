@@ -52,6 +52,6 @@
 
 G1_GC_CONSTRAINTS(DECLARE_CONSTRAINT)
 
-size_t MaxSizeForHeapAlignmentG1();
+Bytes MaxSizeForHeapAlignmentG1();
 
 #endif // SHARE_GC_G1_JVMFLAGCONSTRAINTSG1_HPP

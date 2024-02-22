@@ -59,15 +59,15 @@ class MetaspaceArenaTestBed : public CHeapObj<mtInternal> {
 
   MetaspaceArena* _arena;
 
-  const SizeRange _allocation_range;
-  size_t _size_of_last_failed_allocation;
+  const WordsRange _allocation_range;
+  Words _size_of_last_failed_allocation;
 
   // We keep track of all allocations done thru the MetaspaceArena to
   // later check for overwriters.
   struct allocation_t {
     allocation_t* next;
     MetaWord* p; // nullptr if deallocated
-    size_t word_size;
+    Words word_size;
     void mark() {
       mark_range(p, word_size);
     }
@@ -110,12 +110,12 @@ class MetaspaceArenaTestBed : public CHeapObj<mtInternal> {
 
     // Since what we deallocated may have been given back to us in a following allocation,
     // we only know fore sure we allocated what we did not give back.
-    const size_t at_least_allocated = _alloc_count.total_size() - _dealloc_count.total_size();
+    const Words at_least_allocated = _alloc_count.total_size() - _dealloc_count.total_size();
 
     // At most we allocated this:
-    const size_t max_word_overhead_per_alloc =
-        4 + (metaspace::Settings::use_allocation_guard() ? 4 : 0);
-    const size_t at_most_allocated = _alloc_count.total_size() + max_word_overhead_per_alloc * _alloc_count.count();
+    const Words max_word_overhead_per_alloc =
+        4_w + (metaspace::Settings::use_allocation_guard() ? 4_w : 0_w);
+    const Words at_most_allocated = _alloc_count.total_size() + max_word_overhead_per_alloc * _alloc_count.count();
 
     ASSERT_LE(at_least_allocated, in_use_stats._used_words - stats._free_blocks_word_size);
     ASSERT_GE(at_most_allocated, in_use_stats._used_words - stats._free_blocks_word_size);
@@ -127,10 +127,10 @@ public:
   MetaspaceArena* arena() { return _arena; }
 
   MetaspaceArenaTestBed(ChunkManager* cm, const ArenaGrowthPolicy* alloc_sequence,
-                        SizeAtomicCounter* used_words_counter, SizeRange allocation_range) :
+                        metaspace::WordsAtomicCounter* used_words_counter, WordsRange allocation_range) :
     _arena(nullptr),
     _allocation_range(allocation_range),
-    _size_of_last_failed_allocation(0),
+    _size_of_last_failed_allocation(0_w),
     _allocations(nullptr),
     _alloc_count(),
     _dealloc_count()
@@ -157,14 +157,14 @@ public:
 
   }
 
-  size_t words_allocated() const        { return _alloc_count.total_size(); }
+  Words words_allocated() const         { return _alloc_count.total_size(); }
   int num_allocations() const           { return _alloc_count.count(); }
 
-  size_t size_of_last_failed_allocation() const { return _size_of_last_failed_allocation; }
+  Words size_of_last_failed_allocation() const { return _size_of_last_failed_allocation; }
 
   // Allocate a random amount. Return false if the allocation failed.
   bool checked_random_allocate() {
-    size_t word_size = 1 + _allocation_range.random_value();
+    Words word_size = 1_w + _allocation_range.random_value();
     MetaWord* p = _arena->allocate(word_size);
     if (p != nullptr) {
       EXPECT_TRUE(is_aligned(p, AllocationAlignmentByteSize));
@@ -197,7 +197,7 @@ public:
       a->verify();
       _arena->deallocate(a->p, a->word_size);
       _dealloc_count.add(a->word_size);
-      a->p = nullptr; a->word_size = 0;
+      a->p = nullptr; a->word_size = 0_w;
       if ((_dealloc_count.count() % 20) == 0) {
         verify_arena_statistics();
         DEBUG_ONLY(_arena->verify();)
@@ -211,14 +211,14 @@ class MetaspaceArenaTest {
 
   MetaspaceGtestContext _context;
 
-  SizeAtomicCounter _used_words_counter;
+  metaspace::WordsAtomicCounter _used_words_counter;
 
   SparseArray<MetaspaceArenaTestBed*> _testbeds;
   IntCounter _num_beds;
 
   //////// Bed creation, destruction ///////
 
-  void create_new_test_bed_at(int slotindex, const ArenaGrowthPolicy* growth_policy, SizeRange allocation_range) {
+  void create_new_test_bed_at(int slotindex, const ArenaGrowthPolicy* growth_policy, WordsRange allocation_range) {
     DEBUG_ONLY(_testbeds.check_slot_is_null(slotindex));
     MetaspaceArenaTestBed* bed = new MetaspaceArenaTestBed(&_context.cm(), growth_policy,
                                                        &_used_words_counter, allocation_range);
@@ -227,7 +227,7 @@ class MetaspaceArenaTest {
   }
 
   void create_random_test_bed_at(int slotindex) {
-    SizeRange allocation_range(1, 100); // randomize too?
+    WordsRange allocation_range(1_w, 100_w); // randomize too?
     const ArenaGrowthPolicy* growth_policy = ArenaGrowthPolicy::policy_for_space_type(
         (fifty_fifty() ? Metaspace::StandardMetaspaceType : Metaspace::ReflectionMetaspaceType),
          fifty_fifty());
@@ -340,8 +340,8 @@ class MetaspaceArenaTest {
     return sum;
   }
 
-  size_t get_total_words_allocated() const {
-    size_t sum = 0;
+  Words get_total_words_allocated() const {
+    Words sum = 0_w;
     for (int i = _testbeds.first_non_null_slot(); i != -1; i = _testbeds.next_non_null_slot(i)) {
       sum += _testbeds.at(i)->words_allocated();
     }
@@ -350,7 +350,7 @@ class MetaspaceArenaTest {
 
 public:
 
-  MetaspaceArenaTest(size_t commit_limit, int num_testbeds)
+  MetaspaceArenaTest(Words commit_limit, int num_testbeds)
     : _context(commit_limit),
       _testbeds(num_testbeds),
       _num_beds()
@@ -375,7 +375,7 @@ public:
     const int iterations = 2500;
 
     // Lets have a ceiling on number of words allocated (this is independent from the commit limit)
-    const size_t max_allocation_size = 8 * M;
+    const Words max_allocation_size = 8_w * M;
 
     bool force_bed_deletion = false;
 
@@ -419,20 +419,20 @@ public:
 
 // 32 parallel MetaspaceArena objects, random allocating without commit limit
 TEST_VM(metaspace, MetaspaceArena_random_allocs_32_beds_no_commit_limit) {
-  MetaspaceArenaTest test(max_uintx, 32);
+  MetaspaceArenaTest test(in_Words(max_uintx), 32);
   test.test();
 }
 
 // 32 parallel Metaspace arena objects, random allocating with commit limit
 TEST_VM(metaspace, MetaspaceArena_random_allocs_32_beds_with_commit_limit) {
-  MetaspaceArenaTest test(2 * M, 32);
+  MetaspaceArenaTest test(2_w * M, 32);
   test.test();
 }
 
 // A single MetaspaceArena, random allocating without commit limit. This should exercise
 //  chunk enlargement since allocation is undisturbed.
 TEST_VM(metaspace, MetaspaceArena_random_allocs_1_bed_no_commit_limit) {
-  MetaspaceArenaTest test(max_uintx, 1);
+  MetaspaceArenaTest test(in_Words(max_uintx), 1);
   test.test();
 }
 

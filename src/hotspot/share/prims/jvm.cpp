@@ -459,26 +459,26 @@ JVM_LEAF(jlong, JVM_MaxObjectInspectionAge(void))
 JVM_END
 
 
-static inline jlong convert_size_t_to_jlong(size_t val) {
+static inline jlong convert_size_t_to_jlong(Bytes val) {
   // In the 64-bit vm, a size_t can overflow a jlong (which is signed).
   NOT_LP64 (return (jlong)val;)
-  LP64_ONLY(return (jlong)MIN2(val, (size_t)max_jlong);)
+  LP64_ONLY(return (jlong)MIN2(untype(val), (size_t)max_jlong);)
 }
 
 JVM_ENTRY_NO_ENV(jlong, JVM_TotalMemory(void))
-  size_t n = Universe::heap()->capacity();
+  Bytes n = Universe::heap()->capacity();
   return convert_size_t_to_jlong(n);
 JVM_END
 
 
 JVM_ENTRY_NO_ENV(jlong, JVM_FreeMemory(void))
-  size_t n = Universe::heap()->unused();
+  Bytes n = Universe::heap()->unused();
   return convert_size_t_to_jlong(n);
 JVM_END
 
 
 JVM_ENTRY_NO_ENV(jlong, JVM_MaxMemory(void))
-  size_t n = Universe::heap()->max_capacity();
+  Bytes n = Universe::heap()->max_capacity();
   return convert_size_t_to_jlong(n);
 JVM_END
 
@@ -683,7 +683,7 @@ JVM_ENTRY(jobject, JVM_Clone(JNIEnv* env, jobject handle))
   }
 
   // Make shallow object copy
-  const size_t size = obj->size();
+  const Words size = obj->size();
   oop new_obj_oop = nullptr;
   if (obj->is_array()) {
     const int length = ((arrayOop)obj())->length();

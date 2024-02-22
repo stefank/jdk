@@ -32,14 +32,15 @@
 TEST_VM(NMT, ReservedRegionCopy) {
   address dummy1 = (address)0x10000000;
   NativeCallStack stack1(&dummy1, 1);
-  ReservedMemoryRegion region1(dummy1, os::vm_page_size(), stack1, mtThreadStack);
-  VirtualMemorySummary::record_reserved_memory(os::vm_page_size(), region1.flag());
-  region1.add_committed_region(dummy1, os::vm_page_size(), stack1);
+  Bytes page_size = in_Bytes(os::vm_page_size());
+  ReservedMemoryRegion region1(dummy1, page_size, stack1, mtThreadStack);
+  VirtualMemorySummary::record_reserved_memory(page_size, region1.flag());
+  region1.add_committed_region(dummy1, page_size, stack1);
   address dummy2 = (address)0x20000000;
   NativeCallStack stack2(&dummy2, 1);
-  ReservedMemoryRegion region2(dummy2, os::vm_page_size(), stack2, mtCode);
-  VirtualMemorySummary::record_reserved_memory(os::vm_page_size(), region2.flag());
-  region2.add_committed_region(dummy2, os::vm_page_size(), stack2);
+  ReservedMemoryRegion region2(dummy2, page_size, stack2, mtCode);
+  VirtualMemorySummary::record_reserved_memory(page_size, region2.flag());
+  region2.add_committed_region(dummy2, page_size, stack2);
 
   region2 = region1;
 

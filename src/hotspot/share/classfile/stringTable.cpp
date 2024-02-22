@@ -151,9 +151,9 @@ class StringTableConfig : public StackObj {
     return 0;
   }
   // We use default allocation/deallocation but counted
-  static void* allocate_node(void* context, size_t size, Value const& value) {
+  static void* allocate_node(void* context, Bytes size, Value const& value) {
     StringTable::item_added();
-    return AllocateHeap(size, mtSymbol);
+    return AllocateHeap(untype(size), mtSymbol);
   }
   static void free_node(void* context, void* memory, Value& value) {
     value.release(StringTable::_oop_storage);
@@ -597,27 +597,27 @@ void StringTable::rehash_table() {
 }
 
 // Statistics
-static size_t literal_size(oop obj) {
+static Bytes literal_size(oop obj) {
   if (obj == nullptr) {
-    return 0;
+    return Bytes(0);
   }
 
-  size_t word_size = obj->size();
+  Words word_size = obj->size();
 
   if (obj->klass() == vmClasses::String_klass()) {
     // This may overcount if String.value arrays are shared.
     word_size += java_lang_String::value(obj)->size();
   }
 
-  return word_size * HeapWordSize;
+  return to_Bytes(word_size);
 }
 
 struct SizeFunc : StackObj {
-  size_t operator()(WeakHandle* val) {
+  Bytes operator()(WeakHandle* val) {
     oop s = val->peek();
     if (s == nullptr) {
       // Dead
-      return 0;
+      return Bytes(0);
     }
     return literal_size(s);
   };
@@ -814,7 +814,7 @@ void StringTable::allocate_shared_strings_array(TRAPS) {
   }
 
   int total = (int)_items_count;
-  size_t single_array_size = objArrayOopDesc::object_size(total);
+  Words single_array_size = objArrayOopDesc::object_size(total);
 
   log_info(cds)("allocated string table for %d strings", total);
 
@@ -826,8 +826,8 @@ void StringTable::allocate_shared_strings_array(TRAPS) {
   } else {
     // Split the table in two levels of arrays.
     int primary_array_length = (total + _secondary_array_max_length - 1) / _secondary_array_max_length;
-    size_t primary_array_size = objArrayOopDesc::object_size(primary_array_length);
-    size_t secondary_array_size = objArrayOopDesc::object_size(_secondary_array_max_length);
+    Words primary_array_size = objArrayOopDesc::object_size(primary_array_length);
+    Words secondary_array_size = objArrayOopDesc::object_size(_secondary_array_max_length);
 
     if (ArchiveHeapWriter::is_too_large_to_archive(secondary_array_size)) {
       // This can only happen if you have an extremely large number of classes that
@@ -867,7 +867,7 @@ void StringTable::allocate_shared_strings_array(TRAPS) {
 void StringTable::verify_secondary_array_index_bits() {
   int max;
   for (max = 1; ; max++) {
-    size_t next_size = objArrayOopDesc::object_size(1 << (max + 1));
+    Words next_size = objArrayOopDesc::object_size(1 << (max + 1));
     if (ArchiveHeapWriter::is_too_large_to_archive(next_size)) {
       break;
     }

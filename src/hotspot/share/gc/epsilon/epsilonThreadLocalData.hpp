@@ -31,11 +31,11 @@
 
 class EpsilonThreadLocalData {
 private:
-  size_t _ergo_tlab_size;
+  Words _ergo_tlab_size;
   int64_t _last_tlab_time;
 
   EpsilonThreadLocalData() :
-          _ergo_tlab_size(0),
+          _ergo_tlab_size(Words(0)),
           _last_tlab_time(0) {}
 
   static EpsilonThreadLocalData* data(Thread* thread) {
@@ -52,7 +52,7 @@ public:
     data(thread)->~EpsilonThreadLocalData();
   }
 
-  static size_t ergo_tlab_size(Thread *thread) {
+  static Words ergo_tlab_size(Thread *thread) {
     return data(thread)->_ergo_tlab_size;
   }
 
@@ -60,7 +60,7 @@ public:
     return data(thread)->_last_tlab_time;
   }
 
-  static void set_ergo_tlab_size(Thread *thread, size_t val) {
+  static void set_ergo_tlab_size(Thread *thread, Words val) {
     data(thread)->_ergo_tlab_size = val;
   }
 

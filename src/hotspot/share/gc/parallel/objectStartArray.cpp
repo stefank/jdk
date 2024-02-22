@@ -30,17 +30,17 @@
 #include "runtime/java.hpp"
 #include "utilities/align.hpp"
 
-static size_t num_bytes_required(MemRegion mr) {
+static Bytes num_bytes_required(MemRegion mr) {
   assert(CardTable::is_card_aligned(mr.start()), "precondition");
   assert(CardTable::is_card_aligned(mr.end()), "precondition");
 
-  return mr.word_size() / BOTConstants::card_size_in_words();
+  return in_Bytes(mr.word_size() / in_Words(BOTConstants::card_size_in_words()));
 }
 
 void ObjectStartArray::initialize(MemRegion reserved_region) {
   // Calculate how much space must be reserved
-  size_t bytes_to_reserve = num_bytes_required(reserved_region);
-  assert(bytes_to_reserve > 0, "Sanity");
+  Bytes bytes_to_reserve = num_bytes_required(reserved_region);
+  assert(bytes_to_reserve > Bytes(0), "Sanity");
 
   bytes_to_reserve =
     align_up(bytes_to_reserve, os::vm_allocation_granularity());
@@ -64,11 +64,11 @@ void ObjectStartArray::initialize(MemRegion reserved_region) {
 void ObjectStartArray::set_covered_region(MemRegion mr) {
   DEBUG_ONLY(_covered_region = mr;)
 
-  size_t requested_size = num_bytes_required(mr);
+  Bytes requested_size = num_bytes_required(mr);
   // Only commit memory in page sized chunks
   requested_size = align_up(requested_size, os::vm_page_size());
 
-  size_t current_size = _virtual_space.committed_size();
+  Bytes current_size = _virtual_space.committed_size();
 
   if (requested_size == current_size) {
     return;
@@ -76,13 +76,13 @@ void ObjectStartArray::set_covered_region(MemRegion mr) {
 
   if (requested_size > current_size) {
     // Expand
-    size_t expand_by = requested_size - current_size;
+    Bytes expand_by = requested_size - current_size;
     if (!_virtual_space.expand_by(expand_by)) {
-      vm_exit_out_of_memory(expand_by, OOM_MMAP_ERROR, "object start array expansion");
+      vm_exit_out_of_memory(untype(expand_by), OOM_MMAP_ERROR, "object start array expansion");
     }
   } else {
     // Shrink
-    size_t shrink_by = current_size - requested_size;
+    Bytes shrink_by = current_size - requested_size;
     _virtual_space.shrink_by(shrink_by);
   }
 }

@@ -94,20 +94,20 @@ void XCollectedHeap::stop() {
   gc_threads_do(&cl);
 }
 
-size_t XCollectedHeap::max_capacity() const {
-  return _heap.max_capacity();
+Bytes XCollectedHeap::max_capacity() const {
+  return in_Bytes(_heap.max_capacity());
 }
 
-size_t XCollectedHeap::capacity() const {
-  return _heap.capacity();
+Bytes XCollectedHeap::capacity() const {
+  return in_Bytes(_heap.capacity());
 }
 
-size_t XCollectedHeap::used() const {
-  return _heap.used();
+Bytes XCollectedHeap::used() const {
+  return in_Bytes(_heap.used());
 }
 
-size_t XCollectedHeap::unused() const {
-  return _heap.unused();
+Bytes XCollectedHeap::unused() const {
+  return in_Bytes(_heap.unused());
 }
 
 bool XCollectedHeap::is_maximal_no_gc() const {
@@ -141,7 +141,7 @@ bool XCollectedHeap::requires_barriers(stackChunkOop obj) const {
   return false;
 }
 
-HeapWord* XCollectedHeap::allocate_new_tlab(size_t min_size, size_t requested_size, size_t* actual_size) {
+HeapWord* XCollectedHeap::allocate_new_tlab(Words min_size, Words requested_size, Words* actual_size) {
   const size_t size_in_bytes = XUtils::words_to_bytes(align_object_size(requested_size));
   const uintptr_t addr = _heap.alloc_tlab(size_in_bytes);
 
@@ -152,18 +152,18 @@ HeapWord* XCollectedHeap::allocate_new_tlab(size_t min_size, size_t requested_si
   return (HeapWord*)addr;
 }
 
-oop XCollectedHeap::array_allocate(Klass* klass, size_t size, int length, bool do_zero, TRAPS) {
+oop XCollectedHeap::array_allocate(Klass* klass, Words size, int length, bool do_zero, TRAPS) {
   XObjArrayAllocator allocator(klass, size, length, do_zero, THREAD);
   return allocator.allocate();
 }
 
-HeapWord* XCollectedHeap::mem_allocate(size_t size, bool* gc_overhead_limit_was_exceeded) {
+HeapWord* XCollectedHeap::mem_allocate(Words size, bool* gc_overhead_limit_was_exceeded) {
   const size_t size_in_bytes = XUtils::words_to_bytes(align_object_size(size));
   return (HeapWord*)_heap.alloc_object(size_in_bytes);
 }
 
 MetaWord* XCollectedHeap::satisfy_failed_metadata_allocation(ClassLoaderData* loader_data,
-                                                             size_t size,
+                                                             Words size,
                                                              Metaspace::MetadataType mdtype) {
   // Start asynchronous GC
   collect(GCCause::_metadata_GC_threshold);
@@ -199,20 +199,20 @@ void XCollectedHeap::do_full_collection(bool clear_all_soft_refs) {
   ShouldNotReachHere();
 }
 
-size_t XCollectedHeap::tlab_capacity(Thread* ignored) const {
-  return _heap.tlab_capacity();
+Bytes XCollectedHeap::tlab_capacity(Thread* ignored) const {
+  return in_Bytes(_heap.tlab_capacity());
 }
 
-size_t XCollectedHeap::tlab_used(Thread* ignored) const {
-  return _heap.tlab_used();
+Bytes XCollectedHeap::tlab_used(Thread* ignored) const {
+  return in_Bytes(_heap.tlab_used());
 }
 
-size_t XCollectedHeap::max_tlab_size() const {
-  return _heap.max_tlab_size();
+Words XCollectedHeap::max_tlab_size() const {
+  return in_Words(_heap.max_tlab_size());
 }
 
-size_t XCollectedHeap::unsafe_max_tlab_alloc(Thread* ignored) const {
-  return _heap.unsafe_max_tlab_alloc();
+Bytes XCollectedHeap::unsafe_max_tlab_alloc(Thread* ignored) const {
+  return in_Bytes(_heap.unsafe_max_tlab_alloc());
 }
 
 bool XCollectedHeap::uses_stack_watermark_barrier() const {

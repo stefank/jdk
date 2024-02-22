@@ -95,7 +95,7 @@ class ChunkManager : public CHeapObj<mtMetaspace> {
   //  chunks.
   void split_chunk_and_add_splinters(Metachunk* c, chunklevel_t target_level);
 
-  Metachunk* get_chunk_locked(chunklevel_t preferred_level, chunklevel_t max_level, size_t min_committed_words);
+  Metachunk* get_chunk_locked(chunklevel_t preferred_level, chunklevel_t max_level, Words min_committed_words);
 
   // Return a single chunk to the freelist without doing any merging, and adjust accounting.
   void return_chunk_simple_locked(Metachunk* c);
@@ -104,7 +104,7 @@ class ChunkManager : public CHeapObj<mtMetaspace> {
   void return_chunk_locked(Metachunk* c);
 
   // Calculates the total number of committed words over all chunks. Walks chunks.
-  size_t calc_committed_word_size_locked() const;
+  Words calc_committed_word_size_locked() const;
 
 public:
 
@@ -122,10 +122,10 @@ public:
   //   is non-expandable but needs expanding - aka out of compressed class space).
   // - Or, if the necessary space cannot be committed because we hit a commit limit.
   //   This may be either the GC threshold or MaxMetaspaceSize.
-  Metachunk* get_chunk(chunklevel_t preferred_level, chunklevel_t max_level, size_t min_committed_words);
+  Metachunk* get_chunk(chunklevel_t preferred_level, chunklevel_t max_level, Words min_committed_words);
 
   // Convenience function - get a chunk of a given level, uncommitted.
-  Metachunk* get_chunk(chunklevel_t lvl) { return get_chunk(lvl, lvl, 0); }
+  Metachunk* get_chunk(chunklevel_t lvl) { return get_chunk(lvl, lvl, Words(0)); }
 
   // Return a single chunk to the ChunkManager and adjust accounting. May merge chunk
   //  with neighbors.
@@ -161,10 +161,10 @@ public:
   int total_num_chunks() const              { return _chunks.num_chunks(); }
 
   // Returns number of words in all free chunks (regardless of commit state).
-  size_t total_word_size() const            { return _chunks.word_size(); }
+  Words total_word_size() const            { return _chunks.word_size(); }
 
   // Calculates the total number of committed words over all chunks. Walks chunks.
-  size_t calc_committed_word_size() const;
+  Words calc_committed_word_size() const;
 
   // Update statistics.
   void add_to_statistics(ChunkManagerStats* out) const;

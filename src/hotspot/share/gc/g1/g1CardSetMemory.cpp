@@ -54,16 +54,16 @@ void G1CardSetAllocator::drop_all() {
   _arena.drop_all();
 }
 
-size_t G1CardSetAllocator::mem_size() const {
-  return sizeof(*this) +
-         num_segments() * sizeof(Segment) +
-         _arena.num_total_slots() * _arena.slot_size();
+Bytes G1CardSetAllocator::mem_size() const {
+  return in_Bytes(sizeof(*this)) +
+         in_Bytes(num_segments() * sizeof(Segment)) +
+         in_Bytes(_arena.num_total_slots() * _arena.slot_size());
 }
 
-size_t G1CardSetAllocator::unused_mem_size() const {
+Bytes G1CardSetAllocator::unused_mem_size() const {
   uint num_unused_slots = (_arena.num_total_slots() - _arena.num_allocated_slots()) +
                           (uint)_free_slots_list.free_count();
-  return num_unused_slots * _arena.slot_size();
+  return in_Bytes(num_unused_slots * _arena.slot_size());
 }
 
 uint G1CardSetAllocator::num_segments() const {
@@ -106,17 +106,17 @@ void G1CardSetMemoryManager::flush() {
   }
 }
 
-size_t G1CardSetMemoryManager::mem_size() const {
-  size_t result = 0;
+Bytes G1CardSetMemoryManager::mem_size() const {
+  Bytes result = Bytes(0);
   for (uint i = 0; i < num_mem_object_types(); i++) {
     result += _allocators[i].mem_size();
   }
-  return sizeof(*this) + result -
-    (sizeof(G1CardSetAllocator) * num_mem_object_types());
+  return in_Bytes(sizeof(*this)) + result -
+    in_Bytes(sizeof(G1CardSetAllocator) * num_mem_object_types());
 }
 
-size_t G1CardSetMemoryManager::unused_mem_size() const {
-  size_t result = 0;
+Bytes G1CardSetMemoryManager::unused_mem_size() const {
+  Bytes result = Bytes(0);
   for (uint i = 0; i < num_mem_object_types(); i++) {
     result += _allocators[i].unused_mem_size();
   }

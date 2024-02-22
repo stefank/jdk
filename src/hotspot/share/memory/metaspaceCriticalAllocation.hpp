@@ -78,7 +78,7 @@ class MetaspaceCriticalAllocation : public AllStatic {
 public:
   static void block_if_concurrent_purge();
   static void process();
-  static MetaWord* allocate(ClassLoaderData* loader_data, size_t word_size, Metaspace::MetadataType type);
+  static MetaWord* allocate(ClassLoaderData* loader_data, Words word_size, Metaspace::MetadataType type);
 };
 
 #endif // SHARE_MEMORY_METASPACECRITICALALLOCATION_HPP

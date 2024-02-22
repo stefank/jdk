@@ -61,12 +61,12 @@ typedef signed char chunklevel_t;
 
 namespace chunklevel {
 
-static const size_t   MAX_CHUNK_BYTE_SIZE    = 16 * M;
+static const Bytes    MAX_CHUNK_BYTE_SIZE    = in_Bytes(16 * M);
 static const int      NUM_CHUNK_LEVELS       = 15;
-static const size_t   MIN_CHUNK_BYTE_SIZE    = (MAX_CHUNK_BYTE_SIZE >> ((size_t)NUM_CHUNK_LEVELS - 1));
+static const Bytes    MIN_CHUNK_BYTE_SIZE    = in_Bytes((untype(MAX_CHUNK_BYTE_SIZE) >> ((size_t)NUM_CHUNK_LEVELS - 1)));
 
-static const size_t   MIN_CHUNK_WORD_SIZE    = MIN_CHUNK_BYTE_SIZE / sizeof(MetaWord);
-static const size_t   MAX_CHUNK_WORD_SIZE    = MAX_CHUNK_BYTE_SIZE / sizeof(MetaWord);
+static const Words    MIN_CHUNK_WORD_SIZE    = to_Words(MIN_CHUNK_BYTE_SIZE);
+static const Words    MAX_CHUNK_WORD_SIZE    = to_Words(MAX_CHUNK_BYTE_SIZE);
 
 static const chunklevel_t ROOT_CHUNK_LEVEL       = 0;
 
@@ -85,14 +85,14 @@ inline void check_valid_level(chunklevel_t lvl) {
 }
 
 // Given a level return the chunk size, in words.
-inline size_t word_size_for_level(chunklevel_t level) {
-  return (MAX_CHUNK_BYTE_SIZE >> level) / BytesPerWord;
+inline Words word_size_for_level(chunklevel_t level) {
+  return to_Words(in_Bytes(untype(MAX_CHUNK_BYTE_SIZE) >> level));
 }
 
 // Given an arbitrary word size smaller than the highest chunk size,
 // return the highest chunk level able to hold this size.
 // Returns INVALID_CHUNK_LEVEL if no fitting level can be found.
-chunklevel_t level_fitting_word_size(size_t word_size);
+chunklevel_t level_fitting_word_size(Words word_size);
 
 // Shorthands to refer to exact sizes
 static const chunklevel_t CHUNK_LEVEL_16M =    ROOT_CHUNK_LEVEL;

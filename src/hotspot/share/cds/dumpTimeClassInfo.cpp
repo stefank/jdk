@@ -42,7 +42,7 @@ DumpTimeClassInfo::~DumpTimeClassInfo() {
   }
 }
 
-size_t DumpTimeClassInfo::runtime_info_bytesize() const {
+Bytes DumpTimeClassInfo::runtime_info_bytesize() const {
   return RunTimeClassInfo::byte_size(_klass, num_verifier_constraints(),
                                      num_loader_constraints(),
                                      num_enum_klass_static_fields());

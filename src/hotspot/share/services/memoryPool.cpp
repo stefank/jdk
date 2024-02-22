@@ -44,8 +44,8 @@
 
 MemoryPool::MemoryPool(const char* name,
                        PoolType type,
-                       size_t init_size,
-                       size_t max_size,
+                       Bytes init_size,
+                       Bytes max_size,
                        bool support_usage_threshold,
                        bool support_gc_threshold) :
   _name(name),
@@ -56,7 +56,7 @@ MemoryPool::MemoryPool(const char* name,
   _managers(),
   _num_managers(0),
   _peak_usage(),
-  _after_gc_usage(init_size, 0, 0, max_size),
+  _after_gc_usage(init_size, Bytes(0), Bytes(0), max_size),
   // usage threshold supports both high and low threshold
   _usage_threshold(new ThresholdSupport(support_usage_threshold, support_usage_threshold)),
   // gc usage threshold supports only high threshold
@@ -150,7 +150,7 @@ instanceOop MemoryPool::get_memory_pool_instance(TRAPS) {
   return (instanceOop)_memory_pool_obj.resolve();
 }
 
-inline static size_t get_max_value(size_t val1, size_t val2) {
+inline static Bytes get_max_value(Bytes val1, Bytes val2) {
     return (val1 > val2 ? val1 : val2);
 }
 
@@ -158,9 +158,9 @@ void MemoryPool::record_peak_memory_usage() {
   // Caller in JDK is responsible for synchronization -
   // acquire the lock for this memory pool before calling VM
   MemoryUsage usage = get_memory_usage();
-  size_t peak_used = get_max_value(usage.used(), _peak_usage.used());
-  size_t peak_committed = get_max_value(usage.committed(), _peak_usage.committed());
-  size_t peak_max_size = get_max_value(usage.max_size(), _peak_usage.max_size());
+  Bytes peak_used = get_max_value(usage.used(), _peak_usage.used());
+  Bytes peak_committed = get_max_value(usage.committed(), _peak_usage.committed());
+  Bytes peak_max_size = get_max_value(usage.max_size(), _peak_usage.max_size());
 
   _peak_usage = MemoryUsage(initial_size(), peak_used, peak_committed, peak_max_size);
 }
@@ -186,35 +186,35 @@ CodeHeapPool::CodeHeapPool(CodeHeap* codeHeap, const char* name, bool support_us
 }
 
 MemoryUsage CodeHeapPool::get_memory_usage() {
-  size_t used      = used_in_bytes();
+  Bytes used      = used_in_bytes();
   OrderAccess::acquire(); // ensure possible cache expansion in CodeCache::allocate is seen
-  size_t committed = _codeHeap->capacity();
-  size_t maxSize   = (available_for_allocation() ? max_size() : 0);
+  Bytes committed = _codeHeap->capacity();
+  Bytes maxSize   = (available_for_allocation() ? max_size() : Bytes(0));
 
   return MemoryUsage(initial_size(), used, committed, maxSize);
 }
 
 MetaspacePool::MetaspacePool() :
-  MemoryPool("Metaspace", NonHeap, 0, calculate_max_size(), true, false) { }
+  MemoryPool("Metaspace", NonHeap, Bytes(0), calculate_max_size(), true, false) { }
 
 MemoryUsage MetaspacePool::get_memory_usage() {
   MetaspaceCombinedStats stats = MetaspaceUtils::get_combined_statistics();
   return MemoryUsage(initial_size(), stats.used(), stats.committed(), max_size());
 }
 
-size_t MetaspacePool::used_in_bytes() {
+Bytes MetaspacePool::used_in_bytes() {
   return MetaspaceUtils::used_bytes();
 }
 
-size_t MetaspacePool::calculate_max_size() const {
-  return !FLAG_IS_DEFAULT(MaxMetaspaceSize) ? MaxMetaspaceSize :
+Bytes MetaspacePool::calculate_max_size() const {
+  return !FLAG_IS_DEFAULT(MaxMetaspaceSize) ? in_Bytes(MaxMetaspaceSize) :
                                               MemoryUsage::undefined_size();
 }
 
 CompressedKlassSpacePool::CompressedKlassSpacePool() :
-  MemoryPool("Compressed Class Space", NonHeap, 0, CompressedClassSpaceSize, true, false) { }
+  MemoryPool("Compressed Class Space", NonHeap, Bytes(0), in_Bytes(CompressedClassSpaceSize), true, false) { }
 
-size_t CompressedKlassSpacePool::used_in_bytes() {
+Bytes CompressedKlassSpacePool::used_in_bytes() {
   return MetaspaceUtils::used_bytes(Metaspace::ClassType);
 }
 

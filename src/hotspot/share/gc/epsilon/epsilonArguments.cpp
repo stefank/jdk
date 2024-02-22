@@ -31,8 +31,8 @@
 #include "runtime/globals.hpp"
 #include "runtime/globals_extension.hpp"
 
-size_t EpsilonArguments::conservative_max_heap_alignment() {
-  return UseLargePages ? os::large_page_size() : os::vm_page_size();
+Bytes EpsilonArguments::conservative_max_heap_alignment() {
+  return in_Bytes(UseLargePages ? os::large_page_size() : os::vm_page_size());
 }
 
 void EpsilonArguments::initialize() {
@@ -67,8 +67,8 @@ void EpsilonArguments::initialize() {
 }
 
 void EpsilonArguments::initialize_alignments() {
-  size_t page_size = UseLargePages ? os::large_page_size() : os::vm_page_size();
-  size_t align = MAX2(os::vm_allocation_granularity(), page_size);
+  Bytes page_size = in_Bytes(UseLargePages ? os::large_page_size() : os::vm_page_size());
+  Bytes align = MAX2(in_Bytes(os::vm_allocation_granularity()), page_size);
   SpaceAlignment = align;
   HeapAlignment  = align;
 }

@@ -429,7 +429,7 @@ public:
 };
 
 template <DecoratorSet decorators, typename BarrierSetT>
-inline void ZBarrierSet::AccessBarrier<decorators, BarrierSetT>::clone_in_heap(oop src, oop dst, size_t size) {
+inline void ZBarrierSet::AccessBarrier<decorators, BarrierSetT>::clone_in_heap(oop src, oop dst, Words size) {
   assert_is_valid(to_zaddress(src));
 
   if (dst->is_objArray()) {

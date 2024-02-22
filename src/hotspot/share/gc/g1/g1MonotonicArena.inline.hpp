@@ -48,7 +48,7 @@ inline G1MonotonicArena::Segment* G1MonotonicArena::SegmentFreeList::get() {
   Segment* result = _list.pop();
   if (result != nullptr) {
     Atomic::dec(&_num_segments, memory_order_relaxed);
-    Atomic::sub(&_mem_size, result->mem_size(), memory_order_relaxed);
+    Atomic::sub((volatile size_t*)&_mem_size, untype(result->mem_size()), memory_order_relaxed);
   }
   return result;
 }

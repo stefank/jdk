@@ -121,14 +121,14 @@ public:
     return static_cast<InstanceStackChunkKlass*>(k);
   }
 
-  inline size_t instance_size(size_t stack_size_in_words) const;
+  inline Words instance_size(Words stack_size_in_words) const;
 
-  static inline size_t bitmap_size_in_bits(size_t stack_size_in_words); // In bits
-  static inline size_t bitmap_size(size_t stack_size_in_words); // In words
-  static inline size_t gc_data_size(size_t stack_size_in_words); // In words
+  static inline size_t bitmap_size_in_bits(Words stack_size_in_words); // In bits
+  static inline Words bitmap_size(Words stack_size_in_words); // In words
+  static inline Words gc_data_size(Words stack_size_in_words); // In words
 
   // Returns the size of the instance including the stack data.
-  virtual size_t oop_size(oop obj) const override;
+  virtual Words oop_size(oop obj) const override;
 
   static void serialize_offsets(class SerializeClosure* f) NOT_CDS_RETURN;
 

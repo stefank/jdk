@@ -253,8 +253,8 @@ inline void G1CardSetBitMap::iterate(CardVisitor& found, size_t size_in_bits, ui
   bm.iterate([&](BitMap::idx_t idx) { found(offset | (uint)idx); });
 }
 
-inline size_t G1CardSetBitMap::header_size_in_bytes() {
-    return offset_of(G1CardSetBitMap, _bits);
+inline Bytes G1CardSetBitMap::header_size_in_bytes() {
+    return (Bytes)offset_of(G1CardSetBitMap, _bits);
 }
 
 inline G1CardSetHowl::G1CardSetHowl(EntryCountType card_in_region, G1CardSetConfiguration* config) :
@@ -345,11 +345,11 @@ inline void G1CardSetHowl::iterate_cardset(ContainerPtr const container, uint in
 }
 
 inline G1CardSetHowl::EntryCountType G1CardSetHowl::num_buckets(size_t size_in_bits, size_t max_cards_in_array, size_t max_num_buckets) {
-  size_t size_bitmap_bytes = BitMap::calc_size_in_words(size_in_bits) * BytesPerWord;
+  Bytes size_bitmap_bytes = to_Bytes(BitMap::calc_size_in_words(size_in_bits));
   // Ensure that in the worst case arrays consume half the memory size
   // of storing the entire bitmap
-  size_t max_size_arrays_bytes = size_bitmap_bytes / 2;
-  size_t size_array_bytes = max_cards_in_array * sizeof(G1CardSetArray::EntryDataType);
+  Bytes max_size_arrays_bytes = size_bitmap_bytes / 2;
+  Bytes size_array_bytes = Bytes(max_cards_in_array * sizeof(G1CardSetArray::EntryDataType));
   size_t num_arrays = max_size_arrays_bytes / size_array_bytes;
   // We use shifts and masks for indexing the array. So round down to the next
   // power of two to not use more than expected memory.

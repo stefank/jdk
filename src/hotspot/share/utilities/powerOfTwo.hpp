@@ -47,6 +47,11 @@ constexpr bool is_power_of_2(T value) {
   return (value > T(0)) && ((value & (value - 1)) == T(0));
 }
 
+template <typename T, ENABLE_IF(std::is_enum<T>::value)>
+constexpr bool is_power_of_2(T value) {
+  typedef std::underlying_type_t<T> U;
+  return (value > T(0)) && (T(U(value) & (U(value) - U(1))) == T(0));
+}
 // Log2 of a positive, integral value, i.e., largest i such that 2^i <= value
 // Precondition: value > 0
 template<typename T, ENABLE_IF(std::is_integral<T>::value)>

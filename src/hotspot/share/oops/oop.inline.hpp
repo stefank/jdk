@@ -149,13 +149,13 @@ bool oopDesc::is_a(Klass* k) const {
   return klass()->is_subtype_of(k);
 }
 
-size_t oopDesc::size()  {
+Words oopDesc::size()  {
   return size_given_klass(klass());
 }
 
-size_t oopDesc::size_given_klass(Klass* klass)  {
+Words oopDesc::size_given_klass(Klass* klass)  {
   int lh = klass->layout_helper();
-  size_t s;
+  Words s;
 
   // lh is now a value computed at class initialization that may hint
   // at the size.  For instances, this is positive and equal to the
@@ -170,7 +170,7 @@ size_t oopDesc::size_given_klass(Klass* klass)  {
 
   if (lh > Klass::_lh_neutral_value) {
     if (!Klass::layout_helper_needs_slow_path(lh)) {
-      s = lh >> LogHeapWordSize;  // deliver size scaled by wordSize
+      s = in_Words(lh >> LogHeapWordSize);  // deliver size scaled by wordSize
     } else {
       s = klass->oop_size(this);
     }
@@ -188,7 +188,7 @@ size_t oopDesc::size_given_klass(Klass* klass)  {
       // This code could be simplified, but by keeping array_header_in_bytes
       // in units of bytes and doing it this way we can round up just once,
       // skipping the intermediate round to HeapWordSize.
-      s = align_up(size_in_bytes, MinObjAlignmentInBytes) / HeapWordSize;
+      s = in_Words(align_up(size_in_bytes, MinObjAlignmentInBytes) / HeapWordSize);
 
       assert(s == klass->oop_size(this) || size_might_change(), "wrong array object size");
     } else {
@@ -197,7 +197,7 @@ size_t oopDesc::size_given_klass(Klass* klass)  {
     }
   }
 
-  assert(s > 0, "Oop size must be greater than zero, not " SIZE_FORMAT, s);
+  assert(s > Words(0), "Oop size must be greater than zero, not " SIZE_FORMAT, s);
   assert(is_object_aligned(s), "Oop size is not properly aligned: " SIZE_FORMAT, s);
   return s;
 }
@@ -326,17 +326,17 @@ void oopDesc::oop_iterate(OopClosureType* cl, MemRegion mr) {
 }
 
 template <typename OopClosureType>
-size_t oopDesc::oop_iterate_size(OopClosureType* cl) {
+Words oopDesc::oop_iterate_size(OopClosureType* cl) {
   Klass* k = klass();
-  size_t size = size_given_klass(k);
+  Words size = size_given_klass(k);
   OopIteratorClosureDispatch::oop_oop_iterate(cl, this, k);
   return size;
 }
 
 template <typename OopClosureType>
-size_t oopDesc::oop_iterate_size(OopClosureType* cl, MemRegion mr) {
+Words oopDesc::oop_iterate_size(OopClosureType* cl, MemRegion mr) {
   Klass* k = klass();
-  size_t size = size_given_klass(k);
+  Words size = size_given_klass(k);
   OopIteratorClosureDispatch::oop_oop_iterate(cl, this, k, mr);
   return size;
 }

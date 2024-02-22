@@ -61,7 +61,7 @@ class G1CodeRootSet {
   size_t length() const;
 
   // Memory size in bytes taken by this set.
-  size_t mem_size();
+  Bytes mem_size();
 };
 
 #endif // SHARE_GC_G1_G1CODEROOTSET_HPP

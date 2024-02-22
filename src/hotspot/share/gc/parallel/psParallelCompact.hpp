@@ -123,7 +123,7 @@ public:
 
   // The index of the split region, the size of the partial object on that
   // region and the destination of the partial object.
-  size_t    partial_obj_size() const { return _partial_obj_size; }
+  Words     partial_obj_size() const { return _partial_obj_size; }
   HeapWord* destination() const      { return _destination; }
 
   // The destination count of the partial object referenced by this split
@@ -142,7 +142,7 @@ public:
   HeapWord* first_src_addr() const       { return _first_src_addr; }
 
   // Record the data necessary to split the region src_region_idx.
-  void record(size_t src_region_idx, size_t partial_obj_size,
+  void record(size_t src_region_idx, Words partial_obj_size,
               HeapWord* destination);
 
   void clear();
@@ -151,7 +151,7 @@ public:
 
 private:
   size_t       _src_region_idx;
-  size_t       _partial_obj_size;
+  Words        _partial_obj_size;
   HeapWord*    _destination;
   unsigned int _destination_count;
   HeapWord*    _dest_region_addr;
@@ -204,8 +204,8 @@ class ParallelCompactData
 public:
   // Sizes are in HeapWords, unless indicated otherwise.
   static const size_t Log2RegionSize;
-  static const size_t RegionSize;
-  static const size_t RegionSizeBytes;
+  static const Words  RegionSize;
+  static const Bytes  RegionSizeBytes;
 
   // Mask for the bits in a size_t to get an offset within a region.
   static const size_t RegionSizeOffsetMask;
@@ -215,8 +215,8 @@ public:
   static const size_t RegionAddrMask;
 
   static const size_t Log2BlockSize;
-  static const size_t BlockSize;
-  static const size_t BlockSizeBytes;
+  static const Words  BlockSize;
+  static const Bytes  BlockSizeBytes;
 
   static const size_t BlockSizeOffsetMask;
   static const size_t BlockAddrOffsetMask;
@@ -241,16 +241,16 @@ public:
     HeapWord* partial_obj_addr() const { return _partial_obj_addr; }
 
     // Size of the partial object extending onto the region (words).
-    size_t partial_obj_size() const { return _partial_obj_size; }
+    Words partial_obj_size() const { return in_Words(_partial_obj_size); }
 
     // Size of live data that lies within this region due to objects that start
     // in this region (words).  This does not include the partial object
     // extending onto the region (if any), or the part of an object that extends
     // onto the next region (if any).
-    size_t live_obj_size() const { return _dc_and_los & los_mask; }
+    Words live_obj_size() const { return in_Words(_dc_and_los & los_mask); }
 
     // Total live data that lies within the region (words).
-    size_t data_size() const { return partial_obj_size() + live_obj_size(); }
+    Words data_size() const { return partial_obj_size() + live_obj_size(); }
 
     // The destination_count is the number of other regions to which data from
     // this region will be copied.  At the end of the summary phase, the valid
@@ -297,19 +297,19 @@ public:
     void set_source_region(size_t region)      { _source_region = region; }
     void set_shadow_region(size_t region)      { _source_region = region; }
     void set_partial_obj_addr(HeapWord* addr)  { _partial_obj_addr = addr; }
-    void set_partial_obj_size(size_t words)    {
+    void set_partial_obj_size(Words words)    {
       _partial_obj_size = (region_sz_t) words;
     }
     inline void set_blocks_filled();
 
     inline void set_destination_count(uint count);
-    inline void set_live_obj_size(size_t words);
+    inline void set_live_obj_size(Words words);
     inline void set_data_location(HeapWord* addr);
     inline void set_completed();
     inline bool claim_unsafe();
 
     // These are atomic.
-    inline void add_live_obj(size_t words);
+    inline void add_live_obj(Words words);
     inline void decrement_destination_count();
     inline bool claim();
 
@@ -386,7 +386,7 @@ public:
     typedef unsigned short int blk_ofs_t;
 
     blk_ofs_t offset() const    { return _offset; }
-    void set_offset(size_t val) { _offset = (blk_ofs_t)val; }
+    void set_offset(Words val) { _offset = checked_cast<blk_ofs_t>(val); }
 
   private:
     blk_ofs_t _offset;
@@ -397,7 +397,7 @@ public:
   bool initialize(MemRegion reserved_heap);
 
   size_t region_count() const { return _region_count; }
-  size_t reserved_byte_size() const { return _reserved_byte_size; }
+  Bytes reserved_byte_size() const { return _reserved_byte_size; }
 
   // Convert region indices to/from RegionData pointers.
   inline RegionData* region(size_t region_idx) const;
@@ -407,8 +407,8 @@ public:
   inline BlockData* block(size_t block_idx) const;
   inline size_t     block(const BlockData* block_ptr) const;
 
-  void add_obj(HeapWord* addr, size_t len);
-  void add_obj(oop p, size_t len) { add_obj(cast_from_oop<HeapWord*>(p), len); }
+  void add_obj(HeapWord* addr, Words len);
+  void add_obj(oop p, Words len) { add_obj(cast_from_oop<HeapWord*>(p), len); }
 
   // Fill in the regions covering [beg, end) so that no data moves; i.e., the
   // destination of region n is simply the start of region n.  Both arguments
@@ -432,7 +432,7 @@ public:
 
   // Return the number of words between addr and the start of the region
   // containing addr.
-  inline size_t     region_offset(const HeapWord* addr) const;
+  inline Words      region_offset(const HeapWord* addr) const;
 
   // Convert addresses to/from a region index or region pointer.
   inline size_t     addr_to_region_idx(const HeapWord* addr) const;
@@ -466,8 +466,8 @@ public:
 
 private:
   bool initialize_block_data();
-  bool initialize_region_data(size_t heap_size);
-  PSVirtualSpace* create_vspace(size_t count, size_t element_size);
+  bool initialize_region_data(Words heap_size);
+  PSVirtualSpace* create_vspace(size_t count, Bytes element_size);
 
   HeapWord*       _heap_start;
 #ifdef  ASSERT
@@ -475,7 +475,7 @@ private:
 #endif  // #ifdef ASSERT
 
   PSVirtualSpace* _region_vspace;
-  size_t          _reserved_byte_size;
+  Bytes           _reserved_byte_size;
   RegionData*     _region_data;
   size_t          _region_count;
 
@@ -529,9 +529,9 @@ ParallelCompactData::RegionData::set_destination_count(uint count)
   _dc_and_los = (count << dc_shift) | live_sz;
 }
 
-inline void ParallelCompactData::RegionData::set_live_obj_size(size_t words)
+inline void ParallelCompactData::RegionData::set_live_obj_size(Words words)
 {
-  assert(words <= los_mask, "would overflow");
+  assert(words <= (Words)los_mask, "would overflow");
   _dc_and_los = destination_count_raw() | (region_sz_t)words;
 }
 
@@ -570,9 +570,9 @@ inline bool ParallelCompactData::RegionData::claim_unsafe()
   return false;
 }
 
-inline void ParallelCompactData::RegionData::add_live_obj(size_t words)
+inline void ParallelCompactData::RegionData::add_live_obj(Words words)
 {
-  assert(words <= (size_t)los_mask - live_obj_size(), "overflow");
+  assert(words <= (Words)los_mask - live_obj_size(), "overflow");
   Atomic::add(&_dc_and_los, static_cast<region_sz_t>(words));
 }
 
@@ -627,13 +627,13 @@ ParallelCompactData::block(size_t n) const {
   return _block_data + n;
 }
 
-inline size_t
+inline Words
 ParallelCompactData::region_offset(const HeapWord* addr) const
 {
   assert(addr >= _heap_start, "bad addr");
   // would mistakenly return 0 for _region_end
   assert(addr < _heap_end, "bad addr");
-  return (size_t(addr) & RegionAddrOffsetMask) >> LogHeapWordSize;
+  return Words((size_t(addr) & RegionAddrOffsetMask) >> LogHeapWordSize);
 }
 
 inline size_t
@@ -641,7 +641,7 @@ ParallelCompactData::addr_to_region_idx(const HeapWord* addr) const
 {
   assert(addr >= _heap_start, "bad addr " PTR_FORMAT " _region_start " PTR_FORMAT, p2i(addr), p2i(_heap_start));
   assert(addr <= _heap_end, "bad addr " PTR_FORMAT " _region_end " PTR_FORMAT, p2i(addr), p2i(_heap_end));
-  return pointer_delta(addr, _heap_start) >> Log2RegionSize;
+  return untype(pointer_delta(addr, _heap_start)) >> Log2RegionSize;
 }
 
 inline ParallelCompactData::RegionData*
@@ -691,7 +691,7 @@ ParallelCompactData::addr_to_block_idx(const HeapWord* addr) const
 {
   assert(addr >= _heap_start, "bad addr");
   assert(addr <= _heap_end, "bad addr");
-  return pointer_delta(addr, _heap_start) >> Log2BlockSize;
+  return untype(pointer_delta(addr, _heap_start)) >> Log2BlockSize;
 }
 
 inline ParallelCompactData::BlockData*
@@ -726,26 +726,26 @@ class ParMarkBitMapClosure: public StackObj {
 
  public:
   inline ParMarkBitMapClosure(ParMarkBitMap* mbm, ParCompactionManager* cm,
-                              size_t words = max_uintx);
+                              Words words = in_Words(max_uintx));
 
   inline ParCompactionManager* compaction_manager() const;
   inline ParMarkBitMap*        bitmap() const;
-  inline size_t                words_remaining() const;
+  inline Words                 words_remaining() const;
   inline bool                  is_full() const;
   inline HeapWord*             source() const;
 
   inline void                  set_source(HeapWord* addr);
 
-  virtual IterationStatus do_addr(HeapWord* addr, size_t words) = 0;
+  virtual IterationStatus do_addr(HeapWord* addr, Words words) = 0;
 
  protected:
-  inline void decrement_words_remaining(size_t words);
+  inline void decrement_words_remaining(Words words);
 
  private:
   ParMarkBitMap* const        _bitmap;
   ParCompactionManager* const _compaction_manager;
-  DEBUG_ONLY(const size_t     _initial_words_remaining;) // Useful in debugger.
-  size_t                      _words_remaining; // Words left to copy.
+  DEBUG_ONLY(const Words      _initial_words_remaining;) // Useful in debugger.
+  Words                       _words_remaining; // Words left to copy.
 
  protected:
   HeapWord*                   _source;          // Next addr that would be read.
@@ -754,7 +754,7 @@ class ParMarkBitMapClosure: public StackObj {
 inline
 ParMarkBitMapClosure::ParMarkBitMapClosure(ParMarkBitMap* bitmap,
                                            ParCompactionManager* cm,
-                                           size_t words):
+                                           Words words):
   _bitmap(bitmap), _compaction_manager(cm)
 #ifdef  ASSERT
   , _initial_words_remaining(words)
@@ -772,12 +772,12 @@ inline ParMarkBitMap* ParMarkBitMapClosure::bitmap() const {
   return _bitmap;
 }
 
-inline size_t ParMarkBitMapClosure::words_remaining() const {
+inline Words ParMarkBitMapClosure::words_remaining() const {
   return _words_remaining;
 }
 
 inline bool ParMarkBitMapClosure::is_full() const {
-  return words_remaining() == 0;
+  return words_remaining() == Words(0);
 }
 
 inline HeapWord* ParMarkBitMapClosure::source() const {
@@ -788,7 +788,7 @@ inline void ParMarkBitMapClosure::set_source(HeapWord* addr) {
   _source = addr;
 }
 
-inline void ParMarkBitMapClosure::decrement_words_remaining(size_t words) {
+inline void ParMarkBitMapClosure::decrement_words_remaining(Words words) {
   assert(_words_remaining >= words, "processed too many words");
   _words_remaining -= words;
 }
@@ -998,7 +998,7 @@ class PSParallelCompact : AllStatic {
   // region in the space that is not completely live.
   static RegionData* dead_wood_limit_region(const RegionData* beg,
                                             const RegionData* end,
-                                            size_t dead_words);
+                                            Words dead_words);
 
   // Return a pointer to the first region in the range [beg, end) that is not
   // completely full.
@@ -1110,7 +1110,7 @@ class PSParallelCompact : AllStatic {
                                                   size_t region_index_end);
 
   // Return the address of the count + 1st live word in the range [beg, end).
-  static HeapWord* skip_live_words(HeapWord* beg, HeapWord* end, size_t count);
+  static HeapWord* skip_live_words(HeapWord* beg, HeapWord* end, Words count);
 
   // Return the address of the word to be copied to dest_addr, which must be
   // aligned to a region boundary.
@@ -1189,7 +1189,7 @@ class PSParallelCompact : AllStatic {
 };
 
 class MoveAndUpdateClosure: public ParMarkBitMapClosure {
-  static inline size_t calculate_words_remaining(size_t region);
+  static inline Words calculate_words_remaining(size_t region);
  public:
   inline MoveAndUpdateClosure(ParMarkBitMap* bitmap, ParCompactionManager* cm,
                               size_t region);
@@ -1202,7 +1202,7 @@ class MoveAndUpdateClosure: public ParMarkBitMapClosure {
   // destination, update the interior oops and the start array and return either
   // full (if the closure is full) or incomplete.  If the object will not fit,
   // return would_overflow.
-  IterationStatus do_addr(HeapWord* addr, size_t size);
+  IterationStatus do_addr(HeapWord* addr, Words size);
 
   // Copy enough words to fill this closure, starting at source().  Interior
   // oops and the start array are not updated.  Return full.
@@ -1218,15 +1218,15 @@ class MoveAndUpdateClosure: public ParMarkBitMapClosure {
 
 protected:
   // Update variables to indicate that word_count words were processed.
-  inline void update_state(size_t word_count);
+  inline void update_state(Words word_count);
 
  protected:
   HeapWord*               _destination;         // Next addr to be written.
   ObjectStartArray* const _start_array;
-  size_t                  _offset;
+  Words                   _offset;
 };
 
-inline size_t MoveAndUpdateClosure::calculate_words_remaining(size_t region) {
+inline Words MoveAndUpdateClosure::calculate_words_remaining(size_t region) {
   HeapWord* dest_addr = PSParallelCompact::summary_data().region_to_addr(region);
   PSParallelCompact::SpaceId dest_space_id = PSParallelCompact::space_id(dest_addr);
   HeapWord* new_top = PSParallelCompact::new_top(dest_space_id);
@@ -1242,10 +1242,10 @@ MoveAndUpdateClosure::MoveAndUpdateClosure(ParMarkBitMap* bitmap,
   ParMarkBitMapClosure(bitmap, cm, calculate_words_remaining(region_idx)),
   _destination(PSParallelCompact::summary_data().region_to_addr(region_idx)),
   _start_array(PSParallelCompact::start_array(PSParallelCompact::space_id(_destination))),
-  _offset(0) { }
+  _offset(Words(0)) { }
 
 
-inline void MoveAndUpdateClosure::update_state(size_t words)
+inline void MoveAndUpdateClosure::update_state(Words words)
 {
   decrement_words_remaining(words);
   _source += words;
@@ -1253,7 +1253,7 @@ inline void MoveAndUpdateClosure::update_state(size_t words)
 }
 
 class MoveAndUpdateShadowClosure: public MoveAndUpdateClosure {
-  inline size_t calculate_shadow_offset(size_t region_idx, size_t shadow_idx);
+  inline Words calculate_shadow_offset(size_t region_idx, size_t shadow_idx);
 public:
   inline MoveAndUpdateShadowClosure(ParMarkBitMap* bitmap, ParCompactionManager* cm,
                        size_t region, size_t shadow);
@@ -1265,7 +1265,7 @@ private:
   size_t _shadow;
 };
 
-inline size_t MoveAndUpdateShadowClosure::calculate_shadow_offset(size_t region_idx, size_t shadow_idx) {
+inline Words MoveAndUpdateShadowClosure::calculate_shadow_offset(size_t region_idx, size_t shadow_idx) {
   ParallelCompactData& sd = PSParallelCompact::summary_data();
   HeapWord* dest_addr = sd.region_to_addr(region_idx);
   HeapWord* shadow_addr = sd.region_to_addr(shadow_idx);
@@ -1292,7 +1292,7 @@ class UpdateOnlyClosure: public ParMarkBitMapClosure {
                     PSParallelCompact::SpaceId space_id);
 
   // Update the object.
-  virtual IterationStatus do_addr(HeapWord* addr, size_t words);
+  virtual IterationStatus do_addr(HeapWord* addr, Words words);
 
   inline void do_addr(HeapWord* addr);
 };
@@ -1301,7 +1301,7 @@ class FillClosure: public ParMarkBitMapClosure {
  public:
   FillClosure(ParCompactionManager* cm, PSParallelCompact::SpaceId space_id);
 
-  virtual IterationStatus do_addr(HeapWord* addr, size_t size);
+  virtual IterationStatus do_addr(HeapWord* addr, Words size);
 
  private:
   ObjectStartArray* const _start_array;

@@ -36,9 +36,9 @@ private:
 
 public:
   EpsilonMemoryPool(EpsilonHeap* heap);
-  size_t committed_in_bytes() { return _heap->capacity();     }
-  size_t used_in_bytes()      { return _heap->used();         }
-  size_t max_size()     const { return _heap->max_capacity(); }
+  Bytes committed_in_bytes() { return _heap->capacity();     }
+  Bytes used_in_bytes()      { return _heap->used();         }
+  Bytes max_size()     const { return _heap->max_capacity(); }
   MemoryUsage get_memory_usage();
 };
 

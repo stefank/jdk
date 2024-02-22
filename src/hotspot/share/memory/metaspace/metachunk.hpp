@@ -171,14 +171,14 @@ class Metachunk {
   MetaWord* _base;
 
   // Used words.
-  size_t _used_words;
+  Words _used_words;
 
   // Size of the region, starting from base, which is guaranteed to be committed. In words.
   //  The actual size of committed regions may actually be larger.
   //
   //  (This is a performance optimization. The underlying VirtualSpaceNode knows
   //   which granules are committed; but we want to avoid having to ask.)
-  size_t _committed_words;
+  Words _committed_words;
 
   chunklevel_t _level; // aka size.
 
@@ -217,7 +217,7 @@ class Metachunk {
 
   // Commit uncommitted section of the chunk.
   // Fails if we hit a commit limit.
-  bool commit_up_to(size_t new_committed_words);
+  bool commit_up_to(Words new_committed_words);
 
   DEBUG_ONLY(static void assert_have_expand_lock();)
 
@@ -225,8 +225,8 @@ public:
 
   Metachunk() :
     _base(nullptr),
-    _used_words(0),
-    _committed_words(0),
+    _used_words(Words(0)),
+    _committed_words(Words(0)),
     _level(chunklevel::ROOT_CHUNK_LEVEL),
     _state(State::Free),
     _vsnode(nullptr),
@@ -237,7 +237,8 @@ public:
 
   void clear() {
     _base = nullptr;
-    _used_words = 0; _committed_words = 0;
+    _used_words = Words(0);
+    _committed_words = Words(0);
     _level = chunklevel::ROOT_CHUNK_LEVEL;
     _state = State::Free;
     _vsnode = nullptr;
@@ -245,7 +246,7 @@ public:
     _prev_in_vs = nullptr; _next_in_vs = nullptr;
   }
 
-  size_t word_size() const        { return chunklevel::word_size_for_level(_level); }
+  Words word_size() const         { return chunklevel::word_size_for_level(_level); }
 
   MetaWord* base() const          { return _base; }
   MetaWord* top() const           { return base() + _used_words; }
@@ -286,23 +287,23 @@ public:
 
   VirtualSpaceNode* vsnode() const        { return _vsnode; }
 
-  size_t used_words() const                   { return _used_words; }
-  size_t free_words() const                   { return word_size() - used_words(); }
-  size_t free_below_committed_words() const   { return committed_words() - used_words(); }
-  void reset_used_words()                     { _used_words = 0; }
+  Words used_words() const                   { return _used_words; }
+  Words free_words() const                   { return word_size() - used_words(); }
+  Words free_below_committed_words() const   { return committed_words() - used_words(); }
+  void reset_used_words()                     { _used_words = Words(0); }
 
-  size_t committed_words() const      { return _committed_words; }
-  void set_committed_words(size_t v);
+  Words committed_words() const      { return _committed_words; }
+  void set_committed_words(Words v);
   bool is_fully_committed() const     { return committed_words() == word_size(); }
-  bool is_fully_uncommitted() const   { return committed_words() == 0; }
+  bool is_fully_uncommitted() const   { return committed_words() == Words(0); }
 
   // Ensure that chunk is committed up to at least new_committed_words words.
   // Fails if we hit a commit limit.
-  bool ensure_committed(size_t new_committed_words);
-  bool ensure_committed_locked(size_t new_committed_words);
+  bool ensure_committed(Words new_committed_words);
+  bool ensure_committed_locked(Words new_committed_words);
 
   // Ensure that the chunk is committed far enough to serve an additional allocation of word_size.
-  bool ensure_committed_additional(size_t additional_word_size)   {
+  bool ensure_committed_additional(Words additional_word_size)   {
     return ensure_committed(used_words() + additional_word_size);
   }
 
@@ -320,7 +321,7 @@ public:
   // Caller must make sure the chunk is both large enough and committed far enough
   // to hold the allocation. Will always work.
   //
-  MetaWord* allocate(size_t request_word_size);
+  MetaWord* allocate(Words request_word_size);
 
   // Initialize structure for reuse.
   void initialize(VirtualSpaceNode* node, MetaWord* base, chunklevel_t lvl) {

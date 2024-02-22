@@ -156,7 +156,7 @@ class Universe: AllStatic {
   debug_only(static int         _fullgc_alot_dummy_next;)
 
   // Compiler/dispatch support
-  static int  _base_vtable_size;                      // Java vtbl size of klass Object (in words)
+  static Words  _base_vtable_size;                    // Java vtbl size of klass Object (in words)
 
   // Initialization
   static bool _bootstrapping;                         // true during genesis
@@ -331,7 +331,7 @@ class Universe: AllStatic {
   DEBUG_ONLY(static bool is_in_heap_or_null(const void* p) { return p == nullptr || is_in_heap(p); })
 
   // Reserve Java heap and determine CompressedOops mode
-  static ReservedHeapSpace reserve_heap(size_t heap_size, size_t alignment);
+  static ReservedHeapSpace reserve_heap(Bytes heap_size, Bytes alignment);
 
   // Global OopStorages
   static OopStorage* vm_weak();
@@ -399,7 +399,7 @@ class Universe: AllStatic {
   static uintptr_t verify_mark_mask()         PRODUCT_RETURN0;
 
   // Compiler support
-  static int base_vtable_size()               { return _base_vtable_size; }
+  static Words base_vtable_size()             { return _base_vtable_size; }
 };
 
 #endif // SHARE_MEMORY_UNIVERSE_HPP

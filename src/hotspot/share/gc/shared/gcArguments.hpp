@@ -30,8 +30,8 @@
 
 class CollectedHeap;
 
-extern size_t HeapAlignment;
-extern size_t SpaceAlignment;
+extern Bytes HeapAlignment;
+extern Bytes SpaceAlignment;
 
 class GCArguments {
 protected:
@@ -45,7 +45,7 @@ protected:
 
 public:
   virtual void initialize();
-  virtual size_t conservative_max_heap_alignment() = 0;
+  virtual Bytes conservative_max_heap_alignment() = 0;
 
   // Used by heap size heuristics to determine max
   // amount of address space to use for the heap.
@@ -60,7 +60,7 @@ public:
 
   void initialize_heap_sizes();
 
-  static size_t compute_heap_alignment();
+  static Bytes compute_heap_alignment();
 };
 
 #endif // SHARE_GC_SHARED_GCARGUMENTS_HPP

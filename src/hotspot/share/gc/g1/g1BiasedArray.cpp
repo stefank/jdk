@@ -39,10 +39,10 @@ G1BiasedMappedArrayBase::~G1BiasedMappedArrayBase() {
 }
 
 // Allocate a new array, generic version.
-address G1BiasedMappedArrayBase::create_new_base_array(size_t length, size_t elem_size) {
+address G1BiasedMappedArrayBase::create_new_base_array(size_t length, Bytes elem_size) {
   assert(length > 0, "just checking");
-  assert(elem_size > 0, "just checking");
-  return PaddedPrimitiveArray<u_char, mtGC>::create(length * elem_size, &_alloc_base);
+  assert(elem_size > Bytes(0), "just checking");
+  return PaddedPrimitiveArray<u_char, mtGC>::create(untype(length * elem_size), &_alloc_base);
 }
 
 #ifndef PRODUCT

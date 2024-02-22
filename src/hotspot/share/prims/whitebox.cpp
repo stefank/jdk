@@ -280,8 +280,8 @@ WB_ENTRY(void, WB_PrintHeapSizes(JNIEnv* env, jobject o)) {
 WB_END
 
 WB_ENTRY(void, WB_ReadFromNoaccessArea(JNIEnv* env, jobject o))
-  size_t granularity = os::vm_allocation_granularity();
-  ReservedHeapSpace rhs(100 * granularity, granularity, os::vm_page_size());
+  Bytes granularity = in_Bytes(os::vm_allocation_granularity());
+  ReservedHeapSpace rhs(100 * granularity, granularity, in_Bytes(os::vm_page_size()));
   VirtualSpace vs;
   vs.initialize(rhs, 50 * granularity);
 
@@ -307,10 +307,10 @@ WB_END
 
 static jint wb_stress_virtual_space_resize(size_t reserved_space_size,
                                            size_t magnitude, size_t iterations) {
-  size_t granularity = os::vm_allocation_granularity();
-  ReservedHeapSpace rhs(reserved_space_size * granularity, granularity, os::vm_page_size());
+  Bytes granularity = in_Bytes(os::vm_allocation_granularity());
+  ReservedHeapSpace rhs(reserved_space_size * granularity, granularity, in_Bytes(os::vm_page_size()));
   VirtualSpace vs;
-  if (!vs.initialize(rhs, 0)) {
+  if (!vs.initialize(rhs, Bytes(0))) {
     tty->print_cr("Failed to initialize VirtualSpace. Can't proceed.");
     return 3;
   }
@@ -324,7 +324,7 @@ static jint wb_stress_virtual_space_resize(size_t reserved_space_size,
     bool shrink = os::random() % 2L == 0;
 
     // Get random delta to resize virtual space
-    size_t delta = (size_t)os::random() % magnitude;
+    Bytes delta = in_Bytes((size_t)os::random() % magnitude);
 
     // If we are about to shrink virtual space below zero, then expand instead
     if (shrink && vs.committed_size() < delta) {
@@ -437,7 +437,7 @@ WB_END
 
 WB_ENTRY(jlong, WB_GetObjectSize(JNIEnv* env, jobject o, jobject obj))
   oop p = JNIHandles::resolve(obj);
-  return p->size() * HeapWordSize;
+  return to_bytes(p->size());
 WB_END
 
 WB_ENTRY(jlong, WB_GetHeapSpaceAlignment(JNIEnv* env, jobject o))
@@ -556,14 +556,14 @@ WB_END
 
 WB_ENTRY(jlong, WB_PSVirtualSpaceAlignment(JNIEnv* env, jobject o))
   if (UseParallelGC) {
-    return GenAlignment;
+    return untype(GenAlignment);
   }
   THROW_MSG_0(vmSymbols::java_lang_UnsupportedOperationException(), "WB_PSVirtualSpaceAlignment: Parallel GC is not enabled");
 WB_END
 
 WB_ENTRY(jlong, WB_PSHeapGenerationAlignment(JNIEnv* env, jobject o))
   if (UseParallelGC) {
-    return GenAlignment;
+    return untype(GenAlignment);
   }
   THROW_MSG_0(vmSymbols::java_lang_UnsupportedOperationException(), "WB_PSHeapGenerationAlignment: Parallel GC is not enabled");
 WB_END
@@ -611,26 +611,26 @@ class OldRegionsLivenessClosure: public HeapRegionClosure {
  private:
   const int _liveness;
   size_t _total_count;
-  size_t _total_memory;
-  size_t _total_memory_to_free;
+  Bytes _total_memory;
+  Bytes _total_memory_to_free;
 
  public:
   OldRegionsLivenessClosure(int liveness) :
     _liveness(liveness),
     _total_count(0),
-    _total_memory(0),
-    _total_memory_to_free(0) { }
+    _total_memory(Bytes(0)),
+    _total_memory_to_free(Bytes(0)) { }
 
     size_t total_count() { return _total_count; }
-    size_t total_memory() { return _total_memory; }
-    size_t total_memory_to_free() { return _total_memory_to_free; }
+    Bytes total_memory() { return _total_memory; }
+    Bytes total_memory_to_free() { return _total_memory_to_free; }
 
   bool do_heap_region(HeapRegion* r) {
     if (r->is_old()) {
-      size_t live = r->live_bytes();
-      size_t size = r->used();
-      size_t reg_size = HeapRegion::GrainBytes;
-      if (size > 0 && ((int)(live * 100 / size) < _liveness)) {
+      Bytes live = r->live_bytes();
+      Bytes size = r->used();
+      Bytes reg_size = HeapRegion::GrainBytes;
+      if (size > Bytes(0) && ((int)(live * 100 / size) < _liveness)) {
         _total_memory += size;
         ++_total_count;
         if (size == reg_size) {
@@ -659,8 +659,8 @@ WB_ENTRY(jlongArray, WB_G1GetMixedGCInfo(JNIEnv* env, jobject o, jint liveness))
 
   typeArrayOop result = oopFactory::new_longArray(3, CHECK_NULL);
   result->long_at_put(0, rli.total_count());
-  result->long_at_put(1, rli.total_memory());
-  result->long_at_put(2, rli.total_memory_to_free());
+  result->long_at_put(1, untype(rli.total_memory()));
+  result->long_at_put(2, untype(rli.total_memory_to_free()));
   return (jlongArray) JNIHandles::make_local(THREAD, result);
 WB_END
 
@@ -1707,7 +1707,7 @@ int WhiteBox::array_bytes_to_length(size_t bytes) {
 // MetaspaceTestContext and MetaspaceTestArena
 WB_ENTRY(jlong, WB_CreateMetaspaceTestContext(JNIEnv* env, jobject wb, jlong commit_limit, jlong reserve_limit))
   metaspace::MetaspaceTestContext* context =
-      new metaspace::MetaspaceTestContext("whitebox-metaspace-context", (size_t) commit_limit, (size_t) reserve_limit);
+      new metaspace::MetaspaceTestContext("whitebox-metaspace-context", in_Words(commit_limit), in_Words(reserve_limit));
   return (jlong)p2i(context);
 WB_END
 
@@ -1727,12 +1727,12 @@ WB_END
 
 WB_ENTRY(jlong, WB_GetTotalCommittedWordsInMetaspaceTestContext(JNIEnv* env, jobject wb, jlong context))
   metaspace::MetaspaceTestContext* context0 = (metaspace::MetaspaceTestContext*) context;
-  return context0->committed_words();
+  return untype(context0->committed_words());
 WB_END
 
 WB_ENTRY(jlong, WB_GetTotalUsedWordsInMetaspaceTestContext(JNIEnv* env, jobject wb, jlong context))
   metaspace::MetaspaceTestContext* context0 = (metaspace::MetaspaceTestContext*) context;
-  return context0->used_words();
+  return untype( context0->used_words());
 WB_END
 
 WB_ENTRY(jlong, WB_CreateArenaInTestContext(JNIEnv* env, jobject wb, jlong context, jboolean is_micro))
@@ -1747,13 +1747,13 @@ WB_END
 
 WB_ENTRY(jlong, WB_AllocateFromMetaspaceTestArena(JNIEnv* env, jobject wb, jlong arena, jlong word_size))
   metaspace::MetaspaceTestArena* arena0 = (metaspace::MetaspaceTestArena*) arena;
-  MetaWord* p = arena0->allocate((size_t) word_size);
+  MetaWord* p = arena0->allocate(in_Words(word_size));
   return (jlong)p2i(p);
 WB_END
 
 WB_ENTRY(void, WB_DeallocateToMetaspaceTestArena(JNIEnv* env, jobject wb, jlong arena, jlong p, jlong word_size))
   metaspace::MetaspaceTestArena* arena0 = (metaspace::MetaspaceTestArena*) arena;
-  arena0->deallocate((MetaWord*)p, (size_t) word_size);
+  arena0->deallocate((MetaWord*)p, in_Words(word_size));
 WB_END
 
 WB_ENTRY(jlong, WB_GetMaxMetaspaceAllocationSize(JNIEnv* env, jobject wb))
@@ -1818,8 +1818,8 @@ WB_ENTRY(jlong, WB_IncMetaspaceCapacityUntilGC(JNIEnv* env, jobject wb, jlong in
         err_msg("WB_IncMetaspaceCapacityUntilGC: inc does not fit in size_t: " JLONG_FORMAT, inc));
   }
 
-  size_t new_cap_until_GC = 0;
-  size_t aligned_inc = align_down((size_t) inc, Metaspace::commit_alignment());
+  Bytes new_cap_until_GC = Bytes(0);
+  Bytes aligned_inc = align_down(in_Bytes(inc), Metaspace::commit_alignment());
   bool success = MetaspaceGC::inc_capacity_until_GC(aligned_inc, &new_cap_until_GC);
   if (!success) {
     THROW_MSG_0(vmSymbols::java_lang_IllegalStateException(),
@@ -2501,7 +2501,7 @@ WB_END
 WB_ENTRY(jint, WB_GetKlassMetadataSize(JNIEnv* env, jobject wb, jclass mirror))
   Klass* k = java_lang_Class::as_Klass(JNIHandles::resolve(mirror));
   // Return size in bytes.
-  return k->size() * wordSize;
+  return to_bytes(k->size());
 WB_END
 
 // See test/hotspot/jtreg/runtime/Thread/ThreadObjAccessAtExit.java.

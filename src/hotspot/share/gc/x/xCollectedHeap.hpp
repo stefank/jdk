@@ -50,9 +50,9 @@ private:
   XStat*            _stat;
   XRuntimeWorkers   _runtime_workers;
 
-  HeapWord* allocate_new_tlab(size_t min_size,
-                              size_t requested_size,
-                              size_t* actual_size) override;
+  HeapWord* allocate_new_tlab(Words min_size,
+                              Words requested_size,
+                              Words* actual_size) override;
 
 public:
   static XCollectedHeap* heap();
@@ -64,28 +64,28 @@ public:
   void initialize_serviceability() override;
   void stop() override;
 
-  size_t max_capacity() const override;
-  size_t capacity() const override;
-  size_t used() const override;
-  size_t unused() const override;
+  Bytes max_capacity() const override;
+  Bytes capacity() const override;
+  Bytes used() const override;
+  Bytes unused() const override;
 
   bool is_maximal_no_gc() const override;
   bool is_in(const void* p) const override;
   bool requires_barriers(stackChunkOop obj) const override;
 
-  oop array_allocate(Klass* klass, size_t size, int length, bool do_zero, TRAPS) override;
-  HeapWord* mem_allocate(size_t size, bool* gc_overhead_limit_was_exceeded) override;
+  oop array_allocate(Klass* klass, Words size, int length, bool do_zero, TRAPS) override;
+  HeapWord* mem_allocate(Words size, bool* gc_overhead_limit_was_exceeded) override;
   MetaWord* satisfy_failed_metadata_allocation(ClassLoaderData* loader_data,
-                                               size_t size,
+                                               Words size,
                                                Metaspace::MetadataType mdtype) override;
   void collect(GCCause::Cause cause) override;
   void collect_as_vm_thread(GCCause::Cause cause) override;
   void do_full_collection(bool clear_all_soft_refs) override;
 
-  size_t tlab_capacity(Thread* thr) const override;
-  size_t tlab_used(Thread* thr) const override;
-  size_t max_tlab_size() const override;
-  size_t unsafe_max_tlab_alloc(Thread* thr) const override;
+  Bytes tlab_capacity(Thread* thr) const override;
+  Bytes tlab_used(Thread* thr) const override;
+  Words max_tlab_size() const override;
+  Bytes unsafe_max_tlab_alloc(Thread* thr) const override;
 
   bool uses_stack_watermark_barrier() const override;
 

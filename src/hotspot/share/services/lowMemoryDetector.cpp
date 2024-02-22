@@ -90,7 +90,7 @@ void LowMemoryDetector::detect_low_memory() {
     SensorInfo* sensor = pool->usage_sensor();
     if (sensor != nullptr &&
         pool->usage_threshold()->is_high_threshold_supported() &&
-        pool->usage_threshold()->high_threshold() != 0) {
+        pool->usage_threshold()->high_threshold() != Bytes(0)) {
       MemoryUsage usage = pool->get_memory_usage();
       sensor->set_gauge_sensor_level(usage,
                                      pool->usage_threshold());
@@ -109,7 +109,7 @@ void LowMemoryDetector::detect_low_memory(MemoryPool* pool) {
   SensorInfo* sensor = pool->usage_sensor();
   if (sensor == nullptr ||
       !pool->usage_threshold()->is_high_threshold_supported() ||
-      pool->usage_threshold()->high_threshold() == 0) {
+      pool->usage_threshold()->high_threshold() == Bytes(0)) {
     return;
   }
 
@@ -131,7 +131,7 @@ void LowMemoryDetector::detect_after_gc_memory(MemoryPool* pool) {
   SensorInfo* sensor = pool->gc_usage_sensor();
   if (sensor == nullptr ||
       !pool->gc_usage_threshold()->is_high_threshold_supported() ||
-      pool->gc_usage_threshold()->high_threshold() == 0) {
+      pool->gc_usage_threshold()->high_threshold() == Bytes(0)) {
     return;
   }
 

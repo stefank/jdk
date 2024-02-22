@@ -240,7 +240,7 @@ void vframeArrayElement::unpack_on_stack(int caller_actual_parameters,
         popframe_preserved_args_size_in_bytes = in_bytes(thread->popframe_preserved_args_size());
         // Note: the PopFrame-related extension of the expression stack size is done in
         // Deoptimization::fetch_unroll_info_helper
-        popframe_preserved_args_size_in_words = in_words(thread->popframe_preserved_args_size_in_words());
+        popframe_preserved_args_size_in_words = untype(thread->popframe_preserved_args_size_in_words());
       }
     } else if (!realloc_failure_exception && JvmtiExport::can_force_early_return() && state != nullptr &&
                state->is_earlyret_pending()) {

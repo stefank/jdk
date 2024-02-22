@@ -89,12 +89,12 @@ class PSAdaptiveSizePolicy : public AdaptiveSizePolicy {
   // for making ergonomic decisions.
   double _latest_major_mutator_interval_seconds;
 
-  const size_t _space_alignment; // alignment for eden, survivors
+  const Bytes _space_alignment; // alignment for eden, survivors
 
   // The amount of live data in the heap at the last full GC, used
   // as a baseline to help us determine when we need to perform the
   // next full GC.
-  size_t _live_at_last_full_gc;
+  Bytes _live_at_last_full_gc;
 
   // decrease/increase the old generation for minor pause time
   int _change_old_gen_for_min_pauses;
@@ -111,31 +111,31 @@ class PSAdaptiveSizePolicy : public AdaptiveSizePolicy {
 
  private:
 
-  void adjust_eden_for_minor_pause_time(size_t* desired_eden_size_ptr);
+  void adjust_eden_for_minor_pause_time(Bytes* desired_eden_size_ptr);
   // Change the generation sizes to achieve a GC pause time goal
   // Returned sizes are not necessarily aligned.
-  void adjust_promo_for_pause_time(size_t* desired_promo_size_ptr);
-  void adjust_eden_for_pause_time(size_t* desired_eden_size_ptr);
+  void adjust_promo_for_pause_time(Bytes* desired_promo_size_ptr);
+  void adjust_eden_for_pause_time(Bytes* desired_eden_size_ptr);
   // Change the generation sizes to achieve an application throughput goal
   // Returned sizes are not necessarily aligned.
   void adjust_promo_for_throughput(bool is_full_gc,
-                             size_t* desired_promo_size_ptr);
+                             Bytes* desired_promo_size_ptr);
   void adjust_eden_for_throughput(bool is_full_gc,
-                             size_t* desired_eden_size_ptr);
+                             Bytes* desired_eden_size_ptr);
   // Change the generation sizes to achieve minimum footprint
   // Returned sizes are not aligned.
-  size_t adjust_promo_for_footprint(size_t desired_promo_size,
-                                    size_t desired_total);
-  size_t adjust_eden_for_footprint(size_t desired_promo_size,
-                                   size_t desired_total);
+  Bytes adjust_promo_for_footprint(Bytes desired_promo_size,
+                                   Bytes desired_total);
+  Bytes adjust_eden_for_footprint(Bytes desired_promo_size,
+                                  Bytes desired_total);
 
   // Size in bytes for an increment or decrement of eden.
-  size_t eden_decrement_aligned_down(size_t cur_eden);
-  size_t eden_increment_with_supplement_aligned_up(size_t cur_eden);
+  Bytes eden_decrement_aligned_down(Bytes cur_eden);
+  Bytes eden_increment_with_supplement_aligned_up(Bytes cur_eden);
 
   // Size in bytes for an increment or decrement of the promotion area
-  size_t promo_decrement_aligned_down(size_t cur_promo);
-  size_t promo_increment_with_supplement_aligned_up(size_t cur_promo);
+  Bytes promo_decrement_aligned_down(Bytes cur_promo);
+  Bytes promo_increment_with_supplement_aligned_up(Bytes cur_promo);
 
   // Returns a change that has been scaled down.  Result
   // is not aligned.  (If useful, move to some shared
@@ -150,11 +150,11 @@ class PSAdaptiveSizePolicy : public AdaptiveSizePolicy {
                     avg_young_live()->average() +
                     avg_old_live()->average());
   }
-  size_t free_space() const {
+  Bytes free_space() const {
     return _eden_size + _promo_size;
   }
 
-  void set_promo_size(size_t new_size) {
+  void set_promo_size(Bytes new_size) {
     _promo_size = new_size;
   }
 
@@ -177,10 +177,10 @@ class PSAdaptiveSizePolicy : public AdaptiveSizePolicy {
   // alignment values and the pause & throughput goals.
   //
   // NEEDS_CLEANUP this is a singleton object
-  PSAdaptiveSizePolicy(size_t init_eden_size,
-                       size_t init_promo_size,
-                       size_t init_survivor_size,
-                       size_t space_alignment,
+  PSAdaptiveSizePolicy(Bytes init_eden_size,
+                       Bytes init_promo_size,
+                       Bytes init_survivor_size,
+                       Bytes space_alignment,
                        double gc_pause_goal_sec,
                        uint gc_time_ratio);
 
@@ -188,25 +188,25 @@ class PSAdaptiveSizePolicy : public AdaptiveSizePolicy {
   // called by GC algorithms. It is the responsibility of users of this
   // policy to call these methods at the correct times!
   void major_collection_begin();
-  void major_collection_end(size_t amount_live, GCCause::Cause gc_cause);
+  void major_collection_end(Bytes amount_live, GCCause::Cause gc_cause);
 
-  void tenured_allocation(size_t size) {
-    _avg_pretenured->sample(size);
+  void tenured_allocation(Bytes size) {
+    _avg_pretenured->sample(untype(size));
   }
 
   // Accessors
-  // NEEDS_CLEANUP   should use sizes.hpp
+  // NEEDS_CLEANUP   should use sizes.hpp !!!!!!!!!
 
-  static size_t calculate_free_based_on_live(size_t live, uintx ratio_as_percentage);
+  static Bytes calculate_free_based_on_live(Bytes live, uintx ratio_as_percentage);
 
-  size_t calculated_old_free_size_in_bytes() const;
+  Bytes calculated_old_free_size_in_bytes() const;
 
-  size_t average_promoted_in_bytes() const {
-    return (size_t)avg_promoted()->average();
+  Bytes average_promoted_in_bytes() const {
+    return in_Bytes((size_t)avg_promoted()->average());
   }
 
-  size_t padded_average_promoted_in_bytes() const {
-    return (size_t)avg_promoted()->padded_average();
+  Bytes padded_average_promoted_in_bytes() const {
+    return in_Bytes((size_t)avg_promoted()->padded_average());
   }
 
   int change_young_gen_for_maj_pauses() {
@@ -242,54 +242,54 @@ class PSAdaptiveSizePolicy : public AdaptiveSizePolicy {
   // Takes current used space in all generations as input, as well
   // as an indication if a full gc has just been performed, for use
   // in deciding if an OOM error should be thrown.
-  void compute_generations_free_space(size_t young_live,
-                                      size_t eden_live,
-                                      size_t old_live,
-                                      size_t cur_eden,  // current eden in bytes
-                                      size_t max_old_gen_size,
-                                      size_t max_eden_size,
+  void compute_generations_free_space(Bytes young_live,
+                                      Bytes eden_live,
+                                      Bytes old_live,
+                                      Bytes cur_eden,  // current eden in bytes
+                                      Bytes max_old_gen_size,
+                                      Bytes max_eden_size,
                                       bool   is_full_gc);
 
-  void compute_eden_space_size(size_t young_live,
-                               size_t eden_live,
-                               size_t cur_eden,  // current eden in bytes
-                               size_t max_eden_size,
+  void compute_eden_space_size(Bytes young_live,
+                               Bytes eden_live,
+                               Bytes cur_eden,  // current eden in bytes
+                               Bytes max_eden_size,
                                bool   is_full_gc);
 
-  void compute_old_gen_free_space(size_t old_live,
-                                             size_t cur_eden,  // current eden in bytes
-                                             size_t max_old_gen_size,
-                                             bool   is_full_gc);
+  void compute_old_gen_free_space(Bytes old_live,
+                                  Bytes cur_eden,  // current eden in bytes
+                                  Bytes max_old_gen_size,
+                                  bool   is_full_gc);
 
   // Calculates new survivor space size;  returns a new tenuring threshold
   // value. Stores new survivor size in _survivor_size.
   uint compute_survivor_space_size_and_threshold(bool   is_survivor_overflow,
                                                  uint    tenuring_threshold,
-                                                 size_t survivor_limit);
+                                                 Bytes survivor_limit);
 
   // Return the maximum size of a survivor space if the young generation were of
   // size gen_size.
-  size_t max_survivor_size(size_t gen_size) {
+  Bytes max_survivor_size(Bytes gen_size) {
     // Never allow the target survivor size to grow more than MinSurvivorRatio
     // of the young generation size.  We cannot grow into a two semi-space
     // system, with Eden zero sized.  Even if the survivor space grows, from()
     // might grow by moving the bottom boundary "down" -- so from space will
     // remain almost full anyway (top() will be near end(), but there will be a
     // large filler object at the bottom).
-    const size_t sz = gen_size / MinSurvivorRatio;
-    const size_t alignment = _space_alignment;
+    const Bytes sz = gen_size / MinSurvivorRatio;
+    const Bytes alignment = _space_alignment;
     return sz > alignment ? align_down(sz, alignment) : alignment;
   }
 
-  size_t live_at_last_full_gc() {
+  Bytes live_at_last_full_gc() {
     return _live_at_last_full_gc;
   }
 
   // Update averages that are always used (even
   // if adaptive sizing is turned off).
   void update_averages(bool is_survivor_overflow,
-                       size_t survived,
-                       size_t promoted);
+                       Bytes survived,
+                       Bytes promoted);
 
   // Printing support
   virtual bool print() const;

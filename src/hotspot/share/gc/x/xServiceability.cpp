@@ -35,7 +35,7 @@ public:
   XGenerationCounters(const char* name, int ordinal, int spaces,
                       size_t min_capacity, size_t max_capacity, size_t curr_capacity) :
       GenerationCounters(name, ordinal, spaces,
-                         min_capacity, max_capacity, curr_capacity) {}
+                         in_Bytes(min_capacity), in_Bytes(max_capacity), in_Bytes(curr_capacity)) {}
 
   void update_capacity(size_t capacity) {
     _current_size->set_value(capacity);
@@ -67,10 +67,10 @@ XServiceabilityCounters::XServiceabilityCounters(size_t min_capacity, size_t max
                          min_capacity /* curr_capacity */),
     // generation.1.space.0
     _space_counters(_generation_counters.name_space(),
-                    "space"      /* name */,
-                    0            /* ordinal */,
-                    max_capacity /* max_capacity */,
-                    min_capacity /* init_capacity */),
+                    "space"                /* name */,
+                    0                      /* ordinal */,
+                    in_Bytes(max_capacity) /* max_capacity */,
+                    in_Bytes(min_capacity) /* init_capacity */),
     // gc.collector.2
     _collector_counters("Z concurrent cycle pauses" /* name */,
                         2                           /* ordinal */) {}
@@ -85,8 +85,8 @@ void XServiceabilityCounters::update_sizes() {
     const size_t used = MIN2(XHeap::heap()->used(), capacity);
 
     _generation_counters.update_capacity(capacity);
-    _space_counters.update_capacity(capacity);
-    _space_counters.update_used(used);
+    _space_counters.update_capacity(in_Bytes(capacity));
+    _space_counters.update_used(in_Bytes(used));
 
     MetaspaceCounters::update_performance_counters();
   }
@@ -94,19 +94,22 @@ void XServiceabilityCounters::update_sizes() {
 
 XServiceabilityMemoryPool::XServiceabilityMemoryPool(size_t min_capacity, size_t max_capacity) :
     CollectedMemoryPool("ZHeap",
-                        min_capacity,
-                        max_capacity,
+                        in_Bytes(min_capacity),
+                        in_Bytes(max_capacity),
                         true /* support_usage_threshold */) {}
 
-size_t XServiceabilityMemoryPool::used_in_bytes() {
-  return XHeap::heap()->used();
+Bytes XServiceabilityMemoryPool::used_in_bytes() {
+  return in_Bytes(XHeap::heap()->used());
 }
 
 MemoryUsage XServiceabilityMemoryPool::get_memory_usage() {
   const size_t committed = XHeap::heap()->capacity();
   const size_t used      = MIN2(XHeap::heap()->used(), committed);
 
-  return MemoryUsage(initial_size(), used, committed, max_size());
+  return MemoryUsage(initial_size(),
+                     in_Bytes(used),
+                     in_Bytes(committed),
+                     max_size());
 }
 
 XServiceabilityMemoryManager::XServiceabilityMemoryManager(const char* name,

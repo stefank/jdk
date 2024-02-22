@@ -58,7 +58,7 @@ class DefNewGeneration: public Generation {
   uint        _tenuring_threshold;   // Tenuring threshold for next collection.
   AgeTable    _age_table;
   // Size of object to pretenure in words; command line provides bytes
-  size_t      _pretenure_size_threshold_words;
+  Words       _pretenure_size_threshold_words;
 
   // ("Weak") Reference processing support
   SpanSubjectToDiscoveryClosure _span_based_discoverer;
@@ -116,8 +116,8 @@ class DefNewGeneration: public Generation {
   CSpaceCounters*      _to_counters;
 
   // sizing information
-  size_t               _max_eden_size;
-  size_t               _max_survivor_size;
+  Bytes                _max_eden_size;
+  Bytes                _max_survivor_size;
 
   // Allocation support
   bool _should_allocate_from_space;
@@ -147,16 +147,16 @@ class DefNewGeneration: public Generation {
 
   // Return the size of a survivor space if this generation were of size
   // gen_size.
-  size_t compute_survivor_size(size_t gen_size, size_t alignment) const {
-    size_t n = gen_size / (SurvivorRatio + 2);
+  Bytes compute_survivor_size(Bytes gen_size, Bytes alignment) const {
+    Bytes n = gen_size / (SurvivorRatio + 2);
     return n > alignment ? align_down(n, alignment) : alignment;
   }
 
  public:
   DefNewGeneration(ReservedSpace rs,
-                   size_t initial_byte_size,
-                   size_t min_byte_size,
-                   size_t max_byte_size,
+                   Bytes initial_byte_size,
+                   Bytes min_byte_size,
+                   Bytes max_byte_size,
                    const char* policy="Serial young collection pauses");
 
   // allocate and initialize ("weak") refs processing support
@@ -169,11 +169,11 @@ class DefNewGeneration: public Generation {
   ContiguousSpace* to()   const           { return _to_space;   }
 
   // Space enquiries
-  size_t capacity() const;
-  size_t used() const;
-  size_t free() const;
-  size_t max_capacity() const;
-  size_t capacity_before_gc() const;
+  Bytes capacity() const;
+  Bytes used() const;
+  Bytes free() const;
+  Bytes max_capacity() const;
+  Bytes capacity_before_gc() const;
 
   // Returns "TRUE" iff "p" points into the used areas in each space of young-gen.
   bool is_in(const void* p) const;
@@ -183,23 +183,23 @@ class DefNewGeneration: public Generation {
   // activity.  It is "unsafe" because no locks are taken; the result
   // should be treated as an approximation, not a guarantee, for use in
   // heuristic resizing decisions.
-  size_t unsafe_max_alloc_nogc() const;
+  Bytes unsafe_max_alloc_nogc() const;
 
-  size_t contiguous_available() const;
+  Bytes contiguous_available() const;
 
-  size_t max_eden_size() const              { return _max_eden_size; }
-  size_t max_survivor_size() const          { return _max_survivor_size; }
+  Bytes max_eden_size() const              { return _max_eden_size; }
+  Bytes max_survivor_size() const          { return _max_survivor_size; }
 
   // Thread-local allocation buffers
   bool supports_tlab_allocation() const { return true; }
-  size_t tlab_capacity() const;
-  size_t tlab_used() const;
-  size_t unsafe_max_tlab_alloc() const;
+  Bytes tlab_capacity() const;
+  Bytes tlab_used() const;
+  Bytes unsafe_max_tlab_alloc() const;
 
   // Grow the generation by the specified number of bytes.
   // The size of bytes is assumed to be properly aligned.
   // Return true if the expansion was successful.
-  bool expand(size_t bytes);
+  bool expand(Bytes bytes);
 
 
   // Iteration
@@ -208,14 +208,14 @@ class DefNewGeneration: public Generation {
   HeapWord* block_start(const void* p) const;
 
   // Allocation support
-  virtual bool should_allocate(size_t word_size, bool is_tlab) {
+  virtual bool should_allocate(Words word_size, bool is_tlab) {
     assert(UseTLAB || !is_tlab, "Should not allocate tlab");
 
-    size_t overflow_limit    = (size_t)1 << (BitsPerSize_t - LogHeapWordSize);
+    Words overflow_limit     = in_Words((size_t)1 << (BitsPerSize_t - LogHeapWordSize));
 
-    const bool non_zero      = word_size > 0;
+    const bool non_zero      = word_size > Words(0);
     const bool overflows     = word_size >= overflow_limit;
-    const bool check_too_big = _pretenure_size_threshold_words > 0;
+    const bool check_too_big = _pretenure_size_threshold_words > Words(0);
     const bool not_too_big   = word_size < _pretenure_size_threshold_words;
     const bool size_ok       = is_tlab || !check_too_big || not_too_big;
 
@@ -226,10 +226,10 @@ class DefNewGeneration: public Generation {
     return result;
   }
 
-  HeapWord* allocate(size_t word_size, bool is_tlab);
-  HeapWord* allocate_from_space(size_t word_size);
+  HeapWord* allocate(Words word_size, bool is_tlab);
+  HeapWord* allocate_from_space(Words word_size);
 
-  HeapWord* par_allocate(size_t word_size, bool is_tlab);
+  HeapWord* par_allocate(Words word_size, bool is_tlab);
 
   void gc_epilogue(bool full);
 
@@ -249,7 +249,7 @@ class DefNewGeneration: public Generation {
 
   // For Old collection (part of running Full GC), the DefNewGeneration can
   // contribute the free part of "to-space" as the scratch space.
-  void contribute_scratch(void*& scratch, size_t& num_words);
+  void contribute_scratch(void*& scratch, Words& num_words);
 
   // Reset for contribution of "to-space".
   void reset_scratch();
@@ -264,12 +264,12 @@ class DefNewGeneration: public Generation {
   // at some additional cost.
   bool collection_attempt_is_safe();
 
-  virtual void collect(bool   full,
-                       bool   clear_all_soft_refs,
-                       size_t size,
-                       bool   is_tlab);
+  virtual void collect(bool  full,
+                       bool  clear_all_soft_refs,
+                       Words size,
+                       bool  is_tlab);
 
-  HeapWord* expand_and_allocate(size_t size, bool is_tlab);
+  HeapWord* expand_and_allocate(Words size, bool is_tlab);
 
   oop copy_to_survivor_space(oop old);
   uint tenuring_threshold() { return _tenuring_threshold; }
@@ -295,18 +295,18 @@ class DefNewGeneration: public Generation {
   // If clear_space is true, clear the survivor spaces.  Eden is
   // cleared if the minimum size of eden is 0.  If mangle_space
   // is true, also mangle the space in debug mode.
-  void compute_space_boundaries(uintx minimum_eden_size,
+  void compute_space_boundaries(Bytes minimum_eden_size,
                                 bool clear_space,
                                 bool mangle_space);
 
   // Return adjusted new size for NewSizeThreadIncrease.
   // If any overflow happens, revert to previous new size.
-  size_t adjust_for_thread_increase(size_t new_size_candidate,
-                                    size_t new_size_before,
-                                    size_t alignment,
-                                    size_t thread_increase_size) const;
+  Bytes adjust_for_thread_increase(Bytes new_size_candidate,
+                                   Bytes new_size_before,
+                                   Bytes alignment,
+                                   Bytes thread_increase_size) const;
 
-  size_t calculate_thread_increase_size(int threads_count) const;
+  Bytes calculate_thread_increase_size(int threads_count) const;
 
 
   // Scavenge support

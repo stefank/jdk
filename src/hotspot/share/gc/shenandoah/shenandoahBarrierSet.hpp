@@ -164,7 +164,7 @@ public:
                                       size_t length);
 
     // Clone barrier support
-    static void clone_in_heap(oop src, oop dst, size_t size);
+    static void clone_in_heap(oop src, oop dst, Words size);
 
     // Support for concurrent roots evacuation, updating and weak roots clearing
     template <typename T>

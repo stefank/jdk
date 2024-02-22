@@ -37,7 +37,7 @@
 #include "utilities/defaultStream.hpp"
 #include "utilities/powerOfTwo.hpp"
 
-size_t ParallelArguments::conservative_max_heap_alignment() {
+Bytes ParallelArguments::conservative_max_heap_alignment() {
   return compute_heap_alignment();
 }
 
@@ -92,8 +92,8 @@ void ParallelArguments::initialize() {
 }
 
 // The alignment used for boundary between young gen and old gen
-static size_t default_gen_alignment() {
-  return 64 * K * HeapWordSize;
+static Bytes default_gen_alignment() {
+  return in_Bytes(64 * K * HeapWordSize);
 }
 
 void ParallelArguments::initialize_alignments() {
@@ -123,11 +123,11 @@ void ParallelArguments::initialize_heap_flags_and_sizes() {
   initialize_heap_flags_and_sizes_one_pass();
 
   const size_t min_pages = 4; // 1 for eden + 1 for each survivor + 1 for old
-  const size_t page_sz = os::page_size_for_region_aligned(MinHeapSize, min_pages);
+  const Bytes page_sz = in_Bytes(os::page_size_for_region_aligned(MinHeapSize, min_pages));
 
   // Can a page size be something else than a power of two?
-  assert(is_power_of_2((intptr_t)page_sz), "must be a power of 2");
-  size_t new_alignment = align_up(page_sz, GenAlignment);
+  assert(is_power_of_2(page_sz), "must be a power of 2");
+  Bytes new_alignment = align_up(page_sz, GenAlignment);
   if (new_alignment != GenAlignment) {
     GenAlignment = new_alignment;
     SpaceAlignment = new_alignment;
@@ -136,12 +136,12 @@ void ParallelArguments::initialize_heap_flags_and_sizes() {
   }
 }
 
-size_t ParallelArguments::heap_reserved_size_bytes() {
-  return MaxHeapSize;
+Bytes ParallelArguments::heap_reserved_size_bytes() {
+  return in_Bytes(MaxHeapSize);
 }
 
-size_t ParallelArguments::heap_max_size_bytes() {
-  return MaxHeapSize;
+Bytes ParallelArguments::heap_max_size_bytes() {
+  return in_Bytes(MaxHeapSize);
 }
 
 CollectedHeap* ParallelArguments::create_heap() {

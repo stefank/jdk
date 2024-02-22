@@ -160,7 +160,7 @@ public:
   double predict_young_region_other_time_ms(uint count) const;
   // Predict copying live data time for count eden regions. Return the predict bytes if
   // bytes_to_copy is non-null.
-  double predict_eden_copy_time_ms(uint count, size_t* bytes_to_copy = nullptr) const;
+  double predict_eden_copy_time_ms(uint count, Bytes* bytes_to_copy = nullptr) const;
   // Total time for a region is handling remembered sets (as a single unit), copying its live data
   // and other time.
   double predict_region_total_time_ms(HeapRegion* hr, bool for_young_only_phase) const;
@@ -244,7 +244,7 @@ private:
   // Limit the given desired young length to available free regions.
   uint calculate_young_target_length(uint desired_young_length) const;
 
-  size_t predict_bytes_to_copy(HeapRegion* hr) const;
+  Bytes predict_bytes_to_copy(HeapRegion* hr) const;
   double predict_survivor_regions_evac_time() const;
   double predict_retained_regions_evac_time() const;
 
@@ -303,7 +303,7 @@ public:
   void record_young_gc_pause_start();
   void record_young_gc_pause_end(bool evacuation_failed);
 
-  bool need_to_start_conc_mark(const char* source, size_t alloc_word_size = 0);
+  bool need_to_start_conc_mark(const char* source, Words alloc_word_size = Words(0));
 
   bool concurrent_operation_is_full_mark(const char* msg = nullptr);
 
@@ -331,7 +331,7 @@ public:
   bool next_gc_should_be_mixed() const;
 
   // Amount of allowed waste in bytes in the collection set.
-  size_t allowed_waste_in_collection_set() const;
+  Bytes allowed_waste_in_collection_set() const;
   // Calculate and fill in the initial, optional and pinned old gen candidate regions from
   // the given candidate list and the remaining time.
   // Returns the remaining time.
@@ -389,7 +389,7 @@ public:
 
   // Return an estimate of the number of bytes used in young gen.
   // precondition: holding Heap_lock
-  size_t estimate_used_young_bytes_locked() const;
+  Bytes estimate_used_young_bytes_locked() const;
 
   void transfer_survivors_to_cset(const G1SurvivorRegions* survivors);
 
@@ -418,7 +418,7 @@ private:
 
   AgeTable _survivors_age_table;
 
-  size_t desired_survivor_size(uint max_regions) const;
+  Words desired_survivor_size(uint max_regions) const;
 
   // Fraction used when predicting how many optional regions to include in
   // the CSet. This fraction of the available time is used for optional regions,

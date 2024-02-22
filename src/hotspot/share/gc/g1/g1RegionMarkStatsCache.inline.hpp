@@ -46,8 +46,8 @@ inline G1RegionMarkStatsCache::G1RegionMarkStatsCacheEntry* G1RegionMarkStatsCac
 
 inline void G1RegionMarkStatsCache::evict(uint idx) {
   G1RegionMarkStatsCacheEntry* cur = &_cache[idx];
-  if (cur->_stats._live_words != 0) {
-    Atomic::add(&_target[cur->_region_idx]._live_words, cur->_stats._live_words);
+  if (cur->_stats._live_words != Words(0)) {
+    Atomic::add((size_t*)&_target[cur->_region_idx]._live_words, untype(cur->_stats._live_words));
   }
   cur->clear();
 }

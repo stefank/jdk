@@ -146,21 +146,21 @@ public:
       _max_delta(max_delta), _is_packed(false) {}
 
   char* expand_top_to(char* newtop);
-  char* allocate(size_t num_bytes);
+  char* allocate(Bytes num_bytes);
 
   void append_intptr_t(intptr_t n, bool need_to_mark = false) NOT_CDS_RETURN;
 
   char* base()      const { return _base;        }
   char* top()       const { return _top;         }
   char* end()       const { return _end;         }
-  size_t reserved() const { return _end - _base; }
-  size_t used()     const { return _top - _base; }
+  Bytes reserved()  const { return Bytes(_end - _base); }
+  Bytes used()      const { return Bytes(_top - _base); }
   bool is_packed()  const { return _is_packed;   }
   bool is_allocatable() const {
     return !is_packed() && _base != nullptr;
   }
 
-  void print(size_t total_bytes) const;
+  void print(Bytes total_bytes) const;
   void print_out_of_space_msg(const char* failing_region, size_t needed_bytes);
 
   void init(ReservedSpace* rs, VirtualSpace* vs);

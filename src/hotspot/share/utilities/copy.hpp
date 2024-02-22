@@ -80,36 +80,36 @@ class Copy : AllStatic {
   // HeapWords
 
   // Word-aligned words,    conjoint, not atomic on each word
-  static void conjoint_words(const HeapWord* from, HeapWord* to, size_t count) {
+  static void conjoint_words(const HeapWord* from, HeapWord* to, Words count) {
     assert_params_ok(from, to, HeapWordSize);
-    pd_conjoint_words(from, to, count);
+    pd_conjoint_words(from, to, untype(count));
   }
 
   // Word-aligned words,    disjoint, not atomic on each word
-  static void disjoint_words(const HeapWord* from, HeapWord* to, size_t count) {
+  static void disjoint_words(const HeapWord* from, HeapWord* to, Words count) {
     assert_params_ok(from, to, HeapWordSize);
     assert_disjoint(from, to, count);
-    pd_disjoint_words(from, to, count);
+    pd_disjoint_words(from, to, untype(count));
   }
 
   // Word-aligned words,    disjoint, atomic on each word
-  static void disjoint_words_atomic(const HeapWord* from, HeapWord* to, size_t count) {
+  static void disjoint_words_atomic(const HeapWord* from, HeapWord* to, Words count) {
     assert_params_ok(from, to, HeapWordSize);
     assert_disjoint(from, to, count);
-    pd_disjoint_words_atomic(from, to, count);
+    pd_disjoint_words_atomic(from, to, untype(count));
   }
 
   // Object-aligned words,  conjoint, not atomic on each word
-  static void aligned_conjoint_words(const HeapWord* from, HeapWord* to, size_t count) {
+  static void aligned_conjoint_words(const HeapWord* from, HeapWord* to, Words count) {
     assert_params_aligned(from, to);
-    pd_aligned_conjoint_words(from, to, count);
+    pd_aligned_conjoint_words(from, to, untype(count));
   }
 
   // Object-aligned words,  disjoint, not atomic on each word
-  static void aligned_disjoint_words(const HeapWord* from, HeapWord* to, size_t count) {
+  static void aligned_disjoint_words(const HeapWord* from, HeapWord* to, Words count) {
     assert_params_aligned(from, to);
     assert_disjoint(from, to, count);
-    pd_aligned_disjoint_words(from, to, count);
+    pd_aligned_disjoint_words(from, to, untype(count));
   }
 
   // bytes, jshorts, jints, jlongs, oops
@@ -263,14 +263,14 @@ class Copy : AllStatic {
 
   // Fill word-aligned words, not atomic on each word
   // set_words
-  static void fill_to_words(HeapWord* to, size_t count, juint value = 0) {
+  static void fill_to_words(HeapWord* to, Words count, juint value = 0) {
     assert_params_ok(to, HeapWordSize);
-    pd_fill_to_words(to, count, value);
+    pd_fill_to_words(to, untype(count), value);
   }
 
-  static void fill_to_aligned_words(HeapWord* to, size_t count, juint value = 0) {
+  static void fill_to_aligned_words(HeapWord* to, Words count, juint value = 0) {
     assert_params_aligned(to);
-    pd_fill_to_aligned_words(to, count, value);
+    pd_fill_to_aligned_words(to, untype(count), value);
   }
 
   // Fill bytes
@@ -287,9 +287,9 @@ class Copy : AllStatic {
   // Zero-fill methods
 
   // Zero word-aligned words, not atomic on each word
-  static void zero_to_words(HeapWord* to, size_t count) {
+  static void zero_to_words(HeapWord* to, Words count) {
     assert_params_ok(to, HeapWordSize);
-    pd_zero_to_words(to, count);
+    pd_zero_to_words(to, untype(count));
   }
 
   // Zero bytes
@@ -320,7 +320,7 @@ class Copy : AllStatic {
   }
 
  private:
-  static bool params_disjoint(const HeapWord* from, HeapWord* to, size_t count) {
+  static bool params_disjoint(const HeapWord* from, HeapWord* to, Words count) {
     if (from < to) {
       return pointer_delta(to, from) >= count;
     }
@@ -329,7 +329,7 @@ class Copy : AllStatic {
 
   // These methods raise a fatal if they detect a problem.
 
-  static void assert_disjoint(const HeapWord* from, HeapWord* to, size_t count) {
+  static void assert_disjoint(const HeapWord* from, HeapWord* to, Words count) {
     assert(params_disjoint(from, to, count), "source and dest overlap");
   }
 

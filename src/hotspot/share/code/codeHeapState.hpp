@@ -65,7 +65,7 @@ class CodeHeapState : public CHeapObj<mtCode> {
   };
 
  private:
-  static void prepare_StatArray(outputStream* out, size_t nElem, size_t granularity, const char* heapName);
+  static void prepare_StatArray(outputStream* out, size_t nElem, Bytes granularity, const char* heapName);
   static void prepare_FreeArray(outputStream* out, unsigned int nElem, const char* heapName);
   static void prepare_TopSizeArray(outputStream* out, unsigned int nElem, const char* heapName);
   static void prepare_SizeDistArray(outputStream* out, unsigned int nElem, const char* heapName);
@@ -99,7 +99,7 @@ class CodeHeapState : public CHeapObj<mtCode> {
 
  public:
   static void discard(outputStream* out, CodeHeap* heap);
-  static void aggregate(outputStream* out, CodeHeap* heap, size_t granularity);
+  static void aggregate(outputStream* out, CodeHeap* heap, Bytes granularity);
   static void print_usedSpace(outputStream* out, CodeHeap* heap);
   static void print_freeSpace(outputStream* out, CodeHeap* heap);
   static void print_count(outputStream* out, CodeHeap* heap);
@@ -211,10 +211,10 @@ struct CodeHeapStat {
     struct TopSizeBlk*               TopSizeArray;
     struct SizeDistributionElement*  SizeDistributionArray;
     const char*                      heapName;
-    size_t                           segment_size;
+    Bytes                            segment_size;
     // StatElement data
     size_t        alloc_granules;
-    size_t        granule_size;
+    Bytes         granule_size;
     bool          segment_granules;
     unsigned int  nBlocks_t1;
     unsigned int  nBlocks_t2;

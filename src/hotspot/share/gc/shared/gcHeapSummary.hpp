@@ -49,17 +49,17 @@ public:
 class SpaceSummary : public StackObj {
   HeapWord* _start;
   HeapWord* _end;
-  size_t    _used;
+  Bytes     _used;
 public:
   SpaceSummary() :
-      _start(nullptr), _end(nullptr), _used(0) { }
-  SpaceSummary(HeapWord* start, HeapWord* end, size_t used) :
+      _start(nullptr), _end(nullptr), _used(Bytes(0)) { }
+  SpaceSummary(HeapWord* start, HeapWord* end, Bytes used) :
       _start(start), _end(end), _used(used) { }
 
   HeapWord* start() const { return _start; }
   HeapWord* end() const { return _end; }
-  size_t used() const { return _used; }
-  size_t size() const { return (uintptr_t)_end - (uintptr_t)_start; }
+  Bytes used() const { return _used; }
+  Bytes size() const { return in_Bytes((uintptr_t)_end - (uintptr_t)_start); }
 };
 
 class GCHeapSummary;
@@ -75,16 +75,16 @@ class GCHeapSummaryVisitor {
 
 class GCHeapSummary : public StackObj {
   VirtualSpaceSummary _heap;
-  size_t _used;
+  Bytes _used;
 
  public:
    GCHeapSummary() :
-       _heap(), _used(0) { }
-   GCHeapSummary(VirtualSpaceSummary& heap_space, size_t used) :
+       _heap(), _used(Bytes(0)) { }
+   GCHeapSummary(VirtualSpaceSummary& heap_space, Bytes used) :
        _heap(heap_space), _used(used) { }
 
   const VirtualSpaceSummary& heap() const { return _heap; }
-  size_t used() const { return _used; }
+  Bytes used() const { return _used; }
 
    virtual void accept(GCHeapSummaryVisitor* visitor) const {
      visitor->visit(this);
@@ -99,7 +99,7 @@ class PSHeapSummary : public GCHeapSummary {
   SpaceSummary         _from;
   SpaceSummary         _to;
  public:
-   PSHeapSummary(VirtualSpaceSummary& heap_space, size_t heap_used, VirtualSpaceSummary old, SpaceSummary old_space, VirtualSpaceSummary young, SpaceSummary eden, SpaceSummary from, SpaceSummary to) :
+   PSHeapSummary(VirtualSpaceSummary& heap_space, Bytes heap_used, VirtualSpaceSummary old, SpaceSummary old_space, VirtualSpaceSummary young, SpaceSummary eden, SpaceSummary from, SpaceSummary to) :
        GCHeapSummary(heap_space, heap_used), _old(old), _old_space(old_space), _young(young), _eden(eden), _from(from), _to(to) { }
    const VirtualSpaceSummary& old() const { return _old; }
    const SpaceSummary& old_space() const { return _old_space; }
@@ -114,18 +114,18 @@ class PSHeapSummary : public GCHeapSummary {
 };
 
 class G1HeapSummary : public GCHeapSummary {
-  size_t  _edenUsed;
-  size_t  _edenCapacity;
-  size_t  _survivorUsed;
-  size_t  _oldGenUsed;
+  Bytes  _edenUsed;
+  Bytes  _edenCapacity;
+  Bytes  _survivorUsed;
+  Bytes  _oldGenUsed;
   uint    _numberOfRegions;
  public:
-   G1HeapSummary(VirtualSpaceSummary& heap_space, size_t heap_used, size_t edenUsed, size_t edenCapacity, size_t survivorUsed, size_t oldGenUsed, uint numberOfRegions) :
+   G1HeapSummary(VirtualSpaceSummary& heap_space, Bytes heap_used, Bytes edenUsed, Bytes edenCapacity, Bytes survivorUsed, Bytes oldGenUsed, uint numberOfRegions) :
       GCHeapSummary(heap_space, heap_used), _edenUsed(edenUsed), _edenCapacity(edenCapacity), _survivorUsed(survivorUsed), _oldGenUsed(oldGenUsed), _numberOfRegions(numberOfRegions) { }
-   size_t edenUsed() const { return _edenUsed; }
-   size_t edenCapacity() const { return _edenCapacity; }
-   size_t survivorUsed() const { return _survivorUsed; }
-   size_t oldGenUsed() const { return _oldGenUsed; }
+   Bytes edenUsed() const { return _edenUsed; }
+   Bytes edenCapacity() const { return _edenCapacity; }
+   Bytes survivorUsed() const { return _survivorUsed; }
+   Bytes oldGenUsed() const { return _oldGenUsed; }
    uint   numberOfRegions() const { return _numberOfRegions; }
 
    virtual void accept(GCHeapSummaryVisitor* visitor) const {
@@ -134,19 +134,19 @@ class G1HeapSummary : public GCHeapSummary {
 };
 
 class MetaspaceSummary : public StackObj {
-  size_t _capacity_until_GC;
+  Bytes _capacity_until_GC;
   MetaspaceCombinedStats _stats;
   MetaspaceChunkFreeListSummary _metaspace_chunk_free_list_summary;
   MetaspaceChunkFreeListSummary _class_chunk_free_list_summary;
 
  public:
   MetaspaceSummary() :
-    _capacity_until_GC(0),
+    _capacity_until_GC(Bytes(0)),
     _stats(),
     _metaspace_chunk_free_list_summary(),
     _class_chunk_free_list_summary()
   {}
-  MetaspaceSummary(size_t capacity_until_GC,
+  MetaspaceSummary(Bytes capacity_until_GC,
                    const MetaspaceCombinedStats& stats,
                    const MetaspaceChunkFreeListSummary& metaspace_chunk_free_list_summary,
                    const MetaspaceChunkFreeListSummary& class_chunk_free_list_summary) :
@@ -156,7 +156,7 @@ class MetaspaceSummary : public StackObj {
     _class_chunk_free_list_summary(class_chunk_free_list_summary)
   {}
 
-  size_t capacity_until_GC() const { return _capacity_until_GC; }
+  Bytes capacity_until_GC() const { return _capacity_until_GC; }
   const MetaspaceCombinedStats& stats() const { return _stats; }
 
   const MetaspaceChunkFreeListSummary& metaspace_chunk_free_list_summary() const {
@@ -171,16 +171,16 @@ class MetaspaceSummary : public StackObj {
 
 class G1EvacSummary : public StackObj {
 private:
-  size_t _allocated;          // Total allocated
-  size_t _wasted;             // of which wasted (internal fragmentation)
-  size_t _undo_wasted;        // of which wasted on undo (is not used for calculation of PLAB size)
-  size_t _unused;             // Unused in last buffer
-  size_t _used;
+  Words _allocated;          // Total allocated
+  Words _wasted;             // of which wasted (internal fragmentation)
+  Words _undo_wasted;        // of which wasted on undo (is not used for calculation of PLAB size)
+  Words _unused;             // Unused in last buffer
+  Words _used;
 
-  size_t _region_end_waste; // Number of words wasted due to skipping to the next region.
+  Words _region_end_waste; // Number of words wasted due to skipping to the next region.
   uint   _regions_filled;   // Number of regions filled completely.
   size_t _num_plab_filled;  // Number of PLABs refilled/retired.
-  size_t _direct_allocated; // Number of words allocated directly into the regions.
+  Words  _direct_allocated; // Number of words allocated directly into the regions.
   size_t _num_direct_allocated; // Number of direct allocations.
 
   // Number of words in live objects remaining in regions that ultimately suffered an
@@ -191,15 +191,15 @@ private:
   // end of regions.
   size_t _failure_waste;
 public:
-  G1EvacSummary(size_t allocated,
-                size_t wasted,
-                size_t undo_wasted,
-                size_t unused,
-                size_t used,
-                size_t region_end_waste,
+  G1EvacSummary(Words allocated,
+                Words wasted,
+                Words undo_wasted,
+                Words unused,
+                Words used,
+                Words region_end_waste,
                 uint regions_filled,
                 size_t num_plab_filled,
-                size_t direct_allocated,
+                Words direct_allocated,
                 size_t num_direct_allocated,
                 size_t failure_used,
                 size_t failure_waste) :
@@ -210,15 +210,15 @@ public:
     _failure_used(failure_used), _failure_waste(failure_waste)
   { }
 
-  size_t allocated() const { return _allocated; }
-  size_t wasted() const { return _wasted; }
-  size_t undo_wasted() const { return _undo_wasted; }
-  size_t unused() const { return _unused; }
-  size_t used() const { return _used; }
-  size_t region_end_waste() const { return _region_end_waste; }
+  Words allocated() const { return _allocated; }
+  Words wasted() const { return _wasted; }
+  Words undo_wasted() const { return _undo_wasted; }
+  Words unused() const { return _unused; }
+  Words used() const { return _used; }
+  Words region_end_waste() const { return _region_end_waste; }
   uint regions_filled() const { return _regions_filled; }
   size_t num_plab_filled() const { return _num_plab_filled; }
-  size_t direct_allocated() const { return _direct_allocated; }
+  Words direct_allocated() const { return _direct_allocated; }
   size_t num_direct_allocated() const { return _num_direct_allocated; }
   size_t failure_used() const { return _failure_used; }
   size_t failure_waste() const { return _failure_waste; }

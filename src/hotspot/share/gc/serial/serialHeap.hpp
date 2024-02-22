@@ -98,11 +98,11 @@ private:
   bool _incremental_collection_failed;
 
   // Collects the given generation.
-  void collect_generation(Generation* gen, bool full, size_t size, bool is_tlab,
+  void collect_generation(Generation* gen, bool full, Words size, bool is_tlab,
                           bool run_verification, bool clear_soft_refs);
 
   // Reserve aligned space for the heap as needed by the contained generations.
-  ReservedHeapSpace allocate(size_t alignment);
+  ReservedHeapSpace allocate(Bytes alignment);
 
   PreGenGCValues get_pre_gc_values() const;
 
@@ -111,15 +111,15 @@ private:
   GCMemoryManager* _old_manager;
 
   // Helper functions for allocation
-  HeapWord* attempt_allocation(size_t size,
-                               bool   is_tlab,
-                               bool   first_only);
+  HeapWord* attempt_allocation(Words size,
+                               bool  is_tlab,
+                               bool  first_only);
 
   // Helper function for two callbacks below.
   // Considers collection of the first max_level+1 generations.
   void do_collection(bool           full,
                      bool           clear_all_soft_refs,
-                     size_t         size,
+                     Words          size,
                      bool           is_tlab,
                      GenerationType max_generation);
 
@@ -127,7 +127,7 @@ private:
   // This function does everything necessary/possible to satisfy an
   // allocation request that failed in the youngest generation that should
   // have handled it (including collection, expansion, etc.)
-  HeapWord* satisfy_failed_allocation(size_t size, bool is_tlab);
+  HeapWord* satisfy_failed_allocation(Words size, bool is_tlab);
 
   // Callback from VM_GenCollectFull operation.
   // Perform a full collection of the first max_level+1 generations.
@@ -154,12 +154,12 @@ public:
   // Performance Counter support
   GCPolicyCounters* counters()     { return _gc_policy_counters; }
 
-  size_t capacity() const override;
-  size_t used() const override;
+  Bytes capacity() const override;
+  Bytes used() const override;
 
-  size_t max_capacity() const override;
+  Bytes max_capacity() const override;
 
-  HeapWord* mem_allocate(size_t size, bool*  gc_overhead_limit_was_exceeded) override;
+  HeapWord* mem_allocate(Words size, bool*  gc_overhead_limit_was_exceeded) override;
 
   // Perform a full collection of the heap; intended for use in implementing
   // "System.gc". This implies as full a collection as the CollectedHeap
@@ -215,12 +215,12 @@ public:
   bool block_is_obj(const HeapWord* addr) const;
 
   // Section on TLAB's.
-  size_t tlab_capacity(Thread* thr) const override;
-  size_t tlab_used(Thread* thr) const override;
-  size_t unsafe_max_tlab_alloc(Thread* thr) const override;
-  HeapWord* allocate_new_tlab(size_t min_size,
-                              size_t requested_size,
-                              size_t* actual_size) override;
+  Bytes tlab_capacity(Thread* thr) const override;
+  Bytes tlab_used(Thread* thr) const override;
+  Bytes unsafe_max_tlab_alloc(Thread* thr) const override;
+  HeapWord* allocate_new_tlab(Words min_size,
+                              Words requested_size,
+                              Words* actual_size) override;
 
   // Update the gc statistics for each generation.
   void update_gc_stats(Generation* current_generation, bool full) {
@@ -313,19 +313,19 @@ public:
 private:
   // Return true if an allocation should be attempted in the older generation
   // if it fails in the younger generation.  Return false, otherwise.
-  bool should_try_older_generation_allocation(size_t word_size) const;
+  bool should_try_older_generation_allocation(Words word_size) const;
 
   // Try to allocate space by expanding the heap.
-  HeapWord* expand_heap_and_allocate(size_t size, bool is_tlab);
+  HeapWord* expand_heap_and_allocate(Words size, bool is_tlab);
 
-  HeapWord* mem_allocate_work(size_t size,
+  HeapWord* mem_allocate_work(Words size,
                               bool is_tlab);
 
   // Save the tops of the spaces in all generations
   void record_gen_tops_before_GC() PRODUCT_RETURN;
 
   // Return true if we need to perform full collection.
-  bool should_do_full_collection(size_t size, bool full,
+  bool should_do_full_collection(Words size, bool full,
                                  bool is_tlab, GenerationType max_gen) const;
 
 private:
@@ -372,7 +372,7 @@ public:
 
   // Support for loading objects from CDS archive into the heap
   bool can_load_archived_objects() const override { return UseCompressedOops; }
-  HeapWord* allocate_loaded_archive_space(size_t size) override;
+  HeapWord* allocate_loaded_archive_space(Words size) override;
   void complete_loaded_archive_space(MemRegion archive_space) override;
 
   void pin_object(JavaThread* thread, oop obj) override;

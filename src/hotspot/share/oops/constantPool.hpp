@@ -742,11 +742,11 @@ class ConstantPool : public Metadata {
   }
 
   // Sizing (in words)
-  static int header_size()             {
-    return align_up((int)sizeof(ConstantPool), wordSize) / wordSize;
+  static Words header_size()             {
+    return in_Words(align_up((int)sizeof(ConstantPool), wordSize) / wordSize);
   }
-  static int size(int length)          { return align_metadata_size(header_size() + length); }
-  int size() const                     { return size(length()); }
+  static Words size(int length)          { return align_metadata_size(header_size() + in_Words(length)); }
+  Words size() const                     { return size(length()); }
 
   // ConstantPools should be stored in the read-only region of CDS archive.
   static bool is_read_only_by_default() { return true; }

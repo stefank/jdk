@@ -135,7 +135,7 @@ oop_arraycopy_in_heap(arrayOop src_obj, size_t src_offset_in_bytes, T* src_raw,
 
 template <DecoratorSet decorators, typename BarrierSetT>
 inline void ModRefBarrierSet::AccessBarrier<decorators, BarrierSetT>::
-clone_in_heap(oop src, oop dst, size_t size) {
+clone_in_heap(oop src, oop dst, Words size) {
   Raw::clone(src, dst, size);
   BarrierSetT *bs = barrier_set_cast<BarrierSetT>(barrier_set());
   bs->invalidate(MemRegion((HeapWord*)(void*)dst, size));

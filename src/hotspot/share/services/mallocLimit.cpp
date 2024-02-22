@@ -102,10 +102,10 @@ public:
 
   // Check if string at position matches a memory size (e.g. "100", "100g" etc).
   // Advances position on match.
-  bool match_size(size_t* out) {
+  bool match_size(Bytes* out) {
     if (!eof()) {
       char* remainder = nullptr;
-      if (parse_integer<size_t>(_p, &remainder, out)) {
+      if (parse_integer<Bytes>(_p, &remainder, out)) {
         assert(remainder > _p && remainder <= _end, "sanity");
         _p = remainder;
         return true;
@@ -128,31 +128,31 @@ MallocLimitSet::MallocLimitSet() {
   reset();
 }
 
-void MallocLimitSet::set_global_limit(size_t s, MallocLimitMode flag) {
+void MallocLimitSet::set_global_limit(Bytes s, MallocLimitMode flag) {
   _glob.sz = s; _glob.mode = flag;
 }
 
-void MallocLimitSet::set_category_limit(MEMFLAGS f, size_t s, MallocLimitMode flag) {
+void MallocLimitSet::set_category_limit(MEMFLAGS f, Bytes s, MallocLimitMode flag) {
   const int i = NMTUtil::flag_to_index(f);
   _cat[i].sz = s; _cat[i].mode = flag;
 }
 
 void MallocLimitSet::reset() {
-  set_global_limit(0, MallocLimitMode::trigger_fatal);
-  _glob.sz = 0; _glob.mode = MallocLimitMode::trigger_fatal;
+  set_global_limit(Bytes(0), MallocLimitMode::trigger_fatal);
+  _glob.sz = Bytes(0); _glob.mode = MallocLimitMode::trigger_fatal;
   for (int i = 0; i < mt_number_of_types; i++) {
-    set_category_limit(NMTUtil::index_to_flag(i), 0, MallocLimitMode::trigger_fatal);
+    set_category_limit(NMTUtil::index_to_flag(i), Bytes(0), MallocLimitMode::trigger_fatal);
   }
 }
 
 void MallocLimitSet::print_on(outputStream* st) const {
   static const char* flagnames[] = { MODE_FATAL, MODE_OOM };
-  if (_glob.sz > 0) {
+  if (_glob.sz > Bytes(0)) {
     st->print_cr("MallocLimit: total limit: " PROPERFMT " (%s)", PROPERFMTARGS(_glob.sz),
                  mode_to_name(_glob.mode));
   } else {
     for (int i = 0; i < mt_number_of_types; i++) {
-      if (_cat[i].sz > 0) {
+      if (_cat[i].sz > Bytes(0)) {
         st->print_cr("MallocLimit: category \"%s\" limit: " PROPERFMT " (%s)",
                      NMTUtil::flag_to_enum_name(NMTUtil::index_to_flag(i)),
                      PROPERFMTARGS(_cat[i].sz), mode_to_name(_cat[i].mode));

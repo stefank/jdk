@@ -178,7 +178,7 @@ private:
 
   Ticks _collection_pause_end;
 
-  static size_t _humongous_object_threshold_in_words;
+  static Words _humongous_object_threshold_in_words;
 
   // These sets keep track of old and humongous regions respectively.
   HeapRegionSet _old_set;
@@ -225,19 +225,19 @@ private:
 
   // Outside of GC pauses, the number of bytes used in all regions other
   // than the current allocation region(s).
-  volatile size_t _summary_bytes_used;
+  volatile Bytes _summary_bytes_used;
 
-  void increase_used(size_t bytes);
-  void decrease_used(size_t bytes);
+  void increase_used(Bytes bytes);
+  void decrease_used(Bytes bytes);
 
-  void set_used(size_t bytes);
+  void set_used(Bytes bytes);
 
   // Number of bytes used in all regions during GC. Typically changed when
   // retiring a GC alloc region.
-  size_t _bytes_used_during_gc;
+  Bytes _bytes_used_during_gc;
 
 public:
-  size_t bytes_used_during_gc() const { return _bytes_used_during_gc; }
+  Bytes bytes_used_during_gc() const { return _bytes_used_during_gc; }
 
 private:
   // GC allocation statistics policy for survivors.
@@ -299,7 +299,7 @@ private:
   // Create a memory mapper for auxiliary data structures of the given size and
   // translation factor.
   static G1RegionToSpaceMapper* create_aux_memory_mapper(const char* description,
-                                                         size_t size,
+                                                         Bytes size,
                                                          size_t translation_factor);
 
   void trace_heap(GCWhen::Type when, const GCTracer* tracer) override;
@@ -361,8 +361,8 @@ private:
 #ifdef ASSERT
 #define assert_used_and_recalculate_used_equal(g1h)                           \
   do {                                                                        \
-    size_t cur_used_bytes = g1h->used();                                      \
-    size_t recal_used_bytes = g1h->recalculate_used();                        \
+    Bytes cur_used_bytes = g1h->used();                                       \
+    Bytes recal_used_bytes = g1h->recalculate_used();                         \
     assert(cur_used_bytes == recal_used_bytes, "Used(" SIZE_FORMAT ") is not" \
            " same as recalculated used(" SIZE_FORMAT ").",                    \
            cur_used_bytes, recal_used_bytes);                                 \
@@ -390,7 +390,7 @@ private:
   // attempt to expand the heap if necessary to satisfy the allocation
   // request. 'type' takes the type of region to be allocated. (Use constants
   // Old, Eden, Humongous, Survivor defined in HeapRegionType.)
-  HeapRegion* new_region(size_t word_size,
+  HeapRegion* new_region(Words word_size,
                          HeapRegionType type,
                          bool do_expand,
                          uint node_index = G1NUMA::AnyNodeIndex);
@@ -400,11 +400,11 @@ private:
   // humongous region.
   HeapWord* humongous_obj_allocate_initialize_regions(HeapRegion* first_hr,
                                                       uint num_regions,
-                                                      size_t word_size);
+                                                      Words word_size);
 
   // Attempt to allocate a humongous object of the given size. Return
   // null if unsuccessful.
-  HeapWord* humongous_obj_allocate(size_t word_size);
+  HeapWord* humongous_obj_allocate(Words word_size);
 
   // The following two methods, allocate_new_tlab() and
   // mem_allocate(), are the two main entry points from the runtime
@@ -435,48 +435,48 @@ private:
   //   humongous allocation requests should go to mem_allocate() which
   //   will satisfy them with a special path.
 
-  HeapWord* allocate_new_tlab(size_t min_size,
-                              size_t requested_size,
-                              size_t* actual_size) override;
+  HeapWord* allocate_new_tlab(Words min_size,
+                              Words requested_size,
+                              Words* actual_size) override;
 
-  HeapWord* mem_allocate(size_t word_size,
+  HeapWord* mem_allocate(Words word_size,
                          bool*  gc_overhead_limit_was_exceeded) override;
 
   // First-level mutator allocation attempt: try to allocate out of
   // the mutator alloc region without taking the Heap_lock. This
   // should only be used for non-humongous allocations.
-  inline HeapWord* attempt_allocation(size_t min_word_size,
-                                      size_t desired_word_size,
-                                      size_t* actual_word_size);
+  inline HeapWord* attempt_allocation(Words min_word_size,
+                                      Words desired_word_size,
+                                      Words* actual_word_size);
 
   // Second-level mutator allocation attempt: take the Heap_lock and
   // retry the allocation attempt, potentially scheduling a GC
   // pause. This should only be used for non-humongous allocations.
-  HeapWord* attempt_allocation_slow(size_t word_size);
+  HeapWord* attempt_allocation_slow(Words word_size);
 
   // Takes the Heap_lock and attempts a humongous allocation. It can
   // potentially schedule a GC pause.
-  HeapWord* attempt_allocation_humongous(size_t word_size);
+  HeapWord* attempt_allocation_humongous(Words word_size);
 
   // Allocation attempt that should be called during safepoints (e.g.,
   // at the end of a successful GC). expect_null_mutator_alloc_region
   // specifies whether the mutator alloc region is expected to be null
   // or not.
-  HeapWord* attempt_allocation_at_safepoint(size_t word_size,
+  HeapWord* attempt_allocation_at_safepoint(Words word_size,
                                             bool expect_null_mutator_alloc_region);
 
   // These methods are the "callbacks" from the G1AllocRegion class.
 
   // For mutator alloc regions.
-  HeapRegion* new_mutator_alloc_region(size_t word_size, bool force, uint node_index);
+  HeapRegion* new_mutator_alloc_region(Words word_size, bool force, uint node_index);
   void retire_mutator_alloc_region(HeapRegion* alloc_region,
-                                   size_t allocated_bytes);
+                                   Bytes allocated_bytes);
 
   // For GC alloc regions.
   bool has_more_regions(G1HeapRegionAttr dest);
-  HeapRegion* new_gc_alloc_region(size_t word_size, G1HeapRegionAttr dest, uint node_index);
+  HeapRegion* new_gc_alloc_region(Words word_size, G1HeapRegionAttr dest, uint node_index);
   void retire_gc_alloc_region(HeapRegion* alloc_region,
-                              size_t allocated_bytes, G1HeapRegionAttr dest);
+                              Bytes allocated_bytes, G1HeapRegionAttr dest);
 
   // - if clear_all_soft_refs is true, all soft references should be
   //   cleared during the GC.
@@ -496,7 +496,7 @@ private:
   // Callback from VM_G1CollectForAllocation operation.
   // This function does everything necessary/possible to satisfy a
   // failed allocation request (including collection, expansion, etc.)
-  HeapWord* satisfy_failed_allocation(size_t word_size,
+  HeapWord* satisfy_failed_allocation(Words word_size,
                                       bool* succeeded);
   // Internal helpers used during full GC to split it up to
   // increase readability.
@@ -509,7 +509,7 @@ private:
   void print_heap_after_full_collection();
 
   // Helper method for satisfy_failed_allocation()
-  HeapWord* satisfy_failed_allocation_helper(size_t word_size,
+  HeapWord* satisfy_failed_allocation_helper(Words word_size,
                                              bool do_gc,
                                              bool maximal_compaction,
                                              bool expect_null_mutator_alloc_region,
@@ -519,7 +519,7 @@ private:
   // to support an allocation of the given "word_size".  If
   // successful, perform the allocation and return the address of the
   // allocated block, or else null.
-  HeapWord* expand_and_allocate(size_t word_size);
+  HeapWord* expand_and_allocate(Words word_size);
 
   void verify_numa_regions(const char* desc);
 
@@ -576,20 +576,20 @@ public:
   // Returns true if the heap was expanded by the requested amount;
   // false otherwise.
   // (Rounds up to a HeapRegion boundary.)
-  bool expand(size_t expand_bytes, WorkerThreads* pretouch_workers = nullptr, double* expand_time_ms = nullptr);
+  bool expand(Bytes expand_bytes, WorkerThreads* pretouch_workers = nullptr, double* expand_time_ms = nullptr);
   bool expand_single_region(uint node_index);
 
   // Returns the PLAB statistics for a given destination.
   inline G1EvacStats* alloc_buffer_stats(G1HeapRegionAttr dest);
 
   // Determines PLAB size for a given destination.
-  inline size_t desired_plab_sz(G1HeapRegionAttr dest);
+  inline Words desired_plab_sz(G1HeapRegionAttr dest);
   // Clamp the given PLAB word size to allowed values. Prevents humongous PLAB sizes
   // for two reasons:
   // * PLABs are allocated using a similar paths as oops, but should
   //   never be in a humongous region
   // * Allowing humongous PLABs needlessly churns the region free lists
-  inline size_t clamp_plab_size(size_t value) const;
+  inline Words clamp_plab_size(Words value) const;
 
   // Do anything common to GC's.
   void gc_prologue(bool full);
@@ -609,7 +609,7 @@ public:
 
   void set_humongous_metadata(HeapRegion* first_hr,
                               uint num_regions,
-                              size_t word_size,
+                              Words word_size,
                               bool update_remsets);
 
   // We register a region with the fast "in collection set" test. We
@@ -692,7 +692,7 @@ public:
   // write barrier never queues anything when updating objects on this
   // block. It is assumed (and in fact we assert) that the block
   // belongs to a young region.
-  inline void dirty_young_block(HeapWord* start, size_t word_size);
+  inline void dirty_young_block(HeapWord* start, Words word_size);
 
   // Frees a humongous region by collapsing it into individual regions
   // and calling free_region() for each of them. The freed regions
@@ -715,7 +715,7 @@ public:
   // not be same as the preferred address.
   // This API is only used for allocating heap space for the archived heap objects
   // in the CDS archive.
-  HeapWord* alloc_archive_region(size_t word_size, HeapWord* preferred_addr);
+  HeapWord* alloc_archive_region(Words word_size, HeapWord* preferred_addr);
 
   // Populate the G1BlockOffsetTablePart for archived regions with the given
   // memory range.
@@ -731,8 +731,8 @@ private:
 
   // Shrink the garbage-first heap by at most the given size (in bytes!).
   // (Rounds down to a HeapRegion boundary.)
-  void shrink(size_t shrink_bytes);
-  void shrink_helper(size_t expand_bytes);
+  void shrink(Bytes shrink_bytes);
+  void shrink_helper(Bytes expand_bytes);
 
   // Schedule the VM operation that will do an evacuation pause to
   // satisfy an allocation request of word_size. *succeeded will
@@ -744,7 +744,7 @@ private:
   // it has to be read while holding the Heap_lock. Currently, both
   // methods that call do_collection_pause() release the Heap_lock
   // before the call, so it's easy to read gc_count_before just before.
-  HeapWord* do_collection_pause(size_t         word_size,
+  HeapWord* do_collection_pause(Words         word_size,
                                 uint           gc_count_before,
                                 bool*          succeeded,
                                 GCCause::Cause gc_cause);
@@ -949,14 +949,14 @@ public:
   // The Concurrent Marking reference processor...
   ReferenceProcessor* ref_processor_cm() const { return _ref_processor_cm; }
 
-  size_t unused_committed_regions_in_bytes() const;
+  Bytes unused_committed_regions_in_bytes() const;
 
-  size_t capacity() const override;
-  size_t used() const override;
+  Bytes capacity() const override;
+  Bytes used() const override;
   // This should be called when we're not holding the heap lock. The
   // result might be a bit inaccurate.
-  size_t used_unlocked() const;
-  size_t recalculate_used() const;
+  Bytes used_unlocked() const;
+  Bytes recalculate_used() const;
 
   // These virtual functions do the actual allocation.
   // Some heaps may offer a contiguous region for shared non-blocking
@@ -1006,7 +1006,7 @@ public:
   inline void old_set_add(HeapRegion* hr);
   inline void old_set_remove(HeapRegion* hr);
 
-  size_t non_young_capacity_bytes() {
+  Bytes non_young_capacity_bytes() {
     return (old_regions_count() + humongous_regions_count()) * HeapRegion::GrainBytes;
   }
 
@@ -1028,7 +1028,7 @@ public:
   void remove_from_old_gen_sets(const uint old_regions_removed,
                                 const uint humongous_regions_removed);
   void prepend_to_freelist(FreeRegionList* list);
-  void decrement_summary_bytes(size_t bytes);
+  void decrement_summary_bytes(Bytes bytes);
 
   bool is_in(const void* p) const override;
 
@@ -1164,16 +1164,16 @@ public:
   // Section on thread-local allocation buffers (TLABs)
   // See CollectedHeap for semantics.
 
-  size_t tlab_capacity(Thread* ignored) const override;
-  size_t tlab_used(Thread* ignored) const override;
-  size_t max_tlab_size() const override;
-  size_t unsafe_max_tlab_alloc(Thread* ignored) const override;
+  Bytes tlab_capacity(Thread* ignored) const override;
+  Bytes tlab_used(Thread* ignored) const override;
+  Words max_tlab_size() const override;
+  Bytes unsafe_max_tlab_alloc(Thread* ignored) const override;
 
   inline bool is_in_young(const oop obj) const;
   inline bool requires_barriers(stackChunkOop obj) const override;
 
   // Returns "true" iff the given word_size is "very large".
-  static bool is_humongous(size_t word_size) {
+  static bool is_humongous(Words word_size) {
     // Note this has to be strictly greater-than as the TLABs
     // are capped at the humongous threshold and we want to
     // ensure that we don't try to allocate a TLAB as
@@ -1183,16 +1183,16 @@ public:
   }
 
   // Returns the humongous threshold for a specific region size
-  static size_t humongous_threshold_for(size_t region_size) {
+  static Words humongous_threshold_for(Words region_size) {
     return (region_size / 2);
   }
 
   // Returns the number of regions the humongous object of the given word size
   // requires.
-  static size_t humongous_obj_size_in_regions(size_t word_size);
+  static size_t humongous_obj_size_in_regions(Words word_size);
 
   // Print the maximum heap capacity.
-  size_t max_capacity() const override;
+  Bytes max_capacity() const override;
 
   Tickspan time_since_last_collection() const { return Ticks::now() - _collection_pause_end; }
 
@@ -1211,8 +1211,8 @@ public:
   uint eden_regions_count(uint node_index) const { return _eden.regions_on_node(node_index); }
   uint survivor_regions_count() const { return _survivor.length(); }
   uint survivor_regions_count(uint node_index) const { return _survivor.regions_on_node(node_index); }
-  size_t eden_regions_used_bytes() const { return _eden.used_bytes(); }
-  size_t survivor_regions_used_bytes() const { return _survivor.used_bytes(); }
+  Bytes eden_regions_used_bytes() const { return _eden.used_bytes(); }
+  Bytes survivor_regions_used_bytes() const { return _survivor.used_bytes(); }
   uint young_regions_count() const { return _eden.length() + _survivor.length(); }
   uint old_regions_count() const { return _old_set.length(); }
   uint humongous_regions_count() const { return _humongous_set.length(); }
@@ -1238,7 +1238,7 @@ public:
   inline bool is_obj_dead_full(const oop obj) const;
 
   // Mark the live object that failed evacuation in the bitmap.
-  void mark_evac_failure_object(uint worker_id, oop obj, size_t obj_size) const;
+  void mark_evac_failure_object(uint worker_id, oop obj, Words obj_size) const;
 
   G1ConcurrentMark* concurrent_mark() const { return _cm; }
 

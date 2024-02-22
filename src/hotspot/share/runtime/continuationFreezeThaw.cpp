@@ -403,7 +403,7 @@ protected:
   inline void patch_stack_pd(intptr_t* frame_sp, intptr_t* heap_sp);
 
   // slow path
-  virtual stackChunkOop allocate_chunk_slow(size_t stack_size) = 0;
+  virtual stackChunkOop allocate_chunk_slow(Words stack_size) = 0;
 
   int cont_size() { return pointer_delta_as_int(_cont_stack_bottom, _cont_stack_top); }
 
@@ -451,7 +451,7 @@ protected:
 template <typename ConfigT>
 class Freeze : public FreezeBase {
 private:
-  stackChunkOop allocate_chunk(size_t stack_size);
+  stackChunkOop allocate_chunk(Words stack_size);
 
 public:
   inline Freeze(JavaThread* thread, ContinuationWrapper& cont, intptr_t* frame_sp)
@@ -460,7 +460,7 @@ public:
   freeze_result try_freeze_fast();
 
 protected:
-  virtual stackChunkOop allocate_chunk_slow(size_t stack_size) override { return allocate_chunk(stack_size); }
+  virtual stackChunkOop allocate_chunk_slow(Words stack_size) override { return allocate_chunk(stack_size); }
 };
 
 FreezeBase::FreezeBase(JavaThread* thread, ContinuationWrapper& cont, intptr_t* frame_sp) :
@@ -543,7 +543,7 @@ freeze_result Freeze<ConfigT>::try_freeze_fast() {
   DEBUG_ONLY(_fast_freeze_size = size_if_fast_freeze_available();)
   assert(_fast_freeze_size == 0, "");
 
-  stackChunkOop chunk = allocate_chunk(cont_size() + frame::metadata_words);
+  stackChunkOop chunk = allocate_chunk(Words(cont_size() + frame::metadata_words));
   if (freeze_fast_new_chunk(chunk)) {
     return freeze_ok;
   }
@@ -976,7 +976,8 @@ freeze_result FreezeBase::finalize_freeze(const frame& callee, frame& caller, in
     _freeze_size += overlap; // we're allocating a new chunk, so no overlap
     // overlap = 0;
 
-    chunk = allocate_chunk_slow(_freeze_size);
+    // TODO: Propagate Words (or WordsInt) type
+    chunk = allocate_chunk_slow((Words)_freeze_size);
     if (chunk == nullptr) {
       return freeze_exception;
     }
@@ -1306,7 +1307,7 @@ inline bool FreezeBase::stack_overflow() { // detect stack overflow in recursive
 }
 
 class StackChunkAllocator : public MemAllocator {
-  const size_t                                 _stack_size;
+  const Words                                  _stack_size;
   ContinuationWrapper&                         _continuation_wrapper;
   JvmtiSampledObjectAllocEventCollector* const _jvmti_event_collector;
   mutable bool                                 _took_slow_path;
@@ -1314,13 +1315,13 @@ class StackChunkAllocator : public MemAllocator {
   // Does the minimal amount of initialization needed for a TLAB allocation.
   // We don't need to do a full initialization, as such an allocation need not be immediately walkable.
   virtual oop initialize(HeapWord* mem) const override {
-    assert(_stack_size > 0, "");
-    assert(_stack_size <= max_jint, "");
+    assert(_stack_size > Words(0), "");
+    assert(_stack_size <= Words(max_jint), "");
     assert(_word_size > _stack_size, "");
 
     // zero out fields (but not the stack)
-    const size_t hs = oopDesc::header_size();
-    Copy::fill_to_aligned_words(mem + hs, vmClasses::StackChunk_klass()->size_helper() - hs);
+    const Words hs = oopDesc::header_size();
+    Copy::fill_to_aligned_words(mem + hs, (Words)vmClasses::StackChunk_klass()->size_helper() - hs);
 
     jdk_internal_vm_StackChunk::set_size(mem, (int)_stack_size);
     jdk_internal_vm_StackChunk::set_sp(mem, (int)_stack_size);
@@ -1344,9 +1345,9 @@ class StackChunkAllocator : public MemAllocator {
 
 public:
   StackChunkAllocator(Klass* klass,
-                      size_t word_size,
+                      Words word_size,
                       Thread* thread,
-                      size_t stack_size,
+                      Words stack_size,
                       ContinuationWrapper& continuation_wrapper,
                       JvmtiSampledObjectAllocEventCollector* jvmti_event_collector)
     : MemAllocator(klass, word_size, thread),
@@ -1384,13 +1385,13 @@ public:
 };
 
 template <typename ConfigT>
-stackChunkOop Freeze<ConfigT>::allocate_chunk(size_t stack_size) {
+stackChunkOop Freeze<ConfigT>::allocate_chunk(Words stack_size) {
   log_develop_trace(continuations)("allocate_chunk allocating new chunk");
 
   InstanceStackChunkKlass* klass = InstanceStackChunkKlass::cast(vmClasses::StackChunk_klass());
-  size_t size_in_words = klass->instance_size(stack_size);
+  Words size_in_words = klass->instance_size(stack_size);
 
-  if (CollectedHeap::stack_chunk_max_size() > 0 && size_in_words >= CollectedHeap::stack_chunk_max_size()) {
+  if (CollectedHeap::stack_chunk_max_size() > Words(0) && size_in_words >= CollectedHeap::stack_chunk_max_size()) {
     if (!_preempt) {
       throw_stack_overflow_on_humongous_chunk();
     }

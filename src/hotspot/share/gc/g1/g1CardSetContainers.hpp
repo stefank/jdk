@@ -227,9 +227,9 @@ public:
     return static_cast<uint>(bm.find_first_set_bit(idx));
   }
 
-  static size_t header_size_in_bytes();
+  static Bytes header_size_in_bytes();
 
-  static size_t size_in_bytes(size_t size_in_bits) { return header_size_in_bytes() + BitMap::calc_size_in_words(size_in_bits) * BytesPerWord; }
+  static Bytes size_in_bytes(size_t size_in_bits) { return header_size_in_bytes() + to_Bytes(BitMap::calc_size_in_words(size_in_bits)); }
 };
 
 class G1CardSetHowl : public G1CardSetContainer {

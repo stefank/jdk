@@ -619,7 +619,7 @@ Deoptimization::UnrollBlock* Deoptimization::fetch_unroll_info_helper(JavaThread
   // PopFrame requires that the preserved incoming arguments from the recently-popped topmost
   // activation be put back on the expression stack of the caller for reexecution
   if (JvmtiExport::can_pop_frame() && current->popframe_forcing_deopt_reexecution()) {
-    popframe_extra_args = in_words(current->popframe_preserved_args_size_in_words());
+    popframe_extra_args = untype(current->popframe_preserved_args_size_in_words());
   }
 
   // Find the current pc for sender of the deoptee. Since the sender may have been deoptimized

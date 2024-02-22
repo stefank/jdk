@@ -84,15 +84,15 @@ public:
   Metaspace::MetaspaceType space_type() const { return _space_type; }
 
   // Allocate word_size words from Metaspace.
-  MetaWord* allocate(size_t word_size, Metaspace::MetadataType mdType);
+  MetaWord* allocate(Words word_size, Metaspace::MetadataType mdType);
 
   // Attempt to expand the GC threshold to be good for at least another word_size words
   // and allocate. Returns null if failure. Used during Metaspace GC.
-  MetaWord* expand_and_allocate(size_t word_size, Metaspace::MetadataType mdType);
+  MetaWord* expand_and_allocate(Words word_size, Metaspace::MetadataType mdType);
 
   // Prematurely returns a metaspace allocation to the _block_freelists
   // because it is not needed anymore.
-  void deallocate(MetaWord* ptr, size_t word_size, bool is_class);
+  void deallocate(MetaWord* ptr, Words word_size, bool is_class);
 
   // Update statistics. This walks all in-use chunks.
   void add_to_statistics(metaspace::ClmsStats* out) const;
@@ -101,13 +101,13 @@ public:
 
   // Convenience method to get the most important usage statistics for either class
   // or non-class space. For more detailed statistics, use add_to_statistics().
-  void usage_numbers(Metaspace::MetadataType mdType, size_t* p_used_words,
-                     size_t* p_committed_words, size_t* p_capacity_words) const;
+  void usage_numbers(Metaspace::MetadataType mdType, Words* p_used_words,
+                     Words* p_committed_words, Words* p_capacity_words) const;
 
   // Convenience method to get the most important usage statistics (totals; both class- and non-class spaces)
   // For more detailed statistics, use add_to_statistics().
-  void usage_numbers(size_t* p_used_words, size_t* p_committed_words,
-                     size_t* p_capacity_words) const;
+  void usage_numbers(Words* p_used_words, Words* p_committed_words,
+                     Words* p_capacity_words) const;
 
 }; // end: ClassLoaderMetaspace
 

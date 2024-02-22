@@ -192,7 +192,7 @@ private:
   // Raw stackmap data for the method
   Array<u1>*        _stackmap_data;
 
-  int               _constMethod_size;
+  Words             _constMethod_size;
   ConstMethodFlags  _flags;                       // for sizing
   u1                _result_type;                 // BasicType of result
 
@@ -213,7 +213,7 @@ private:
   ConstMethod(int byte_code_size,
               InlineTableSizes* sizes,
               MethodType is_overpass,
-              int size);
+              Words size);
 
   void set_size_of_parameters(int size)          { _size_of_parameters = checked_cast<u2>(size); }
   void set_num_stack_arg_slots(int n)            { _num_stack_arg_slots = checked_cast<u2>(n); }
@@ -311,15 +311,15 @@ public:
   }
 
   // Sizing
-  static int header_size() {
-    return align_up((int)sizeof(ConstMethod), wordSize) / wordSize;
+  static Words header_size() {
+    return in_Words(align_up((int)sizeof(ConstMethod), wordSize) / wordSize);
   }
 
   // Size needed
-  static int size(int code_size, InlineTableSizes* sizes);
+  static Words size(int code_size, InlineTableSizes* sizes);
 
-  int size() const                    { return _constMethod_size;}
-  void set_constMethod_size(int size)     { _constMethod_size = size; }
+  Words size() const                    { return _constMethod_size;}
+  void set_constMethod_size(Words size)     { _constMethod_size = size; }
 
   // ConstMethods should be stored in the read-only region of CDS archive.
   static bool is_read_only_by_default() { return true; }
@@ -482,7 +482,7 @@ private:
 
   // First byte after ConstMethod*
   address constMethod_end() const
-                          { return (address)((intptr_t*)this + _constMethod_size); }
+                          { return (address)((MetaWord*)this + _constMethod_size); }
 
   // Last short in ConstMethod*
   u2* last_u2_element() const;

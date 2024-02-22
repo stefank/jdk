@@ -196,7 +196,7 @@ protected:
   Klass(KlassKind kind);
   Klass();
 
-  void* operator new(size_t size, ClassLoaderData* loader_data, size_t word_size, TRAPS) throw();
+  void* operator new(size_t size, ClassLoaderData* loader_data, Words word_size, TRAPS) throw();
 
  public:
   int kind() { return _kind; }
@@ -558,7 +558,7 @@ protected:
   // Error handling when length > max_length or length < 0
   static void check_array_allocation_length(int length, int max_length, TRAPS);
 
-  void set_vtable_length(int len) { _vtable_len= len; }
+  void set_vtable_length(int len) { _vtable_len = len; }
 
   vtableEntry* start_of_vtable() const;
 #if INCLUDE_CDS
@@ -595,10 +595,10 @@ protected:
   // These functions describe behavior for the oop not the KLASS.
 
   // actual oop size of obj in memory in word size.
-  virtual size_t oop_size(oop obj) const = 0;
+  virtual Words oop_size(oop obj) const = 0;
 
   // Size of klass in word size.
-  virtual int size() const = 0;
+  virtual Words size() const = 0;
 
   // Returns the Java name for a class (Resource allocated)
   // For arrays, this returns the name of the element with a leading '['.

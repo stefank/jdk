@@ -181,11 +181,11 @@ class VM_GC_HeapInspection: public VM_GC_Operation {
 
 class VM_CollectForAllocation : public VM_GC_Operation {
  protected:
-  size_t    _word_size; // Size of object to be allocated (in number of words)
+  Words     _word_size; // Size of object to be allocated (in number of words)
   HeapWord* _result;    // Allocation result (null if allocation failed)
 
  public:
-  VM_CollectForAllocation(size_t word_size, uint gc_count_before, GCCause::Cause cause);
+  VM_CollectForAllocation(Words word_size, uint gc_count_before, GCCause::Cause cause);
 
   HeapWord* result() const {
     return _result;
@@ -195,13 +195,13 @@ class VM_CollectForAllocation : public VM_GC_Operation {
 class VM_CollectForMetadataAllocation: public VM_GC_Operation {
  private:
   MetaWord*                _result;
-  size_t                   _size;     // size of object to be allocated
+  Words                    _size;     // size of object to be allocated
   Metaspace::MetadataType  _mdtype;
   ClassLoaderData*         _loader_data;
 
  public:
   VM_CollectForMetadataAllocation(ClassLoaderData* loader_data,
-                                  size_t size,
+                                  Words size,
                                   Metaspace::MetadataType mdtype,
                                   uint gc_count_before,
                                   uint full_gc_count_before,

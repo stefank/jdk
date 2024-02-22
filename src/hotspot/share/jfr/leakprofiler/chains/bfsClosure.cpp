@@ -52,7 +52,7 @@ BFSClosure::BFSClosure(EdgeQueue* edge_queue, EdgeStore* edge_store, JFRBitSet* 
 static void log_frontier_level_summary(size_t level,
                                        size_t high_idx,
                                        size_t low_idx,
-                                       size_t edge_size) {
+                                       Bytes edge_size) {
   const size_t nof_edges_in_frontier = high_idx - low_idx;
   log_trace(jfr, system)(
       "BFS front: " SIZE_FORMAT " edges: " SIZE_FORMAT " size: " SIZE_FORMAT " [KB]",
@@ -70,7 +70,7 @@ void BFSClosure::log_completed_frontier() const {
 }
 
 void BFSClosure::log_dfs_fallback() const {
-  const size_t edge_size = _edge_queue->sizeof_edge();
+  const Bytes edge_size = _edge_queue->sizeof_edge();
   // first complete summary for frontier in progress
   log_frontier_level_summary(_current_frontier_level,
                              _next_frontier_idx,

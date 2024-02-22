@@ -187,7 +187,7 @@ Method* Klass::uncached_lookup_method(const Symbol* name, const Symbol* signatur
   return nullptr;
 }
 
-void* Klass::operator new(size_t size, ClassLoaderData* loader_data, size_t word_size, TRAPS) throw() {
+void* Klass::operator new(size_t size, ClassLoaderData* loader_data, Words word_size, TRAPS) throw() {
   return Metaspace::allocate(loader_data, word_size, MetaspaceObj::ClassType, THREAD);
 }
 
@@ -820,7 +820,7 @@ Method* Klass::method_at_vtable(int index)  {
 #ifndef PRODUCT
 
 bool Klass::verify_vtable_index(int i) {
-  int limit = vtable_length()/vtableEntry::size();
+  int limit = vtable_length()/checked_cast<int>(vtableEntry::size());
   assert(i >= 0 && i < limit, "index %d out of bounds %d", i, limit);
   return true;
 }

@@ -98,9 +98,9 @@ class BlockTree: public CHeapObj<mtMetaspace> {
     // Word size of node. Note that size cannot be larger than max metaspace size,
     // so this could be very well a 32bit value (in case we ever make this a balancing
     // tree and need additional space for weighting information).
-    const size_t _word_size;
+    const Words _word_size;
 
-    Node(size_t word_size) :
+    Node(Words word_size) :
       _canary(_canary_value),
       _parent(nullptr),
       _left(nullptr),
@@ -112,7 +112,7 @@ class BlockTree: public CHeapObj<mtMetaspace> {
 #ifdef ASSERT
     bool valid() const {
       return _canary == _canary_value &&
-        _word_size >= sizeof(Node) &&
+        _word_size >= in_Words(sizeof(Node)) &&
         _word_size < chunklevel::MAX_CHUNK_WORD_SIZE;
     }
 #endif
@@ -129,8 +129,8 @@ class BlockTree: public CHeapObj<mtMetaspace> {
 public:
 
   // Minimum word size a block has to be to be added to this structure (note ceil division).
-  const static size_t MinWordSize =
-      (sizeof(Node) + sizeof(MetaWord) - 1) / sizeof(MetaWord);
+  const static Words MinWordSize =
+     in_Words((sizeof(Node) + sizeof(MetaWord) - 1) / sizeof(MetaWord));
 
 private:
 
@@ -246,7 +246,7 @@ private:
 
   // Given a node and a wish size, search this node and all children for
   // the node closest (equal or larger sized) to the size s.
-  Node* find_closest_fit(Node* n, size_t s) {
+  Node* find_closest_fit(Node* n, Words s) {
     Node* best_match = nullptr;
     while (n != nullptr) {
       DEBUG_ONLY(check_node(n);)
@@ -265,7 +265,7 @@ private:
 
   // Given a wish size, search the whole tree for a
   // node closest (equal or larger sized) to the size s.
-  Node* find_closest_fit(size_t s) {
+  Node* find_closest_fit(Words s) {
     if (_root != nullptr) {
       return find_closest_fit(_root, s);
     }
@@ -335,7 +335,7 @@ private:
   }
 
 #ifdef ASSERT
-  void zap_range(MetaWord* p, size_t word_size);
+  void zap_range(MetaWord* p, Words word_size);
   // Helper for verify()
   void verify_node_pointer(const Node* n) const;
 #endif // ASSERT
@@ -345,7 +345,7 @@ public:
   BlockTree() : _root(nullptr) {}
 
   // Add a memory block to the tree. Its content will be overwritten.
-  void add_block(MetaWord* p, size_t word_size) {
+  void add_block(MetaWord* p, Words word_size) {
     DEBUG_ONLY(zap_range(p, word_size));
     assert(word_size >= MinWordSize, "invalid block size " SIZE_FORMAT, word_size);
     Node* n = new(p) Node(word_size);
@@ -360,7 +360,7 @@ public:
   // Given a word_size, search and return the smallest block that is equal or
   //  larger than that size. Upon return, *p_real_word_size contains the actual
   //  block size.
-  MetaWord* remove_block(size_t word_size, size_t* p_real_word_size) {
+  MetaWord* remove_block(Words word_size, Words* p_real_word_size) {
     assert(word_size >= MinWordSize, "invalid block size " SIZE_FORMAT, word_size);
 
     Node* n = find_closest_fit(word_size);
@@ -394,7 +394,7 @@ public:
   unsigned count() const { return _counter.count(); }
 
   // Returns total size, in words, of all elements.
-  size_t total_size() const { return _counter.total_size(); }
+  Words total_size() const { return _counter.total_size(); }
 
   bool is_empty() const { return _root == nullptr; }
 

@@ -54,9 +54,9 @@ class ObjectSample : public JfrCHeapObj {
   traceid _thread_id;
   traceid _stack_trace_id;
   traceid _stack_trace_hash;
-  size_t _span;
-  size_t _allocated;
-  size_t _heap_used_at_last_gc;
+  Bytes _span;
+  Bytes _allocated;
+  Bytes _heap_used_at_last_gc;
   int _index;
   bool _virtual_thread;
 
@@ -78,9 +78,9 @@ class ObjectSample : public JfrCHeapObj {
                    _thread_id(0),
                    _stack_trace_id(0),
                    _stack_trace_hash(0),
-                   _span(0),
-                   _allocated(0),
-                   _heap_used_at_last_gc(0),
+                   _span(Bytes(0)),
+                   _allocated(Bytes(0)),
+                   _heap_used_at_last_gc(Bytes(0)),
                    _index(0),
                    _virtual_thread(false) {}
 
@@ -117,23 +117,23 @@ class ObjectSample : public JfrCHeapObj {
     _index = index;
   }
 
-  size_t span() const {
+  Bytes span() const {
     return _span;
   }
 
-  void set_span(size_t span) {
+  void set_span(Bytes span) {
     _span = span;
   }
 
-  void add_span(size_t span) {
+  void add_span(Bytes span) {
     _span += span;
   }
 
-  size_t allocated() const {
+  Bytes allocated() const {
     return _allocated;
   }
 
-  void set_allocated(size_t size) {
+  void set_allocated(Bytes size) {
     _allocated = size;
   }
 
@@ -150,11 +150,11 @@ class ObjectSample : public JfrCHeapObj {
       _allocation_time.ft_value() : _allocation_time.value()) < time_stamp;
   }
 
-  void set_heap_used_at_last_gc(size_t heap_used) {
+  void set_heap_used_at_last_gc(Bytes heap_used) {
     _heap_used_at_last_gc = heap_used;
   }
 
-  size_t heap_used_at_last_gc() const {
+  Bytes heap_used_at_last_gc() const {
     return _heap_used_at_last_gc;
   }
 

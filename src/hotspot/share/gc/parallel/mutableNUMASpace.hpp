@@ -84,7 +84,7 @@ class MutableNUMASpace : public MutableSpace {
     SpaceStats _space_stats;
 
    public:
-    LGRPSpace(uint l, size_t alignment) : _lgrp_id(l), _allocation_failed(false) {
+    LGRPSpace(uint l, Bytes alignment) : _lgrp_id(l), _allocation_failed(false) {
       _space = new MutableSpace(alignment);
       _alloc_rate = new AdaptiveWeightedAverage(NUMAChunkResizeWeight);
     }
@@ -100,14 +100,15 @@ class MutableNUMASpace : public MutableSpace {
       // If there was a failed allocation make allocation rate equal
       // to the size of the whole chunk. This ensures the progress of
       // the adaptation process.
-      size_t alloc_rate_sample;
+      // TODO: Why is this a rate when the type is Byte?
+      Bytes alloc_rate_sample;
       if (_allocation_failed) {
         alloc_rate_sample = space()->capacity_in_bytes();
         _allocation_failed = false;
       } else {
         alloc_rate_sample = space()->used_in_bytes();
       }
-      alloc_rate()->sample(alloc_rate_sample);
+      alloc_rate()->sample(untype(alloc_rate_sample));
     }
 
     uint lgrp_id() const                            { return _lgrp_id;             }
@@ -117,17 +118,17 @@ class MutableNUMASpace : public MutableSpace {
     SpaceStats* space_stats()                       { return &_space_stats;        }
     void clear_space_stats()                        { _space_stats = SpaceStats(); }
 
-    void accumulate_statistics(size_t page_size);
+    void accumulate_statistics(Bytes page_size);
   };
 
   GrowableArray<LGRPSpace*>* _lgrp_spaces;
-  size_t _page_size;
+  Bytes _page_size;
   unsigned _adaptation_cycles, _samples_count;
 
   bool _must_use_large_pages;
 
-  void set_page_size(size_t psz)                     { _page_size = psz;          }
-  size_t page_size() const                           { return _page_size;         }
+  void set_page_size(Bytes psz)                      { _page_size = psz;          }
+  Bytes page_size() const                            { return _page_size;         }
 
   unsigned adaptation_cycles()                       { return _adaptation_cycles; }
   void set_adaptation_cycles(int v)                  { _adaptation_cycles = v;    }
@@ -143,11 +144,11 @@ class MutableNUMASpace : public MutableSpace {
   void bias_region(MemRegion mr, uint lgrp_id);
 
   // Get current chunk size.
-  size_t current_chunk_size(int i);
+  Bytes current_chunk_size(int i);
   // Get default chunk size (equally divide the space).
-  size_t default_chunk_size();
+  Bytes default_chunk_size();
   // Adapt the chunk size to follow the allocation rate.
-  size_t adaptive_chunk_size(int i, size_t limit);
+  Bytes adaptive_chunk_size(int i, Bytes limit);
   // Return the bottom_region and the top_region. Align them to page_size() boundary.
   // |------------------new_region---------------------------------|
   // |----bottom_region--|---intersection---|------top_region------|
@@ -158,7 +159,7 @@ class MutableNUMASpace : public MutableSpace {
 
 public:
   GrowableArray<LGRPSpace*>* lgrp_spaces() const     { return _lgrp_spaces;       }
-  MutableNUMASpace(size_t alignment);
+  MutableNUMASpace(Bytes alignment);
   virtual ~MutableNUMASpace();
   // Space initialization.
   virtual void initialize(MemRegion mr,
@@ -181,15 +182,15 @@ public:
   virtual void set_top_for_allocations() PRODUCT_RETURN;
 
   virtual void ensure_parsability();
-  virtual size_t used_in_words() const;
-  virtual size_t free_in_words() const;
+  virtual Words used_in_words() const;
+  virtual Words free_in_words() const;
 
-  virtual size_t tlab_capacity(Thread* thr) const;
-  virtual size_t tlab_used(Thread* thr) const;
-  virtual size_t unsafe_max_tlab_alloc(Thread* thr) const;
+  virtual Bytes tlab_capacity(Thread* thr) const;
+  virtual Bytes tlab_used(Thread* thr) const;
+  virtual Bytes unsafe_max_tlab_alloc(Thread* thr) const;
 
   // Allocation (return null if full)
-  virtual HeapWord* cas_allocate(size_t word_size);
+  virtual HeapWord* cas_allocate(Words word_size);
 
   // Debugging
   virtual void print_on(outputStream* st) const;

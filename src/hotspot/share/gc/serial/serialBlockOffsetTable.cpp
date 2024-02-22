@@ -34,9 +34,9 @@
 #include "runtime/java.hpp"
 
 SerialBlockOffsetSharedArray::SerialBlockOffsetSharedArray(MemRegion reserved,
-                                                           size_t init_word_size):
+                                                           Words init_word_size):
   _reserved(reserved) {
-  size_t size = compute_size(reserved.word_size());
+  Bytes size = compute_size(reserved.word_size());
   ReservedSpace rs(size);
   if (!rs.is_reserved()) {
     vm_exit_during_initialization("Could not reserve enough space for heap offset array");
@@ -44,7 +44,7 @@ SerialBlockOffsetSharedArray::SerialBlockOffsetSharedArray(MemRegion reserved,
 
   MemTracker::record_virtual_memory_type((address)rs.base(), mtGC);
 
-  if (!_vs.initialize(rs, 0)) {
+  if (!_vs.initialize(rs, Bytes(0))) {
     vm_exit_during_initialization("Could not reserve enough space for heap offset array");
   }
   _offset_array = (uint8_t*)_vs.low_boundary();
@@ -56,22 +56,22 @@ SerialBlockOffsetSharedArray::SerialBlockOffsetSharedArray(MemRegion reserved,
                      p2i(_vs.low_boundary()), p2i(_vs.high_boundary()));
 }
 
-void SerialBlockOffsetSharedArray::resize(size_t new_word_size) {
+void SerialBlockOffsetSharedArray::resize(Words new_word_size) {
   assert(new_word_size <= _reserved.word_size(), "Resize larger than reserved");
-  size_t new_size = compute_size(new_word_size);
-  size_t old_size = _vs.committed_size();
-  size_t delta;
+  Bytes new_size = compute_size(new_word_size);
+  Bytes old_size = _vs.committed_size();
+  Bytes delta;
   char* high = _vs.high();
   if (new_size > old_size) {
     delta = ReservedSpace::page_align_size_up(new_size - old_size);
-    assert(delta > 0, "just checking");
+    assert(delta > Bytes(0), "just checking");
     if (!_vs.expand_by(delta)) {
-      vm_exit_out_of_memory(delta, OOM_MMAP_ERROR, "offset table expansion");
+      vm_exit_out_of_memory(untype(delta), OOM_MMAP_ERROR, "offset table expansion");
     }
     assert(_vs.high() == high + delta, "invalid expansion");
   } else {
     delta = ReservedSpace::page_align_size_down(old_size - new_size);
-    if (delta == 0) return;
+    if (delta == Bytes(0)) return;
     _vs.shrink_by(delta);
     assert(_vs.high() == high - delta, "invalid expansion");
   }

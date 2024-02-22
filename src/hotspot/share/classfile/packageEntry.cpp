@@ -220,7 +220,7 @@ static ArchivedPackageEntries* _archived_packages_entries = nullptr;
 
 PackageEntry* PackageEntry::allocate_archived_entry() const {
   assert(!in_unnamed_module(), "unnamed packages/modules are not archived");
-  PackageEntry* archived_entry = (PackageEntry*)ArchiveBuilder::rw_region_alloc(sizeof(PackageEntry));
+  PackageEntry* archived_entry = (PackageEntry*)ArchiveBuilder::rw_region_alloc(in_Bytes(sizeof(PackageEntry)));
   memcpy((void*)archived_entry, (void*)this, sizeof(PackageEntry));
 
   if (_archived_packages_entries == nullptr) {

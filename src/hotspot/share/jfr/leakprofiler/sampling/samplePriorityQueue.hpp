@@ -36,7 +36,7 @@ class SamplePriorityQueue : public CHeapObj<mtTracing> {
   ObjectSample** _items;
   size_t _allocated_size;
   int _count;
-  size_t _total;
+  Bytes _total;
 
   void swap(int i, int j);
   void moveDown(int index);
@@ -51,7 +51,7 @@ class SamplePriorityQueue : public CHeapObj<mtTracing> {
   const ObjectSample* peek() const;
   void remove(ObjectSample* sample);
   ObjectSample* item_at(int index);
-  size_t total() const;
+  Bytes total() const;
   int count() const;
 };
 

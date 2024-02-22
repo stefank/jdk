@@ -171,10 +171,10 @@ void CompilerToVM::Data::initialize(JVMCI_TRAPS) {
 
   continuations_enabled = Continuations::enabled();
 
-  ThreadLocalAllocBuffer_alignment_reserve = ThreadLocalAllocBuffer::alignment_reserve();
+  ThreadLocalAllocBuffer_alignment_reserve = untype(ThreadLocalAllocBuffer::alignment_reserve());
 
   Universe_collectedHeap = Universe::heap();
-  Universe_base_vtable_size = Universe::base_vtable_size();
+  Universe_base_vtable_size = checked_cast<int>(Universe::base_vtable_size());
   Universe_narrow_oop_base = CompressedOops::base();
   Universe_narrow_oop_shift = CompressedOops::shift();
   Universe_narrow_klass_base = CompressedKlassPointers::base();

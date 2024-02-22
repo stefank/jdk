@@ -78,9 +78,9 @@ class G1ParScanThreadState : public CHeapObj<mtGC> {
   Tickspan _trim_ticks;
   // Map from young-age-index (0 == not young, 1 is youngest) to
   // surviving words. base is what we get back from the malloc call
-  size_t* _surviving_young_words_base;
+  Words* _surviving_young_words_base;
   // this points into the array, as we use the first few entries for padding
-  size_t* _surviving_young_words;
+  Words* _surviving_young_words;
   // Number of elements in the array above.
   size_t _surviving_words_length;
   // Indicates whether in the last generation (old) there is no more space
@@ -159,14 +159,14 @@ public:
   G1EvacuationRootClosures* closures() { return _closures; }
   uint worker_id() { return _worker_id; }
 
-  size_t lab_waste_words() const;
-  size_t lab_undo_waste_words() const;
+  Words lab_waste_words() const;
+  Words lab_undo_waste_words() const;
 
   size_t evac_failure_enqueued_cards() const;
 
   // Pass locally gathered statistics to global state. Returns the total number of
   // HeapWords copied.
-  size_t flush_stats(size_t* surviving_young_words, uint num_workers);
+  Words flush_stats(Words* surviving_young_words, uint num_workers);
 
 private:
   void do_partial_array(PartialArrayScanTask task);
@@ -174,16 +174,16 @@ private:
 
   HeapWord* allocate_copy_slow(G1HeapRegionAttr* dest_attr,
                                oop old,
-                               size_t word_sz,
+                               Words word_sz,
                                uint age,
                                uint node_index);
 
   void undo_allocation(G1HeapRegionAttr dest_addr,
                        HeapWord* obj_ptr,
-                       size_t word_sz,
+                       Words word_sz,
                        uint node_index);
 
-  void update_bot_after_copying(oop obj, size_t word_sz);
+  void update_bot_after_copying(oop obj, Words word_sz);
 
   oop do_copy_to_survivor_space(G1HeapRegionAttr region_attr,
                                 oop obj,
@@ -201,14 +201,14 @@ private:
   // Also determines whether we should continue to try to allocate into the various
   // generations or just end trying to allocate.
   HeapWord* allocate_in_next_plab(G1HeapRegionAttr* dest,
-                                  size_t word_sz,
+                                  Words word_sz,
                                   bool previous_plab_refill_failed,
                                   uint node_index);
 
   inline G1HeapRegionAttr next_region_attr(G1HeapRegionAttr const region_attr, markWord const m, uint& age);
 
   void report_promotion_event(G1HeapRegionAttr const dest_attr,
-                              oop const old, size_t word_sz, uint age,
+                              oop const old, Words word_sz, uint age,
                               HeapWord * const obj_ptr, uint node_index) const;
 
   void trim_queue_to_threshold(uint threshold);
@@ -231,7 +231,7 @@ public:
   void reset_trim_ticks();
 
   // An attempt to evacuate "obj" has failed; take necessary steps.
-  oop handle_evacuation_failure_par(oop obj, markWord m, size_t word_sz, bool cause_pinned);
+  oop handle_evacuation_failure_par(oop obj, markWord m, Words word_sz, bool cause_pinned);
 
   template <typename T>
   inline void remember_root_into_optional_region(T* p);
@@ -247,7 +247,7 @@ class G1ParScanThreadStateSet : public StackObj {
   G1RedirtyCardsQueueSet _rdcqs;
   PreservedMarksSet _preserved_marks_set;
   G1ParScanThreadState** _states;
-  size_t* _surviving_young_words_total;
+  Words* _surviving_young_words_total;
   uint _num_workers;
   bool _flushed;
   G1EvacFailureRegions* _evac_failure_regions;
@@ -267,7 +267,7 @@ class G1ParScanThreadStateSet : public StackObj {
 
   G1ParScanThreadState* state_for_worker(uint worker_id);
 
-  const size_t* surviving_young_words() const;
+  const Words* surviving_young_words() const;
 };
 
 #endif // SHARE_GC_G1_G1PARSCANTHREADSTATE_HPP

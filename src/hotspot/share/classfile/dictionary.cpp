@@ -72,8 +72,8 @@ uintx Dictionary::Config::get_hash(Value const& value, bool* is_dead) {
   return value->instance_klass()->name()->identity_hash();
 }
 
-void* Dictionary::Config::allocate_node(void* context, size_t size, Value const& value) {
-  return AllocateHeap(size, mtClass);
+void* Dictionary::Config::allocate_node(void* context, Bytes size, Value const& value) {
+  return AllocateHeap(untype(size), mtClass);
 }
 
 void Dictionary::Config::free_node(void* context, void* memory, Value const& value) {
@@ -549,7 +549,7 @@ void Dictionary::verify() {
 void Dictionary::print_table_statistics(outputStream* st, const char* table_name) {
   static TableStatistics ts;
   auto sz = [&] (DictionaryEntry** val) {
-    return sizeof(**val);
+    return in_Bytes(sizeof(**val));
   };
   ts = _table->statistics_get(Thread::current(), sz, ts);
   ts.print(st, table_name);

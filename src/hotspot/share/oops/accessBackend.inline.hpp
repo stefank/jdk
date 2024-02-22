@@ -312,7 +312,7 @@ inline bool RawAccessBarrier<decorators>::arraycopy(arrayOop src_obj, size_t src
 }
 
 template <DecoratorSet decorators>
-inline void RawAccessBarrier<decorators>::clone(oop src, oop dst, size_t size) {
+inline void RawAccessBarrier<decorators>::clone(oop src, oop dst, Words size) {
   // 4839641 (4840070): We must do an oop-atomic copy, because if another thread
   // is modifying a reference field in the clonee, a non-oop-atomic copy might
   // be suspended in the middle of copying the pointer and end up with parts
@@ -326,7 +326,7 @@ inline void RawAccessBarrier<decorators>::clone(oop src, oop dst, size_t size) {
   assert(MinObjAlignmentInBytes >= BytesPerLong, "objects misaligned");
   AccessInternal::arraycopy_conjoint_atomic(reinterpret_cast<jlong*>((oopDesc*)src),
                                             reinterpret_cast<jlong*>((oopDesc*)dst),
-                                            align_object_size(size) / HeapWordsPerLong);
+                                            untype(align_object_size(size)) / HeapWordsPerLong);
   // Clear the header
   dst->init_mark();
 }

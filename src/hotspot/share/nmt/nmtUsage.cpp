@@ -58,7 +58,7 @@ void NMTUsage::update_malloc_usage() {
   ThreadCritical tc;
   const MallocMemorySnapshot* ms = MallocMemorySummary::as_snapshot();
 
-  size_t total_arena_size = 0;
+  Bytes total_arena_size = Bytes(0);
   for (int i = 0; i < mt_number_of_types; i++) {
     MEMFLAGS flag = NMTUtil::index_to_flag(i);
     const MallocMemory* mm = ms->by_type(flag);
@@ -81,8 +81,8 @@ void NMTUsage::update_vm_usage() {
   const VirtualMemorySnapshot* vms = VirtualMemorySummary::as_snapshot();
 
   // Reset total to allow recalculation.
-  _vm_total.committed = 0;
-  _vm_total.reserved = 0;
+  _vm_total.committed = Bytes(0);
+  _vm_total.reserved = Bytes(0);
   for (int i = 0; i < mt_number_of_types; i++) {
     MEMFLAGS flag = NMTUtil::index_to_flag(i);
     const VirtualMemory* vm = vms->by_type(flag);
@@ -110,20 +110,20 @@ void NMTUsage::refresh() {
   }
 }
 
-size_t NMTUsage::total_reserved() const {
+Bytes NMTUsage::total_reserved() const {
   return _malloc_total + _vm_total.reserved;
 }
 
-size_t NMTUsage::total_committed() const {
+Bytes NMTUsage::total_committed() const {
   return _malloc_total + _vm_total.committed;
 }
 
-size_t NMTUsage::reserved(MEMFLAGS flag) const {
+Bytes NMTUsage::reserved(MEMFLAGS flag) const {
   int index = NMTUtil::flag_to_index(flag);
   return _malloc_by_type[index] + _vm_by_type[index].reserved;
 }
 
-size_t NMTUsage::committed(MEMFLAGS flag) const {
+Bytes NMTUsage::committed(MEMFLAGS flag) const {
   int index = NMTUtil::flag_to_index(flag);
   return _malloc_by_type[index] + _vm_by_type[index].committed;
 }

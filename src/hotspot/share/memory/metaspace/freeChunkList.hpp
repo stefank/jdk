@@ -129,7 +129,7 @@ public:
     assert(_first == nullptr || _first->level() == c->level(),
            "List should only contains chunks of the same level.");
     // Uncommitted chunks go to the back, fully or partially committed to the front.
-    if (c->committed_words() == 0) {
+    if (c->committed_words() == Words(0)) {
       add_back(c);
     } else {
       add_front(c);
@@ -151,13 +151,13 @@ public:
 
   // Returns reference to the fist chunk in the list with a committed word
   // level >= min_committed_words, or null.
-  Metachunk* first_minimally_committed(size_t min_committed_words) const {
+  Metachunk* first_minimally_committed(Words min_committed_words) const {
     // Since uncommitted chunks are added to the back we can stop looking once
     //  we encounter a fully uncommitted chunk.
     Metachunk* c = first();
     while (c != nullptr &&
            c->committed_words() < min_committed_words &&
-           c->committed_words() > 0) {
+           c->committed_words() > Words(0)) {
       c = c->next();
     }
     if (c != nullptr &&
@@ -176,7 +176,7 @@ public:
   int num_chunks() const { return _num_chunks.get(); }
 
   // Calculates total number of committed words over all chunks (walks chunks).
-  size_t calc_committed_word_size() const;
+  Words calc_committed_word_size() const;
 
   void print_on(outputStream* st) const;
 
@@ -224,21 +224,21 @@ public:
   //  return the first chunk whose committed words >= min_committed_words.
   // Return null if no such chunk was found.
   Metachunk* search_chunk_ascending(chunklevel_t level, chunklevel_t max_level,
-                                    size_t min_committed_words);
+                                    Words min_committed_words);
 
   // Look for a chunk: starting at level, down to (including) the root chunk level,
   // return the first chunk whose committed words >= min_committed_words.
   // Return null if no such chunk was found.
-  Metachunk* search_chunk_descending(chunklevel_t level, size_t min_committed_words);
+  Metachunk* search_chunk_descending(chunklevel_t level, Words min_committed_words);
 
   // Returns total size in all lists (including uncommitted areas)
-  size_t word_size() const;
+  Words word_size() const;
 
   // Calculates total number of committed words over all chunks (walks chunks).
-  size_t calc_committed_word_size_at_level(chunklevel_t lvl) const;
+  Words calc_committed_word_size_at_level(chunklevel_t lvl) const;
 
   // Calculates total number of committed words over all chunks (walks chunks).
-  size_t calc_committed_word_size() const;
+  Words calc_committed_word_size() const;
 
   // Returns number of chunks in all lists
   int num_chunks() const;

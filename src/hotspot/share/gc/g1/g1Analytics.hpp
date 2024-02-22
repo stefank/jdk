@@ -156,7 +156,7 @@ public:
 
   double predict_code_root_scan_time_ms(size_t code_root_num, bool for_young_only_phase) const;
 
-  double predict_object_copy_time_ms(size_t bytes_to_copy, bool for_young_only_phase) const;
+  double predict_object_copy_time_ms(Bytes bytes_to_copy, bool for_young_only_phase) const;
 
   double predict_constant_other_time_ms() const;
 

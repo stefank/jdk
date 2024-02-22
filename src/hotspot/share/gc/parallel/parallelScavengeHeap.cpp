@@ -63,7 +63,7 @@ PSAdaptiveSizePolicy* ParallelScavengeHeap::_size_policy = nullptr;
 PSGCAdaptivePolicyCounters* ParallelScavengeHeap::_gc_policy_counters = nullptr;
 
 jint ParallelScavengeHeap::initialize() {
-  const size_t reserved_heap_size = ParallelArguments::heap_reserved_size_bytes();
+  const Bytes reserved_heap_size = ParallelArguments::heap_reserved_size_bytes();
 
   ReservedHeapSpace heap_rs = Universe::reserve_heap(reserved_heap_size, HeapAlignment);
 
@@ -73,7 +73,7 @@ jint ParallelScavengeHeap::initialize() {
   // Layout the reserved space for the generations.
   ReservedSpace old_rs   = heap_rs.first_part(MaxOldSize);
   ReservedSpace young_rs = heap_rs.last_part(MaxOldSize);
-  assert(young_rs.size() == MaxNewSize, "Didn't reserve all of the heap");
+  assert(young_rs.size() == in_Bytes(MaxNewSize), "Didn't reserve all of the heap");
 
   PSCardTable* card_table = new PSCardTable(heap_rs.region());
   card_table->initialize(old_rs.base(), young_rs.base());
@@ -88,12 +88,12 @@ jint ParallelScavengeHeap::initialize() {
   // Create and initialize the generations.
   _young_gen = new PSYoungGen(
       young_rs,
-      NewSize,
+      in_Bytes(NewSize),
       MinNewSize,
-      MaxNewSize);
+      in_Bytes(MaxNewSize));
   _old_gen = new PSOldGen(
       old_rs,
-      OldSize,
+      in_Bytes(OldSize),
       MinOldSize,
       MaxOldSize,
       "old", 1);
@@ -103,9 +103,9 @@ jint ParallelScavengeHeap::initialize() {
 
   double max_gc_pause_sec = ((double) MaxGCPauseMillis)/1000.0;
 
-  const size_t eden_capacity = _young_gen->eden_space()->capacity_in_bytes();
-  const size_t old_capacity = _old_gen->capacity_in_bytes();
-  const size_t initial_promo_size = MIN2(eden_capacity, old_capacity);
+  const Bytes eden_capacity = _young_gen->eden_space()->capacity_in_bytes();
+  const Bytes old_capacity = _old_gen->capacity_in_bytes();
+  const Bytes initial_promo_size = MIN2(eden_capacity, old_capacity);
   _size_policy =
     new PSAdaptiveSizePolicy(eden_capacity,
                              initial_promo_size,
@@ -197,13 +197,13 @@ void ParallelScavengeHeap::update_counters() {
   update_parallel_worker_threads_cpu_time();
 }
 
-size_t ParallelScavengeHeap::capacity() const {
-  size_t value = young_gen()->capacity_in_bytes() + old_gen()->capacity_in_bytes();
+Bytes ParallelScavengeHeap::capacity() const {
+  Bytes value = young_gen()->capacity_in_bytes() + old_gen()->capacity_in_bytes();
   return value;
 }
 
-size_t ParallelScavengeHeap::used() const {
-  size_t value = young_gen()->used_in_bytes() + old_gen()->used_in_bytes();
+Bytes ParallelScavengeHeap::used() const {
+  Bytes value = young_gen()->used_in_bytes() + old_gen()->used_in_bytes();
   return value;
 }
 
@@ -212,8 +212,8 @@ bool ParallelScavengeHeap::is_maximal_no_gc() const {
 }
 
 
-size_t ParallelScavengeHeap::max_capacity() const {
-  size_t estimated = reserved_region().byte_size();
+Bytes ParallelScavengeHeap::max_capacity() const {
+  Bytes estimated = reserved_region().byte_size();
   if (UseAdaptiveSizePolicy) {
     estimated -= _size_policy->max_survivor_size(young_gen()->max_gen_size());
   } else {
@@ -265,7 +265,7 @@ bool ParallelScavengeHeap::requires_barriers(stackChunkOop p) const {
 // during failed allocation attempts. If the java heap becomes exhausted,
 // we rely on the size_policy object to force a bail out.
 HeapWord* ParallelScavengeHeap::mem_allocate(
-                                     size_t size,
+                                     Words size,
                                      bool* gc_overhead_limit_was_exceeded) {
   assert(!SafepointSynchronize::is_at_safepoint(), "should not be at safepoint");
   assert(Thread::current() != (Thread*)VMThread::vm_thread(), "should not be in vm thread");
@@ -403,7 +403,7 @@ HeapWord* ParallelScavengeHeap::mem_allocate(
 // attempted from the young gen. The parameter 'addr' should be the result of
 // that young gen allocation attempt.
 void
-ParallelScavengeHeap::death_march_check(HeapWord* const addr, size_t size) {
+ParallelScavengeHeap::death_march_check(HeapWord* const addr, Words size) {
   if (addr != nullptr) {
     _death_march_count = 0;  // death march has ended
   } else if (_death_march_count == 0) {
@@ -413,16 +413,16 @@ ParallelScavengeHeap::death_march_check(HeapWord* const addr, size_t size) {
   }
 }
 
-HeapWord* ParallelScavengeHeap::allocate_old_gen_and_record(size_t size) {
+HeapWord* ParallelScavengeHeap::allocate_old_gen_and_record(Words size) {
   assert_locked_or_safepoint(Heap_lock);
   HeapWord* res = old_gen()->allocate(size);
   if (res != nullptr) {
-    _size_policy->tenured_allocation(size * HeapWordSize);
+    _size_policy->tenured_allocation(to_Bytes(size));
   }
   return res;
 }
 
-HeapWord* ParallelScavengeHeap::mem_allocate_old_gen(size_t size) {
+HeapWord* ParallelScavengeHeap::mem_allocate_old_gen(Words size) {
   if (!should_alloc_in_eden(size) || GCLocker::is_active_and_needs_gc()) {
     // Size is too big for eden, or gc is locked out.
     return allocate_old_gen_and_record(size);
@@ -455,7 +455,7 @@ void ParallelScavengeHeap::do_full_collection(bool clear_all_soft_refs) {
 // time over limit here, that is the responsibility of the heap specific
 // collection methods. This method decides where to attempt allocations,
 // and when to attempt collections, but no collection specific policy.
-HeapWord* ParallelScavengeHeap::failed_mem_allocate(size_t size) {
+HeapWord* ParallelScavengeHeap::failed_mem_allocate(Words size) {
   assert(SafepointSynchronize::is_at_safepoint(), "should be at safepoint");
   assert(Thread::current() == (Thread*)VMThread::vm_thread(), "should be in vm thread");
   assert(!is_gc_active(), "not reentrant");
@@ -505,19 +505,19 @@ void ParallelScavengeHeap::ensure_parsability(bool retire_tlabs) {
   young_gen()->eden_space()->ensure_parsability();
 }
 
-size_t ParallelScavengeHeap::tlab_capacity(Thread* thr) const {
+Bytes ParallelScavengeHeap::tlab_capacity(Thread* thr) const {
   return young_gen()->eden_space()->tlab_capacity(thr);
 }
 
-size_t ParallelScavengeHeap::tlab_used(Thread* thr) const {
+Bytes ParallelScavengeHeap::tlab_used(Thread* thr) const {
   return young_gen()->eden_space()->tlab_used(thr);
 }
 
-size_t ParallelScavengeHeap::unsafe_max_tlab_alloc(Thread* thr) const {
+Bytes ParallelScavengeHeap::unsafe_max_tlab_alloc(Thread* thr) const {
   return young_gen()->eden_space()->unsafe_max_tlab_alloc(thr);
 }
 
-HeapWord* ParallelScavengeHeap::allocate_new_tlab(size_t min_size, size_t requested_size, size_t* actual_size) {
+HeapWord* ParallelScavengeHeap::allocate_new_tlab(Words min_size, Words requested_size, Words* actual_size) {
   HeapWord* result = young_gen()->allocate(requested_size);
   if (result != nullptr) {
     *actual_size = requested_size;
@@ -789,16 +789,16 @@ void ParallelScavengeHeap::verify(VerifyOption option /* ignored */) {
   }
 }
 
-void ParallelScavengeHeap::trace_actual_reserved_page_size(const size_t reserved_heap_size, const ReservedSpace rs) {
+void ParallelScavengeHeap::trace_actual_reserved_page_size(const Bytes reserved_heap_size, const ReservedSpace rs) {
   // Check if Info level is enabled, since os::trace_page_sizes() logs on Info level.
   if(log_is_enabled(Info, pagesize)) {
-    const size_t page_size = rs.page_size();
+    const Bytes page_size = rs.page_size();
     os::trace_page_sizes("Heap",
                          MinHeapSize,
-                         reserved_heap_size,
+                         untype(reserved_heap_size),
                          rs.base(),
-                         rs.size(),
-                         page_size);
+                         untype(rs.size()),
+                         untype(page_size));
   }
 }
 
@@ -818,18 +818,18 @@ PSCardTable* ParallelScavengeHeap::card_table() {
   return static_cast<PSCardTable*>(barrier_set()->card_table());
 }
 
-void ParallelScavengeHeap::resize_young_gen(size_t eden_size,
-                                            size_t survivor_size) {
+void ParallelScavengeHeap::resize_young_gen(Bytes eden_size,
+                                            Bytes survivor_size) {
   // Delegate the resize to the generation.
   _young_gen->resize(eden_size, survivor_size);
 }
 
-void ParallelScavengeHeap::resize_old_gen(size_t desired_free_space) {
+void ParallelScavengeHeap::resize_old_gen(Bytes desired_free_space) {
   // Delegate the resize to the generation.
   _old_gen->resize(desired_free_space);
 }
 
-HeapWord* ParallelScavengeHeap::allocate_loaded_archive_space(size_t size) {
+HeapWord* ParallelScavengeHeap::allocate_loaded_archive_space(Words size) {
   return _old_gen->allocate(size);
 }
 

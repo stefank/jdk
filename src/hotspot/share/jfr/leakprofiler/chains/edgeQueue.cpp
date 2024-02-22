@@ -27,7 +27,7 @@
 #include "jfr/leakprofiler/utilities/unifiedOopRef.inline.hpp"
 #include "jfr/recorder/storage/jfrVirtualMemory.hpp"
 
-EdgeQueue::EdgeQueue(size_t reservation_size_bytes, size_t commit_block_size_bytes) :
+EdgeQueue::EdgeQueue(Bytes reservation_size_bytes, Bytes commit_block_size_bytes) :
   _vmm(nullptr),
   _reservation_size_bytes(reservation_size_bytes),
   _commit_block_size_bytes(commit_block_size_bytes),
@@ -39,7 +39,7 @@ bool EdgeQueue::initialize() {
   assert(_reservation_size_bytes >= _commit_block_size_bytes, "invariant");
   assert(_vmm == nullptr, "invariant");
   _vmm = new JfrVirtualMemory();
-  return _vmm != nullptr && _vmm->initialize(_reservation_size_bytes, _commit_block_size_bytes, sizeof(Edge));
+  return _vmm != nullptr && _vmm->initialize(_reservation_size_bytes, _commit_block_size_bytes, in_Bytes(sizeof(Edge)));
 }
 
 EdgeQueue::~EdgeQueue() {
@@ -95,7 +95,7 @@ size_t EdgeQueue::live_set() const {
   return _vmm->live_set();
 }
 
-size_t EdgeQueue::sizeof_edge() const {
+Bytes EdgeQueue::sizeof_edge() const {
   assert(_vmm != nullptr, "invariant");
   return _vmm->aligned_datum_size_bytes();
 }

@@ -35,7 +35,7 @@
 #include "runtime/safepoint.hpp"
 
 #if INCLUDE_SERIALGC
-inline HeapWord* TenuredSpace::allocate(size_t size) {
+inline HeapWord* TenuredSpace::allocate(Words size) {
   HeapWord* res = ContiguousSpace::allocate(size);
   if (res != nullptr) {
     _offsets.update_for_block(res, res + size);
@@ -43,7 +43,7 @@ inline HeapWord* TenuredSpace::allocate(size_t size) {
   return res;
 }
 
-inline HeapWord* TenuredSpace::par_allocate(size_t size) {
+inline HeapWord* TenuredSpace::par_allocate(Words size) {
   HeapWord* res = ContiguousSpace::par_allocate(size);
   if (res != nullptr) {
     _offsets.update_for_block(res, res + size);

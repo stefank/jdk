@@ -1958,7 +1958,7 @@ private:
   Method* _method;
 
   // Size of this oop in bytes
-  int _size;
+  Bytes _size;
 
   // Cached hint for bci_to_dp and bci_to_data
   int _hint_di;
@@ -2000,7 +2000,7 @@ public:
       // this code. static_assert would still fire and fail for them.
       static_assert(sizeof(_trap_hist) % HeapWordSize == 0, "align");
 #endif
-      uint size_in_words = sizeof(_trap_hist) / HeapWordSize;
+      Words size_in_words = in_Words(sizeof(_trap_hist) / HeapWordSize);
       Copy::zero_to_words((HeapWord*) &_trap_hist, size_in_words);
     }
 
@@ -2207,8 +2207,8 @@ public:
   }
 
   // Compute the size of a MethodData* before it is created.
-  static int compute_allocation_size_in_bytes(const methodHandle& method);
-  static int compute_allocation_size_in_words(const methodHandle& method);
+  static Bytes compute_allocation_size_in_bytes(const methodHandle& method);
+  static Words compute_allocation_size_in_words(const methodHandle& method);
   static int compute_extra_data_count(int data_size, int empty_bc_count, bool needs_speculative_traps);
 
   // Determine if a given bytecode can have profile information.
@@ -2220,8 +2220,8 @@ public:
   void init();
 
   // My size
-  int size_in_bytes() const { return _size; }
-  int size() const    { return align_metadata_size(align_up(_size, BytesPerWord)/BytesPerWord); }
+  Bytes size_in_bytes() const { return _size; }
+  Words size() const    { return align_metadata_size(in_Words(align_up(untype(_size), BytesPerWord)/BytesPerWord)); }
 
   int      creation_mileage() const { return _creation_mileage; }
   void set_creation_mileage(int x)  { _creation_mileage = x; }
@@ -2501,7 +2501,7 @@ public:
   void release_C_heap_structures();
 
   // GC support
-  void set_size(int object_size_in_bytes) { _size = object_size_in_bytes; }
+  void set_size(Bytes object_size_in_bytes) { _size = object_size_in_bytes; }
 
   // Printing
   void print_on      (outputStream* st) const;

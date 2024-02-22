@@ -164,18 +164,18 @@ class G1MonitoringSupport : public CHeapObj<mtGC> {
   // them here so that we can easily report them when needed and not
   // have to recalculate them every time.
 
-  size_t _overall_committed;
-  size_t _overall_used;
+  Bytes _overall_committed;
+  Bytes _overall_used;
 
-  size_t _young_gen_committed;
-  size_t _old_gen_committed;
+  Bytes _young_gen_committed;
+  Bytes _old_gen_committed;
 
-  size_t _eden_space_committed;
-  size_t _eden_space_used;
-  size_t _survivor_space_committed;
-  size_t _survivor_space_used;
+  Bytes _eden_space_committed;
+  Bytes _eden_space_used;
+  Bytes _survivor_space_committed;
+  Bytes _survivor_space_used;
 
-  size_t _old_gen_used;
+  Bytes _old_gen_used;
 
   // Recalculate all the sizes.
   void recalculate_sizes();
@@ -202,20 +202,20 @@ public:
   //   Tracing
   // Values may not be consistent wrt to each other.
 
-  size_t young_gen_committed()        { return _young_gen_committed; }
+  Bytes young_gen_committed()        { return _young_gen_committed; }
 
-  size_t eden_space_used()            { return _eden_space_used; }
-  size_t survivor_space_used()        { return _survivor_space_used; }
+  Bytes eden_space_used()            { return _eden_space_used; }
+  Bytes survivor_space_used()        { return _survivor_space_used; }
 
-  size_t old_gen_committed()          { return _old_gen_committed; }
-  size_t old_gen_used()               { return _old_gen_used; }
+  Bytes old_gen_committed()          { return _old_gen_committed; }
+  Bytes old_gen_used()               { return _old_gen_used; }
 
   // Monitoring support for MemoryPools. Values in the returned MemoryUsage are
   // guaranteed to be consistent with each other.
-  MemoryUsage eden_space_memory_usage(size_t initial_size, size_t max_size);
-  MemoryUsage survivor_space_memory_usage(size_t initial_size, size_t max_size);
+  MemoryUsage eden_space_memory_usage(Bytes initial_size, Bytes max_size);
+  MemoryUsage survivor_space_memory_usage(Bytes initial_size, Bytes max_size);
 
-  MemoryUsage old_gen_memory_usage(size_t initial_size, size_t max_size);
+  MemoryUsage old_gen_memory_usage(Bytes initial_size, Bytes max_size);
 };
 
 // Scope object for java.lang.management support.

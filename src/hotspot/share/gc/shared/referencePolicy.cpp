@@ -36,7 +36,7 @@ LRUCurrentHeapPolicy::LRUCurrentHeapPolicy() {
 
 // Capture state (of-the-VM) information needed to evaluate the policy
 void LRUCurrentHeapPolicy::setup() {
-  _max_interval = (Universe::heap()->free_at_last_gc() / M) * SoftRefLRUPolicyMSPerMB;
+  _max_interval = (untype(Universe::heap()->free_at_last_gc()) / M) * SoftRefLRUPolicyMSPerMB;
   assert(_max_interval >= 0,"Sanity check");
 }
 
@@ -63,11 +63,11 @@ LRUMaxHeapPolicy::LRUMaxHeapPolicy() {
 
 // Capture state (of-the-VM) information needed to evaluate the policy
 void LRUMaxHeapPolicy::setup() {
-  size_t max_heap = MaxHeapSize;
-  max_heap -= Universe::heap()->used_at_last_gc();
-  max_heap /= M;
+  Bytes max_heap = in_Bytes(MaxHeapSize);
+  size_t left = untype(max_heap - Universe::heap()->used_at_last_gc());
+  size_t left_in_MB = left / M;
 
-  _max_interval = max_heap * SoftRefLRUPolicyMSPerMB;
+  _max_interval = left_in_MB * SoftRefLRUPolicyMSPerMB;
   assert(_max_interval >= 0,"Sanity check");
 }
 

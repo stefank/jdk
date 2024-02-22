@@ -41,7 +41,7 @@ DEBUG_ONLY(bool Settings::_use_allocation_guard = false;)
 void Settings::ergo_initialize() {
 
   // Granules must be a multiple of page size, and a power-2-value.
-  assert(_commit_granule_bytes >= os::vm_page_size() &&
+  assert(_commit_granule_bytes >= in_Bytes(os::vm_page_size()) &&
          is_aligned(_commit_granule_bytes, os::vm_page_size()),
          "Granule size must be a page-size-aligned power-of-2 value");
   assert(commit_granule_words() <= chunklevel::MAX_CHUNK_WORD_SIZE, "Too large granule size");

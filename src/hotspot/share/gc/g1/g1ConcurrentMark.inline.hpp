@@ -179,7 +179,7 @@ inline void G1CMTask::process_grey_task_entry(G1TaskQueueEntry task_entry) {
   check_limits();
 }
 
-inline size_t G1CMTask::scan_objArray(objArrayOop obj, MemRegion mr) {
+inline Words G1CMTask::scan_objArray(objArrayOop obj, MemRegion mr) {
   obj->oop_iterate(_cm_oop_closure, mr);
   return mr.word_size();
 }
@@ -203,11 +203,11 @@ inline void G1ConcurrentMark::update_top_at_rebuild_start(HeapRegion* r) {
   }
 }
 
-inline void G1CMTask::update_liveness(oop const obj, const size_t obj_size) {
+inline void G1CMTask::update_liveness(oop const obj, const Words obj_size) {
   _mark_stats_cache.add_live_words(_g1h->addr_to_region(obj), obj_size);
 }
 
-inline void G1ConcurrentMark::add_to_liveness(uint worker_id, oop const obj, size_t size) {
+inline void G1ConcurrentMark::add_to_liveness(uint worker_id, oop const obj, Words size) {
   task(worker_id)->update_liveness(obj, size);
 }
 

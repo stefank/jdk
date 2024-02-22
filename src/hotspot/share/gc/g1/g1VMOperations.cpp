@@ -107,7 +107,7 @@ void VM_G1TryInitiateConcMark::doit() {
   }
 }
 
-VM_G1CollectForAllocation::VM_G1CollectForAllocation(size_t         word_size,
+VM_G1CollectForAllocation::VM_G1CollectForAllocation(Words          word_size,
                                                      uint           gc_count_before,
                                                      GCCause::Cause gc_cause) :
   VM_CollectForAllocation(word_size, gc_count_before, gc_cause),
@@ -121,7 +121,7 @@ void VM_G1CollectForAllocation::doit() {
   _gc_succeeded = g1h->do_collection_pause_at_safepoint();
   assert(_gc_succeeded, "no reason to fail");
 
-  if (_word_size > 0) {
+  if (_word_size > Words(0)) {
     // An allocation had been requested. Do it, eventually trying a stronger
     // kind of GC.
     _result = g1h->satisfy_failed_allocation(_word_size, &_gc_succeeded);

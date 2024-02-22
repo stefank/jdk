@@ -36,14 +36,14 @@
 #include "utilities/powerOfTwo.hpp"
 
 G1RegionToSpaceMapper::G1RegionToSpaceMapper(ReservedSpace rs,
-                                             size_t used_size,
-                                             size_t page_size,
-                                             size_t region_granularity,
+                                             Bytes used_size,
+                                             Bytes page_size,
+                                             Bytes region_granularity,
                                              size_t commit_factor,
                                              MEMFLAGS type) :
   _listener(nullptr),
   _storage(rs, used_size, page_size),
-  _region_commit_map(rs.size() * commit_factor / region_granularity, mtGC),
+  _region_commit_map(untype(rs.size()) * commit_factor / untype(region_granularity), mtGC),
   _memory_type(type) {
   guarantee(is_power_of_2(page_size), "must be");
   guarantee(is_power_of_2(region_granularity), "must be");
@@ -68,9 +68,9 @@ class G1RegionsLargerThanCommitSizeMapper : public G1RegionToSpaceMapper {
 
  public:
   G1RegionsLargerThanCommitSizeMapper(ReservedSpace rs,
-                                      size_t actual_size,
-                                      size_t page_size,
-                                      size_t alloc_granularity,
+                                      Bytes actual_size,
+                                      Bytes page_size,
+                                      Bytes alloc_granularity,
                                       size_t commit_factor,
                                       MEMFLAGS type) :
     G1RegionToSpaceMapper(rs, actual_size, page_size, alloc_granularity, commit_factor, type),
@@ -100,7 +100,7 @@ class G1RegionsLargerThanCommitSizeMapper : public G1RegionToSpaceMapper {
     if (_memory_type == mtJavaHeap) {
       for (uint region_index = start_idx; region_index < start_idx + num_regions; region_index++ ) {
         void* address = _storage.page_start(region_index * _pages_per_region);
-        size_t size_in_bytes = _storage.page_size() * _pages_per_region;
+        Bytes size_in_bytes = _storage.page_size() * _pages_per_region;
         G1NUMA::numa()->request_memory_on_node(address, size_in_bytes, region_index);
       }
     }
@@ -153,16 +153,16 @@ class G1RegionsSmallerThanCommitSizeMapper : public G1RegionToSpaceMapper {
     if (_memory_type == mtJavaHeap) {
       uint region = (uint)(page_idx * _regions_per_page);
       void* address = _storage.page_start(page_idx);
-      size_t size_in_bytes = _storage.page_size();
+      Bytes size_in_bytes = _storage.page_size();
       G1NUMA::numa()->request_memory_on_node(address, size_in_bytes, region);
     }
   }
 
  public:
   G1RegionsSmallerThanCommitSizeMapper(ReservedSpace rs,
-                                       size_t actual_size,
-                                       size_t page_size,
-                                       size_t alloc_granularity,
+                                       Bytes actual_size,
+                                       Bytes page_size,
+                                       Bytes alloc_granularity,
                                        size_t commit_factor,
                                        MEMFLAGS type) :
     G1RegionToSpaceMapper(rs, actual_size, page_size, alloc_granularity, commit_factor, type),
@@ -253,15 +253,15 @@ class G1RegionsSmallerThanCommitSizeMapper : public G1RegionToSpaceMapper {
 };
 
 void G1RegionToSpaceMapper::fire_on_commit(uint start_idx, size_t num_regions, bool zero_filled) {
-  if (_listener != nullptr) {
+if (_listener != nullptr) {
     _listener->on_commit(start_idx, num_regions, zero_filled);
   }
 }
 
 G1RegionToSpaceMapper* G1RegionToSpaceMapper::create_mapper(ReservedSpace rs,
-                                                            size_t actual_size,
-                                                            size_t page_size,
-                                                            size_t region_granularity,
+                                                            Bytes actual_size,
+                                                            Bytes page_size,
+                                                            Bytes region_granularity,
                                                             size_t commit_factor,
                                                             MEMFLAGS type) {
   if (region_granularity >= (page_size * commit_factor)) {

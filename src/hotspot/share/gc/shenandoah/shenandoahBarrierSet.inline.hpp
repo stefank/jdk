@@ -320,7 +320,7 @@ inline oop ShenandoahBarrierSet::AccessBarrier<decorators, BarrierSetT>::oop_ato
 
 // Clone barrier support
 template <DecoratorSet decorators, typename BarrierSetT>
-void ShenandoahBarrierSet::AccessBarrier<decorators, BarrierSetT>::clone_in_heap(oop src, oop dst, size_t size) {
+void ShenandoahBarrierSet::AccessBarrier<decorators, BarrierSetT>::clone_in_heap(oop src, oop dst, Words size) {
   if (ShenandoahCloneBarrier) {
     ShenandoahBarrierSet::barrier_set()->clone_barrier_runtime(src);
   }

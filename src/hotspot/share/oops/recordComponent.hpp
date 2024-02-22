@@ -80,7 +80,7 @@ class RecordComponent: public MetaspaceObj {
     AnnotationArray* type_annotations() const { return _type_annotations; }
 
     // Size of RecordComponent, not including size of any annotations.
-    static int size() { return sizeof(RecordComponent) / wordSize; }
+    static Words size() { return in_Words(sizeof(RecordComponent) / wordSize); }
 
     void metaspace_pointers_do(MetaspaceClosure* it);
     MetaspaceObj::Type type() const { return RecordComponentType; }

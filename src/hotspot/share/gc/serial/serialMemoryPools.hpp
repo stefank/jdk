@@ -38,12 +38,12 @@ private:
 public:
   ContiguousSpacePool(ContiguousSpace* space,
                       const char* name,
-                      size_t max_size,
+                      Bytes max_size,
                       bool support_usage_threshold);
 
   ContiguousSpace* space() { return _space; }
   MemoryUsage get_memory_usage();
-  size_t used_in_bytes();
+  Bytes used_in_bytes();
 };
 
 class SurvivorContiguousSpacePool : public CollectedMemoryPool {
@@ -53,13 +53,13 @@ private:
 public:
   SurvivorContiguousSpacePool(DefNewGeneration* young_gen,
                               const char* name,
-                              size_t max_size,
+                              Bytes max_size,
                               bool support_usage_threshold);
 
   MemoryUsage get_memory_usage();
 
-  size_t used_in_bytes();
-  size_t committed_in_bytes();
+  Bytes used_in_bytes();
+  Bytes committed_in_bytes();
 };
 
 class TenuredGenerationPool : public CollectedMemoryPool {
@@ -69,7 +69,7 @@ public:
   TenuredGenerationPool(TenuredGeneration* gen, const char* name, bool support_usage_threshold);
 
   MemoryUsage get_memory_usage();
-  size_t used_in_bytes();
+  Bytes used_in_bytes();
 };
 
 #endif // SHARE_GC_SERIAL_SERIALMEMORYPOOLS_HPP

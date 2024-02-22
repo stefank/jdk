@@ -81,35 +81,35 @@ public:
   // optional RTEnumKlassStaticFields _enum_klass_static_fields;
 
 private:
-  static size_t header_size_size() {
-    return align_up(sizeof(RunTimeClassInfo), wordSize);
+  static Bytes header_size_size() {
+    return align_up(in_Bytes(sizeof(RunTimeClassInfo)), wordSize);
   }
-  static size_t verifier_constraints_size(int num_verifier_constraints) {
-    return align_up(sizeof(RTVerifierConstraint) * num_verifier_constraints, wordSize);
+  static Bytes verifier_constraints_size(int num_verifier_constraints) {
+    return align_up(in_Bytes(sizeof(RTVerifierConstraint)) * num_verifier_constraints, wordSize);
   }
-  static size_t verifier_constraint_flags_size(int num_verifier_constraints) {
-    return align_up(sizeof(char) * num_verifier_constraints, wordSize);
+  static Bytes verifier_constraint_flags_size(int num_verifier_constraints) {
+    return align_up(in_Bytes(sizeof(char)) * num_verifier_constraints, wordSize);
   }
-  static size_t loader_constraints_size(int num_loader_constraints) {
-    return align_up(sizeof(RTLoaderConstraint) * num_loader_constraints, wordSize);
+  static Bytes loader_constraints_size(int num_loader_constraints) {
+    return align_up(in_Bytes(sizeof(RTLoaderConstraint)) * num_loader_constraints, wordSize);
   }
-  static size_t enum_klass_static_fields_size(int num_fields) {
-    size_t size = num_fields <= 0 ? 0 : sizeof(RTEnumKlassStaticFields) + (num_fields - 1) * sizeof(int);
+  static Bytes enum_klass_static_fields_size(int num_fields) {
+    Bytes size = num_fields <= 0 ? Bytes(0) : in_Bytes(sizeof(RTEnumKlassStaticFields)) + (num_fields - 1) * in_Bytes(sizeof(int));
     return align_up(size, wordSize);
   }
 
-  static size_t nest_host_size(InstanceKlass* klass) {
+  static Bytes nest_host_size(InstanceKlass* klass) {
     if (klass->is_hidden()) {
-      return sizeof(InstanceKlass*);
+      return in_Bytes(sizeof(InstanceKlass*));
     } else {
-      return 0;
+      return Bytes(0);
     }
   }
 
-  static size_t crc_size(InstanceKlass* klass);
+  static Bytes crc_size(InstanceKlass* klass);
 public:
-  static size_t byte_size(InstanceKlass* klass, int num_verifier_constraints, int num_loader_constraints,
-                          int num_enum_klass_static_fields) {
+  static Bytes byte_size(InstanceKlass* klass, int num_verifier_constraints, int num_loader_constraints,
+                         int num_enum_klass_static_fields) {
     return header_size_size() +
            crc_size(klass) +
            nest_host_size(klass) +
@@ -120,24 +120,24 @@ public:
   }
 
 private:
-  size_t crc_offset() const {
+  Bytes crc_offset() const {
     return header_size_size();
   }
 
-  size_t nest_host_offset() const {
+  Bytes nest_host_offset() const {
     return crc_offset() + crc_size(_klass);
   }
 
-  size_t loader_constraints_offset() const  {
+  Bytes loader_constraints_offset() const  {
     return nest_host_offset() + nest_host_size(_klass);
   }
-  size_t verifier_constraints_offset() const {
+  Bytes verifier_constraints_offset() const {
     return loader_constraints_offset() + loader_constraints_size(_num_loader_constraints);
   }
-  size_t verifier_constraint_flags_offset() const {
+  Bytes verifier_constraint_flags_offset() const {
     return verifier_constraints_offset() + verifier_constraints_size(_num_verifier_constraints);
   }
-  size_t enum_klass_static_fields_offset() const {
+  Bytes enum_klass_static_fields_offset() const {
     return verifier_constraint_flags_offset() + verifier_constraint_flags_size(_num_verifier_constraints);
   }
 
@@ -156,7 +156,7 @@ private:
 
 public:
   CrcInfo* crc() const {
-    assert(crc_size(_klass) > 0, "must be");
+    assert(crc_size(_klass) > Bytes(0), "must be");
     return (CrcInfo*)(address(this) + crc_offset());
   }
   RTVerifierConstraint* verifier_constraints() {

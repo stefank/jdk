@@ -369,7 +369,7 @@ ConstantPoolCache* ConstantPoolCache::allocate(ClassLoaderData* loader_data,
                                      const GrowableArray<ResolvedMethodEntry> method_entries,
                                      TRAPS) {
 
-  int size = ConstantPoolCache::size();
+  Words size = ConstantPoolCache::size();
 
   // Initialize resolved entry arrays with available data
   Array<ResolvedFieldEntry>* resolved_field_entries = initialize_resolved_entries_array(loader_data, field_entries, CHECK_NULL);

@@ -158,7 +158,7 @@ int             Universe::_verify_count = 0;
 uintptr_t       Universe::_verify_oop_mask = 0;
 uintptr_t       Universe::_verify_oop_bits = (uintptr_t) -1;
 
-int             Universe::_base_vtable_size = 0;
+Words           Universe::_base_vtable_size = Words(0);
 bool            Universe::_bootstrapping = false;
 bool            Universe::_module_initialized = false;
 bool            Universe::_fully_initialized = false;
@@ -858,19 +858,19 @@ void Universe::initialize_tlab() {
   }
 }
 
-ReservedHeapSpace Universe::reserve_heap(size_t heap_size, size_t alignment) {
+ReservedHeapSpace Universe::reserve_heap(Bytes heap_size, Bytes alignment) {
 
   assert(alignment <= Arguments::conservative_max_heap_alignment(),
          "actual alignment " SIZE_FORMAT " must be within maximum heap alignment " SIZE_FORMAT,
          alignment, Arguments::conservative_max_heap_alignment());
 
-  size_t total_reserved = align_up(heap_size, alignment);
-  assert(!UseCompressedOops || (total_reserved <= (OopEncodingHeapMax - os::vm_page_size())),
+  Bytes total_reserved = align_up(heap_size, alignment);
+  assert(!UseCompressedOops || (total_reserved <= in_Bytes(OopEncodingHeapMax - os::vm_page_size())),
       "heap size is too big for compressed oops");
 
-  size_t page_size = os::vm_page_size();
+  Bytes page_size = in_Bytes(os::vm_page_size());
   if (UseLargePages && is_aligned(alignment, os::large_page_size())) {
-    page_size = os::large_page_size();
+    page_size = in_Bytes(os::large_page_size());
   } else {
     // Parallel is the only collector that might opt out of using large pages
     // for the heap.
@@ -881,7 +881,7 @@ ReservedHeapSpace Universe::reserve_heap(size_t heap_size, size_t alignment) {
   ReservedHeapSpace total_rs(total_reserved, alignment, page_size, AllocateHeapAt);
 
   if (total_rs.is_reserved()) {
-    assert((total_reserved == total_rs.size()) && ((uintptr_t)total_rs.base() % alignment == 0),
+    assert((total_reserved == total_rs.size()) && (is_aligned(total_rs.base(), alignment)),
            "must be exactly of required size and alignment");
     // We are good.
 
@@ -904,7 +904,7 @@ ReservedHeapSpace Universe::reserve_heap(size_t heap_size, size_t alignment) {
 
   // satisfy compiler
   ShouldNotReachHere();
-  return ReservedHeapSpace(0, 0, os::vm_page_size());
+  return ReservedHeapSpace(Bytes(0), Bytes(0), in_Bytes(os::vm_page_size()));
 }
 
 OopStorage* Universe::vm_weak() {
@@ -1063,7 +1063,7 @@ bool universe_post_init() {
 
 
 void Universe::compute_base_vtable_size() {
-  _base_vtable_size = ClassLoader::compute_Object_vtable();
+  _base_vtable_size = in_Words(ClassLoader::compute_Object_vtable());
 }
 
 void Universe::print_on(outputStream* st) {
@@ -1201,10 +1201,10 @@ void Universe::calculate_verify_data(HeapWord* low_boundary, HeapWord* high_boun
 
   // decide which low-order bits we require to be clear:
   size_t alignSize = MinObjAlignmentInBytes;
-  size_t min_object_size = CollectedHeap::min_fill_size();
+  Words min_object_size = CollectedHeap::min_fill_size();
 
   // make an inclusive limit:
-  uintptr_t max = (uintptr_t)high_boundary - min_object_size*wordSize;
+  uintptr_t max = (uintptr_t)high_boundary - to_bytes(min_object_size);
   uintptr_t min = (uintptr_t)low_boundary;
   assert(min < max, "bad interval");
   uintptr_t diff = max ^ min;

@@ -32,6 +32,14 @@
 #include "utilities/count_trailing_zeros.hpp"
 #include "utilities/powerOfTwo.hpp"
 
+inline BitMap::bm_word_t* BitMap::word_addr(idx_t bit) {
+  return map() + untype(to_words_align_down(bit));
+}
+
+inline const BitMap::bm_word_t* BitMap::word_addr(idx_t bit) const {
+  return map() + untype(to_words_align_down(bit));
+}
+
 inline void BitMap::set_bit(idx_t bit) {
   verify_index(bit);
   *word_addr(bit) |= bit_mask(bit);
@@ -52,6 +60,11 @@ inline BitMap::bm_word_t BitMap::load_word_ordered(const volatile bm_word_t* con
            "unexpected memory ordering");
     return Atomic::load_acquire(addr);
   }
+}
+
+inline bool BitMap::at(idx_t index) const {
+  verify_index(index);
+  return (*word_addr(index) & bit_mask(index)) != 0;
 }
 
 inline bool BitMap::par_at(idx_t bit, atomic_memory_order memory_order) const {
@@ -137,21 +150,21 @@ inline void BitMap::par_set_range(idx_t beg, idx_t end, RangeSizeHint hint) {
   }
 }
 
-inline void BitMap::set_range_of_words(idx_t beg, idx_t end) {
+inline void BitMap::set_range_of_words(Words beg, Words end) {
   bm_word_t* map = _map;
-  for (idx_t i = beg; i < end; ++i) map[i] = ~(bm_word_t)0;
+  for (Words i = beg; i < end; ++i) map[untype(i)] = ~(bm_word_t)0;
 }
 
-inline void BitMap::clear_range_of_words(bm_word_t* map, idx_t beg, idx_t end) {
-  for (idx_t i = beg; i < end; ++i) map[i] = 0;
+inline void BitMap::clear_range_of_words(bm_word_t* map, Words beg, Words end) {
+  for (Words i = beg; i < end; ++i) map[untype(i)] = 0;
 }
 
-inline void BitMap::clear_range_of_words(idx_t beg, idx_t end) {
+inline void BitMap::clear_range_of_words(Words beg, Words end) {
   clear_range_of_words(_map, beg, end);
 }
 
 inline void BitMap::clear() {
-  clear_range_of_words(0, size_in_words());
+  clear_range_of_words(Words(0), Words(0) + size_in_words());
 }
 
 inline void BitMap::par_clear_range(idx_t beg, idx_t end, RangeSizeHint hint) {
@@ -202,7 +215,7 @@ inline BitMap::idx_t BitMap::find_first_bit_impl(idx_t beg, idx_t end) const {
 
   if (beg < end) {
     // Get the word containing beg, and shift out low bits.
-    idx_t word_index = to_words_align_down(beg);
+    Words word_index = to_words_align_down(beg);
     bm_word_t cword = flipped_word(word_index, flip) >> bit_in_word(beg);
     if ((cword & 1) != 0) {     // Test the beg bit.
       return beg;
@@ -212,7 +225,7 @@ inline BitMap::idx_t BitMap::find_first_bit_impl(idx_t beg, idx_t end) const {
     if (cword == 0) {           // Test other bits in the first word.
       // First word had no interesting bits.  Word search through
       // aligned up end for a non-zero flipped word.
-      idx_t word_limit = aligned_right
+      Words word_limit = aligned_right
         ? to_words_align_down(end) // Minuscule savings when aligned.
         : to_words_align_up(end);
       while (++word_index < word_limit) {
@@ -247,7 +260,7 @@ inline BitMap::idx_t BitMap::find_last_bit_impl(idx_t beg, idx_t end) const {
   if (beg < end) {
     // Get the last partial and flipped word in the range.
     idx_t last_bit_index = end - 1;
-    idx_t word_index = to_words_align_down(last_bit_index);
+    Words word_index = to_words_align_down(last_bit_index);
     bm_word_t cword = flipped_word(word_index, flip);
     // Mask for extracting and testing bits of last word.
     bm_word_t last_bit_mask = bm_word_t(1) << bit_in_word(last_bit_index);
@@ -259,7 +272,7 @@ inline BitMap::idx_t BitMap::find_last_bit_impl(idx_t beg, idx_t end) const {
     if (cword == 0) {           // Test other bits in the last word.
       // Last word had no interesting bits.  Word search through
       // aligned down beg for a non-zero flipped word.
-      idx_t word_limit = to_words_align_down(beg);
+      Words word_limit = to_words_align_down(beg);
       while (word_index-- > word_limit) {
         cword = flipped_word(word_index, flip);
         if (cword != 0) break;
@@ -541,14 +554,14 @@ BitMap::inverted_bit_mask_for_range(idx_t beg, idx_t end) const {
   return mask;
 }
 
-inline void BitMap::set_large_range_of_words(idx_t beg, idx_t end) {
+inline void BitMap::set_large_range_of_words(Words beg, Words end) {
   assert(beg <= end, "underflow");
-  memset(_map + beg, ~(unsigned char)0, (end - beg) * sizeof(bm_word_t));
+  memset(_map + untype(beg), ~(unsigned char)0, to_bytes(end - beg));
 }
 
-inline void BitMap::clear_large_range_of_words(idx_t beg, idx_t end) {
+inline void BitMap::clear_large_range_of_words(Words beg, Words end) {
   assert(beg <= end, "underflow");
-  memset(_map + beg, 0, (end - beg) * sizeof(bm_word_t));
+  memset(_map + untype(beg), 0, to_bytes(end - beg));
 }
 
 inline bool BitMap2D::is_valid_index(idx_t slot_index, idx_t bit_within_slot_index) {

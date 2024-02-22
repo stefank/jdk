@@ -169,7 +169,7 @@ public:
 
 
 KlassInfoTable::KlassInfoTable(bool add_all_classes) {
-  _size_of_instances_in_words = 0;
+  _size_of_instances_in_words = Words(0);
   _ref = (HeapWord*) Universe::boolArrayKlassObj();
   _buckets =
     (KlassInfoBucket*)  AllocateHeap(sizeof(KlassInfoBucket) * _num_buckets,
@@ -234,7 +234,7 @@ void KlassInfoTable::iterate(KlassInfoClosure* cic) {
   }
 }
 
-size_t KlassInfoTable::size_of_instances_in_words() const {
+Words KlassInfoTable::size_of_instances_in_words() const {
   return _size_of_instances_in_words;
 }
 
@@ -297,15 +297,15 @@ void KlassInfoHisto::sort() {
 void KlassInfoHisto::print_elements(outputStream* st) const {
   // simplify the formatting (ILP32 vs LP64) - store the sum in 64-bit
   int64_t total = 0;
-  uint64_t totalw = 0;
+  Words totalw = Words(0);
   for(int i=0; i < elements()->length(); i++) {
     st->print("%4d: ", i+1);
     elements()->at(i)->print_on(st);
     total += elements()->at(i)->count();
     totalw += elements()->at(i)->words();
   }
-  st->print_cr("Total " INT64_FORMAT_W(13) "  " UINT64_FORMAT_W(13),
-               total, totalw * HeapWordSize);
+  st->print_cr("Total " INT64_FORMAT_W(13) "  " SIZE_FORMAT_W(13),
+               total, to_Bytes(totalw));
 }
 
 class HierarchyClosure : public KlassInfoClosure {

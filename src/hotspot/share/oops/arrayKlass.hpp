@@ -109,7 +109,7 @@ class ArrayKlass: public Klass {
                                                   Array<InstanceKlass*>* transitive_interfaces);
 
   // Sizing
-  static int static_size(int header_size);
+  static Words static_size(Words header_size);
 
   virtual void metaspace_pointers_do(MetaspaceClosure* iter);
 

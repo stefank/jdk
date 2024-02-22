@@ -115,7 +115,7 @@ public:
     Ref(Writability w) : _writability(w), _enclosing_obj(nullptr), _next(nullptr) {}
   public:
     virtual bool not_null() const = 0;
-    virtual int size() const = 0;
+    virtual Words size() const = 0;
     virtual void metaspace_pointers_do(MetaspaceClosure *it) const = 0;
     virtual void metaspace_pointers_do_at(MetaspaceClosure *it, address new_loc) const = 0;
     virtual MetaspaceObj::Type msotype() const = 0;
@@ -160,7 +160,7 @@ private:
 
     virtual bool is_read_only_by_default() const { return T::is_read_only_by_default(); }
     virtual bool not_null()                const { return dereference() != nullptr; }
-    virtual int size()                     const { return dereference()->size(); }
+    virtual Words size()                   const { return dereference()->size(); }
     virtual MetaspaceObj::Type msotype()   const { return dereference()->type(); }
 
     virtual void metaspace_pointers_do(MetaspaceClosure *it) const {
@@ -187,7 +187,7 @@ private:
     // all Arrays are read-only by default
     virtual bool is_read_only_by_default() const { return true; }
     virtual bool not_null()                const { return dereference() != nullptr;  }
-    virtual int size()                     const { return dereference()->size(); }
+    virtual Words size()                   const { return dereference()->size(); }
     virtual MetaspaceObj::Type msotype()   const { return MetaspaceObj::array_type(sizeof(T)); }
   };
 

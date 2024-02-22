@@ -30,10 +30,10 @@
 #include "utilities/dtrace.hpp"
 
 // The following methods are used by the parallel scavenge collector
-VM_ParallelGCFailedAllocation::VM_ParallelGCFailedAllocation(size_t word_size,
+VM_ParallelGCFailedAllocation::VM_ParallelGCFailedAllocation(Words word_size,
                                                              uint gc_count) :
     VM_CollectForAllocation(word_size, gc_count, GCCause::_allocation_failure) {
-  assert(word_size != 0, "An allocation should always be requested with this operation.");
+  assert(word_size != Words(0), "An allocation should always be requested with this operation.");
 }
 
 void VM_ParallelGCFailedAllocation::doit() {

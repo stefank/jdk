@@ -102,8 +102,8 @@ class CollectedHeap : public CHeapObj<mtGC> {
   GCHeapLog* _gc_heap_log;
 
   // Historic gc information
-  size_t _capacity_at_last_gc;
-  size_t _used_at_last_gc;
+  Bytes _capacity_at_last_gc;
+  Bytes _used_at_last_gc;
 
   SoftRefPolicy _soft_ref_policy;
 
@@ -118,11 +118,11 @@ class CollectedHeap : public CHeapObj<mtGC> {
   bool _is_gc_active;
 
   // (Minimum) Alignment reserve for TLABs and PLABs.
-  static size_t _lab_alignment_reserve;
+  static Words _lab_alignment_reserve;
   // Used for filler objects (static, but initialized in ctor).
-  static size_t _filler_array_max_size;
+  static Words _filler_array_max_size;
 
-  static size_t _stack_chunk_max_size; // 0 for no limit
+  static Words _stack_chunk_max_size; // 0 for no limit
 
   // Last time the whole heap has been examined in support of RMI
   // MaxObjectInspectionAge.
@@ -150,9 +150,9 @@ class CollectedHeap : public CHeapObj<mtGC> {
   // the minimum size needed, while requested_size is the requested
   // size based on ergonomics. The actually allocated size will be
   // returned in actual_size.
-  virtual HeapWord* allocate_new_tlab(size_t min_size,
-                                      size_t requested_size,
-                                      size_t* actual_size);
+  virtual HeapWord* allocate_new_tlab(Words min_size,
+                                      Words requested_size,
+                                      Words* actual_size);
 
   // Reinitialize tlabs before resuming mutators.
   virtual void resize_all_tlabs();
@@ -161,25 +161,25 @@ class CollectedHeap : public CHeapObj<mtGC> {
   // The obj and array allocate methods are covers for these methods.
   // mem_allocate() should never be
   // called to allocate TLABs, only individual objects.
-  virtual HeapWord* mem_allocate(size_t size,
+  virtual HeapWord* mem_allocate(Words size,
                                  bool* gc_overhead_limit_was_exceeded) = 0;
 
   // Filler object utilities.
-  static inline size_t filler_array_hdr_size();
+  static inline Words filler_array_hdr_size();
 
-  static size_t filler_array_min_size();
+  static Words filler_array_min_size();
 
 protected:
-  static inline void zap_filler_array_with(HeapWord* start, size_t words, juint value);
-  DEBUG_ONLY(static void fill_args_check(HeapWord* start, size_t words);)
-  DEBUG_ONLY(static void zap_filler_array(HeapWord* start, size_t words, bool zap = true);)
+  static inline void zap_filler_array_with(HeapWord* start, Words words, juint value);
+  DEBUG_ONLY(static void fill_args_check(HeapWord* start, Words words);)
+  DEBUG_ONLY(static void zap_filler_array(HeapWord* start, Words words, bool zap = true);)
 
   // Fill with a single array; caller must ensure filler_array_min_size() <=
   // words <= filler_array_max_size().
-  static inline void fill_with_array(HeapWord* start, size_t words, bool zap = true);
+  static inline void fill_with_array(HeapWord* start, Words words, bool zap = true);
 
   // Fill with a single object (either an int array or a java.lang.Object).
-  static inline void fill_with_object_impl(HeapWord* start, size_t words, bool zap = true);
+  static inline void fill_with_object_impl(HeapWord* start, Words words, bool zap = true);
 
   virtual void trace_heap(GCWhen::Type when, const GCTracer* tracer);
 
@@ -211,11 +211,11 @@ protected:
 
  public:
 
-  static inline size_t filler_array_max_size() {
+  static inline Words filler_array_max_size() {
     return _filler_array_max_size;
   }
 
-  static inline size_t stack_chunk_max_size() {
+  static inline Words stack_chunk_max_size() {
     return _stack_chunk_max_size;
   }
 
@@ -251,15 +251,15 @@ protected:
 
   void initialize_reserved_region(const ReservedHeapSpace& rs);
 
-  virtual size_t capacity() const = 0;
-  virtual size_t used() const = 0;
+  virtual Bytes capacity() const = 0;
+  virtual Bytes used() const = 0;
 
   // Returns unused capacity.
-  virtual size_t unused() const;
+  virtual Bytes unused() const;
 
   // Historic gc information
-  size_t free_at_last_gc() const { return _capacity_at_last_gc - _used_at_last_gc; }
-  size_t used_at_last_gc() const { return _used_at_last_gc; }
+  Bytes free_at_last_gc() const { return _capacity_at_last_gc - _used_at_last_gc; }
+  Bytes used_at_last_gc() const { return _used_at_last_gc; }
   void update_capacity_and_used_at_gc();
 
   // Return "true" if the part of the heap that allocates Java
@@ -273,7 +273,7 @@ protected:
   // that the vm uses internally for bookkeeping or temporary storage
   // (e.g., in the case of the young gen, one of the survivor
   // spaces).
-  virtual size_t max_capacity() const = 0;
+  virtual Bytes max_capacity() const = 0;
 
   // Returns "TRUE" iff "p" points into the committed areas of the heap.
   // This method can be expensive so avoid using it in performance critical
@@ -285,9 +285,9 @@ protected:
   void set_gc_cause(GCCause::Cause v);
   GCCause::Cause gc_cause() { return _gc_cause; }
 
-  oop obj_allocate(Klass* klass, size_t size, TRAPS);
-  virtual oop array_allocate(Klass* klass, size_t size, int length, bool do_zero, TRAPS);
-  oop class_allocate(Klass* klass, size_t size, TRAPS);
+  oop obj_allocate(Klass* klass, Words size, TRAPS);
+  virtual oop array_allocate(Klass* klass, Words size, int length, bool do_zero, TRAPS);
+  oop class_allocate(Klass* klass, Words size, TRAPS);
 
   // Utilities for turning raw memory into filler objects.
   //
@@ -296,13 +296,13 @@ protected:
   // multiple objects.  fill_with_object() is for regions known to be smaller
   // than the largest array of integers; it uses a single object to fill the
   // region and has slightly less overhead.
-  static size_t min_fill_size() {
-    return size_t(align_object_size(oopDesc::header_size()));
+  static Words min_fill_size() {
+    return align_object_size(oopDesc::header_size());
   }
 
-  static void fill_with_objects(HeapWord* start, size_t words, bool zap = true);
+  static void fill_with_objects(HeapWord* start, Words words, bool zap = true);
 
-  static void fill_with_object(HeapWord* start, size_t words, bool zap = true);
+  static void fill_with_object(HeapWord* start, Words words, bool zap = true);
   static void fill_with_object(MemRegion region, bool zap = true) {
     fill_with_object(region.start(), region.word_size(), zap);
   }
@@ -311,12 +311,12 @@ protected:
   }
 
   virtual void fill_with_dummy_object(HeapWord* start, HeapWord* end, bool zap);
-  static constexpr size_t min_dummy_object_size() {
+  static constexpr Words min_dummy_object_size() {
     return oopDesc::header_size();
   }
 
-  static size_t lab_alignment_reserve() {
-    assert(_lab_alignment_reserve != SIZE_MAX, "uninitialized");
+  static Words lab_alignment_reserve() {
+    assert(_lab_alignment_reserve != in_Words(SIZE_MAX), "uninitialized");
     return _lab_alignment_reserve;
   }
 
@@ -338,19 +338,19 @@ protected:
   virtual void ensure_parsability(bool retire_tlabs);
 
   // The amount of space available for thread-local allocation buffers.
-  virtual size_t tlab_capacity(Thread *thr) const = 0;
+  virtual Bytes tlab_capacity(Thread *thr) const = 0;
 
   // The amount of used space for thread-local allocation buffers for the given thread.
-  virtual size_t tlab_used(Thread *thr) const = 0;
+  virtual Bytes tlab_used(Thread *thr) const = 0;
 
-  virtual size_t max_tlab_size() const;
+  virtual Words max_tlab_size() const;
 
   // An estimate of the maximum allocation that could be performed
   // for thread-local allocation buffers without triggering any
   // collection or expansion activity.
-  virtual size_t unsafe_max_tlab_alloc(Thread *thr) const {
+  virtual Bytes unsafe_max_tlab_alloc(Thread *thr) const {
     guarantee(false, "thread-local allocation buffers not supported");
-    return 0;
+    return Bytes(0);
   }
 
   // If a GC uses a stack watermark barrier, the stack processing is lazy, concurrent,
@@ -373,7 +373,7 @@ protected:
   virtual void collect_as_vm_thread(GCCause::Cause cause);
 
   virtual MetaWord* satisfy_failed_metadata_allocation(ClassLoaderData* loader_data,
-                                                       size_t size,
+                                                       Words size,
                                                        Metaspace::MetadataType mdtype);
 
   // Return true, if accesses to the object would require barriers.
@@ -518,7 +518,7 @@ protected:
   // Support for loading objects from CDS archive into the heap
   // (usually as a snapshot of the old generation).
   virtual bool can_load_archived_objects() const { return false; }
-  virtual HeapWord* allocate_loaded_archive_space(size_t size) { return nullptr; }
+  virtual HeapWord* allocate_loaded_archive_space(Words size) { return nullptr; }
   virtual void complete_loaded_archive_space(MemRegion archive_space) { }
 
   virtual bool is_oop(oop object) const;

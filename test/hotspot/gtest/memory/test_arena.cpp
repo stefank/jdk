@@ -91,7 +91,7 @@ TEST_VM(Arena, realloc_same_size) {
   void* p2 = ar.Arealloc(p1, 0x200, 0x200);
 
   ASSERT_EQ(p2, p1);
-  ASSERT_RANGE_IS_MARKED(p2, 0x200);
+  ASSERT_RANGE_IS_MARKED(p2, 0x200_b);
 }
 
 // Test behavior for Afree(nullptr) and Arealloc(nullptr, x)
@@ -124,15 +124,15 @@ TEST_VM(Arena, free_nontop) {
   ASSERT_AMALLOC(ar, p_after);
   GtestUtils::mark_range(p_after, 0x10);
 
-  ASSERT_RANGE_IS_MARKED(p_before, 0x10);
-  ASSERT_RANGE_IS_MARKED_WITH(p, 0x10, 'Z');
-  ASSERT_RANGE_IS_MARKED(p_after, 0x10);
+  ASSERT_RANGE_IS_MARKED(p_before, 0x10_b);
+  ASSERT_RANGE_IS_MARKED_WITH(p, 0x10_b, 'Z');
+  ASSERT_RANGE_IS_MARKED(p_after, 0x10_b);
 
   ar.Afree(p, 0x10);
 
-  ASSERT_RANGE_IS_MARKED(p_before, 0x10);
-  DEBUG_ONLY(ASSERT_RANGE_IS_MARKED_WITH(p, 0x10, badResourceValue);)
-  ASSERT_RANGE_IS_MARKED(p_after, 0x10);
+  ASSERT_RANGE_IS_MARKED(p_before, 0x10_b);
+  DEBUG_ONLY(ASSERT_RANGE_IS_MARKED_WITH(p, 0x10_b, badResourceValue);)
+  ASSERT_RANGE_IS_MARKED(p_after, 0x10_b);
 }
 
 // Check Arena.Afree in a top position.
@@ -146,7 +146,7 @@ TEST_VM(Arena, free_top) {
   GtestUtils::mark_range_with(p, 0x10, 'Z');
 
   ar.Afree(p, 0x10);
-  DEBUG_ONLY(ASSERT_RANGE_IS_MARKED_WITH(p, 0x10, badResourceValue);)
+  DEBUG_ONLY(ASSERT_RANGE_IS_MARKED_WITH(p, 0x10_b, badResourceValue);)
 
   // a subsequent allocation should get the same pointer
   void* p2 = ar.Amalloc(0x20);
@@ -164,7 +164,7 @@ TEST_VM(Arena, realloc_top_shrink) {
 
   void* p2 = ar.Arealloc(p1, 0x200, 0x100);
   ASSERT_EQ(p1, p2);
-  ASSERT_RANGE_IS_MARKED(p2, 0x100); // realloc should preserve old content
+  ASSERT_RANGE_IS_MARKED(p2, 0x100_b); // realloc should preserve old content
 
   // A subsequent allocation should be placed right after the end of the first, shrunk, allocation
   void* p3 = ar.Amalloc(1);
@@ -183,7 +183,7 @@ TEST_VM(Arena, realloc_nontop_shrink) {
 
   void* p2 = ar.Arealloc(p1, 200, 100);
   ASSERT_EQ(p1, p2); // should still shrink in place
-  ASSERT_RANGE_IS_MARKED(p2, 100); // realloc should preserve old content
+  ASSERT_RANGE_IS_MARKED(p2, 100_b); // realloc should preserve old content
 }
 
 // in-place growing.
@@ -196,7 +196,7 @@ TEST_VM(Arena, realloc_top_grow) {
 
   void* p2 = ar.Arealloc(p1, 0x10, 0x20);
   ASSERT_EQ(p1, p2);
-  ASSERT_RANGE_IS_MARKED(p2, 0x10); // realloc should preserve old content
+  ASSERT_RANGE_IS_MARKED(p2, 0x10_b); // realloc should preserve old content
 }
 
 // not-in-place growing.
@@ -211,7 +211,7 @@ TEST_VM(Arena, realloc_nontop_grow) {
 
   void* p2 = ar.Arealloc(p1, 10, 20);
   ASSERT_AMALLOC(ar, p2);
-  ASSERT_RANGE_IS_MARKED(p2, 10); // realloc should preserve old content
+  ASSERT_RANGE_IS_MARKED(p2, 10_b); // realloc should preserve old content
 }
 
 // -------- random alloc test -------------
@@ -229,8 +229,8 @@ TEST_VM(Arena, random_allocs) {
   const int avg_alloc_size = 64;
 
   void** ptrs = NEW_C_HEAP_ARRAY(void*, num_allocs, mtTest);
-  size_t* sizes = NEW_C_HEAP_ARRAY(size_t, num_allocs, mtTest);
-  size_t* alignments = NEW_C_HEAP_ARRAY(size_t, num_allocs, mtTest);
+  Bytes* sizes = NEW_C_HEAP_ARRAY(Bytes, num_allocs, mtTest);
+  Bytes* alignments = NEW_C_HEAP_ARRAY(Bytes, num_allocs, mtTest);
 
   Arena ar(mtTest);
 
@@ -257,7 +257,7 @@ TEST_VM(Arena, random_allocs) {
       ASSERT_CONTAINS(ar, p);
     }
     GtestUtils::mark_range_with(p, size, canary(i));
-    ptrs[i] = p; sizes[i] = size; alignments[i] = alignment;
+    ptrs[i] = p; sizes[i] = in_Bytes(size); alignments[i] = in_Bytes(alignment);
   }
 
   // Check pattern in allocations for overwriters.
@@ -267,15 +267,15 @@ TEST_VM(Arena, random_allocs) {
 
   // realloc all of them
   for (int i = 0; i < num_allocs; i ++) {
-    size_t new_size = os::random() % (avg_alloc_size * 2);  // Note: 0 is possible and should work
-    void* p2 = ar.Arealloc(ptrs[i], sizes[i], new_size);
-    if (new_size > 0) {
+    Bytes new_size = in_Bytes(os::random() % (avg_alloc_size * 2));  // Note: 0 is possible and should work
+    void* p2 = ar.Arealloc(ptrs[i], untype(sizes[i]), untype(new_size));
+    if (new_size > 0_b) {
       ASSERT_NOT_NULL(p2);
       ASSERT_CONTAINS(ar, p2);
       ASSERT_ALIGN(p2, alignments[i]); // Realloc guarantees at least the original alignment
       ASSERT_RANGE_IS_MARKED_WITH(p2, MIN2(sizes[i], new_size), canary(i)); // old content should have been preserved
 
-      GtestUtils::mark_range_with(p2, new_size, canary(i)); // mark new range with canary
+      GtestUtils::mark_range_with(p2, untype(new_size), canary(i)); // mark new range with canary
     } else {
       ASSERT_NULL(p2);
     }
@@ -294,7 +294,7 @@ TEST_VM(Arena, random_allocs) {
   // Randomly free a bunch of allocations.
   for (int i = 0; i < num_allocs; i ++) {
     if (os::random() % 10 == 0) {
-      ar.Afree(ptrs[i], sizes[i]);
+      ar.Afree(ptrs[i], untype(sizes[i]));
       // In debug builds the freed space should be filled the space with badResourceValue
       DEBUG_ONLY(ASSERT_RANGE_IS_MARKED_WITH(ptrs[i], sizes[i], badResourceValue));
       ptrs[i] = nullptr;

@@ -198,11 +198,11 @@ void PSPromotionManager::reset() {
 
   // Do not prefill the LAB's, save heap wastage!
   HeapWord* lab_base = young_space()->top();
-  _young_lab.initialize(MemRegion(lab_base, (size_t)0));
+  _young_lab.initialize(MemRegion(lab_base, Words(0)));
   _young_gen_is_full = false;
 
   lab_base = old_gen()->object_space()->top();
-  _old_lab.initialize(MemRegion(lab_base, (size_t)0));
+  _old_lab.initialize(MemRegion(lab_base, Words(0)));
   _old_gen_is_full = false;
 
   _promotion_failed_info.reset();

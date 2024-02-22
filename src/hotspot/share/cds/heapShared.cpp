@@ -86,9 +86,9 @@ bool HeapShared::_disable_writing = false;
 DumpedInternedStrings *HeapShared::_dumped_interned_strings = nullptr;
 
 size_t HeapShared::_alloc_count[HeapShared::ALLOC_STAT_SLOTS];
-size_t HeapShared::_alloc_size[HeapShared::ALLOC_STAT_SLOTS];
+Words HeapShared::_alloc_size[HeapShared::ALLOC_STAT_SLOTS];
 size_t HeapShared::_total_obj_count;
-size_t HeapShared::_total_obj_size;
+Words HeapShared::_total_obj_size;
 
 #ifndef PRODUCT
 #define ARCHIVE_TEST_FIELD_NAME "archivedObjects"
@@ -793,7 +793,7 @@ struct CopyKlassSubGraphInfoToArchive : StackObj {
   bool do_entry(Klass* klass, KlassSubGraphInfo& info) {
     if (info.subgraph_object_klasses() != nullptr || info.subgraph_entry_fields() != nullptr) {
       ArchivedKlassSubGraphInfoRecord* record =
-        (ArchivedKlassSubGraphInfoRecord*)ArchiveBuilder::ro_region_alloc(sizeof(ArchivedKlassSubGraphInfoRecord));
+        (ArchivedKlassSubGraphInfoRecord*)ArchiveBuilder::ro_region_alloc(in_Bytes(sizeof(ArchivedKlassSubGraphInfoRecord)));
       record->init(&info);
 
       Klass* buffered_k = ArchiveBuilder::get_buffered_klass(klass);
@@ -1691,7 +1691,7 @@ class FindEmbeddedNonNullPointers: public BasicOopIterateClosure {
 
 #ifndef PRODUCT
 ResourceBitMap HeapShared::calculate_oopmap(MemRegion region) {
-  size_t num_bits = region.byte_size() / (UseCompressedOops ? sizeof(narrowOop) : sizeof(oop));
+  size_t num_bits = untype(region.byte_size()) / (UseCompressedOops ? sizeof(narrowOop) : sizeof(oop));
   ResourceBitMap oopmap(num_bits);
 
   HeapWord* p   = region.start();
@@ -1713,11 +1713,11 @@ ResourceBitMap HeapShared::calculate_oopmap(MemRegion region) {
 
 #endif // !PRODUCT
 
-void HeapShared::count_allocation(size_t size) {
+void HeapShared::count_allocation(Words size) {
   _total_obj_count ++;
   _total_obj_size += size;
   for (int i = 0; i < ALLOC_STAT_SLOTS; i++) {
-    if (size <= (size_t(1) << i)) {
+    if (size <= in_Words((size_t(1) << i))) {
       _alloc_count[i] ++;
       _alloc_size[i] += size;
       return;
@@ -1725,22 +1725,22 @@ void HeapShared::count_allocation(size_t size) {
   }
 }
 
-static double avg_size(size_t size, size_t count) {
+static double avg_size(Words size, size_t count) {
   double avg = 0;
   if (count > 0) {
-    avg = double(size * HeapWordSize) / double(count);
+    avg = double(to_bytes(size)) / double(count);
   }
   return avg;
 }
 
 void HeapShared::print_stats() {
   size_t huge_count = _total_obj_count;
-  size_t huge_size = _total_obj_size;
+  Words huge_size = _total_obj_size;
 
   for (int i = 0; i < ALLOC_STAT_SLOTS; i++) {
     size_t byte_size_limit = (size_t(1) << i) * HeapWordSize;
     size_t count = _alloc_count[i];
-    size_t size = _alloc_size[i];
+    Words size = _alloc_size[i];
     log_info(cds, heap)(SIZE_FORMAT_W(8) " objects are <= " SIZE_FORMAT_W(-6)
                         " bytes (total " SIZE_FORMAT_W(8) " bytes, avg %8.1f bytes)",
                         count, byte_size_limit, size * HeapWordSize, avg_size(size, count));

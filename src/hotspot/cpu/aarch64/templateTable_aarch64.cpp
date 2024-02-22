@@ -331,7 +331,7 @@ void TemplateTable::ldc(LdcType type)
   }
   __ get_cpool_and_tags(r2, r0);
 
-  const int base_offset = ConstantPool::header_size() * wordSize;
+  const int base_offset = checked_cast<int>(to_bytes(ConstantPool::header_size()));
   const int tags_offset = Array<u1>::base_offset_in_bytes();
 
   // get type
@@ -441,7 +441,7 @@ void TemplateTable::ldc2_w()
   __ get_unsigned_2_byte_index_at_bcp(r0, 1);
 
   __ get_cpool_and_tags(r1, r2);
-  const int base_offset = ConstantPool::header_size() * wordSize;
+  const int base_offset = checked_cast<int>(to_bytes(ConstantPool::header_size()));
   const int tags_offset = Array<u1>::base_offset_in_bytes();
 
   // get type

@@ -116,7 +116,7 @@ private:
   // Returns the number of words necessary to hold an array of "len"
   // elements each of the given "byte_size".
  private:
-  static size_t object_size(int lh, int length) {
+  static Words object_size(int lh, int length) {
     int instance_header_size = Klass::layout_helper_header_size(lh);
     int element_shift = Klass::layout_helper_log2_element_size(lh);
     DEBUG_ONLY(BasicType etype = Klass::layout_helper_element_type(lh));
@@ -125,14 +125,14 @@ private:
     julong size_in_bytes = (juint)length;
     size_in_bytes <<= element_shift;
     size_in_bytes += instance_header_size;
-    julong size_in_words = ((size_in_bytes + (HeapWordSize-1)) >> LogHeapWordSize);
-    assert(size_in_words <= (julong)max_jint, "no overflow");
+    Words size_in_words = Words((size_in_bytes + (HeapWordSize-1)) >> LogHeapWordSize);
+    assert(untype(size_in_words) <= (size_t)max_jint, "no overflow");
 
-    return align_object_size((size_t)size_in_words);
+    return align_object_size(size_in_words);
   }
 
  public:
-  inline size_t object_size(const TypeArrayKlass* tk) const;
+  inline Words object_size(const TypeArrayKlass* tk) const;
 };
 
 // See similar requirement for oopDesc.

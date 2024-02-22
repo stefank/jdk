@@ -309,8 +309,8 @@ class java_lang_Class : AllStatic {
   static oop source_file(oop java_class);
   static void set_source_file(oop java_class, oop source_file);
 
-  static size_t oop_size(oop java_class);
-  static void set_oop_size(HeapWord* java_class, size_t size);
+  static Words oop_size(oop java_class);
+  static void set_oop_size(HeapWord* java_class, Words size);
   static int static_oop_field_count(oop java_class);
   static void set_static_oop_field_count(oop java_class, int size);
 

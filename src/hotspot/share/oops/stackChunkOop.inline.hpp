@@ -246,7 +246,7 @@ inline void* stackChunkOopDesc::gc_data() const {
 
 inline BitMapView stackChunkOopDesc::bitmap() const {
   HeapWord* bitmap_addr = static_cast<HeapWord*>(gc_data());
-  int stack_sz = stack_size();
+  Words stack_sz = Words(stack_size());
   size_t bitmap_size_in_bits = InstanceStackChunkKlass::bitmap_size_in_bits(stack_sz);
 
   BitMapView bitmap((BitMap::bm_word_t*)bitmap_addr, bitmap_size_in_bits);

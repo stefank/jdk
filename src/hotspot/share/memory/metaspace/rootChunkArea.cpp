@@ -114,12 +114,12 @@ void RootChunkArea::split(chunklevel_t target_level, Metachunk* c, FreeChunkList
 
     // Fix committed words info: If over the half of the original chunk was
     // committed, committed area spills over into the follower chunk.
-    const size_t old_committed_words = c->committed_words();
+    const Words old_committed_words = c->committed_words();
     if (old_committed_words > c->word_size()) {
       c->set_committed_words(c->word_size());
       splinter_chunk->set_committed_words(old_committed_words - c->word_size());
     } else {
-      splinter_chunk->set_committed_words(0);
+      splinter_chunk->set_committed_words(Words(0));
     }
 
     // Insert splinter chunk into vs list
@@ -243,7 +243,7 @@ Metachunk* RootChunkArea::merge(Metachunk* c, FreeChunkListVector* freelists) {
 
       // The new merged chunk is as far committed as possible (if leader
       // chunk is fully committed, as far as the follower chunk).
-      size_t merged_committed_words = leader->committed_words();
+      Words merged_committed_words = leader->committed_words();
       if (merged_committed_words == leader->word_size()) {
         merged_committed_words += follower->committed_words();
       }
@@ -326,7 +326,7 @@ bool RootChunkArea::attempt_enlarge_chunk(Metachunk* c, FreeChunkListVector* fre
                        METACHUNK_FULL_FORMAT_ARGS(c), METACHUNK_FULL_FORMAT_ARGS(buddy));
 
   // the enlarged c is as far committed as possible:
-  size_t merged_committed_words = c->committed_words();
+  Words merged_committed_words = c->committed_words();
   if (merged_committed_words == c->word_size()) {
     merged_committed_words += buddy->committed_words();
   }
@@ -455,7 +455,7 @@ void RootChunkArea::print_on(outputStream* st) const {
 
 // Create an array of ChunkTree objects, all initialized to null, covering
 // a given memory range. Memory range must be a multiple of root chunk size.
-RootChunkAreaLUT::RootChunkAreaLUT(const MetaWord* base, size_t word_size) :
+RootChunkAreaLUT::RootChunkAreaLUT(const MetaWord* base, Words word_size) :
   _base(base),
   _num((int)(word_size / chunklevel::MAX_CHUNK_WORD_SIZE)),
   _arr(nullptr)
@@ -466,7 +466,7 @@ RootChunkAreaLUT::RootChunkAreaLUT(const MetaWord* base, size_t word_size) :
   for (int i = 0; i < _num; i++) {
     RootChunkArea* rca = new(_arr + i) RootChunkArea(this_base);
     assert(rca == _arr + i, "Sanity");
-    this_base += chunklevel::MAX_CHUNK_WORD_SIZE;
+    this_base = this_base + chunklevel::MAX_CHUNK_WORD_SIZE;
   }
 }
 

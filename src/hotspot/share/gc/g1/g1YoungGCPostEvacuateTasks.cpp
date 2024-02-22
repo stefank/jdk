@@ -158,16 +158,16 @@ class G1PostEvacuateCollectionSetCleanupTask1::RestoreEvacFailureRegionsTask : p
                                                    G1GCPhaseTimes::RemoveSelfForwardChunksNum);
     }
 
-    void register_objects_count_and_size(size_t num_marked_obj, size_t marked_words) {
+    void register_objects_count_and_size(size_t num_marked_obj, Words marked_words) {
       _phase_times->record_or_add_thread_work_item(phase_name,
                                                    _worker_id,
                                                    num_marked_obj,
                                                    G1GCPhaseTimes::RemoveSelfForwardObjectsNum);
 
-      size_t marked_bytes = marked_words * HeapWordSize;
+      Bytes marked_bytes = to_Bytes(marked_words);
       _phase_times->record_or_add_thread_work_item(phase_name,
                                                    _worker_id,
-                                                   marked_bytes,
+                                                   untype(marked_bytes),
                                                    G1GCPhaseTimes::RemoveSelfForwardObjectsBytes);
     }
   };
@@ -175,19 +175,19 @@ class G1PostEvacuateCollectionSetCleanupTask1::RestoreEvacFailureRegionsTask : p
   // Fill the memory area from start to end with filler objects, and update the BOT
   // accordingly. Since we clear and use the bitmap for marking objects that failed
   // evacuation, there is no other work to be done there.
-  static size_t zap_dead_objects(HeapRegion* hr, HeapWord* start, HeapWord* end) {
+  static Words zap_dead_objects(HeapRegion* hr, HeapWord* start, HeapWord* end) {
     assert(start <= end, "precondition");
     if (start == end) {
-      return 0;
+      return Words(0);
     }
 
     hr->fill_range_with_dead_objects(start, end);
     return pointer_delta(end, start);
   }
 
-  static void update_garbage_words_in_hr(HeapRegion* hr, size_t garbage_words) {
-    if (garbage_words != 0) {
-      hr->note_self_forward_chunk_done(garbage_words * HeapWordSize);
+  static void update_garbage_words_in_hr(HeapRegion* hr, Words garbage_words) {
+    if (garbage_words != Words(0)) {
+      hr->note_self_forward_chunk_done(to_Bytes(garbage_words));
     }
   }
 
@@ -218,7 +218,7 @@ class G1PostEvacuateCollectionSetCleanupTask1::RestoreEvacFailureRegionsTask : p
     HeapWord* chunk_end = MIN2(chunk_start + _chunk_size, hr_top);
     HeapWord* first_marked_addr = bitmap->get_next_marked_addr(chunk_start, hr_top);
 
-    size_t garbage_words = 0;
+    Words garbage_words = Words(0);
 
     if (chunk_start == hr_bottom) {
       // This is the bottom-most chunk in this region; zap [bottom, first_marked_addr).
@@ -234,7 +234,7 @@ class G1PostEvacuateCollectionSetCleanupTask1::RestoreEvacFailureRegionsTask : p
     stat.register_nonempty_chunk();
 
     size_t num_marked_objs = 0;
-    size_t marked_words = 0;
+    Words marked_words = Words(0);
 
     HeapWord* obj_addr = first_marked_addr;
     assert(chunk_start <= obj_addr && obj_addr < chunk_end,
@@ -245,7 +245,7 @@ class G1PostEvacuateCollectionSetCleanupTask1::RestoreEvacFailureRegionsTask : p
       prefetch_obj(obj_addr);
 
       oop obj = cast_to_oop(obj_addr);
-      const size_t obj_size = obj->size();
+      const Words obj_size = obj->size();
       HeapWord* const obj_end_addr = obj_addr + obj_size;
 
       {
@@ -267,7 +267,7 @@ class G1PostEvacuateCollectionSetCleanupTask1::RestoreEvacFailureRegionsTask : p
       obj_addr = next_marked_obj_addr;
     } while (obj_addr < chunk_end);
 
-    assert(marked_words > 0 && num_marked_objs > 0, "inv");
+    assert(marked_words > Words(0) && num_marked_objs > 0, "inv");
 
     stat.register_objects_count_and_size(num_marked_objs, marked_words);
 
@@ -335,7 +335,7 @@ G1PostEvacuateCollectionSetCleanupTask1::G1PostEvacuateCollectionSetCleanupTask1
 class G1FreeHumongousRegionClosure : public HeapRegionIndexClosure {
   uint _humongous_objects_reclaimed;
   uint _humongous_regions_reclaimed;
-  size_t _freed_bytes;
+  Bytes _freed_bytes;
   G1CollectedHeap* _g1h;
 
   // Returns whether the given humongous object defined by the start region index
@@ -377,7 +377,7 @@ public:
   G1FreeHumongousRegionClosure() :
     _humongous_objects_reclaimed(0),
     _humongous_regions_reclaimed(0),
-    _freed_bytes(0),
+    _freed_bytes(Bytes(0)),
     _g1h(G1CollectedHeap::heap())
   {}
 
@@ -428,7 +428,7 @@ public:
     return _humongous_regions_reclaimed;
   }
 
-  size_t bytes_freed() const {
+  Bytes bytes_freed() const {
     return _freed_bytes;
   }
 };
@@ -445,13 +445,13 @@ public:
 
 class G1PostEvacuateCollectionSetCleanupTask2::EagerlyReclaimHumongousObjectsTask : public G1AbstractSubTask {
   uint _humongous_regions_reclaimed;
-  size_t _bytes_freed;
+  Bytes _bytes_freed;
 
 public:
   EagerlyReclaimHumongousObjectsTask() :
     G1AbstractSubTask(G1GCPhaseTimes::EagerlyReclaimHumongousObjects),
     _humongous_regions_reclaimed(0),
-    _bytes_freed(0) { }
+    _bytes_freed(Bytes(0)) { }
 
   virtual ~EagerlyReclaimHumongousObjectsTask() {
     G1CollectedHeap* g1h = G1CollectedHeap::heap();
@@ -547,7 +547,7 @@ class G1PostEvacuateCollectionSetCleanupTask2::ProcessEvacuationFailedRegionsTas
 
       uint region = r->hrm_index();
       assert(r->top_at_mark_start() == r->bottom(), "TAMS must not have been set for region %u", region);
-      assert(cm->live_bytes(region) == 0, "Marking live bytes must not be set for region %u", region);
+      assert(cm->live_bytes(region) == Bytes(0), "Marking live bytes must not be set for region %u", region);
 
       // Concurrent mark does not mark through regions that we retain (they are root
       // regions wrt to marking), so we must clear their mark data (tams, bitmap)
@@ -629,21 +629,21 @@ public:
 
 // Helper class to keep statistics for the collection set freeing
 class FreeCSetStats {
-  size_t _before_used_bytes;   // Usage in regions successfully evacuate
-  size_t _after_used_bytes;    // Usage in regions failing evacuation
-  size_t _bytes_allocated_in_old_since_last_gc; // Size of young regions turned into old
-  size_t _failure_used_words;  // Live size in failed regions
-  size_t _failure_waste_words; // Wasted size in failed regions
+  Bytes _before_used_bytes;   // Usage in regions successfully evacuate
+  Bytes _after_used_bytes;    // Usage in regions failing evacuation
+  Bytes _bytes_allocated_in_old_since_last_gc; // Size of young regions turned into old
+  Words _failure_used_words;  // Live size in failed regions
+  Words _failure_waste_words; // Wasted size in failed regions
   size_t _card_rs_length;      // (Card Set) Remembered set size
   uint _regions_freed;         // Number of regions freed
 
 public:
   FreeCSetStats() :
-      _before_used_bytes(0),
-      _after_used_bytes(0),
-      _bytes_allocated_in_old_since_last_gc(0),
-      _failure_used_words(0),
-      _failure_waste_words(0),
+      _before_used_bytes(Bytes(0)),
+      _after_used_bytes(Bytes(0)),
+      _bytes_allocated_in_old_since_last_gc(Bytes(0)),
+      _failure_used_words(Words(0)),
+      _failure_waste_words(Words(0)),
       _card_rs_length(0),
       _regions_freed(0) { }
 
@@ -673,7 +673,7 @@ public:
   }
 
   void account_failed_region(HeapRegion* r) {
-    size_t used_words = r->live_bytes() / HeapWordSize;
+    Words used_words = to_Words(r->live_bytes());
     _failure_used_words += used_words;
     _failure_waste_words += HeapRegion::GrainWords - used_words;
     _after_used_bytes += r->used();
@@ -689,8 +689,8 @@ public:
   }
 
   void account_evacuated_region(HeapRegion* r) {
-    size_t used = r->used();
-    assert(used > 0, "region %u %s zero used", r->hrm_index(), r->get_short_type_str());
+    Bytes used = r->used();
+    assert(used > Bytes(0), "region %u %s zero used", r->hrm_index(), r->get_short_type_str());
     _before_used_bytes += used;
     _regions_freed += 1;
   }
@@ -735,7 +735,7 @@ class FreeCSetClosure : public HeapRegionClosure {
 
   // FreeCSetClosure members
   G1CollectedHeap* _g1h;
-  const size_t*    _surviving_young_words;
+  const Words*     _surviving_young_words;
   uint             _worker_id;
   Tickspan         _young_time;
   Tickspan         _non_young_time;
@@ -798,7 +798,7 @@ class FreeCSetClosure : public HeapRegionClosure {
   }
 
 public:
-  FreeCSetClosure(const size_t* surviving_young_words,
+  FreeCSetClosure(const Words* surviving_young_words,
                   uint worker_id,
                   FreeCSetStats* stats,
                   G1EvacFailureRegions* evac_failure_regions) :
@@ -852,7 +852,7 @@ class G1PostEvacuateCollectionSetCleanupTask2::FreeCollectionSetTask : public G1
   G1EvacInfo*       _evacuation_info;
   FreeCSetStats*    _worker_stats;
   HeapRegionClaimer _claimer;
-  const size_t*     _surviving_young_words;
+  const Words*     _surviving_young_words;
   uint              _active_workers;
   G1EvacFailureRegions* _evac_failure_regions;
   volatile uint     _num_retained_regions;
@@ -872,7 +872,7 @@ class G1PostEvacuateCollectionSetCleanupTask2::FreeCollectionSetTask : public G1
 
 public:
   FreeCollectionSetTask(G1EvacInfo* evacuation_info,
-                        const size_t* surviving_young_words,
+                        const Words* surviving_young_words,
                         G1EvacFailureRegions* evac_failure_regions) :
     G1AbstractSubTask(G1GCPhaseTimes::FreeCollectionSet),
     _g1h(G1CollectedHeap::heap()),

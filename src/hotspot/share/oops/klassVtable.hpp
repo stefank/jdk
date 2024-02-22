@@ -43,7 +43,7 @@ class vtableEntry;
 class klassVtable {
   Klass*       _klass;            // my klass
   int          _tableOffset;      // offset of start of vtable data within klass
-  int          _length;           // length of vtable (number of entries)
+  int        _length;           // length of vtable (number of entries)
 #ifndef PRODUCT
   int          _verify_count;     // to make verify faster
 #endif
@@ -182,7 +182,7 @@ class vtableEntry {
 
  public:
   // size in words
-  static int size()          { return sizeof(vtableEntry) / wordSize; }
+  static Words size()        { return to_Words(in_Bytes(size_in_bytes())); }
   static int size_in_bytes() { return sizeof(vtableEntry); }
 
   static BytesInt method_offset() { return byte_offset_of(vtableEntry, _method); }

@@ -34,12 +34,12 @@ using metaspace::SizeCounter;
 
 #define CHECK_CONTENT(fb, num_blocks_expected, word_size_expected) \
 { \
-  if (word_size_expected > 0) { \
+  if (word_size_expected > Words(0)) { \
     EXPECT_FALSE(fb.is_empty()); \
   } else { \
     EXPECT_TRUE(fb.is_empty()); \
   } \
-  EXPECT_EQ(fb.total_size(), (size_t)word_size_expected); \
+  EXPECT_EQ(fb.total_size(), word_size_expected); \
   EXPECT_EQ(fb.count(), (int)num_blocks_expected); \
 }
 
@@ -54,11 +54,11 @@ class FreeBlocksTest {
   // random generator for allocations (and, hence, deallocations)
   RandSizeGenerator _rgen_allocations;
 
-  SizeCounter _allocated_words;
+  metaspace::WordsCounter _allocated_words;
 
   struct allocation_t {
     allocation_t* next;
-    size_t word_size;
+    Words word_size;
     MetaWord* p;
   };
 
@@ -70,7 +70,7 @@ class FreeBlocksTest {
   int _num_feeds;
 
   bool feed_some() {
-    size_t word_size = _rgen_feeding.get();
+    Words word_size = _rgen_feeding.get();
     MetaWord* p = _fb.get(word_size);
     if (p != nullptr) {
       _freeblocks.add_block(p, word_size);
@@ -99,7 +99,7 @@ class FreeBlocksTest {
 
   bool allocate() {
 
-    size_t word_size = MAX2(_rgen_allocations.get(), _freeblocks.MinWordSize);
+    Words word_size = MAX2(_rgen_allocations.get(), _freeblocks.MinWordSize);
     MetaWord* p = _freeblocks.remove_block(word_size);
     if (p != nullptr) {
       _allocated_words.increment_by(word_size);
@@ -150,7 +150,7 @@ class FreeBlocksTest {
           _num_allocs++;
         } else {
           if (draining) {
-            stop = _freeblocks.total_size() < 512;
+            stop = _freeblocks.total_size() < Words(512);
           } else {
             forcefeed = true;
           }
@@ -173,19 +173,19 @@ class FreeBlocksTest {
 
 public:
 
-  FreeBlocksTest(size_t avg_alloc_size) :
-    _fb(512 * K), _freeblocks(),
-    _rgen_feeding(128, 4096),
+  FreeBlocksTest(Words avg_alloc_size) :
+    _fb(Words(512 * K)), _freeblocks(),
+    _rgen_feeding(Words(128), Words(4096)),
     _rgen_allocations(avg_alloc_size / 4, avg_alloc_size * 2, 0.01f, avg_alloc_size / 3, avg_alloc_size * 30),
     _allocations(nullptr),
     _num_allocs(0),
     _num_deallocs(0),
     _num_feeds(0)
   {
-    CHECK_CONTENT(_freeblocks, 0, 0);
+    CHECK_CONTENT(_freeblocks, 0, Words(0));
     // some initial feeding
-    _freeblocks.add_block(_fb.get(1024), 1024);
-    CHECK_CONTENT(_freeblocks, 1, 1024);
+    _freeblocks.add_block(_fb.get(Words(1024)), Words(1024));
+    CHECK_CONTENT(_freeblocks, 1, Words(1024));
   }
 
   ~FreeBlocksTest() {
@@ -193,17 +193,17 @@ public:
   }
 
   static void test_small_allocations() {
-    FreeBlocksTest test(10);
+    FreeBlocksTest test(Words(10));
     test.test_loop();
   }
 
   static void test_medium_allocations() {
-    FreeBlocksTest test(30);
+    FreeBlocksTest test(Words(30));
     test.test_loop();
   }
 
   static void test_large_allocations() {
-    FreeBlocksTest test(150);
+    FreeBlocksTest test(Words(150));
     test.test_loop();
   }
 
@@ -213,17 +213,17 @@ TEST_VM(metaspace, freeblocks_basics) {
 
   FreeBlocks fbl;
   MetaWord tmp[1024];
-  CHECK_CONTENT(fbl, 0, 0);
+  CHECK_CONTENT(fbl, 0, Words(0));
 
-  fbl.add_block(tmp, 1024);
+  fbl.add_block(tmp, Words(1024));
   DEBUG_ONLY(fbl.verify();)
   ASSERT_FALSE(fbl.is_empty());
-  CHECK_CONTENT(fbl, 1, 1024);
+  CHECK_CONTENT(fbl, 1, Words(1024));
 
-  MetaWord* p = fbl.remove_block(1024);
+  MetaWord* p = fbl.remove_block(Words(1024));
   EXPECT_EQ(p, tmp);
   DEBUG_ONLY(fbl.verify();)
-  CHECK_CONTENT(fbl, 0, 0);
+  CHECK_CONTENT(fbl, 0, Words(0));
 
 }
 

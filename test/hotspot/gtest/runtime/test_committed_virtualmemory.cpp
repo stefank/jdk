@@ -34,7 +34,7 @@ public:
   static void test() {
     Thread* thr = Thread::current();
     address stack_end = thr->stack_end();
-    size_t  stack_size = thr->stack_size();
+    Bytes   stack_size = in_Bytes(thr->stack_size());
 
     MemTracker::record_thread_stack(stack_end, stack_size);
 
@@ -77,8 +77,8 @@ public:
     ASSERT_TRUE(found_i_addr);
   }
 
-  static void check_covered_pages(address addr, size_t size, address base, size_t touch_pages, int* page_num) {
-    const size_t page_sz = os::vm_page_size();
+  static void check_covered_pages(address addr, Bytes size, address base, size_t touch_pages, int* page_num) {
+    const Bytes page_sz = in_Bytes(os::vm_page_size());
     size_t index;
     for (index = 0; index < touch_pages; index ++) {
       address page_addr = base + page_num[index] * page_sz;
@@ -90,10 +90,10 @@ public:
   }
 
   static void test_committed_region_impl(size_t num_pages, size_t touch_pages, int* page_num) {
-    const size_t page_sz = os::vm_page_size();
-    const size_t size = num_pages * page_sz;
-    char* base = os::reserve_memory(size, !ExecMem, mtThreadStack);
-    bool result = os::commit_memory(base, size, !ExecMem);
+    const Bytes page_sz = in_Bytes(os::vm_page_size());
+    const Bytes size = num_pages * page_sz;
+    char* base = os::reserve_memory(untype(size), !ExecMem, mtThreadStack);
+    bool result = os::commit_memory(base, untype(size), !ExecMem);
     size_t index;
     ASSERT_NE(base, (char*)nullptr);
     for (index = 0; index < touch_pages; index ++) {
@@ -132,7 +132,7 @@ public:
     }
 
     // Cleanup
-    os::free_memory(base, size, page_sz);
+    os::free_memory(base, untype(size), untype(page_sz));
     VirtualMemoryTracker::remove_released_region((address)base, size);
 
     rmr = VirtualMemoryTracker::_reserved_regions->find(ReservedMemoryRegion((address)base, size));
@@ -146,9 +146,9 @@ public:
     int mid_range[] = {0, 45, 100, 399, 400, 1000, 1031};
     int large_range[] = {100, 301, 1024, 2047, 2048, 2049, 2050, 3000};
 
-    test_committed_region_impl(47, 3, small_range);
-    test_committed_region_impl(1088, 5, mid_range);
-    test_committed_region_impl(3074, 8, large_range);
+    test_committed_region_impl(47, ARRAY_SIZE(small_range), small_range);
+    test_committed_region_impl(1088, ARRAY_SIZE(mid_range), mid_range);
+    test_committed_region_impl(3074, ARRAY_SIZE(large_range), large_range);
   }
 
   static void test_partial_region() {

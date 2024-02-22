@@ -55,10 +55,10 @@ protected:
 
   inline void* operator new(size_t size, ClassLoaderData* loader_data, int length, TRAPS) throw();
 
-  static size_t byte_sizeof(int length, size_t elm_byte_size) {
-    return sizeof(Array<T>) + MAX2(length - 1, 0) * elm_byte_size;
+  static Bytes byte_sizeof(int length, size_t elm_byte_size) {
+    return in_Bytes(sizeof(Array<T>) + MAX2(length - 1, 0) * elm_byte_size);
   }
-  static size_t byte_sizeof(int length) { return byte_sizeof(length, sizeof(T)); }
+  static Bytes byte_sizeof(int length) { return byte_sizeof(length, sizeof(T)); }
 
   // WhiteBox API helper.
   // Can't distinguish between array of length 0 and length 1,
@@ -131,15 +131,15 @@ protected:
   T at_acquire(const int i)            { return Atomic::load_acquire(adr_at(i)); }
   void release_at_put(int i, T x)      { Atomic::release_store(adr_at(i), x); }
 
-  static int size(int length) {
-    size_t bytes = align_up(byte_sizeof(length), BytesPerWord);
-    size_t words = bytes / BytesPerWord;
+  static Words size(int length) {
+    Bytes bytes = align_up(byte_sizeof(length), BytesPerWord);
+    Words words = to_Words(bytes);
 
-    assert(words <= INT_MAX, "Overflow: " SIZE_FORMAT, words);
+    assert(words <= in_Words(INT_MAX), "Overflow: " SIZE_FORMAT, untype(words));
 
-    return (int)words;
+    return words;
   }
-  int size() {
+  Words size() {
     return size(_length);
   }
 

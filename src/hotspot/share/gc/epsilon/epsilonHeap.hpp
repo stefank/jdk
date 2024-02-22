@@ -42,12 +42,12 @@ private:
   GCMemoryManager _memory_manager;
   ContiguousSpace* _space;
   VirtualSpace _virtual_space;
-  size_t _max_tlab_size;
-  size_t _step_counter_update;
-  size_t _step_heap_print;
+  Words _max_tlab_size;
+  Bytes _step_counter_update;
+  Bytes _step_heap_print;
   int64_t _decay_time_ns;
-  volatile size_t _last_counter_update;
-  volatile size_t _last_heap_print;
+  volatile Bytes _last_counter_update;
+  volatile Bytes _last_heap_print;
 
 public:
   static EpsilonHeap* heap();
@@ -70,9 +70,9 @@ public:
   GrowableArray<GCMemoryManager*> memory_managers() override;
   GrowableArray<MemoryPool*> memory_pools() override;
 
-  size_t max_capacity() const override { return _virtual_space.reserved_size();  }
-  size_t capacity()     const override { return _virtual_space.committed_size(); }
-  size_t used()         const override { return _space->used(); }
+  Bytes max_capacity() const override { return _virtual_space.reserved_size();  }
+  Bytes capacity()     const override { return _virtual_space.committed_size(); }
+  Bytes used()         const override { return _space->used(); }
 
   bool is_in(const void* p) const override {
     return _space->is_in(p);
@@ -86,17 +86,17 @@ public:
   }
 
   // Allocation
-  HeapWord* allocate_work(size_t size, bool verbose = true);
-  HeapWord* mem_allocate(size_t size, bool* gc_overhead_limit_was_exceeded) override;
-  HeapWord* allocate_new_tlab(size_t min_size,
-                              size_t requested_size,
-                              size_t* actual_size) override;
+  HeapWord* allocate_work(Words size, bool verbose = true);
+  HeapWord* mem_allocate(Words size, bool* gc_overhead_limit_was_exceeded) override;
+  HeapWord* allocate_new_tlab(Words min_size,
+                              Words requested_size,
+                              Words* actual_size) override;
 
   // TLAB allocation
-  size_t tlab_capacity(Thread* thr)         const override { return capacity();     }
-  size_t tlab_used(Thread* thr)             const override { return used();         }
-  size_t max_tlab_size()                    const override { return _max_tlab_size; }
-  size_t unsafe_max_tlab_alloc(Thread* thr) const override;
+  Bytes tlab_capacity(Thread* thr)          const override { return capacity();     }
+  Bytes tlab_used(Thread* thr)              const override { return used();         }
+  Words max_tlab_size()                     const override { return _max_tlab_size; }
+  Bytes unsafe_max_tlab_alloc(Thread* thr) const override;
 
   void collect(GCCause::Cause cause) override;
   void do_full_collection(bool clear_all_soft_refs) override;
@@ -129,14 +129,14 @@ public:
 
   // Support for loading objects from CDS archive into the heap
   bool can_load_archived_objects() const override { return UseCompressedOops; }
-  HeapWord* allocate_loaded_archive_space(size_t size) override;
+  HeapWord* allocate_loaded_archive_space(Words size) override;
 
   void print_on(outputStream* st) const override;
   void print_tracing_info() const override;
   bool print_location(outputStream* st, void* addr) const override;
 
 private:
-  void print_heap_info(size_t used) const;
+  void print_heap_info(Bytes used) const;
   void print_metaspace_info() const;
 
 };

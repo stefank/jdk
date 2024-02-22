@@ -75,15 +75,15 @@ class G1RebuildRSAndScrubTask : public WorkerTask {
 
     const bool _should_rebuild_remset;
 
-    size_t _processed_words;
+    Words _processed_words;
 
-    const size_t ProcessingYieldLimitInWords = G1RebuildRemSetChunkSize / HeapWordSize;
+    const Words ProcessingYieldLimitInWords = to_Words(in_Bytes(G1RebuildRemSetChunkSize));
 
     void reset_processed_words() {
-      _processed_words = 0;
+      _processed_words = Words(0);
     }
 
-    void add_processed_words(size_t processed) {
+    void add_processed_words(Words processed) {
       _processed_words += processed;
     }
 
@@ -140,9 +140,9 @@ class G1RebuildRSAndScrubTask : public WorkerTask {
 
     // Scan for references into regions that need remembered set update for the given
     // live object. Returns the offset to the next object.
-    size_t scan_object(HeapRegion* hr, HeapWord* current) {
+    Words scan_object(HeapRegion* hr, HeapWord* current) {
       oop obj = cast_to_oop(current);
-      size_t obj_size = obj->size();
+      Words obj_size = obj->size();
 
       if (!_should_rebuild_remset) {
         // Not rebuilding, just step to next object.
@@ -292,7 +292,7 @@ class G1RebuildRSAndScrubTask : public WorkerTask {
       _bitmap(_cm->mark_bitmap()),
       _rebuild_closure(G1CollectedHeap::heap(), worker_id),
       _should_rebuild_remset(should_rebuild_remset),
-      _processed_words(0) { }
+      _processed_words(Words(0)) { }
 
     bool do_heap_region(HeapRegion* hr) {
       // Avoid stalling safepoints and stop iteration if mark cycle has been aborted.

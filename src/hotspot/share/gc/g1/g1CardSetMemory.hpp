@@ -82,9 +82,9 @@ public:
   void drop_all();
 
   // Total memory allocated.
-  size_t mem_size() const;
+  Bytes mem_size() const;
 
-  size_t unused_mem_size() const;
+  Bytes unused_mem_size() const;
 
   uint num_segments() const;
 };
@@ -113,8 +113,8 @@ public:
 
   void flush();
 
-  size_t mem_size() const;
-  size_t unused_mem_size() const;
+  Bytes mem_size() const;
+  Bytes unused_mem_size() const;
 
   G1MonotonicArenaMemoryStats memory_stats() const;
 };

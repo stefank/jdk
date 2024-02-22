@@ -129,14 +129,14 @@ public:
     _card_shift(CardTable::card_shift()),
     _card_size(CardTable::card_size()),
     _table_base(_table - (uintptr_t(start) >> _card_shift)) {
-    size_t stripe_byte_size = pointer_delta(end, start) * HeapWordSize;
-    size_t copy_length = align_up(stripe_byte_size, _card_size) >> _card_shift;
+    Bytes stripe_byte_size = to_Bytes(pointer_delta(end, start));
+    size_t copy_length = untype(align_up(stripe_byte_size, _card_size)) >> _card_shift;
     // The end of the last stripe may not be card aligned as it is equal to old
     // gen top at scavenge start. We should not clear the card containing old gen
     // top if not card aligned because there can be promoted objects on that
     // same card. If it was marked dirty because of the promoted objects and we
     // cleared it, we would loose a card mark.
-    size_t clear_length = align_down(stripe_byte_size, _card_size) >> _card_shift;
+    size_t clear_length = untype(align_down(stripe_byte_size, _card_size)) >> _card_shift;
     CardValue* stripe_start_card = pst->byte_for(start);
     memcpy(_table, stripe_start_card, copy_length);
     memset(stripe_start_card, CardTable::clean_card_val(), clear_length);

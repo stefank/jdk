@@ -172,9 +172,9 @@ jlong ClassLoadingService::class_method_data_size() {
   return UsePerfData ? _class_methods_size->get_value() : -1;
 }
 
-static size_t compute_class_size(InstanceKlass* k) {
+static Bytes compute_class_size(InstanceKlass* k) {
   // lifted from ClassStatistics.do_class(Klass* k)
-  size_t class_size = k->size();
+  Words class_size = k->size();
   if (k->is_instance_klass()) {
     class_size += k->methods()->size();
     // FIXME: Need to count the contents of methods
@@ -187,7 +187,7 @@ static size_t compute_class_size(InstanceKlass* k) {
     // FIXME: How should these be accounted for, now when they have moved.
     //class_size += k->fields()->size();
   }
-  return class_size * oopSize;
+  return to_Bytes(class_size);
 }
 
 void ClassLoadingService::notify_class_loaded(InstanceKlass* k, bool shared_class) {
@@ -201,8 +201,8 @@ void ClassLoadingService::notify_class_loaded(InstanceKlass* k, bool shared_clas
     PerfCounter* classbytes_counter = (shared_class ? _shared_classbytes_loaded
                                                     : _classbytes_loaded);
     // add the class size
-    size_t size = compute_class_size(k);
-    classbytes_counter->inc(size);
+    Bytes size = compute_class_size(k);
+    classbytes_counter->inc(untype(size));
   }
 }
 
@@ -213,15 +213,15 @@ void ClassLoadingService::notify_class_unloaded(InstanceKlass* k) {
 
   if (UsePerfData) {
     // add the class size
-    size_t size = compute_class_size(k);
-    _classbytes_unloaded->inc(size);
+    Bytes size = compute_class_size(k);
+    _classbytes_unloaded->inc(untype(size));
 
     // Compute method size & subtract from running total.
     // We are called during phase 1 of mark sweep, so it's
     // still ok to iterate through Method*s here.
     Array<Method*>* methods = k->methods();
     for (int i = 0; i < methods->length(); i++) {
-      _class_methods_size->inc(-methods->at(i)->size());
+      _class_methods_size->inc(-untype(methods->at(i)->size()));
     }
   }
 }

@@ -47,7 +47,7 @@ protected:
   }
   // Convert from address to bit offset.
   size_t addr_to_offset(const HeapWord* addr) const {
-    return pointer_delta(addr, _covered.start()) >> _shifter;
+    return untype(pointer_delta(addr, _covered.start())) >> _shifter;
   }
 
   // Clear bitmap range
@@ -57,7 +57,7 @@ protected:
   static size_t mark_distance();
 
 public:
-  static size_t compute_size(size_t heap_size);
+  static Bytes compute_size(Bytes heap_size);
   // Returns how many bytes (or bits) of the heap a single byte (or bit) of the
   // mark bitmap corresponds to. This is the same as the mark distance above.
   static size_t heap_map_factor() {

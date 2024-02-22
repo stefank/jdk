@@ -82,22 +82,22 @@ float TableRateStatistics::get_remove_rate() {
 }
 
 TableStatistics::TableStatistics() :
-  _literal_bytes(0),
+  _literal_bytes(Bytes(0)),
   _number_of_buckets(0), _number_of_entries(0),
   _maximum_bucket_size(0), _average_bucket_size(0),
   _variance_of_bucket_size(0), _stddev_of_bucket_size(0),
-  _bucket_bytes(0), _entry_bytes(0), _total_footprint(0),
-  _bucket_size(0), _entry_size(0),
+  _bucket_bytes(Bytes(0)), _entry_bytes(Bytes(0)), _total_footprint(Bytes(0)),
+  _bucket_size(Bytes(0)), _entry_size(Bytes(0)),
   _add_rate(0), _remove_rate(0) {
 }
 
-TableStatistics::TableStatistics(NumberSeq summary, size_t literal_bytes, size_t bucket_bytes, size_t node_bytes) :
+TableStatistics::TableStatistics(NumberSeq summary, Bytes literal_bytes, Bytes bucket_bytes, Bytes node_bytes) :
   _literal_bytes(literal_bytes),
   _number_of_buckets(0), _number_of_entries(0),
   _maximum_bucket_size(0), _average_bucket_size(0),
   _variance_of_bucket_size(0), _stddev_of_bucket_size(0),
-  _bucket_bytes(0), _entry_bytes(0), _total_footprint(0),
-  _bucket_size(0), _entry_size(0),
+  _bucket_bytes(Bytes(0)), _entry_bytes(Bytes(0)), _total_footprint(Bytes(0)),
+  _bucket_size(Bytes(0)), _entry_size(Bytes(0)),
   _add_rate(0), _remove_rate(0) {
 
   _number_of_buckets = summary.num();
@@ -112,13 +112,13 @@ TableStatistics::TableStatistics(NumberSeq summary, size_t literal_bytes, size_t
   _entry_bytes = _number_of_entries * node_bytes;
   _total_footprint = _literal_bytes + _bucket_bytes + _entry_bytes;
 
-  _bucket_size = (_number_of_buckets <= 0) ? 0 : (_bucket_bytes / _number_of_buckets);
-  _entry_size = (_number_of_entries <= 0) ? 0 : (_entry_bytes / _number_of_entries);
+  _bucket_size = (_number_of_buckets <= 0) ? Bytes(0) : (_bucket_bytes / _number_of_buckets);
+  _entry_size = (_number_of_entries <= 0) ? Bytes(0) : (_entry_bytes / _number_of_entries);
 }
 
 TableStatistics::TableStatistics(TableRateStatistics& rate_stats,
-                                  NumberSeq summary, size_t literal_bytes,
-                                  size_t bucket_bytes, size_t node_bytes) :
+                                  NumberSeq summary, Bytes literal_bytes,
+                                  Bytes bucket_bytes, Bytes node_bytes) :
   TableStatistics(summary, literal_bytes, bucket_bytes, node_bytes) {
 #if INCLUDE_JFR
   if (Jfr::is_recording()) {
@@ -139,7 +139,7 @@ void TableStatistics::print(outputStream* st, const char *table_name) {
   st->print_cr("Number of entries       : %9" PRIuPTR " = %9" PRIuPTR
                " bytes, each " SIZE_FORMAT,
                _number_of_entries, _entry_bytes, _entry_size);
-  if (_literal_bytes != 0) {
+  if (_literal_bytes != Bytes(0)) {
     float literal_avg = (_number_of_entries <= 0) ? 0.0f : (float)(_literal_bytes / _number_of_entries);
     st->print_cr("Number of literals      : %9" PRIuPTR " = %9" PRIuPTR
                  " bytes, avg %7.3f",

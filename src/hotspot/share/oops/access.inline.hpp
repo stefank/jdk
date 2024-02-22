@@ -195,7 +195,7 @@ namespace AccessInternal {
 
   template <class GCBarrierType, DecoratorSet decorators>
   struct PostRuntimeDispatch<GCBarrierType, BARRIER_CLONE, decorators>: public AllStatic {
-    static void access_barrier(oop src, oop dst, size_t size) {
+    static void access_barrier(oop src, oop dst, Words size) {
       GCBarrierType::clone_in_heap(src, dst, size);
     }
   };
@@ -342,7 +342,7 @@ namespace AccessInternal {
   }
 
   template <DecoratorSet decorators, typename T>
-  void RuntimeDispatch<decorators, T, BARRIER_CLONE>::clone_init(oop src, oop dst, size_t size) {
+  void RuntimeDispatch<decorators, T, BARRIER_CLONE>::clone_init(oop src, oop dst, Words size) {
     func_t function = BarrierResolver<decorators, func_t, BARRIER_CLONE>::resolve_barrier();
     _clone_func = function;
     function(src, dst, size);

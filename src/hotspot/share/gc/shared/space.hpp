@@ -106,7 +106,7 @@ class Space: public CHeapObj<mtGC> {
   virtual void mangle_unused_area_complete() = 0;
 
   // Testers
-  bool is_empty() const              { return used() == 0; }
+  bool is_empty() const              { return used() == Bytes(0); }
 
   // Returns true iff the given the space contains the
   // given address as part of an allocated object. For
@@ -123,9 +123,9 @@ class Space: public CHeapObj<mtGC> {
   bool is_in_reserved(const void* p) const { return _bottom <= p && p < _end; }
 
   // Size computations.  Sizes are in bytes.
-  size_t capacity()     const { return byte_size(bottom(), end()); }
-  virtual size_t used() const = 0;
-  virtual size_t free() const = 0;
+  Bytes capacity()     const { return byte_size(bottom(), end()); }
+  virtual Bytes used() const = 0;
+  virtual Bytes free() const = 0;
 
   // If "p" is in the space, returns the address of the start of the
   // "block" that contains "p".  We say "block" instead of "object" since
@@ -135,10 +135,10 @@ class Space: public CHeapObj<mtGC> {
 
   // Allocation (return null if full).  Assumes the caller has established
   // mutually exclusive access to the space.
-  virtual HeapWord* allocate(size_t word_size) = 0;
+  virtual HeapWord* allocate(Words word_size) = 0;
 
   // Allocation (return null if full).  Enforces mutual exclusion internally.
-  virtual HeapWord* par_allocate(size_t word_size) = 0;
+  virtual HeapWord* par_allocate(Words word_size) = 0;
 
   void print() const;
   virtual void print_on(outputStream* st) const;
@@ -164,8 +164,8 @@ protected:
   GenSpaceMangler* mangler() { return _mangler; }
 
   // Allocation helpers (return null if full).
-  inline HeapWord* allocate_impl(size_t word_size);
-  inline HeapWord* par_allocate_impl(size_t word_size);
+  inline HeapWord* allocate_impl(Words word_size);
+  inline HeapWord* par_allocate_impl(Words word_size);
 
  public:
   ContiguousSpace();
@@ -227,16 +227,16 @@ protected:
   void check_mangled_unused_area_complete() PRODUCT_RETURN;
 
   // Size computations: sizes in bytes.
-  size_t used() const override   { return byte_size(bottom(), top()); }
-  size_t free() const override   { return byte_size(top(),    end()); }
+  Bytes used() const override   { return byte_size(bottom(), top()); }
+  Bytes free() const override   { return byte_size(top(),    end()); }
 
   // In a contiguous space we have a more obvious bound on what parts
   // contain objects.
   MemRegion used_region() const override { return MemRegion(bottom(), top()); }
 
   // Allocation (return null if full)
-  HeapWord* allocate(size_t word_size) override;
-  HeapWord* par_allocate(size_t word_size) override;
+  HeapWord* allocate(Words word_size) override;
+  HeapWord* par_allocate(Words word_size) override;
 
   // Iteration
   void object_iterate(ObjectClosure* blk);
@@ -283,8 +283,8 @@ class TenuredSpace: public ContiguousSpace {
   HeapWord* block_start_const(const void* addr) const override;
 
   // Add offset table update.
-  inline HeapWord* allocate(size_t word_size) override;
-  inline HeapWord* par_allocate(size_t word_size) override;
+  inline HeapWord* allocate(Words word_size) override;
+  inline HeapWord* par_allocate(Words word_size) override;
 
   inline void update_for_block(HeapWord* start, HeapWord* end);
 

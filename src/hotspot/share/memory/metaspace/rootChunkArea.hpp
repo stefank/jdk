@@ -104,7 +104,7 @@ public:
   /// range ///
 
   const MetaWord* base() const  { return _base; }
-  size_t word_size() const      { return chunklevel::MAX_CHUNK_WORD_SIZE; }
+  Words word_size() const      { return chunklevel::MAX_CHUNK_WORD_SIZE; }
   const MetaWord* end() const   { return _base + word_size(); }
 
   // Returns true if this root chunk area is completely free:
@@ -158,14 +158,14 @@ class RootChunkAreaLUT {
   // area this address falls into.
   int index_by_address(const MetaWord* p) const {
     DEBUG_ONLY(check_pointer(p);)
-    int idx = (int)((p - base()) / chunklevel::MAX_CHUNK_WORD_SIZE);
+    int idx = checked_cast<int>(pointer_delta(p, base()) / chunklevel::MAX_CHUNK_WORD_SIZE);
     assert(idx >= 0 && idx < _num, "Sanity");
     return idx;
   }
 
 public:
 
-  RootChunkAreaLUT(const MetaWord* base, size_t word_size);
+  RootChunkAreaLUT(const MetaWord* base, Words word_size);
   ~RootChunkAreaLUT();
 
   // Given a memory address into the range this array covers, return the
@@ -181,7 +181,7 @@ public:
   /// range ///
 
   const MetaWord* base() const  { return _base; }
-  size_t word_size() const      { return _num * chunklevel::MAX_CHUNK_WORD_SIZE; }
+  Words word_size() const       { return _num * chunklevel::MAX_CHUNK_WORD_SIZE; }
   const MetaWord* end() const   { return _base + word_size(); }
 
   DEBUG_ONLY(void verify() const;)

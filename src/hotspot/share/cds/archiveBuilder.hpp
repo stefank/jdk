@@ -127,14 +127,14 @@ private:
     uintx _ptrmap_end;       // The bit-offset of the end   of this object (exclusive)
     bool _read_only;
     FollowMode _follow_mode;
-    int _size_in_bytes;
+    Bytes _size_in_bytes;
     MetaspaceObj::Type _msotype;
     address _source_addr;    // The source object to be copied.
     address _buffered_addr;  // The copy of this object insider the buffer.
   public:
     SourceObjInfo(MetaspaceClosure::Ref* ref, bool read_only, FollowMode follow_mode) :
       _ptrmap_start(0), _ptrmap_end(0), _read_only(read_only), _follow_mode(follow_mode),
-      _size_in_bytes(ref->size() * BytesPerWord), _msotype(ref->msotype()),
+      _size_in_bytes(to_Bytes(ref->size())), _msotype(ref->msotype()),
       _source_addr(ref->obj()) {
       if (follow_mode == point_to_it) {
         _buffered_addr = ref->obj();
@@ -149,7 +149,7 @@ private:
     SourceObjInfo(address src, SourceObjInfo* renegerated_obj_info) :
       _ptrmap_start(0), _ptrmap_end(0), _read_only(false),
       _follow_mode(renegerated_obj_info->_follow_mode),
-      _size_in_bytes(0), _msotype(renegerated_obj_info->_msotype),
+      _size_in_bytes(Bytes(0)), _msotype(renegerated_obj_info->_msotype),
       _source_addr(src),  _buffered_addr(renegerated_obj_info->_buffered_addr) {}
 
     bool should_copy() const { return _follow_mode == make_a_copy; }
@@ -164,7 +164,7 @@ private:
     uintx ptrmap_start()  const    { return _ptrmap_start; } // inclusive
     uintx ptrmap_end()    const    { return _ptrmap_end;   } // exclusive
     bool read_only()      const    { return _read_only;    }
-    int size_in_bytes()   const    { return _size_in_bytes; }
+    Bytes size_in_bytes() const    { return _size_in_bytes; }
     address source_addr() const    { return _source_addr; }
     address buffered_addr() const  {
       if (_follow_mode != set_to_null) {
@@ -215,11 +215,11 @@ private:
 
   // statistics
   DumpAllocStats _alloc_stats;
-  size_t _total_heap_region_size;
+  Bytes _total_heap_region_size;
 
   void print_region_stats(FileMapInfo *map_info, ArchiveHeapInfo* heap_info);
-  void print_bitmap_region_stats(size_t size, size_t total_size);
-  void print_heap_region_stats(ArchiveHeapInfo* heap_info, size_t total_size);
+  void print_bitmap_region_stats(Bytes size, Bytes total_size);
+  void print_heap_region_stats(ArchiveHeapInfo* heap_info, Bytes total_size);
 
   // For global access.
   static ArchiveBuilder* _current;
@@ -256,15 +256,15 @@ protected:
   virtual void iterate_roots(MetaspaceClosure* it) = 0;
 
   // Conservative estimate for number of bytes needed for:
-  size_t _estimated_metaspaceobj_bytes;   // all archived MetaspaceObj's.
-  size_t _estimated_hashtable_bytes;     // symbol table and dictionaries
+  Bytes _estimated_metaspaceobj_bytes;   // all archived MetaspaceObj's.
+  Bytes _estimated_hashtable_bytes;     // symbol table and dictionaries
 
   static const int _total_dump_regions = 2;
 
-  size_t estimate_archive_size();
+  Bytes estimate_archive_size();
 
   void start_dump_space(DumpRegion* next);
-  void verify_estimate_size(size_t estimate, const char* which);
+  void verify_estimate_size(Bytes estimate, const char* which);
 
 public:
   address reserve_buffer();
@@ -344,16 +344,16 @@ public:
   DumpRegion* rw_region() { return &_rw_region; }
   DumpRegion* ro_region() { return &_ro_region; }
 
-  static char* rw_region_alloc(size_t num_bytes) {
+  static char* rw_region_alloc(Bytes num_bytes) {
     return current()->rw_region()->allocate(num_bytes);
   }
-  static char* ro_region_alloc(size_t num_bytes) {
+  static char* ro_region_alloc(Bytes num_bytes) {
     return current()->ro_region()->allocate(num_bytes);
   }
 
   template <typename T>
   static Array<T>* new_ro_array(int length) {
-    size_t byte_size = Array<T>::byte_sizeof(length, sizeof(T));
+    Bytes byte_size = Array<T>::byte_sizeof(length, sizeof(T));
     Array<T>* array = (Array<T>*)ro_region_alloc(byte_size);
     array->initialize(length);
     return array;
@@ -361,15 +361,15 @@ public:
 
   template <typename T>
   static Array<T>* new_rw_array(int length) {
-    size_t byte_size = Array<T>::byte_sizeof(length, sizeof(T));
+    Bytes byte_size = Array<T>::byte_sizeof(length, sizeof(T));
     Array<T>* array = (Array<T>*)rw_region_alloc(byte_size);
     array->initialize(length);
     return array;
   }
 
   template <typename T>
-  static size_t ro_array_bytesize(int length) {
-    size_t byte_size = Array<T>::byte_sizeof(length, sizeof(T));
+  static Bytes ro_array_bytesize(int length) {
+    Bytes byte_size = Array<T>::byte_sizeof(length, sizeof(T));
     return align_up(byte_size, SharedSpaceObjectAlignment);
   }
 

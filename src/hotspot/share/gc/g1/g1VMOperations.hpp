@@ -71,7 +71,7 @@ class VM_G1CollectForAllocation : public VM_CollectForAllocation {
   bool _gc_succeeded;
 
 public:
-  VM_G1CollectForAllocation(size_t         word_size,
+  VM_G1CollectForAllocation(Words          word_size,
                             uint           gc_count_before,
                             GCCause::Cause gc_cause);
   virtual VMOp_Type type() const { return VMOp_G1CollectForAllocation; }

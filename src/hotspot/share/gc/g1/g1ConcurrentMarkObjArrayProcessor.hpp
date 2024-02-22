@@ -42,7 +42,7 @@ private:
   void push_array_slice(HeapWord* addr);
 
   // Process (apply the closure) on the given continuation of the given objArray.
-  size_t process_array_slice(objArrayOop const obj, HeapWord* start_from, size_t remaining);
+  Words process_array_slice(objArrayOop const obj, HeapWord* start_from, Words remaining);
 public:
   static bool should_be_sliced(oop obj);
 
@@ -50,10 +50,10 @@ public:
   }
 
   // Process the given continuation. Returns the number of words scanned.
-  size_t process_slice(HeapWord* slice);
+  Words process_slice(HeapWord* slice);
   // Start processing the given objArrayOop by scanning the header and pushing its
   // continuation.
-  size_t process_obj(oop obj);
+  Words process_obj(oop obj);
 };
 
 #endif // SHARE_GC_G1_G1CONCURRENTMARKOBJARRAYPROCESSOR_HPP

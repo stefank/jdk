@@ -45,7 +45,7 @@ class AgeTable: public CHeapObj<mtGC> {
   enum { table_size = markWord::max_age + 1 };
 
   // instance variables
-  size_t sizes[table_size];
+  Words sizes[table_size];
 
   // constructor.  "global" indicates that this is the global age table
   // (as opposed to gc-thread-local)
@@ -60,9 +60,9 @@ class AgeTable: public CHeapObj<mtGC> {
 #endif // !PRODUCT
 
   // add entry
-  inline void add(oop p, size_t oop_size);
+  inline void add(oop p, Words oop_size);
 
-  void add(uint age, size_t oop_size) {
+  void add(uint age, Words oop_size) {
     assert(age < table_size, "invalid age of object");
     sizes[age] += oop_size;
   }
@@ -71,7 +71,7 @@ class AgeTable: public CHeapObj<mtGC> {
   void merge(const AgeTable* subTable);
 
   // Calculate new tenuring threshold based on age information.
-  uint compute_tenuring_threshold(size_t desired_survivor_size);
+  uint compute_tenuring_threshold(Words desired_survivor_size);
   void print_age_table(uint tenuring_threshold);
   void print_on(outputStream* st, uint tenuring_threshold);
 

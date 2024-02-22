@@ -91,12 +91,12 @@ G1EvacStats* G1CollectedHeap::alloc_buffer_stats(G1HeapRegionAttr dest) {
   }
 }
 
-size_t G1CollectedHeap::desired_plab_sz(G1HeapRegionAttr dest) {
-  size_t gclab_word_size = alloc_buffer_stats(dest)->desired_plab_size(workers()->active_workers());
+Words G1CollectedHeap::desired_plab_sz(G1HeapRegionAttr dest) {
+  Words gclab_word_size = alloc_buffer_stats(dest)->desired_plab_size(workers()->active_workers());
   return clamp_plab_size(gclab_word_size);
 }
 
-inline size_t G1CollectedHeap::clamp_plab_size(size_t value) const {
+inline Words G1CollectedHeap::clamp_plab_size(Words value) const {
   return clamp(value, PLAB::min_size(), _humongous_object_threshold_in_words);
 }
 
@@ -154,14 +154,14 @@ inline void G1CollectedHeap::old_set_remove(HeapRegion* hr) {
 // block. It is assumed (and in fact we assert) that the block
 // belongs to a young region.
 inline void
-G1CollectedHeap::dirty_young_block(HeapWord* start, size_t word_size) {
+G1CollectedHeap::dirty_young_block(HeapWord* start, Words word_size) {
   assert_heap_not_locked();
 
   // Assign the containing region to containing_hr so that we don't
   // have to keep calling heap_region_containing() in the
   // asserts below.
   DEBUG_ONLY(HeapRegion* containing_hr = heap_region_containing(start);)
-  assert(word_size > 0, "pre-condition");
+  assert(word_size > Words(0), "pre-condition");
   assert(containing_hr->is_in(start), "it should contain start");
   assert(containing_hr->is_young(), "it should be young");
   assert(!containing_hr->is_humongous(), "it should not be humongous");

@@ -60,12 +60,12 @@ InstanceStackChunkKlass::InstanceStackChunkKlass(const ClassFileParser& parser)
   : InstanceKlass(parser, Kind) {
   // Change the layout_helper to use the slow path because StackChunkOops are
   // variable sized InstanceOops.
-  const jint lh = Klass::instance_layout_helper(size_helper(), true);
+  const jint lh = Klass::instance_layout_helper(checked_cast<jint>(size_helper()), true);
   set_layout_helper(lh);
 }
 
-size_t InstanceStackChunkKlass::oop_size(oop obj) const {
-  return instance_size(jdk_internal_vm_StackChunk::size(obj));
+Words InstanceStackChunkKlass::oop_size(oop obj) const {
+  return instance_size(in_Words(jdk_internal_vm_StackChunk::size(obj)));
 }
 
 #ifndef PRODUCT
@@ -273,5 +273,5 @@ void InstanceStackChunkKlass::print_chunk(const stackChunkOop c, bool verbose, o
 void InstanceStackChunkKlass::init_offset_of_stack() {
   // Cache the offset of the static fields in the Class instance
   assert(_offset_of_stack == 0, "once");
-  _offset_of_stack = cast(vmClasses::StackChunk_klass())->size_helper() << LogHeapWordSize;
+  _offset_of_stack = checked_cast<int>(to_Bytes(cast(vmClasses::StackChunk_klass())->size_helper()));
 }

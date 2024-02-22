@@ -30,7 +30,7 @@
 #include "gc/shared/collectedHeap.inline.hpp"
 #include "utilities/align.hpp"
 
-HeapWord* PSYoungPromotionLAB::allocate(size_t size) {
+HeapWord* PSYoungPromotionLAB::allocate(Words size) {
   // Can't assert this, when young fills, we keep the LAB around, but flushed.
   // assert(_state != flushed, "Sanity");
   HeapWord* obj = top();

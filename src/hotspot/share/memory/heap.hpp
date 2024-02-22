@@ -87,7 +87,7 @@ class CodeHeap : public CHeapObj<mtCode> {
 
   size_t       _number_of_committed_segments;
   size_t       _number_of_reserved_segments;
-  size_t       _segment_size;
+  Bytes        _segment_size;
   int          _log2_segment_size;
 
   size_t       _next_segment;
@@ -96,7 +96,7 @@ class CodeHeap : public CHeapObj<mtCode> {
   FreeBlock*   _last_insert_point;               // last insert point in add_to_freelist
   size_t       _freelist_segments;               // No. of segments in freelist
   int          _freelist_length;
-  size_t       _max_allocated_capacity;          // Peak capacity that was allocated during lifetime of the heap
+  Bytes       _max_allocated_capacity;           // Peak capacity that was allocated during lifetime of the heap
 
   const char*  _name;                            // Name of the CodeHeap
   const CodeBlobType _code_blob_type;            // CodeBlobType it contains
@@ -112,8 +112,8 @@ class CodeHeap : public CHeapObj<mtCode> {
   static char  segmap_template[free_sentinel+1];
 
   // Helper functions
-  size_t   size_to_segments(size_t size) const { return (size + _segment_size - 1) >> _log2_segment_size; }
-  size_t   segments_to_size(size_t number_of_segments) const { return number_of_segments << _log2_segment_size; }
+  size_t  size_to_segments(Bytes size) const { return untype(size + _segment_size - Bytes(1)) >> _log2_segment_size; }
+  Bytes   segments_to_size(size_t number_of_segments) const { return in_Bytes(number_of_segments << _log2_segment_size); }
 
   size_t   segment_for(void* p) const            { return ((char*)p - _memory.low()) >> _log2_segment_size; }
   bool     is_segment_unused(int val) const      { return val == free_sentinel; }
@@ -124,7 +124,7 @@ class CodeHeap : public CHeapObj<mtCode> {
   // These methods take segment map indices as range boundaries
   void mark_segmap_as_free(size_t beg, size_t end);
   void mark_segmap_as_used(size_t beg, size_t end, bool is_FreeBlock_join);
-  void invalidate(size_t beg, size_t end, size_t header_bytes);
+  void invalidate(size_t beg, size_t end, Bytes header_bytes);
   void clear(size_t beg, size_t end);
   void clear();                                 // clears all heap contents
   static void init_segmap_template();
@@ -143,24 +143,24 @@ class CodeHeap : public CHeapObj<mtCode> {
   HeapBlock* block_start(void* p) const;
 
   // to perform additional actions on creation of executable code
-  void on_code_mapping(char* base, size_t size);
+  void on_code_mapping(char* base, Bytes size);
 
  public:
   CodeHeap(const char* name, const CodeBlobType code_blob_type);
 
   // Heap extents
-  bool  reserve(ReservedSpace rs, size_t committed_size, size_t segment_size);
-  bool  expand_by(size_t size);                  // expands committed memory by size
+  bool  reserve(ReservedSpace rs, Bytes committed_size, Bytes segment_size);
+  bool  expand_by(Bytes size);                  // expands committed memory by size
 
   // Memory allocation
-  void* allocate (size_t size); // Allocate 'size' bytes in the code cache or return null
+  void* allocate (Bytes size); // Allocate 'size' bytes in the code cache or return null
   void  deallocate(void* p);    // Deallocate memory
   // Free the tail of segments allocated by the last call to 'allocate()' which exceed 'used_size'.
   // ATTENTION: this is only safe to use if there was no other call to 'allocate()' after
   //            'p' was allocated. Only intended for freeing memory which would be otherwise
   //            wasted after the interpreter generation because we don't know the interpreter size
   //            beforehand and we also can't easily relocate the interpreter to a new location.
-  void  deallocate_tail(void* p, size_t used_size);
+  void  deallocate_tail(void* p, Bytes used_size);
 
   // Boundaries of committed space.
   char* low()  const                             { return _memory.low(); }
@@ -174,9 +174,9 @@ class CodeHeap : public CHeapObj<mtCode> {
 
   void* find_start(void* p)     const;   // returns the block containing p or null
   CodeBlob* find_blob(void* start) const;
-  static size_t header_size()         { return sizeof(HeapBlock); } // returns the header size for each heap block
+  static Bytes header_size()         { return in_Bytes(sizeof(HeapBlock)); } // returns the header size for each heap block
 
-  size_t segment_size()         const { return _segment_size; }  // for CodeHeapState
+  Bytes segment_size()         const { return _segment_size; }  // for CodeHeapState
   HeapBlock* first_block() const;                                // for CodeHeapState
   HeapBlock* next_block(HeapBlock* b) const;                     // for CodeHeapState
   HeapBlock* split_block(HeapBlock* b, size_t split_seg);        // split one block into two
@@ -192,12 +192,12 @@ class CodeHeap : public CHeapObj<mtCode> {
   void* next(void* p) const              { return next_used(next_block(block_start(p))); }
 
   // Statistics
-  size_t capacity() const;
-  size_t max_capacity() const;
+  Bytes capacity() const;
+  Bytes max_capacity() const;
   int    allocated_segments() const;
-  size_t allocated_capacity() const;
-  size_t max_allocated_capacity() const          { return _max_allocated_capacity; }
-  size_t unallocated_capacity() const            { return max_capacity() - allocated_capacity(); }
+  Bytes allocated_capacity() const;
+  Bytes max_allocated_capacity() const           { return _max_allocated_capacity; }
+  Bytes unallocated_capacity() const             { return max_capacity() - allocated_capacity(); }
 
   // Returns true if the CodeHeap contains CodeBlobs of the given type
   bool accepts(CodeBlobType code_blob_type) const{ return (_code_blob_type == CodeBlobType::All) ||
@@ -215,7 +215,7 @@ class CodeHeap : public CHeapObj<mtCode> {
   int         report_full()                      { return Atomic::add(&_full_count, 1); }
 
 private:
-  size_t heap_unallocated_capacity() const;
+  Bytes heap_unallocated_capacity() const;
   int defrag_segmap(bool do_defrag);
   int segmap_hops(size_t beg, size_t end);
 

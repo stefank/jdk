@@ -101,16 +101,16 @@ class RegionTypeCounter {
 private:
   const char* _name;
 
-  size_t _rs_unused_mem_size;
-  size_t _rs_mem_size;
+  Bytes _rs_unused_mem_size;
+  Bytes _rs_mem_size;
   size_t _cards_occupied;
   size_t _amount;
   size_t _amount_tracked;
 
-  size_t _code_root_mem_size;
+  Bytes _code_root_mem_size;
   size_t _code_root_elems;
 
-  double rs_mem_size_percent_of(size_t total) {
+  double rs_mem_size_percent_of(Bytes total) {
     return percent_of(_rs_mem_size, total);
   }
 
@@ -118,7 +118,7 @@ private:
     return percent_of(_cards_occupied, total);
   }
 
-  double code_root_mem_size_percent_of(size_t total) {
+  double code_root_mem_size_percent_of(Bytes total) {
     return percent_of(_code_root_mem_size, total);
   }
 
@@ -131,11 +131,11 @@ private:
 
 public:
 
-  RegionTypeCounter(const char* name) : _name(name), _rs_unused_mem_size(0), _rs_mem_size(0), _cards_occupied(0),
-    _amount(0), _amount_tracked(0), _code_root_mem_size(0), _code_root_elems(0) { }
+  RegionTypeCounter(const char* name) : _name(name), _rs_unused_mem_size(Bytes(0)), _rs_mem_size(Bytes(0)), _cards_occupied(0),
+    _amount(0), _amount_tracked(0), _code_root_mem_size(Bytes(0)), _code_root_elems(0) { }
 
-  void add(size_t rs_unused_mem_size, size_t rs_mem_size, size_t cards_occupied,
-           size_t code_root_mem_size, size_t code_root_elems, bool tracked) {
+  void add(Bytes rs_unused_mem_size, Bytes rs_mem_size, size_t cards_occupied,
+      Bytes code_root_mem_size, size_t code_root_elems, bool tracked) {
     _rs_unused_mem_size += rs_unused_mem_size;
     _rs_mem_size += rs_mem_size;
     _cards_occupied += cards_occupied;
@@ -145,14 +145,14 @@ public:
     _amount_tracked += tracked ? 1 : 0;
   }
 
-  size_t rs_unused_mem_size() const { return _rs_unused_mem_size; }
-  size_t rs_mem_size() const { return _rs_mem_size; }
+  Bytes rs_unused_mem_size() const { return _rs_unused_mem_size; }
+  Bytes rs_mem_size() const { return _rs_mem_size; }
   size_t cards_occupied() const { return _cards_occupied; }
 
-  size_t code_root_mem_size() const { return _code_root_mem_size; }
+  Bytes code_root_mem_size() const { return _code_root_mem_size; }
   size_t code_root_elems() const { return _code_root_elems; }
 
-  void print_rs_mem_info_on(outputStream * out, size_t total) {
+  void print_rs_mem_info_on(outputStream * out, Bytes total) {
     out->print_cr("    " SIZE_FORMAT_W(8) " (%5.1f%%) by " SIZE_FORMAT " "
                   "(" SIZE_FORMAT ") %s regions unused " SIZE_FORMAT,
                   rs_mem_size(), rs_mem_size_percent_of(total),
@@ -167,7 +167,7 @@ public:
                   amount_tracked(), amount(), _name);
   }
 
-  void print_code_root_mem_info_on(outputStream * out, size_t total) {
+  void print_code_root_mem_info_on(outputStream * out, Bytes total) {
     out->print_cr("    " SIZE_FORMAT_W(8) "%s (%5.1f%%) by " SIZE_FORMAT " %s regions",
         byte_size_in_proper_unit(code_root_mem_size()),
         proper_unit_for_byte_size(code_root_mem_size()),
@@ -189,30 +189,30 @@ private:
   RegionTypeCounter _old;
   RegionTypeCounter _all;
 
-  size_t _max_rs_mem_sz;
+  Bytes _max_rs_mem_sz;
   HeapRegion* _max_rs_mem_sz_region;
 
-  size_t total_rs_unused_mem_sz() const     { return _all.rs_unused_mem_size(); }
-  size_t total_rs_mem_sz() const            { return _all.rs_mem_size(); }
+  Bytes total_rs_unused_mem_sz() const      { return _all.rs_unused_mem_size(); }
+  Bytes total_rs_mem_sz() const             { return _all.rs_mem_size(); }
   size_t total_cards_occupied() const       { return _all.cards_occupied(); }
 
-  size_t max_rs_mem_sz() const              { return _max_rs_mem_sz; }
+  Bytes max_rs_mem_sz() const               { return _max_rs_mem_sz; }
   HeapRegion* max_rs_mem_sz_region() const  { return _max_rs_mem_sz_region; }
 
-  size_t _max_code_root_mem_sz;
+  Bytes _max_code_root_mem_sz;
   HeapRegion* _max_code_root_mem_sz_region;
 
-  size_t total_code_root_mem_sz() const     { return _all.code_root_mem_size(); }
+  Bytes total_code_root_mem_sz() const      { return _all.code_root_mem_size(); }
   size_t total_code_root_elems() const      { return _all.code_root_elems(); }
 
-  size_t max_code_root_mem_sz() const       { return _max_code_root_mem_sz; }
+  Bytes max_code_root_mem_sz() const        { return _max_code_root_mem_sz; }
   HeapRegion* max_code_root_mem_sz_region() const { return _max_code_root_mem_sz_region; }
 
 public:
   HRRSStatsIter() : _young("Young"), _humongous("Humongous"),
     _free("Free"), _old("Old"), _all("All"),
-    _max_rs_mem_sz(0), _max_rs_mem_sz_region(nullptr),
-    _max_code_root_mem_sz(0), _max_code_root_mem_sz_region(nullptr)
+    _max_rs_mem_sz(Bytes(0)), _max_rs_mem_sz_region(nullptr),
+    _max_code_root_mem_sz(Bytes(0)), _max_code_root_mem_sz_region(nullptr)
   {}
 
   bool do_heap_region(HeapRegion* r) {
@@ -220,14 +220,14 @@ public:
 
     // HeapRegionRemSet::mem_size() includes the
     // size of the code roots
-    size_t rs_unused_mem_sz = hrrs->unused_mem_size();
-    size_t rs_mem_sz = hrrs->mem_size();
+    Bytes rs_unused_mem_sz = hrrs->unused_mem_size();
+    Bytes rs_mem_sz = hrrs->mem_size();
     if (rs_mem_sz > _max_rs_mem_sz) {
       _max_rs_mem_sz = rs_mem_sz;
       _max_rs_mem_sz_region = r;
     }
     size_t occupied_cards = hrrs->occupied();
-    size_t code_root_mem_sz = hrrs->code_roots_mem_size();
+    Bytes code_root_mem_sz = hrrs->code_roots_mem_size();
     if (code_root_mem_sz > max_code_root_mem_sz()) {
       _max_code_root_mem_sz = code_root_mem_sz;
       _max_code_root_mem_sz_region = r;

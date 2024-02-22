@@ -79,36 +79,36 @@ static const char _default_java_launcher[] = "generic";
 
 #define DEFAULT_JAVA_LAUNCHER _default_java_launcher
 
-char*  Arguments::_jvm_flags_file               = nullptr;
-char** Arguments::_jvm_flags_array              = nullptr;
-int    Arguments::_num_jvm_flags                = 0;
-char** Arguments::_jvm_args_array               = nullptr;
-int    Arguments::_num_jvm_args                 = 0;
-char*  Arguments::_java_command                 = nullptr;
-SystemProperty* Arguments::_system_properties   = nullptr;
-size_t Arguments::_conservative_max_heap_alignment = 0;
-Arguments::Mode Arguments::_mode                = _mixed;
-const char*  Arguments::_java_vendor_url_bug    = nullptr;
-const char*  Arguments::_sun_java_launcher      = DEFAULT_JAVA_LAUNCHER;
-bool   Arguments::_sun_java_launcher_is_altjvm  = false;
+char*  Arguments::_jvm_flags_file                 = nullptr;
+char** Arguments::_jvm_flags_array                = nullptr;
+int    Arguments::_num_jvm_flags                  = 0;
+char** Arguments::_jvm_args_array                 = nullptr;
+int    Arguments::_num_jvm_args                   = 0;
+char*  Arguments::_java_command                   = nullptr;
+SystemProperty* Arguments::_system_properties     = nullptr;
+Bytes Arguments::_conservative_max_heap_alignment = Bytes(0);
+Arguments::Mode Arguments::_mode                  = _mixed;
+const char*  Arguments::_java_vendor_url_bug      = nullptr;
+const char*  Arguments::_sun_java_launcher        = DEFAULT_JAVA_LAUNCHER;
+bool   Arguments::_sun_java_launcher_is_altjvm    = false;
 
 // These parameters are reset in method parse_vm_init_args()
-bool   Arguments::_AlwaysCompileLoopMethods     = AlwaysCompileLoopMethods;
-bool   Arguments::_UseOnStackReplacement        = UseOnStackReplacement;
-bool   Arguments::_BackgroundCompilation        = BackgroundCompilation;
-bool   Arguments::_ClipInlining                 = ClipInlining;
-size_t Arguments::_default_SharedBaseAddress    = SharedBaseAddress;
+bool   Arguments::_AlwaysCompileLoopMethods       = AlwaysCompileLoopMethods;
+bool   Arguments::_UseOnStackReplacement          = UseOnStackReplacement;
+bool   Arguments::_BackgroundCompilation          = BackgroundCompilation;
+bool   Arguments::_ClipInlining                   = ClipInlining;
+size_t Arguments::_default_SharedBaseAddress      = SharedBaseAddress;
 
-bool   Arguments::_enable_preview               = false;
+bool   Arguments::_enable_preview                 = false;
 
-LegacyGCLogging Arguments::_legacyGCLogging     = { 0, 0 };
+LegacyGCLogging Arguments::_legacyGCLogging       = { 0, 0 };
 
 // These are not set by the JDK's built-in launchers, but they can be set by
 // programs that embed the JVM using JNI_CreateJavaVM. See comments around
 // JavaVMOption in jni.h.
-abort_hook_t     Arguments::_abort_hook         = nullptr;
-exit_hook_t      Arguments::_exit_hook          = nullptr;
-vfprintf_hook_t  Arguments::_vfprintf_hook      = nullptr;
+abort_hook_t     Arguments::_abort_hook           = nullptr;
+exit_hook_t      Arguments::_exit_hook            = nullptr;
+vfprintf_hook_t  Arguments::_vfprintf_hook        = nullptr;
 
 
 SystemProperty *Arguments::_sun_boot_library_path = nullptr;
@@ -1388,7 +1388,7 @@ size_t Arguments::max_heap_for_compressed_oops() {
   // null page is located before the heap, we pad the null page to the conservative
   // maximum alignment that the GC may ever impose upon the heap.
   size_t displacement_due_to_null_page = align_up(os::vm_page_size(),
-                                                  _conservative_max_heap_alignment);
+                                                  untype(_conservative_max_heap_alignment));
 
   LP64_ONLY(return OopEncodingHeapMax - displacement_due_to_null_page);
   NOT_LP64(ShouldNotReachHere(); return 0);
@@ -1425,10 +1425,10 @@ void Arguments::set_conservative_max_heap_alignment() {
   // The conservative maximum required alignment for the heap is the maximum of
   // the alignments imposed by several sources: any requirements from the heap
   // itself and the maximum page size we may run the VM with.
-  size_t heap_alignment = GCConfig::arguments()->conservative_max_heap_alignment();
+  Bytes heap_alignment = GCConfig::arguments()->conservative_max_heap_alignment();
   _conservative_max_heap_alignment = MAX4(heap_alignment,
-                                          os::vm_allocation_granularity(),
-                                          os::max_page_size(),
+                                          in_Bytes(os::vm_allocation_granularity()),
+                                          in_Bytes(os::max_page_size()),
                                           GCArguments::compute_heap_alignment());
 }
 

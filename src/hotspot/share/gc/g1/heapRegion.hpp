@@ -113,11 +113,11 @@ public:
   // given address.
   bool is_in_reserved(const void* p) const { return _bottom <= p && p < _end; }
 
-  size_t capacity() const { return byte_size(bottom(), end()); }
-  size_t used() const { return byte_size(bottom(), top()); }
-  size_t free() const { return byte_size(top(), end()); }
+  Bytes capacity() const { return byte_size(bottom(), end()); }
+  Bytes used() const { return byte_size(bottom(), top()); }
+  Bytes free() const { return byte_size(top(), end()); }
 
-  bool is_empty() const { return used() == 0; }
+  bool is_empty() const { return used() == Bytes(0); }
 
 private:
 
@@ -132,12 +132,12 @@ private:
   // space allocated.
   // This version assumes that all allocation requests to this HeapRegion are properly
   // synchronized.
-  inline HeapWord* allocate_impl(size_t min_word_size, size_t desired_word_size, size_t* actual_word_size);
+  inline HeapWord* allocate_impl(Words min_word_size, Words desired_word_size, Words* actual_word_size);
   // Try to allocate at least min_word_size and up to desired_size from this HeapRegion.
   // Returns null if not possible, otherwise sets actual_word_size to the amount of
   // space allocated.
   // This version synchronizes with other calls to par_allocate_impl().
-  inline HeapWord* par_allocate_impl(size_t min_word_size, size_t desired_word_size, size_t* actual_word_size);
+  inline HeapWord* par_allocate_impl(Words min_word_size, Words desired_word_size, Words* actual_word_size);
 
   inline HeapWord* advance_to_block_containing_addr(const void* addr,
                                                     HeapWord* const pb,
@@ -153,7 +153,7 @@ public:
 
   // At the given address create an object with the given size. If the region
   // is old the BOT will be updated if the object spans a threshold.
-  void fill_with_dummy_object(HeapWord* address, size_t word_size, bool zap = true);
+  void fill_with_dummy_object(HeapWord* address, Words word_size, bool zap = true);
 
   // Create objects in the given range. The BOT will be updated if needed and
   // the created objects will have their header marked to show that they are
@@ -163,12 +163,12 @@ public:
   // All allocations are done without updating the BOT. The BOT
   // needs to be kept in sync for old generation regions and
   // this is done by explicit updates when crossing thresholds.
-  inline HeapWord* par_allocate(size_t min_word_size, size_t desired_word_size, size_t* word_size);
-  inline HeapWord* allocate(size_t word_size);
-  inline HeapWord* allocate(size_t min_word_size, size_t desired_word_size, size_t* actual_size);
+  inline HeapWord* par_allocate(Words min_word_size, Words desired_word_size, Words* word_size);
+  inline HeapWord* allocate(Words word_size);
+  inline HeapWord* allocate(Words min_word_size, Words desired_word_size, Words* actual_size);
 
   // Update BOT if this obj is the first entering a new card (i.e. crossing the card boundary).
-  inline void update_bot_for_obj(HeapWord* obj_start, size_t obj_size);
+  inline void update_bot_for_obj(HeapWord* obj_start, Words obj_size);
 
   // Full GC support methods.
 
@@ -186,8 +186,8 @@ public:
   // Returns the object size for all valid block starts. If parsable_bottom (pb)
   // is given, calculates the block size based on that parsable_bottom, not the
   // current value of this HeapRegion.
-  size_t block_size(const HeapWord* p) const;
-  size_t block_size(const HeapWord* p, HeapWord* pb) const;
+  Words block_size(const HeapWord* p) const;
+  Words block_size(const HeapWord* p, HeapWord* pb) const;
 
   // Scans through the region using the bitmap to determine what
   // objects to call size_t ApplyToMarkedClosure::apply(oop) for.
@@ -244,7 +244,7 @@ private:
   HeapWord* volatile _parsable_bottom;
 
   // Amount of dead data in the region.
-  size_t _garbage_bytes;
+  Bytes _garbage_bytes;
 
   inline void init_top_at_mark_start();
 
@@ -306,11 +306,11 @@ public:
   // be zero.
   inline void add_pinned_object_count(size_t value);
 
-  static size_t GrainBytes;
-  static size_t GrainWords;
+  static Bytes  GrainBytes;
+  static Words  GrainWords;
   static size_t CardsPerRegion;
 
-  static size_t align_up_to_region_byte_size(size_t sz) {
+  static Bytes align_up_to_region_byte_size(Bytes sz) {
     return align_up(sz, GrainBytes);
   }
 
@@ -322,30 +322,30 @@ public:
     return (((uintptr_t) p ^ cast_from_oop<uintptr_t>(obj)) >> LogOfHRGrainBytes) == 0;
   }
 
-  static size_t max_region_size();
-  static size_t min_region_size_in_words();
+  static Bytes max_region_size();
+  static Words min_region_size_in_words();
 
   // It sets up the heap region size (GrainBytes / GrainWords), as well as
   // other related fields that are based on the heap region size
   // (LogOfHRGrainBytes / CardsPerRegion). All those fields are considered
   // constant throughout the JVM's execution, therefore they should only be set
   // up once during initialization time.
-  static void setup_heap_region_size(size_t max_heap_size);
+  static void setup_heap_region_size(Bytes max_heap_size);
 
   // An upper bound on the number of live bytes in the region.
-  size_t live_bytes() const {
+  Bytes live_bytes() const {
     return used() - garbage_bytes();
   }
 
   // A lower bound on the amount of garbage bytes in the region.
-  size_t garbage_bytes() const { return _garbage_bytes; }
+  Bytes garbage_bytes() const { return _garbage_bytes; }
 
   // Return the amount of bytes we'll reclaim if we collect this
   // region. This includes not only the known garbage bytes in the
   // region but also any unallocated space in it, i.e., [top, end),
   // since it will also be reclaimed if we collect the region.
-  size_t reclaimable_bytes() {
-    size_t known_live_bytes = live_bytes();
+  Bytes reclaimable_bytes() {
+    Bytes known_live_bytes = live_bytes();
     assert(known_live_bytes <= capacity(), "sanity %u %zu %zu %zu", hrm_index(), known_live_bytes, used(), garbage_bytes());
     return capacity() - known_live_bytes;
   }
@@ -372,7 +372,7 @@ public:
 
   // Notify the region that concurrent marking has finished. Passes the number of
   // bytes between bottom and TAMS.
-  inline void note_end_of_marking(size_t marked_bytes);
+  inline void note_end_of_marking(Bytes marked_bytes);
 
   // Notify the region that scrubbing has completed.
   inline void note_end_of_scrubbing();
@@ -432,7 +432,7 @@ public:
   //
   // obj_top : points to the top of the humongous object.
   // fill_size : size of the filler object at the end of the region series.
-  void set_starts_humongous(HeapWord* obj_top, size_t fill_size);
+  void set_starts_humongous(HeapWord* obj_top, Words fill_size);
 
   // Makes the current region be a "continues humongous'
   // region. first_hr is the "start humongous" region of the series
@@ -503,7 +503,7 @@ public:
 
   // Notify the region that we have partially finished processing self-forwarded
   // objects during evacuation failure handling.
-  void note_self_forward_chunk_done(size_t garbage_bytes);
+  void note_self_forward_chunk_done(Bytes garbage_bytes);
 
   uint index_in_opt_cset() const {
     assert(has_index_in_opt_cset(), "Opt cset index not set.");
@@ -534,7 +534,7 @@ public:
   void install_surv_rate_group(G1SurvRateGroup* surv_rate_group);
   void uninstall_surv_rate_group();
 
-  void record_surv_words_in_group(size_t words_survived);
+  void record_surv_words_in_group(Words words_survived);
 
   // Determine if an address is in the parsable or the to-be-scrubbed area.
   inline        bool is_in_parsable_area(const void* const addr) const;

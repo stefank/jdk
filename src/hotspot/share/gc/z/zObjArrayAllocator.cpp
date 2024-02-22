@@ -29,7 +29,7 @@
 #include "runtime/interfaceSupport.inline.hpp"
 #include "utilities/debug.hpp"
 
-ZObjArrayAllocator::ZObjArrayAllocator(Klass* klass, size_t word_size, int length, bool do_zero, Thread* thread)
+ZObjArrayAllocator::ZObjArrayAllocator(Klass* klass, Words word_size, int length, bool do_zero, Thread* thread)
   : ObjArrayAllocator(klass, word_size, length, do_zero, thread) {}
 
 void ZObjArrayAllocator::yield_for_safepoint() const {
@@ -48,10 +48,10 @@ oop ZObjArrayAllocator::initialize(HeapWord* mem) const {
   // A max segment size of 64K was chosen because microbenchmarking
   // suggested that it offered a good trade-off between allocation
   // time and time-to-safepoint
-  const size_t segment_max = ZUtils::bytes_to_words(64 * K);
+  const Words segment_max = ZUtils::bytes_to_words(64 * K);
   const BasicType element_type = ArrayKlass::cast(_klass)->element_type();
-  const size_t header = arrayOopDesc::header_size(element_type);
-  const size_t payload_size = _word_size - header;
+  const Words header = arrayOopDesc::header_size(element_type);
+  const Words payload_size = _word_size - header;
 
   if (payload_size <= segment_max) {
     // To small to use segmented clearing
@@ -90,11 +90,11 @@ oop ZObjArrayAllocator::initialize(HeapWord* mem) const {
   bool seen_gc_safepoint = false;
 
   auto initialize_memory = [&]() {
-    for (size_t processed = 0; processed < payload_size; processed += segment_max) {
+    for (Words processed = Words(0); processed < payload_size; processed += segment_max) {
       // Clear segment
       uintptr_t* const start = (uintptr_t*)(mem + header + processed);
-      const size_t remaining = payload_size - processed;
-      const size_t segment = MIN2(remaining, segment_max);
+      const Words remaining = payload_size - processed;
+      const Words segment_size = MIN2(remaining, segment_max);
       // Usually, the young marking code has the responsibility to color
       // raw nulls, before they end up in the old generation. However, the
       // invisible roots are hidden from the marking code, and therefore
@@ -110,7 +110,7 @@ oop ZObjArrayAllocator::initialize(HeapWord* mem) const {
       const uintptr_t colored_null = seen_gc_safepoint ? (ZPointerStoreGoodMask | ZPointerRememberedMask)
                                                        : ZPointerStoreGoodMask;
       const uintptr_t fill_value = is_reference_type(element_type) ? colored_null : 0;
-      ZUtils::fill(start, segment, fill_value);
+      ZUtils::fill(start, untype(segment_size), fill_value);
 
       // Safepoint
       yield_for_safepoint();

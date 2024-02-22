@@ -91,7 +91,7 @@ inline GCTraceTimeLoggerImpl::GCTraceTimeLoggerImpl(
         _log_heap_usage(log_heap_usage),
         _out_start(out_start),
         _out_end(out_end),
-        _heap_usage_before(SIZE_MAX),
+        _heap_usage_before(in_Bytes(SIZE_MAX)),
         _start() {}
 
 inline void GCTraceTimeLoggerImpl::at_start(Ticks start) {

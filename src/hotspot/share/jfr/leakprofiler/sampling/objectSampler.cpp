@@ -91,8 +91,8 @@ static ObjectSampler& instance() {
 ObjectSampler::ObjectSampler(size_t size) :
         _priority_queue(new SamplePriorityQueue(size)),
         _list(new SampleList(size)),
-        _total_allocated(0),
-        _threshold(0),
+        _total_allocated(Bytes(0)),
+        _threshold(Bytes(0)),
         _size(size) {
   Atomic::store(&_dead_samples, false);
   Atomic::store(&_last_sweep, (int64_t)JfrTicks::now().value());
@@ -194,7 +194,7 @@ class RecordStackTrace {
   }
 };
 
-void ObjectSampler::sample(HeapWord* obj, size_t allocated, JavaThread* thread) {
+void ObjectSampler::sample(HeapWord* obj, Bytes allocated, JavaThread* thread) {
   assert(thread != nullptr, "invariant");
   assert(is_created(), "invariant");
   bool virtual_thread = false;
@@ -214,7 +214,7 @@ void ObjectSampler::sample(HeapWord* obj, size_t allocated, JavaThread* thread) 
   instance().add(obj, allocated, thread_id, virtual_thread, bh, thread);
 }
 
-void ObjectSampler::add(HeapWord* obj, size_t allocated, traceid thread_id, bool virtual_thread, const JfrBlobHandle& bh, JavaThread* thread) {
+void ObjectSampler::add(HeapWord* obj, Bytes allocated, traceid thread_id, bool virtual_thread, const JfrBlobHandle& bh, JavaThread* thread) {
   assert(obj != nullptr, "invariant");
   assert(thread_id != 0, "invariant");
   assert(thread != nullptr, "invariant");
@@ -227,7 +227,7 @@ void ObjectSampler::add(HeapWord* obj, size_t allocated, traceid thread_id, bool
   }
 
   _total_allocated += allocated;
-  const size_t span = _total_allocated - _priority_queue->total();
+  const Bytes span = _total_allocated - _priority_queue->total();
   ObjectSample* sample;
   if ((size_t)_priority_queue->count() == _size) {
     assert(_list->count() == _size, "invariant");

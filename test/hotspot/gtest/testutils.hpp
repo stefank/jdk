@@ -47,10 +47,10 @@ public:
 
 };
 
-#define ASSERT_RANGE_IS_MARKED_WITH(p, size, mark)  ASSERT_TRUE(GtestUtils::is_range_marked(p, size, mark))
-#define ASSERT_RANGE_IS_MARKED(p, size)             ASSERT_TRUE(GtestUtils::is_range_marked(p, size))
-#define EXPECT_RANGE_IS_MARKED_WITH(p, size, mark)  EXPECT_TRUE(GtestUtils::is_range_marked(p, size, mark))
-#define EXPECT_RANGE_IS_MARKED(p, size)             EXPECT_TRUE(GtestUtils::is_range_marked(p, size))
+#define ASSERT_RANGE_IS_MARKED_WITH(p, size, mark)  ASSERT_TRUE(GtestUtils::is_range_marked(p, untype(size), mark))
+#define ASSERT_RANGE_IS_MARKED(p, size)             ASSERT_TRUE(GtestUtils::is_range_marked(p, untype(size)))
+#define EXPECT_RANGE_IS_MARKED_WITH(p, size, mark)  EXPECT_TRUE(GtestUtils::is_range_marked(p, untype(size), mark))
+#define EXPECT_RANGE_IS_MARKED(p, size)             EXPECT_TRUE(GtestUtils::is_range_marked(p, untype(size)))
 
 // Mimicking the official ASSERT_xx and EXPECT_xx counterparts of the googletest suite.
 // (ASSERT|EXPECT)_NOT_NULL: check that the given pointer is not null

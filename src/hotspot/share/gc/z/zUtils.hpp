@@ -37,8 +37,8 @@ public:
   static uintptr_t alloc_aligned(size_t alignment, size_t size);
 
   // Size conversion
-  static size_t bytes_to_words(size_t size_in_words);
-  static size_t words_to_bytes(size_t size_in_words);
+  static Words bytes_to_words(size_t size_in_bytes);
+  static size_t words_to_bytes(Words size_in_words);
 
   // Object
   static size_t object_size(zaddress addr);

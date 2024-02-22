@@ -117,28 +117,28 @@ class MemBaseline {
 
   // Total reserved memory = total malloc'd memory + total reserved virtual
   // memory
-  size_t total_reserved_memory() const {
+  Bytes total_reserved_memory() const {
     assert(baseline_type() != Not_baselined, "Not yet baselined");
-    size_t amount = _malloc_memory_snapshot.total() +
+    Bytes amount = _malloc_memory_snapshot.total() +
            _virtual_memory_snapshot.total_reserved();
     return amount;
   }
 
   // Total committed memory = total malloc'd memory + total committed
   // virtual memory
-  size_t total_committed_memory() const {
+  Bytes total_committed_memory() const {
     assert(baseline_type() != Not_baselined, "Not yet baselined");
-    size_t amount = _malloc_memory_snapshot.total() +
+    Bytes amount = _malloc_memory_snapshot.total() +
            _virtual_memory_snapshot.total_committed();
     return amount;
   }
 
-  size_t total_arena_memory() const {
+  Bytes total_arena_memory() const {
     assert(baseline_type() != Not_baselined, "Not yet baselined");
     return _malloc_memory_snapshot.total_arena();
   }
 
-  size_t malloc_tracking_overhead() const {
+  Bytes malloc_tracking_overhead() const {
     assert(baseline_type() != Not_baselined, "Not yet baselined");
     MemBaseline* bl = const_cast<MemBaseline*>(this);
     return bl->_malloc_memory_snapshot.malloc_overhead();

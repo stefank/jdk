@@ -2724,7 +2724,7 @@ Method* ClassFileParser::parse_method(const ClassFileStream* const cfs,
                                      _cp->symbol_at(name_index),
                                      CHECK_NULL);
 
-  ClassLoadingService::add_class_method_size(m->size()*wordSize);
+  ClassLoadingService::add_class_method_size(to_Bytes(m->size()));
 
   // Fill in information from fixed part (access_flags already set)
   m->set_constants(_cp);
@@ -4188,13 +4188,13 @@ void ClassFileParser::set_precomputed_flags(InstanceKlass* ik) {
 
   // If it cannot be fast-path allocated, set a bit in the layout helper.
   // See documentation of InstanceKlass::can_be_fastpath_allocated().
-  assert(ik->size_helper() > 0, "layout_helper is initialized");
+  assert(ik->size_helper() > Words(0), "layout_helper is initialized");
   if ((!RegisterFinalizersAtInit && ik->has_finalizer())
       || ik->is_abstract() || ik->is_interface()
       || (ik->name() == vmSymbols::java_lang_Class() && ik->class_loader() == nullptr)
-      || ik->size_helper() >= FastAllocateSizeLimit) {
+      || ik->size_helper() >= in_Words(FastAllocateSizeLimit)) {
     // Forbid fast-path allocation.
-    const jint lh = Klass::instance_layout_helper(ik->size_helper(), true);
+    const jint lh = Klass::instance_layout_helper(checked_cast<int>(ik->size_helper()), true);
     ik->set_layout_helper(lh);
   }
 }
@@ -5254,7 +5254,7 @@ void ClassFileParser::fill_instance_klass(InstanceKlass* ik,
          "sanity");
 
   assert(ik->is_instance_klass(), "sanity");
-  assert(ik->size_helper() == _field_info->_instance_size, "sanity");
+  assert(ik->size_helper() == in_Words(_field_info->_instance_size), "sanity");
 
   // Fill in information already parsed
   ik->set_should_verify_class(_need_verify);

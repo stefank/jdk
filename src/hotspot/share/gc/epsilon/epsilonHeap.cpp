@@ -40,9 +40,9 @@
 #include "runtime/globals.hpp"
 
 jint EpsilonHeap::initialize() {
-  size_t align = HeapAlignment;
-  size_t init_byte_size = align_up(InitialHeapSize, align);
-  size_t max_byte_size  = align_up(MaxHeapSize, align);
+  Bytes align = HeapAlignment;
+  Bytes init_byte_size = align_up(in_Bytes(InitialHeapSize), align);
+  Bytes max_byte_size  = align_up(in_Bytes(MaxHeapSize), align);
 
   // Initialize backing storage
   ReservedHeapSpace heap_rs = Universe::reserve_heap(max_byte_size, align);
@@ -56,15 +56,15 @@ jint EpsilonHeap::initialize() {
   _space->initialize(committed_region, /* clear_space = */ true, /* mangle_space = */ true);
 
   // Precompute hot fields
-  _max_tlab_size = MIN2(CollectedHeap::max_tlab_size(), align_object_size(EpsilonMaxTLABSize / HeapWordSize));
-  _step_counter_update = MIN2<size_t>(max_byte_size / 16, EpsilonUpdateCountersStep);
-  _step_heap_print = (EpsilonPrintHeapSteps == 0) ? SIZE_MAX : (max_byte_size / EpsilonPrintHeapSteps);
+  _max_tlab_size = MIN2(CollectedHeap::max_tlab_size(), align_object_size(Words(EpsilonMaxTLABSize / HeapWordSize)));
+  _step_counter_update = MIN2(max_byte_size / 16, in_Bytes(EpsilonUpdateCountersStep));
+  _step_heap_print = (EpsilonPrintHeapSteps == 0) ? in_Bytes(SIZE_MAX) : (max_byte_size / EpsilonPrintHeapSteps);
   _decay_time_ns = (int64_t) EpsilonTLABDecayTime * NANOSECS_PER_MILLISEC;
 
   // Enable monitoring
   _monitoring_support = new EpsilonMonitoringSupport(this);
-  _last_counter_update = 0;
-  _last_heap_print = 0;
+  _last_counter_update = Bytes(0);
+  _last_heap_print = Bytes(0);
 
   // Install barrier set
   BarrierSet::set_barrier_set(new EpsilonBarrierSet());
@@ -92,17 +92,17 @@ GrowableArray<MemoryPool*> EpsilonHeap::memory_pools() {
   return memory_pools;
 }
 
-size_t EpsilonHeap::unsafe_max_tlab_alloc(Thread* thr) const {
+Bytes EpsilonHeap::unsafe_max_tlab_alloc(Thread* thr) const {
   // Return max allocatable TLAB size, and let allocation path figure out
   // the actual allocation size. Note: result should be in bytes.
-  return _max_tlab_size * HeapWordSize;
+  return to_Bytes(_max_tlab_size);
 }
 
 EpsilonHeap* EpsilonHeap::heap() {
   return named_heap<EpsilonHeap>(CollectedHeap::Epsilon);
 }
 
-HeapWord* EpsilonHeap::allocate_work(size_t size, bool verbose) {
+HeapWord* EpsilonHeap::allocate_work(Words size, bool verbose) {
   assert(is_object_aligned(size), "Allocation size should be aligned: " SIZE_FORMAT, size);
 
   HeapWord* res = nullptr;
@@ -124,14 +124,19 @@ HeapWord* EpsilonHeap::allocate_work(size_t size, bool verbose) {
       }
 
       // Expand and loop back if space is available
-      size_t space_left = max_capacity() - capacity();
-      size_t want_space = MAX2(size, EpsilonMinHeapExpand);
+      Bytes space_left = max_capacity() - capacity();
+
+      // FIXME: Bug fix
+      fatal("This mixes words and bytes");
+      Bytes size_in_bytes = to_Bytes(size);
+
+      Bytes want_space = MAX2(size_in_bytes, (Bytes)EpsilonMinHeapExpand);
 
       if (want_space < space_left) {
         // Enough space to expand in bulk:
         bool expand = _virtual_space.expand_by(want_space);
         assert(expand, "Should be able to expand");
-      } else if (size < space_left) {
+      } else if (size_in_bytes < space_left) {
         // No space to expand in bulk, and this allocation is still possible,
         // take all the remaining space:
         bool expand = _virtual_space.expand_by(space_left);
@@ -145,11 +150,11 @@ HeapWord* EpsilonHeap::allocate_work(size_t size, bool verbose) {
     }
   }
 
-  size_t used = _space->used();
+  Bytes used = _space->used();
 
   // Allocation successful, update counters
   if (verbose) {
-    size_t last = _last_counter_update;
+    Bytes last = _last_counter_update;
     if ((used - last >= _step_counter_update) && Atomic::cmpxchg(&_last_counter_update, last, used) == last) {
       _monitoring_support->update_counters();
     }
@@ -157,7 +162,7 @@ HeapWord* EpsilonHeap::allocate_work(size_t size, bool verbose) {
 
   // ...and print the occupancy line, if needed
   if (verbose) {
-    size_t last = _last_heap_print;
+    Bytes last = _last_heap_print;
     if ((used - last >= _step_heap_print) && Atomic::cmpxchg(&_last_heap_print, last, used) == last) {
       print_heap_info(used);
       print_metaspace_info();
@@ -168,15 +173,15 @@ HeapWord* EpsilonHeap::allocate_work(size_t size, bool verbose) {
   return res;
 }
 
-HeapWord* EpsilonHeap::allocate_new_tlab(size_t min_size,
-                                         size_t requested_size,
-                                         size_t* actual_size) {
+HeapWord* EpsilonHeap::allocate_new_tlab(Words min_size,
+                                         Words requested_size,
+                                         Words* actual_size) {
   Thread* thread = Thread::current();
 
   // Defaults in case elastic paths are not taken
   bool fits = true;
-  size_t size = requested_size;
-  size_t ergo_tlab = requested_size;
+  Words size = requested_size;
+  Words ergo_tlab = requested_size;
   int64_t time = 0;
 
   if (EpsilonElasticTLAB) {
@@ -192,8 +197,8 @@ HeapWord* EpsilonHeap::allocate_new_tlab(size_t min_size,
       // This conserves memory when the thread had initial burst of allocations,
       // and then started allocating only sporadically.
       if (last_time != 0 && (time - last_time > _decay_time_ns)) {
-        ergo_tlab = 0;
-        EpsilonThreadLocalData::set_ergo_tlab_size(thread, 0);
+        ergo_tlab = Words(0);
+        EpsilonThreadLocalData::set_ergo_tlab_size(thread, Words(0));
       }
     }
 
@@ -201,7 +206,7 @@ HeapWord* EpsilonHeap::allocate_new_tlab(size_t min_size,
     // Otherwise, we want to elastically increase the TLAB size.
     fits = (requested_size <= ergo_tlab);
     if (!fits) {
-      size = (size_t) (ergo_tlab * EpsilonTLABElasticity);
+      size = ergo_tlab * EpsilonTLABElasticity;
     }
   }
 
@@ -209,7 +214,7 @@ HeapWord* EpsilonHeap::allocate_new_tlab(size_t min_size,
   size = clamp(size, min_size, _max_tlab_size);
 
   // Always honor alignment
-  size = align_up(size, MinObjAlignment);
+  size = align_object_size(size);
 
   // Check that adjustments did not break local and global invariants
   assert(is_object_aligned(size),
@@ -226,11 +231,11 @@ HeapWord* EpsilonHeap::allocate_new_tlab(size_t min_size,
     log_trace(gc)("TLAB size for \"%s\" (Requested: " SIZE_FORMAT "K, Min: " SIZE_FORMAT
                           "K, Max: " SIZE_FORMAT "K, Ergo: " SIZE_FORMAT "K) -> " SIZE_FORMAT "K",
                   thread->name(),
-                  requested_size * HeapWordSize / K,
-                  min_size * HeapWordSize / K,
-                  _max_tlab_size * HeapWordSize / K,
-                  ergo_tlab * HeapWordSize / K,
-                  size * HeapWordSize / K);
+                  to_bytes(requested_size) / K,
+                  to_bytes(min_size) / K,
+                  to_bytes(_max_tlab_size) / K,
+                  to_bytes(ergo_tlab) / K,
+                  to_bytes(size) / K);
   }
 
   // All prepared, let's do it!
@@ -249,19 +254,19 @@ HeapWord* EpsilonHeap::allocate_new_tlab(size_t min_size,
   } else {
     // Allocation failed, reset ergonomics to try and fit smaller TLABs
     if (EpsilonElasticTLAB) {
-      EpsilonThreadLocalData::set_ergo_tlab_size(thread, 0);
+      EpsilonThreadLocalData::set_ergo_tlab_size(thread, Words(0));
     }
   }
 
   return res;
 }
 
-HeapWord* EpsilonHeap::mem_allocate(size_t size, bool *gc_overhead_limit_was_exceeded) {
+HeapWord* EpsilonHeap::mem_allocate(Words size, bool *gc_overhead_limit_was_exceeded) {
   *gc_overhead_limit_was_exceeded = false;
   return allocate_work(size);
 }
 
-HeapWord* EpsilonHeap::allocate_loaded_archive_space(size_t size) {
+HeapWord* EpsilonHeap::allocate_loaded_archive_space(Words size) {
   // Cannot use verbose=true because Metaspace is not initialized
   return allocate_work(size, /* verbose = */false);
 }
@@ -315,18 +320,18 @@ void EpsilonHeap::print_tracing_info() const {
   print_metaspace_info();
 }
 
-void EpsilonHeap::print_heap_info(size_t used) const {
-  size_t reserved  = max_capacity();
-  size_t committed = capacity();
+void EpsilonHeap::print_heap_info(Bytes used) const {
+  Bytes reserved  = max_capacity();
+  Bytes committed = capacity();
 
-  if (reserved != 0) {
+  if (reserved != Bytes(0)) {
     log_info(gc)("Heap: " SIZE_FORMAT "%s reserved, " SIZE_FORMAT "%s (%.2f%%) committed, "
                  SIZE_FORMAT "%s (%.2f%%) used",
             byte_size_in_proper_unit(reserved),  proper_unit_for_byte_size(reserved),
             byte_size_in_proper_unit(committed), proper_unit_for_byte_size(committed),
-            committed * 100.0 / reserved,
+            untype(committed) * 100.0 / untype(reserved),
             byte_size_in_proper_unit(used),      proper_unit_for_byte_size(used),
-            used * 100.0 / reserved);
+            untype(used) * 100.0 / untype(reserved));
   } else {
     log_info(gc)("Heap: no reliable data");
   }
@@ -334,18 +339,18 @@ void EpsilonHeap::print_heap_info(size_t used) const {
 
 void EpsilonHeap::print_metaspace_info() const {
   MetaspaceCombinedStats stats = MetaspaceUtils::get_combined_statistics();
-  size_t reserved  = stats.reserved();
-  size_t committed = stats.committed();
-  size_t used      = stats.used();
+  Bytes reserved  = stats.reserved();
+  Bytes committed = stats.committed();
+  Bytes used      = stats.used();
 
-  if (reserved != 0) {
+  if (reserved != Bytes(0)) {
     log_info(gc, metaspace)("Metaspace: " SIZE_FORMAT "%s reserved, " SIZE_FORMAT "%s (%.2f%%) committed, "
                             SIZE_FORMAT "%s (%.2f%%) used",
             byte_size_in_proper_unit(reserved),  proper_unit_for_byte_size(reserved),
             byte_size_in_proper_unit(committed), proper_unit_for_byte_size(committed),
-            committed * 100.0 / reserved,
+            untype(committed) * 100.0 / untype(reserved),
             byte_size_in_proper_unit(used),      proper_unit_for_byte_size(used),
-            used * 100.0 / reserved);
+            untype(used) * 100.0 / untype(reserved));
   } else {
     log_info(gc, metaspace)("Metaspace: no reliable data");
   }

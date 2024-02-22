@@ -52,33 +52,33 @@ MetaspaceTestArena::~MetaspaceTestArena() {
   delete _lock;
 }
 
-MetaWord* MetaspaceTestArena::allocate(size_t word_size) {
+MetaWord* MetaspaceTestArena::allocate(Words word_size) {
   MutexLocker fcl(_lock, Mutex::_no_safepoint_check_flag);
   return _arena->allocate(word_size);
 }
 
-void MetaspaceTestArena::deallocate(MetaWord* p, size_t word_size) {
+void MetaspaceTestArena::deallocate(MetaWord* p, Words word_size) {
   MutexLocker fcl(_lock, Mutex::_no_safepoint_check_flag);
   return _arena->deallocate(p, word_size);
 }
 
 ///// MetaspaceTestArea //////
 
-MetaspaceTestContext::MetaspaceTestContext(const char* name, size_t commit_limit, size_t reserve_limit) :
+MetaspaceTestContext::MetaspaceTestContext(const char* name, Words commit_limit, Words reserve_limit) :
   _name(name),
   _reserve_limit(reserve_limit),
   _commit_limit(commit_limit),
   _context(nullptr),
-  _commit_limiter(commit_limit == 0 ? max_uintx : commit_limit), // commit_limit == 0 -> no limit
+  _commit_limiter(commit_limit == Words(0) ? in_Words(max_uintx) : commit_limit), // commit_limit == 0 -> no limit
   _used_words_counter(),
   _rs()
 {
   assert(is_aligned(reserve_limit, Metaspace::reserve_alignment_words()), "reserve_limit (" SIZE_FORMAT ") "
                     "not aligned to metaspace reserve alignment (" SIZE_FORMAT ")",
                     reserve_limit, Metaspace::reserve_alignment_words());
-  if (reserve_limit > 0) {
+  if (reserve_limit > Words(0)) {
     // have reserve limit -> non-expandable context
-    _rs = ReservedSpace(reserve_limit * BytesPerWord, Metaspace::reserve_alignment(), os::vm_page_size());
+    _rs = ReservedSpace(to_Bytes(reserve_limit), Metaspace::reserve_alignment(), in_Bytes(os::vm_page_size()));
     _context = MetaspaceContext::create_nonexpandable_context(name, _rs, &_commit_limiter);
   } else {
     // no reserve limit -> expandable vslist

@@ -48,23 +48,29 @@ class SerialBlockOffsetSharedArray: public CHeapObj<mtGC> {
   VirtualSpace _vs;
   uint8_t* _offset_array;          // byte array keeping backwards offsets
 
+  size_t max_index() const {
+    return untype(_vs.committed_size());
+  }
+
   void fill_range(size_t start, size_t num_cards, uint8_t offset) {
     void* start_ptr = &_offset_array[start];
     memset(start_ptr, offset, num_cards);
   }
 
   uint8_t offset_array(size_t index) const {
-    assert(index < _vs.committed_size(), "index out of range");
+    assert(index < max_index(), "index out of range");
     return _offset_array[index];
   }
 
   // Return the number of slots needed for an offset array
   // that covers mem_region_words words.
-  static size_t compute_size(size_t mem_region_words) {
-    assert(mem_region_words % BOTConstants::card_size_in_words() == 0, "precondition");
+  static Bytes compute_size(Words mem_region_words) {
+    assert(is_aligned(mem_region_words, BOTConstants::card_size_in_words()), "precondition");
 
-    size_t number_of_slots = mem_region_words / BOTConstants::card_size_in_words();
-    return ReservedSpace::allocation_align_size_up(number_of_slots);
+    size_t number_of_slots = mem_region_words / in_Words(BOTConstants::card_size_in_words());
+    // TODO: This assumes 1-1 mapping between slots and bytes
+    Bytes number_of_slots_bytes = in_Bytes(number_of_slots);
+    return ReservedSpace::allocation_align_size_up(number_of_slots_bytes);
   }
 
 public:
@@ -74,12 +80,12 @@ public:
   // least "init_word_size".)  The contents of the initial table are
   // undefined; it is the responsibility of the constituent
   // SerialBlockOffsetTable(s) to initialize cards.
-  SerialBlockOffsetSharedArray(MemRegion reserved, size_t init_word_size);
+  SerialBlockOffsetSharedArray(MemRegion reserved, Words init_word_size);
 
   // Notes a change in the committed size of the region covered by the
   // table.  The "new_word_size" may not be larger than the size of the
   // reserved region this table covers.
-  void resize(size_t new_word_size);
+  void resize(Words new_word_size);
 
   // Return the appropriate index into "_offset_array" for "p".
   size_t index_for(const void* p) const;
@@ -89,14 +95,14 @@ public:
   HeapWord* address_for_index(size_t index) const;
 
   void set_offset_array(size_t index, HeapWord* high, HeapWord* low) {
-    assert(index < _vs.committed_size(), "index out of range");
+    assert(index < max_index(), "index out of range");
     assert(high >= low, "addresses out of order");
-    assert(pointer_delta(high, low) < BOTConstants::card_size_in_words(), "offset too large");
+    assert(pointer_delta(high, low) < (Words)BOTConstants::card_size_in_words(), "offset too large");
     _offset_array[index] = checked_cast<uint8_t>(pointer_delta(high, low));
   }
 
   void set_offset_array(size_t left, size_t right, uint8_t offset) {
-    assert(right < _vs.committed_size(), "right address out of range");
+    assert(right < max_index(), "right address out of range");
     assert(left <= right, "precondition");
     size_t num_cards = right - left + 1;
 

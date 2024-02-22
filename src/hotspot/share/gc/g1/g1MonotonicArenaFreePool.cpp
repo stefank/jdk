@@ -38,7 +38,7 @@ G1MonotonicArenaMemoryStats::G1MonotonicArenaMemoryStats() {
 
 void G1MonotonicArenaMemoryStats::clear() {
   for (uint i = 0; i < num_pools(); i++) {
-    _num_mem_sizes[i] = 0;
+    _num_mem_sizes[i] = Bytes(0);
     _num_segments[i] = 0;
   }
 }
@@ -52,7 +52,7 @@ void G1MonotonicArenaFreePool::update_unlink_processors(G1ReturnMemoryProcessorS
 
 void G1MonotonicArenaFreePool::G1ReturnMemoryProcessor::visit_free_list(G1MonotonicArena::SegmentFreeList* source) {
   assert(_source == nullptr, "already visited");
-  if (_return_to_vm_size > 0) {
+  if (_return_to_vm_size > Bytes(0)) {
     _source = source;
   } else {
     assert(_source == nullptr, "must be");
@@ -68,7 +68,7 @@ void G1MonotonicArenaFreePool::G1ReturnMemoryProcessor::visit_free_list(G1Monoto
   // used for checking whether there is work available.
   if (_first == nullptr) {
     _source = nullptr;
-    _return_to_vm_size = 0;
+    _return_to_vm_size = Bytes(0);
   }
 }
 
@@ -76,14 +76,14 @@ bool G1MonotonicArenaFreePool::G1ReturnMemoryProcessor::return_to_vm(jlong deadl
   assert(!finished_return_to_vm(), "already returned everything to the VM");
   assert(_first != nullptr, "must have segment to return");
 
-  size_t keep_size = 0;
+  Bytes keep_size = Bytes(0);
   size_t keep_num = 0;
 
   Segment* cur = _first;
   Segment* last = nullptr;
 
-  while (cur != nullptr && _return_to_vm_size > 0) {
-    size_t cur_size = cur->mem_size();
+  while (cur != nullptr && _return_to_vm_size > Bytes(0)) {
+    Bytes cur_size = cur->mem_size();
     _return_to_vm_size -= MIN2(_return_to_vm_size, cur_size);
 
     keep_size += cur_size;
@@ -114,9 +114,9 @@ bool G1MonotonicArenaFreePool::G1ReturnMemoryProcessor::return_to_vm(jlong deadl
   // inconsistent.
   // So also check if we actually already at the end of the list for the exit
   // condition.
-  if (_return_to_vm_size == 0 || _first == nullptr) {
+  if (_return_to_vm_size == Bytes(0) || _first == nullptr) {
     _source = nullptr;
-    _return_to_vm_size = 0;
+    _return_to_vm_size = Bytes(0);
   }
   return _source != nullptr;
 }
@@ -127,7 +127,7 @@ bool G1MonotonicArenaFreePool::G1ReturnMemoryProcessor::return_to_os(jlong deadl
 
   // Now delete the rest.
   size_t num_delete = 0;
-  size_t mem_size_deleted = 0;
+  Bytes mem_size_deleted = Bytes(0);
 
   while (_first != nullptr) {
     Segment* next = _first->next();
@@ -173,8 +173,8 @@ G1MonotonicArenaMemoryStats G1MonotonicArenaFreePool::memory_sizes() const {
   return free_list_stats;
 }
 
-size_t G1MonotonicArenaFreePool::mem_size() const {
-  size_t result = 0;
+Bytes G1MonotonicArenaFreePool::mem_size() const {
+  Bytes result = Bytes(0);
   for (uint i = 0; i < _num_free_lists; i++) {
     result += _free_lists[i].mem_size();
   }

@@ -54,7 +54,7 @@ static const size_t AllocationAlignmentWordSize = AllocationAlignmentByteSize / 
 
 // Returns the raw word size allocated for a given net allocation. This only matters on 32-bit, where
 // allocations have to be 64-bit aligned too and therefore must be 2-word-aligned.
-inline size_t get_raw_word_size_for_requested_word_size(size_t word_size) {
+inline Words get_raw_word_size_for_requested_word_size(Words word_size) {
   LP64_ONLY(STATIC_ASSERT(AllocationAlignmentWordSize == 1)); // rewrite if this does not hold true anymore
   return LP64_ONLY(word_size) // no-op on 64-bit
          NOT_LP64(align_up(word_size, AllocationAlignmentWordSize));
@@ -63,21 +63,21 @@ inline size_t get_raw_word_size_for_requested_word_size(size_t word_size) {
 // Utility functions
 
 // Print a size, in words, scaled.
-void print_scaled_words(outputStream* st, size_t word_size, size_t scale = 0, int width = -1);
+void print_scaled_words(outputStream* st, Words word_size, size_t scale = 0, int width = -1);
 
 // Convenience helper: prints a size value and a percentage.
-void print_scaled_words_and_percentage(outputStream* st, size_t word_size, size_t compare_word_size, size_t scale = 0, int width = -1);
+void print_scaled_words_and_percentage(outputStream* st, Words word_size, Words compare_word_size, size_t scale = 0, int width = -1);
 
 // Print a human readable size.
 // byte_size: size, in bytes, to be printed.
 // scale: one of 1 (byte-wise printing), sizeof(word) (word-size printing), K, M, G (scaled by KB, MB, GB respectively,
 //         or 0, which means the best scale is chosen dynamically.
 // width: printing width.
-void print_human_readable_size(outputStream* st, size_t byte_size, size_t scale = 0, int width = -1);
+void print_human_readable_size(outputStream* st, Bytes byte_size, size_t scale = 0, int width = -1);
 
 // Prints a percentage value. Values smaller than 1% but not 0 are displayed as "<1%", values
 // larger than 99% but not 100% are displayed as ">100%".
-void print_percentage(outputStream* st, size_t total, size_t part);
+void print_percentage(outputStream* st, Words total, Words part);
 
 #ifdef ASSERT
 #define assert_is_aligned(value, alignment)                  \

@@ -35,7 +35,7 @@
 #include "runtime/java.hpp"
 #include "utilities/align.hpp"
 
-PSYoungGen::PSYoungGen(ReservedSpace rs, size_t initial_size, size_t min_size, size_t max_size) :
+PSYoungGen::PSYoungGen(ReservedSpace rs, Bytes initial_size, Bytes min_size, Bytes max_size) :
   _reserved(),
   _virtual_space(nullptr),
   _eden_space(nullptr),
@@ -52,16 +52,16 @@ PSYoungGen::PSYoungGen(ReservedSpace rs, size_t initial_size, size_t min_size, s
 }
 
 void PSYoungGen::initialize_virtual_space(ReservedSpace rs,
-                                          size_t initial_size,
-                                          size_t alignment) {
-  assert(initial_size != 0, "Should have a finite size");
+                                          Bytes initial_size,
+                                          Bytes alignment) {
+  assert(initial_size != Bytes(0), "Should have a finite size");
   _virtual_space = new PSVirtualSpace(rs, alignment);
   if (!virtual_space()->expand_by(initial_size)) {
     vm_exit_during_initialization("Could not reserve enough space for object heap");
   }
 }
 
-void PSYoungGen::initialize(ReservedSpace rs, size_t initial_size, size_t alignment) {
+void PSYoungGen::initialize(ReservedSpace rs, Bytes initial_size, Bytes alignment) {
   initialize_virtual_space(rs, initial_size, alignment);
   initialize_work();
 }
@@ -96,11 +96,11 @@ void PSYoungGen::initialize_work() {
                                            max_gen_size(), virtual_space());
 
   // Compute maximum space sizes for performance counters
-  size_t alignment = SpaceAlignment;
-  size_t size = virtual_space()->reserved_size();
+  Bytes alignment = SpaceAlignment;
+  Bytes size = virtual_space()->reserved_size();
 
-  size_t max_survivor_size;
-  size_t max_eden_size;
+  Bytes max_survivor_size;
+  Bytes max_eden_size;
 
   if (UseAdaptiveSizePolicy) {
     max_survivor_size = size / MinSurvivorRatio;
@@ -146,16 +146,16 @@ void PSYoungGen::initialize_work() {
 
 void PSYoungGen::compute_initial_space_boundaries() {
   // Compute sizes
-  size_t size = virtual_space()->committed_size();
+  Bytes size = virtual_space()->committed_size();
   assert(size >= 3 * SpaceAlignment, "Young space is not large enough for eden + 2 survivors");
 
-  size_t survivor_size = size / InitialSurvivorRatio;
+  Bytes survivor_size = size / InitialSurvivorRatio;
   survivor_size = align_down(survivor_size, SpaceAlignment);
   // ... but never less than an alignment
   survivor_size = MAX2(survivor_size, SpaceAlignment);
 
   // Young generation is eden + 2 survivor spaces
-  size_t eden_size = size - (2 * survivor_size);
+  Bytes eden_size = size - (2 * survivor_size);
 
   // Now go ahead and set 'em.
   set_space_boundaries(eden_size, survivor_size);
@@ -168,9 +168,9 @@ void PSYoungGen::compute_initial_space_boundaries() {
   }
 }
 
-void PSYoungGen::set_space_boundaries(size_t eden_size, size_t survivor_size) {
+void PSYoungGen::set_space_boundaries(Bytes eden_size, Bytes survivor_size) {
   assert(eden_size < virtual_space()->committed_size(), "just checking");
-  assert(eden_size > 0  && survivor_size > 0, "just checking");
+  assert(eden_size > Bytes(0)  && survivor_size > Bytes(0), "just checking");
 
   // Initial layout is Eden, to, from. After swapping survivor spaces,
   // that leaves us with Eden, from, to, which is step one in our two
@@ -246,7 +246,7 @@ void PSYoungGen::space_invariants() {
 }
 #endif
 
-void PSYoungGen::resize(size_t eden_size, size_t survivor_size) {
+void PSYoungGen::resize(Bytes eden_size, Bytes survivor_size) {
   // Resize the generation if needed. If the generation resize
   // reports false, do not attempt to resize the spaces.
   if (resize_generation(eden_size, survivor_size)) {
@@ -265,9 +265,9 @@ void PSYoungGen::resize(size_t eden_size, size_t survivor_size) {
 }
 
 
-bool PSYoungGen::resize_generation(size_t eden_size, size_t survivor_size) {
-  const size_t alignment = virtual_space()->alignment();
-  size_t orig_size = virtual_space()->committed_size();
+bool PSYoungGen::resize_generation(Bytes eden_size, Bytes survivor_size) {
+  const Bytes alignment = virtual_space()->alignment();
+  Bytes orig_size = virtual_space()->committed_size();
   bool size_changed = false;
 
   // There used to be this guarantee there.
@@ -279,15 +279,15 @@ bool PSYoungGen::resize_generation(size_t eden_size, size_t survivor_size) {
   assert(min_gen_size() <= orig_size && orig_size <= max_gen_size(), "just checking");
 
   // Adjust new generation size
-  const size_t eden_plus_survivors =
+  const Bytes eden_plus_survivors =
           align_up(eden_size + 2 * survivor_size, alignment);
-  size_t desired_size = clamp(eden_plus_survivors, min_gen_size(), max_gen_size());
+  Bytes desired_size = clamp(eden_plus_survivors, min_gen_size(), max_gen_size());
   assert(desired_size <= max_gen_size(), "just checking");
 
   if (desired_size > orig_size) {
     // Grow the generation
-    size_t change = desired_size - orig_size;
-    assert(change % alignment == 0, "just checking");
+    Bytes change = desired_size - orig_size;
+    assert(is_aligned(change, alignment), "just checking");
     HeapWord* prev_high = (HeapWord*) virtual_space()->high();
     if (!virtual_space()->expand_by(change)) {
       return false; // Error if we fail to resize!
@@ -302,12 +302,12 @@ bool PSYoungGen::resize_generation(size_t eden_size, size_t survivor_size) {
     }
     size_changed = true;
   } else if (desired_size < orig_size) {
-    size_t desired_change = orig_size - desired_size;
-    assert(desired_change % alignment == 0, "just checking");
+    Bytes desired_change = orig_size - desired_size;
+    assert(is_aligned(desired_change, alignment), "just checking");
 
     desired_change = limit_gen_shrink(desired_change);
 
-    if (desired_change > 0) {
+    if (desired_change > Bytes(0)) {
       virtual_space()->shrink_by(desired_change);
       reset_survivors_after_shrink();
 
@@ -409,10 +409,10 @@ void PSYoungGen::mangle_survivors(MutableSpace* s1,
 }
 #endif // NOT PRODUCT
 
-void PSYoungGen::resize_spaces(size_t requested_eden_size,
-                               size_t requested_survivor_size) {
+void PSYoungGen::resize_spaces(Bytes requested_eden_size,
+                               Bytes requested_survivor_size) {
   assert(UseAdaptiveSizePolicy, "sanity check");
-  assert(requested_eden_size > 0  && requested_survivor_size > 0,
+  assert(requested_eden_size > Bytes(0)  && requested_survivor_size > Bytes(0),
          "just checking");
 
   // We require eden and to space to be empty
@@ -475,19 +475,19 @@ void PSYoungGen::resize_spaces(size_t requested_eden_size,
     // The calculation is done this way to avoid 32bit
     // overflow (i.e., eden_start + requested_eden_size
     // may too large for representation in 32bits).
-    size_t eden_size;
+    Bytes eden_size;
     if (maintain_minimum) {
       // Only make eden larger than the requested size if
       // the minimum size of the generation has to be maintained.
       // This could be done in general but policy at a higher
       // level is determining a requested size for eden and that
       // should be honored unless there is a fundamental reason.
-      eden_size = pointer_delta(from_start,
-                                eden_start,
-                                sizeof(char));
+      eden_size = in_Bytes(pointer_delta(from_start,
+                                         eden_start,
+                                         sizeof(char)));
     } else {
       eden_size = MIN2(requested_eden_size,
-                       pointer_delta(from_start, eden_start, sizeof(char)));
+                       in_Bytes(pointer_delta(from_start, eden_start, sizeof(char))));
     }
 
     eden_end = eden_start + eden_size;
@@ -505,10 +505,10 @@ void PSYoungGen::resize_spaces(size_t requested_eden_size,
     // Does the optimal to-space overlap from-space?
     if (to_start < (char*)from_space()->end()) {
       // Calculate the minimum offset possible for from_end
-      size_t from_size = pointer_delta(from_space()->top(), from_start, sizeof(char));
+      Bytes from_size = in_Bytes(pointer_delta(from_space()->top(), from_start, sizeof(char)));
 
       // Should we be in this method if from_space is empty? Why not the set_space method? FIX ME!
-      if (from_size == 0) {
+      if (from_size == Bytes(0)) {
         from_size = SpaceAlignment;
       } else {
         from_size = align_up(from_size, SpaceAlignment);
@@ -558,12 +558,12 @@ void PSYoungGen::resize_spaces(size_t requested_eden_size,
 
     // Compute how big eden can be, then adjust end.
     // See  comments above on calculating eden_end.
-    size_t eden_size;
+    Bytes eden_size;
     if (maintain_minimum) {
-      eden_size = pointer_delta(to_start, eden_start, sizeof(char));
+      eden_size = in_Bytes(pointer_delta(to_start, eden_start, sizeof(char)));
     } else {
       eden_size = MIN2(requested_eden_size,
-                       pointer_delta(to_start, eden_start, sizeof(char)));
+                       in_Bytes(pointer_delta(to_start, eden_start, sizeof(char))));
     }
     eden_end = eden_start + eden_size;
     assert(eden_end >= eden_start, "addition overflowed");
@@ -606,8 +606,8 @@ void PSYoungGen::resize_spaces(size_t requested_eden_size,
   HeapWord* old_from_top = from_space()->top();
 
   // For logging block  below
-  size_t old_from = from_space()->capacity_in_bytes();
-  size_t old_to   = to_space()->capacity_in_bytes();
+  Bytes old_from = from_space()->capacity_in_bytes();
+  Bytes old_to   = to_space()->capacity_in_bytes();
 
   if (ZapUnusedHeapArea) {
     // NUMA is a special case because a numa space is not mangled
@@ -673,36 +673,36 @@ void PSYoungGen::swap_spaces() {
   _to_space          = s;
 }
 
-size_t PSYoungGen::capacity_in_bytes() const {
+Bytes PSYoungGen::capacity_in_bytes() const {
   return eden_space()->capacity_in_bytes()
        + from_space()->capacity_in_bytes();  // to_space() is only used during scavenge
 }
 
 
-size_t PSYoungGen::used_in_bytes() const {
+Bytes PSYoungGen::used_in_bytes() const {
   return eden_space()->used_in_bytes()
        + from_space()->used_in_bytes();      // to_space() is only used during scavenge
 }
 
 
-size_t PSYoungGen::free_in_bytes() const {
+Bytes PSYoungGen::free_in_bytes() const {
   return eden_space()->free_in_bytes()
        + from_space()->free_in_bytes();      // to_space() is only used during scavenge
 }
 
-size_t PSYoungGen::capacity_in_words() const {
+Words PSYoungGen::capacity_in_words() const {
   return eden_space()->capacity_in_words()
        + from_space()->capacity_in_words();  // to_space() is only used during scavenge
 }
 
 
-size_t PSYoungGen::used_in_words() const {
+Words PSYoungGen::used_in_words() const {
   return eden_space()->used_in_words()
        + from_space()->used_in_words();      // to_space() is only used during scavenge
 }
 
 
-size_t PSYoungGen::free_in_words() const {
+Words PSYoungGen::free_in_words() const {
   return eden_space()->free_in_words()
        + from_space()->free_in_words();      // to_space() is only used during scavenge
 }
@@ -724,7 +724,7 @@ void PSYoungGen::print_on(outputStream* st) const {
   st->print("  to  "); to_space()->print_on(st);
 }
 
-size_t PSYoungGen::available_to_min_gen() {
+Bytes PSYoungGen::available_to_min_gen() {
   assert(virtual_space()->committed_size() >= min_gen_size(), "Invariant");
   return virtual_space()->committed_size() - min_gen_size();
 }
@@ -732,8 +732,8 @@ size_t PSYoungGen::available_to_min_gen() {
 // This method assumes that from-space has live data and that
 // any shrinkage of the young gen is limited by location of
 // from-space.
-size_t PSYoungGen::available_to_live() {
-  size_t delta_in_survivor = 0;
+Bytes PSYoungGen::available_to_live() {
+  Bytes delta_in_survivor = Bytes(0);
   MutableSpace* space_shrinking = nullptr;
   if (from_space()->end() > to_space()->end()) {
     space_shrinking = from_space();
@@ -745,8 +745,8 @@ size_t PSYoungGen::available_to_live() {
   // the survivor spaces.
   assert(((HeapWord*)virtual_space()->high()) >= space_shrinking->end(),
     "Survivor space beyond high end");
-  size_t unused_committed = pointer_delta(virtual_space()->high(),
-    space_shrinking->end(), sizeof(char));
+  Bytes unused_committed = in_Bytes(pointer_delta(virtual_space()->high(),
+    space_shrinking->end(), sizeof(char)));
 
   if (space_shrinking->is_empty()) {
     // Don't let the space shrink to 0
@@ -754,12 +754,12 @@ size_t PSYoungGen::available_to_live() {
       "Space is too small");
     delta_in_survivor = space_shrinking->capacity_in_bytes() - SpaceAlignment;
   } else {
-    delta_in_survivor = pointer_delta(space_shrinking->end(),
-                                      space_shrinking->top(),
-                                      sizeof(char));
+    delta_in_survivor = in_Bytes(pointer_delta(space_shrinking->end(),
+                                               space_shrinking->top(),
+                                               sizeof(char)));
   }
 
-  size_t delta_in_bytes = unused_committed + delta_in_survivor;
+  Bytes delta_in_bytes = unused_committed + delta_in_survivor;
   delta_in_bytes = align_down(delta_in_bytes, GenAlignment);
   return delta_in_bytes;
 }
@@ -769,7 +769,7 @@ size_t PSYoungGen::available_to_live() {
 //      input "bytes"
 //      bytes to the minimum young gen size
 //      bytes to the size currently being used + some small extra
-size_t PSYoungGen::limit_gen_shrink(size_t bytes) {
+Bytes PSYoungGen::limit_gen_shrink(Bytes bytes) {
   // Allow shrinkage into the current eden but keep eden large enough
   // to maintain the minimum young gen size
   bytes = MIN3(bytes, available_to_min_gen(), available_to_live());

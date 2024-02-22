@@ -436,10 +436,10 @@ const char* InstanceKlass::nest_host_error() {
 }
 
 InstanceKlass* InstanceKlass::allocate_instance_klass(const ClassFileParser& parser, TRAPS) {
-  const int size = InstanceKlass::size(parser.vtable_size(),
-                                       parser.itable_size(),
-                                       nonstatic_oop_map_size(parser.total_oop_map_count()),
-                                       parser.is_interface());
+  const Words size = InstanceKlass::size(parser.vtable_size(),
+                                         parser.itable_size(),
+                                         nonstatic_oop_map_size(parser.total_oop_map_count()),
+                                         parser.is_interface());
 
   const Symbol* const class_name = parser.class_name();
   assert(class_name != nullptr, "invariant");
@@ -528,7 +528,7 @@ InstanceKlass::InstanceKlass(const ClassFileParser& parser, KlassKind kind, Refe
 
   assert(nullptr == _methods, "underlying memory not zeroed?");
   assert(is_instance_klass(), "is layout incorrect?");
-  assert(size_helper() == parser.layout_size(), "incorrect size_helper?");
+  assert(size_helper() == in_Words(parser.layout_size()), "incorrect size_helper?");
 }
 
 void InstanceKlass::deallocate_methods(ClassLoaderData* loader_data,
@@ -1477,7 +1477,7 @@ bool InstanceKlass::is_same_or_direct_interface(Klass *k) const {
 
 objArrayOop InstanceKlass::allocate_objArray(int n, int length, TRAPS) {
   check_array_allocation_length(length, arrayOopDesc::max_array_length(T_OBJECT), CHECK_NULL);
-  size_t size = objArrayOopDesc::object_size(length);
+  Words size = objArrayOopDesc::object_size(length);
   ArrayKlass* ak = array_klass(n, CHECK_NULL);
   objArrayOop o = (objArrayOop)Universe::heap()->array_allocate(ak, size, length,
                                                                 /* do_zero */ true, CHECK_NULL);
@@ -1502,7 +1502,7 @@ instanceOop InstanceKlass::register_finalizer(instanceOop i, TRAPS) {
 
 instanceOop InstanceKlass::allocate_instance(TRAPS) {
   bool has_finalizer_flag = has_finalizer(); // Query before possible GC
-  size_t size = size_helper();  // Query before forming handle.
+  Words size = size_helper();  // Query before forming handle.
 
   instanceOop i;
 
@@ -2198,7 +2198,7 @@ void PrintClassClosure::do_klass(Klass* k)  {
   // klass pointer
   _st->print(PTR_FORMAT "  ", p2i(k));
   // klass size
-  _st->print("%4d  ", k->size());
+  _st->print("%4zu  ", k->size());
   // initialization state
   if (k->is_instance_klass()) {
     _st->print("%-20s  ",InstanceKlass::cast(k)->init_state_name());
@@ -3592,8 +3592,8 @@ void InstanceKlass::print_on(outputStream* st) const {
   assert(is_klass(), "must be klass");
   Klass::print_on(st);
 
-  st->print(BULLET"instance size:     %d", size_helper());                        st->cr();
-  st->print(BULLET"klass size:        %d", size());                               st->cr();
+  st->print(BULLET"instance size:     %zu", size_helper());                       st->cr();
+  st->print(BULLET"klass size:        %zu", size());                              st->cr();
   st->print(BULLET"access:            "); access_flags().print_on(st);            st->cr();
   st->print(BULLET"flags:             "); _misc_flags.print_on(st);               st->cr();
   st->print(BULLET"state:             "); st->print_cr("%s", init_state_name());

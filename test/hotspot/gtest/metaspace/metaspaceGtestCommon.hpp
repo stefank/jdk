@@ -35,37 +35,37 @@
 // A little mockup to mimick and test the CommitMask in various tests
 
 class TestMap {
-  const size_t _len;
+  const Words _len;
   char* _arr;
 public:
-  TestMap(size_t len) : _len(len), _arr(nullptr) {
-    _arr = NEW_C_HEAP_ARRAY(char, len, mtInternal);
-    memset(_arr, 0, _len);
+  TestMap(Words len) : _len(len), _arr(nullptr) {
+    _arr = NEW_C_HEAP_ARRAY(char, untype(len), mtInternal);
+    memset(_arr, 0, untype(_len));
   }
   ~TestMap() { FREE_C_HEAP_ARRAY(char, _arr); }
 
-  int get_num_set(size_t from, size_t to) const {
+  int get_num_set(Words from, Words to) const {
     int result = 0;
-    for(size_t i = from; i < to; i++) {
-      if (_arr[i] > 0) {
+    for(Words i = from; i < to; i++) {
+      if (_arr[untype(i)] > 0) {
         result++;
       }
     }
     return result;
   }
 
-  size_t get_num_set() const { return get_num_set(0, _len); }
+  int get_num_set() const { return get_num_set(Words(0), _len); }
 
-  void set_range(size_t from, size_t to) {
-    memset(_arr + from, 1, to - from);
+  void set_range(Words from, Words to) {
+    memset(_arr + untype(from), 1, untype(to - from));
   }
 
-  void clear_range(size_t from, size_t to) {
-    memset(_arr + from, 0, to - from);
+  void clear_range(Words from, Words to) {
+    memset(_arr + untype(from), 0, untype(to - from));
   }
 
-  bool at(size_t pos) const {
-    return _arr[pos] == 1;
+  bool at(Words pos) const {
+    return _arr[untype(pos)] == 1;
   }
 
 };
@@ -73,13 +73,13 @@ public:
 ///////////////////////////////////////////////////////////
 // Helper class for generating random allocation sizes
 class RandSizeGenerator {
-  const size_t _min; // [
-  const size_t _max; // )
+  const Words _min; // [
+  const Words _max; // )
   const float _outlier_chance; // 0.0 -- 1.0
-  const size_t _outlier_min; // [
-  const size_t _outlier_max; // )
+  const Words _outlier_min; // [
+  const Words _outlier_max; // )
 public:
-  RandSizeGenerator(size_t min, size_t max) :
+  RandSizeGenerator(Words min, Words max) :
     _min(min),
     _max(max),
     _outlier_chance(0.0),
@@ -87,7 +87,7 @@ public:
     _outlier_max(max)
   {}
 
-  RandSizeGenerator(size_t min, size_t max, float outlier_chance, size_t outlier_min, size_t outlier_max) :
+  RandSizeGenerator(Words min, Words max, float outlier_chance, Words outlier_min, Words outlier_max) :
     _min(min),
     _max(max),
     _outlier_chance(outlier_chance),
@@ -95,29 +95,29 @@ public:
     _outlier_max(outlier_max)
   {}
 
-  size_t min() const { return _min; }
-  size_t max() const { return _max; }
+  Words min() const { return _min; }
+  Words max() const { return _max; }
 
-  size_t get() const {
-    size_t l1 = _min;
-    size_t l2 = _max;
+  Words get() const {
+    Words l1 = _min;
+    Words l2 = _max;
     int r = os::random() % 1000;
     if ((float)r < _outlier_chance * 1000.0) {
       l1 = _outlier_min;
       l2 = _outlier_max;
     }
-    const size_t d = l2 - l1;
-    return l1 + (os::random() % d);
+    const Words d = l2 - l1;
+    return l1 + in_Words(os::random() % untype(d));
   }
 
 }; // end RandSizeGenerator
 
-size_t get_random_size(size_t min, size_t max);
+Words get_random_size(Words min, Words max);
 
 ///////////////////////////////////////////////////////////
 // Function to test-access a memory range
 
-void zap_range(MetaWord* p, size_t word_size);
+void zap_range(MetaWord* p, Words word_size);
 
 // "fill_range_with_pattern" fills a range of heap words with pointers to itself.
 //
@@ -126,8 +126,8 @@ void zap_range(MetaWord* p, size_t word_size);
 //
 // The filled range can be checked with check_range_for_pattern. One also can only check
 // a sub range of the original range.
-void fill_range_with_pattern(MetaWord* p, uintx pattern, size_t word_size);
-void check_range_for_pattern(const MetaWord* p, uintx pattern, size_t word_size);
+void fill_range_with_pattern(MetaWord* p, Words word_size, uintx pattern);
+void check_range_for_pattern(const MetaWord* p, Words word_size, uintx pattern);
 
 // Writes a uniqe pattern to p
 void mark_address(MetaWord* p, uintx pattern);
@@ -138,11 +138,11 @@ void check_marked_address(const MetaWord* p, uintx pattern);
 // where fill_range_with_pattern just is too slow.
 // Use check_marked_range to check the range. In contrast to check_range_for_pattern, only the original
 // range can be checked.
-void mark_range(MetaWord* p, uintx pattern, size_t word_size);
-void check_marked_range(const MetaWord* p, uintx pattern, size_t word_size);
+void mark_range(MetaWord* p, uintx pattern, Words word_size);
+void check_marked_range(const MetaWord* p, uintx pattern, Words word_size);
 
-void mark_range(MetaWord* p, size_t word_size);
-void check_marked_range(const MetaWord* p, size_t word_size);
+void mark_range(MetaWord* p, Words word_size);
+void check_marked_range(const MetaWord* p, Words word_size);
 
 //////////////////////////////////////////////////////////
 // Some helpers to avoid typing out those annoying casts for nullptr
@@ -181,22 +181,22 @@ class FeederBuffer {
   MetaWord* _buf;
 
   // Buffer capacity in size of words.
-  const size_t _cap;
+  const Words _cap;
 
   // Used words.
-  size_t _used;
+  Words _used;
 
 public:
 
-  FeederBuffer(size_t size) : _buf(nullptr), _cap(size), _used(0) {
-    _buf = NEW_C_HEAP_ARRAY(MetaWord, _cap, mtInternal);
+  FeederBuffer(Words size) : _buf(nullptr), _cap(size), _used(Words(0)) {
+    _buf = NEW_C_HEAP_ARRAY(MetaWord, untype(_cap), mtInternal);
   }
 
   ~FeederBuffer() {
     FREE_C_HEAP_ARRAY(MetaWord, _buf);
   }
 
-  MetaWord* get(size_t word_size) {
+  MetaWord* get(Words word_size) {
     if (_used + word_size > _cap) {
       return nullptr;
     }
@@ -209,9 +209,9 @@ public:
     return p >= _buf && p < _buf + _used;
   }
 
-  bool is_valid_range(MetaWord* p, size_t word_size) const {
+  bool is_valid_range(MetaWord* p, Words word_size) const {
     return is_valid_pointer(p) &&
-           word_size > 0 ? is_valid_pointer(p + word_size - 1) : true;
+           word_size > Words(0) ? is_valid_pointer(p + word_size - 1) : true;
   }
 
 };

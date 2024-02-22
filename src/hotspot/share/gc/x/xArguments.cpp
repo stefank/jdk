@@ -33,7 +33,7 @@
 #include "runtime/java.hpp"
 
 void XArguments::initialize_alignments() {
-  SpaceAlignment = XGranuleSize;
+  SpaceAlignment = in_Bytes(XGranuleSize);
   HeapAlignment = SpaceAlignment;
 }
 

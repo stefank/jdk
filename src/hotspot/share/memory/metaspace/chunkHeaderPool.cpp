@@ -64,8 +64,8 @@ void ChunkHeaderPool::allocate_new_slab() {
 }
 
 // Returns size of memory used.
-size_t ChunkHeaderPool::memory_footprint_words() const {
-  return (_num_slabs.get() * sizeof(Slab)) / BytesPerWord;
+Words ChunkHeaderPool::memory_footprint_words() const {
+  return in_Words((_num_slabs.get() * sizeof(Slab)) / BytesPerWord);
 }
 
 void ChunkHeaderPool::initialize() {

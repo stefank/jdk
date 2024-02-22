@@ -39,35 +39,35 @@
  */
 class VirtualMemory {
  private:
-  size_t     _reserved;
-  size_t     _committed;
+  Bytes     _reserved;
+  Bytes     _committed;
 
-  volatile size_t _peak_size;
-  void update_peak(size_t size);
+  volatile Bytes _peak_size;
+  void update_peak(Bytes size);
 
  public:
-  VirtualMemory() : _reserved(0), _committed(0), _peak_size(0) {}
+  VirtualMemory() : _reserved(Bytes(0)), _committed(Bytes(0)), _peak_size(Bytes(0)) {}
 
-  inline void reserve_memory(size_t sz) { _reserved += sz; }
-  inline void commit_memory (size_t sz) {
+  inline void reserve_memory(Bytes sz) { _reserved += sz; }
+  inline void commit_memory (Bytes sz) {
     _committed += sz;
     assert(_committed <= _reserved, "Sanity check");
     update_peak(_committed);
   }
 
-  inline void release_memory (size_t sz) {
+  inline void release_memory (Bytes sz) {
     assert(_reserved >= sz, "Negative amount");
     _reserved -= sz;
   }
 
-  inline void uncommit_memory(size_t sz) {
+  inline void uncommit_memory(Bytes sz) {
     assert(_committed >= sz, "Negative amount");
     _committed -= sz;
   }
 
-  inline size_t reserved()  const { return _reserved;  }
-  inline size_t committed() const { return _committed; }
-  inline size_t peak_size() const {
+  inline Bytes reserved()  const { return _reserved;  }
+  inline Bytes committed() const { return _committed; }
+  inline Bytes peak_size() const {
     return Atomic::load(&_peak_size);
   }
 };
@@ -79,11 +79,11 @@ class VirtualMemoryAllocationSite : public AllocationSite {
   VirtualMemoryAllocationSite(const NativeCallStack& stack, MEMFLAGS flag) :
     AllocationSite(stack, flag) { }
 
-  inline void reserve_memory(size_t sz)  { _c.reserve_memory(sz);  }
-  inline void commit_memory (size_t sz)  { _c.commit_memory(sz);   }
-  inline size_t reserved() const  { return _c.reserved(); }
-  inline size_t committed() const { return _c.committed(); }
-  inline size_t peak_size() const { return _c.peak_size(); }
+  inline void reserve_memory(Bytes sz)  { _c.reserve_memory(sz);  }
+  inline void commit_memory (Bytes sz)  { _c.commit_memory(sz);   }
+  inline Bytes reserved() const  { return _c.reserved(); }
+  inline Bytes committed() const { return _c.committed(); }
+  inline Bytes peak_size() const { return _c.peak_size(); }
 };
 
 class VirtualMemorySummary;
@@ -107,16 +107,16 @@ class VirtualMemorySnapshot : public ResourceObj {
     return &_virtual_memory[index];
   }
 
-  inline size_t total_reserved() const {
-    size_t amount = 0;
+  inline Bytes total_reserved() const {
+    Bytes amount = Bytes(0);
     for (int index = 0; index < mt_number_of_types; index ++) {
       amount += _virtual_memory[index].reserved();
     }
     return amount;
   }
 
-  inline size_t total_committed() const {
-    size_t amount = 0;
+  inline Bytes total_committed() const {
+    Bytes amount = Bytes(0);
     for (int index = 0; index < mt_number_of_types; index ++) {
       amount += _virtual_memory[index].committed();
     }
@@ -133,19 +133,19 @@ class VirtualMemorySnapshot : public ResourceObj {
 class VirtualMemorySummary : AllStatic {
  public:
 
-  static inline void record_reserved_memory(size_t size, MEMFLAGS flag) {
+  static inline void record_reserved_memory(Bytes size, MEMFLAGS flag) {
     as_snapshot()->by_type(flag)->reserve_memory(size);
   }
 
-  static inline void record_committed_memory(size_t size, MEMFLAGS flag) {
+  static inline void record_committed_memory(Bytes size, MEMFLAGS flag) {
     as_snapshot()->by_type(flag)->commit_memory(size);
   }
 
-  static inline void record_uncommitted_memory(size_t size, MEMFLAGS flag) {
+  static inline void record_uncommitted_memory(Bytes size, MEMFLAGS flag) {
     as_snapshot()->by_type(flag)->uncommit_memory(size);
   }
 
-  static inline void record_released_memory(size_t size, MEMFLAGS flag) {
+  static inline void record_released_memory(Bytes size, MEMFLAGS flag) {
     as_snapshot()->by_type(flag)->release_memory(size);
   }
 
@@ -153,12 +153,12 @@ class VirtualMemorySummary : AllStatic {
   // Virtual memory can be reserved before it is associated with a memory type, and tagged
   // as 'unknown'. Once the memory is tagged, the virtual memory will be moved from 'unknown'
   // type to specified memory type.
-  static inline void move_reserved_memory(MEMFLAGS from, MEMFLAGS to, size_t size) {
+  static inline void move_reserved_memory(MEMFLAGS from, MEMFLAGS to, Bytes size) {
     as_snapshot()->by_type(from)->release_memory(size);
     as_snapshot()->by_type(to)->reserve_memory(size);
   }
 
-  static inline void move_committed_memory(MEMFLAGS from, MEMFLAGS to, size_t size) {
+  static inline void move_committed_memory(MEMFLAGS from, MEMFLAGS to, Bytes size) {
     as_snapshot()->by_type(from)->uncommit_memory(size);
     as_snapshot()->by_type(to)->commit_memory(size);
   }
@@ -181,49 +181,49 @@ class VirtualMemorySummary : AllStatic {
 class VirtualMemoryRegion {
  private:
   address      _base_address;
-  size_t       _size;
+  Bytes        _size;
 
  public:
-  VirtualMemoryRegion(address addr, size_t size) :
+  VirtualMemoryRegion(address addr, Bytes size) :
     _base_address(addr), _size(size) {
      assert(addr != nullptr, "Invalid address");
-     assert(size > 0, "Invalid size");
+     assert(size > Bytes(0), "Invalid size");
    }
 
   inline address base() const { return _base_address;   }
   inline address end()  const { return base() + size(); }
-  inline size_t  size() const { return _size;           }
+  inline Bytes  size() const  { return _size;           }
 
-  inline bool is_empty() const { return size() == 0; }
+  inline bool is_empty() const { return size() == Bytes(0); }
 
   inline bool contain_address(address addr) const {
     return (addr >= base() && addr < end());
   }
 
 
-  inline bool contain_region(address addr, size_t size) const {
+  inline bool contain_region(address addr, Bytes size) const {
     return contain_address(addr) && contain_address(addr + size - 1);
   }
 
-  inline bool same_region(address addr, size_t sz) const {
+  inline bool same_region(address addr, Bytes sz) const {
     return (addr == base() && sz == size());
   }
 
 
-  inline bool overlap_region(address addr, size_t sz) const {
-    assert(sz > 0, "Invalid size");
-    assert(size() > 0, "Invalid size");
+  inline bool overlap_region(address addr, Bytes sz) const {
+    assert(sz > Bytes(0), "Invalid size");
+    assert(size() > Bytes(0), "Invalid size");
     return MAX2(addr, base()) < MIN2(addr + sz, end());
   }
 
-  inline bool adjacent_to(address addr, size_t sz) const {
+  inline bool adjacent_to(address addr, Bytes sz) const {
     return (addr == end() || (addr + sz) == base());
   }
 
-  void exclude_region(address addr, size_t sz) {
+  void exclude_region(address addr, Bytes sz) {
     assert(contain_region(addr, sz), "Not containment");
     assert(addr == base() || addr + sz == end(), "Can not exclude from middle");
-    size_t new_size = size() - sz;
+    Bytes new_size = size() - sz;
 
     if (addr == base()) {
       set_base(addr + sz);
@@ -231,7 +231,7 @@ class VirtualMemoryRegion {
     set_size(new_size);
   }
 
-  void expand_region(address addr, size_t sz) {
+  void expand_region(address addr, Bytes sz) {
     assert(adjacent_to(addr, sz), "Not adjacent regions");
     if (base() == addr + sz) {
       set_base(addr);
@@ -263,8 +263,8 @@ class VirtualMemoryRegion {
     _base_address = base;
   }
 
-  void set_size(size_t  size) {
-    assert(size > 0, "Sanity check");
+  void set_size(Bytes  size) {
+    assert(size > Bytes(0), "Sanity check");
     _size = size;
   }
 };
@@ -275,7 +275,7 @@ class CommittedMemoryRegion : public VirtualMemoryRegion {
   NativeCallStack  _stack;
 
  public:
-  CommittedMemoryRegion(address addr, size_t size, const NativeCallStack& stack) :
+  CommittedMemoryRegion(address addr, Bytes size, const NativeCallStack& stack) :
     VirtualMemoryRegion(addr, size), _stack(stack) { }
 
   inline void set_call_stack(const NativeCallStack& stack) { _stack = stack; }
@@ -295,12 +295,12 @@ class ReservedMemoryRegion : public VirtualMemoryRegion {
   MEMFLAGS         _flag;
 
  public:
-  ReservedMemoryRegion(address base, size_t size, const NativeCallStack& stack,
+  ReservedMemoryRegion(address base, Bytes size, const NativeCallStack& stack,
     MEMFLAGS flag = mtNone) :
     VirtualMemoryRegion(base, size), _stack(stack), _flag(flag) { }
 
 
-  ReservedMemoryRegion(address base, size_t size) :
+  ReservedMemoryRegion(address base, Bytes size) :
     VirtualMemoryRegion(base, size), _stack(NativeCallStack::empty_stack()), _flag(mtNone) { }
 
   // Copy constructor
@@ -318,10 +318,10 @@ class ReservedMemoryRegion : public VirtualMemoryRegion {
   // uncommitted thread stack bottom, above guard pages if there is any.
   address thread_stack_uncommitted_bottom() const;
 
-  bool    add_committed_region(address addr, size_t size, const NativeCallStack& stack);
-  bool    remove_uncommitted_region(address addr, size_t size);
+  bool    add_committed_region(address addr, Bytes size, const NativeCallStack& stack);
+  bool    remove_uncommitted_region(address addr, Bytes size);
 
-  size_t  committed_size() const;
+  Bytes  committed_size() const;
 
   // move committed regions that higher than specified address to
   // the new region
@@ -355,11 +355,11 @@ class ReservedMemoryRegion : public VirtualMemoryRegion {
   // The committed region contains the uncommitted region, subtract the uncommitted
   // region from this committed region
   bool remove_uncommitted_region(LinkedListNode<CommittedMemoryRegion>* node,
-    address addr, size_t sz);
+    address addr, Bytes sz);
 
   bool add_committed_region(const CommittedMemoryRegion& rgn) {
     assert(rgn.base() != nullptr, "Invalid base address");
-    assert(size() > 0, "Invalid size");
+    assert(size() > Bytes(0), "Invalid size");
     return _committed_regions.add(rgn) != nullptr;
   }
 };
@@ -379,18 +379,18 @@ class VirtualMemoryTracker : AllStatic {
  public:
   static bool initialize(NMT_TrackingLevel level);
 
-  static bool add_reserved_region (address base_addr, size_t size, const NativeCallStack& stack, MEMFLAGS flag = mtNone);
+  static bool add_reserved_region (address base_addr, Bytes size, const NativeCallStack& stack, MEMFLAGS flag = mtNone);
 
-  static bool add_committed_region      (address base_addr, size_t size, const NativeCallStack& stack);
-  static bool remove_uncommitted_region (address base_addr, size_t size);
-  static bool remove_released_region    (address base_addr, size_t size);
+  static bool add_committed_region      (address base_addr, Bytes size, const NativeCallStack& stack);
+  static bool remove_uncommitted_region (address base_addr, Bytes size);
+  static bool remove_released_region    (address base_addr, Bytes size);
   static bool remove_released_region    (ReservedMemoryRegion* rgn);
   static void set_reserved_region_type  (address addr, MEMFLAGS flag);
 
   // Given an existing memory mapping registered with NMT, split the mapping in
   //  two. The newly created two mappings will be registered under the call
   //  stack and the memory flags of the original section.
-  static bool split_reserved_region(address addr, size_t size, size_t split);
+  static bool split_reserved_region(address addr, Bytes size, Bytes split);
 
   // Walk virtual memory data structure for creating baseline, etc.
   static bool walk_virtual_memory(VirtualMemoryWalker* walker);

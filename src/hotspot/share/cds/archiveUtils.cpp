@@ -58,13 +58,13 @@ void ArchivePtrMarker::initialize(CHeapBitMap* ptrmap, VirtualSpace* vs) {
 
   // Use this as initial guesstimate. We should need less space in the
   // archive, but if we're wrong the bitmap will be expanded automatically.
-  size_t estimated_archive_size = MetaspaceGC::capacity_until_GC();
+  Bytes estimated_archive_size = MetaspaceGC::capacity_until_GC();
   // But set it smaller in debug builds so we always test the expansion code.
   // (Default archive is about 12MB).
-  DEBUG_ONLY(estimated_archive_size = 6 * M);
+  DEBUG_ONLY(estimated_archive_size = in_Bytes(6 * M));
 
   // We need one bit per pointer in the archive.
-  _ptrmap->initialize(estimated_archive_size / sizeof(intptr_t));
+  _ptrmap->initialize(estimated_archive_size / in_Bytes(sizeof(intptr_t)));
 }
 
 void ArchivePtrMarker::mark_pointer(address* ptr_loc) {
@@ -176,17 +176,17 @@ char* DumpRegion::expand_top_to(char* newtop) {
 void DumpRegion::commit_to(char* newtop) {
   assert(CDSConfig::is_dumping_archive(), "sanity");
   char* base = _rs->base();
-  size_t need_committed_size = newtop - base;
-  size_t has_committed_size = _vs->committed_size();
+  Bytes need_committed_size = pointer_delta_bytes(newtop, base);
+  Bytes has_committed_size = _vs->committed_size();
   if (need_committed_size < has_committed_size) {
     return;
   }
 
-  size_t min_bytes = need_committed_size - has_committed_size;
-  size_t preferred_bytes = 1 * M;
-  size_t uncommitted = _vs->reserved_size() - has_committed_size;
+  Bytes min_bytes = need_committed_size - has_committed_size;
+  Bytes preferred_bytes = in_Bytes(1 * M);
+  Bytes uncommitted = _vs->reserved_size() - has_committed_size;
 
-  size_t commit = MAX2(min_bytes, preferred_bytes);
+  Bytes commit = MAX2(min_bytes, preferred_bytes);
   commit = MIN2(commit, uncommitted);
   assert(commit <= uncommitted, "sanity");
 
@@ -207,7 +207,7 @@ void DumpRegion::commit_to(char* newtop) {
 }
 
 
-char* DumpRegion::allocate(size_t num_bytes) {
+char* DumpRegion::allocate(Bytes num_bytes) {
   char* p = (char*)align_up(_top, (size_t)SharedSpaceObjectAlignment);
   char* newtop = p + align_up(num_bytes, (size_t)SharedSpaceObjectAlignment);
   expand_top_to(newtop);
@@ -226,7 +226,7 @@ void DumpRegion::append_intptr_t(intptr_t n, bool need_to_mark) {
   }
 }
 
-void DumpRegion::print(size_t total_bytes) const {
+void DumpRegion::print(Bytes total_bytes) const {
   log_debug(cds)("%s space: " SIZE_FORMAT_W(9) " [ %4.1f%% of total] out of " SIZE_FORMAT_W(9) " bytes [%5.1f%% used] at " INTPTR_FORMAT,
                  _name, used(), percent_of(used(), total_bytes), reserved(), percent_of(used(), reserved()),
                  p2i(ArchiveBuilder::current()->to_requested(_base)));
@@ -244,7 +244,7 @@ void DumpRegion::init(ReservedSpace* rs, VirtualSpace* vs) {
   _rs = rs;
   _vs = vs;
   // Start with 0 committed bytes. The memory will be committed as needed.
-  if (!_vs->initialize(*_rs, 0)) {
+  if (!_vs->initialize(*_rs, Bytes(0))) {
     fatal("Unable to allocate memory for shared space");
   }
   _base = _top = _rs->base();

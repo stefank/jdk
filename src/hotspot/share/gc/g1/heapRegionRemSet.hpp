@@ -124,19 +124,19 @@ public:
 
   // The actual # of bytes this hr_remset takes up. Also includes the code
   // root set.
-  size_t mem_size() {
+  Bytes mem_size() {
     return _card_set.mem_size()
-           + (sizeof(HeapRegionRemSet) - sizeof(G1CardSet)) // Avoid double-counting G1CardSet.
+           + in_Bytes(sizeof(HeapRegionRemSet) - sizeof(G1CardSet)) // Avoid double-counting G1CardSet.
            + code_roots_mem_size();
   }
 
-  size_t unused_mem_size() {
+  Bytes unused_mem_size() {
     return _card_set.unused_mem_size();
   }
 
   // Returns the memory occupancy of all static data structures associated
   // with remembered sets.
-  static size_t static_mem_size() {
+  static Bytes static_mem_size() {
     return G1CardSet::static_mem_size();
   }
 
@@ -170,7 +170,7 @@ public:
 
   // Returns the amount of memory, in bytes, currently
   // consumed by the code roots.
-  size_t code_roots_mem_size();
+  Bytes code_roots_mem_size();
 
   static void invalidate_from_card_cache(uint start_idx, size_t num_regions) {
     G1FromCardCache::invalidate(start_idx, num_regions);

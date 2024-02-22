@@ -38,11 +38,11 @@
 // to tams. This is an exact measure.
 // The code corrects later for the live data between tams and top.
 struct G1RegionMarkStats {
-  size_t _live_words;
+  Words _live_words;
 
   // Clear all members.
   void clear() {
-    _live_words = 0;
+    _live_words = in_Words(0);
   }
   // Clear all members after a marking overflow. Nothing to do as the live words
   // are updated by the atomic mark. We do not remark objects after overflow.
@@ -102,7 +102,7 @@ public:
   ~G1RegionMarkStatsCache();
 
   void add_live_words(oop obj);
-  void add_live_words(uint region_idx, size_t live_words) {
+  void add_live_words(uint region_idx, Words live_words) {
     G1RegionMarkStatsCacheEntry* const cur = find_for_add(region_idx);
     cur->_stats._live_words += live_words;
   }

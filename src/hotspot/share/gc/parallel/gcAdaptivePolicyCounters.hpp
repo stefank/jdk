@@ -81,13 +81,13 @@ class GCAdaptivePolicyCounters : public GCPolicyCounters {
   AdaptiveSizePolicy* _size_policy;
 
   inline void update_eden_size() {
-    size_t eden_size_in_bytes = size_policy()->calculated_eden_size_in_bytes();
-    _eden_size_counter->set_value(eden_size_in_bytes);
+    Bytes eden_size_in_bytes = size_policy()->calculated_eden_size_in_bytes();
+    _eden_size_counter->set_value(untype(eden_size_in_bytes));
   }
 
   inline void update_promo_size() {
     _promo_size_counter->set_value(
-      size_policy()->calculated_promo_size_in_bytes());
+      untype(size_policy()->calculated_promo_size_in_bytes()));
   }
 
   inline void update_avg_minor_pause_counter() {
@@ -167,21 +167,21 @@ class GCAdaptivePolicyCounters : public GCPolicyCounters {
                            int generations,
                            AdaptiveSizePolicy* size_policy);
 
-  inline void update_survived(size_t survived) {
-    _survived_counter->set_value(survived);
+  inline void update_survived(Bytes survived) {
+    _survived_counter->set_value(untype(survived));
   }
-  inline void update_promoted(size_t promoted) {
-    _promoted_counter->set_value(promoted);
+  inline void update_promoted(Bytes promoted) {
+    _promoted_counter->set_value(untype(promoted));
   }
-  inline void update_young_capacity(size_t size_in_bytes) {
-    _young_capacity_counter->set_value(size_in_bytes);
+  inline void update_young_capacity(Bytes size_in_bytes) {
+    _young_capacity_counter->set_value(untype(size_in_bytes));
   }
 
   virtual void update_counters();
 
   inline void update_survivor_size_counters() {
     desired_survivor_size()->set_value(
-      size_policy()->calculated_survivor_size_in_bytes());
+      untype(size_policy()->calculated_survivor_size_in_bytes()));
   }
   inline void update_survivor_overflowed(bool survivor_overflowed) {
     _survivor_overflowed_counter->set_value(survivor_overflowed);

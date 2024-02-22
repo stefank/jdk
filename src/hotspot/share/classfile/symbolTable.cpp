@@ -142,7 +142,7 @@ public:
     }
   }
   // We use default allocation/deallocation but counted
-  static void* allocate_node(void* context, size_t size, Value const& value) {
+  static void* allocate_node(void* context, Bytes size, Value const& value) {
     SymbolTable::item_added();
     return allocate_node_impl(size, value);
   }
@@ -172,8 +172,8 @@ public:
       // Deleting permanent symbol should not occur very often (insert race condition),
       // so log it.
       log_trace_symboltable_helper(&value, "Freeing permanent symbol");
-      size_t alloc_size = _local_table->get_node_size() + value.byte_size() + value.effective_length();
-      if (!SymbolTable::arena()->Afree(memory, alloc_size)) {
+      Bytes alloc_size = _local_table->get_node_size() + value.byte_size() + value.effective_length();
+      if (!SymbolTable::arena()->Afree(memory, untype(alloc_size))) {
         log_trace_symboltable_helper(&value, "Leaked permanent symbol");
       }
     }
@@ -181,8 +181,8 @@ public:
   }
 
 private:
-  static void* allocate_node_impl(size_t size, Value const& value) {
-    size_t alloc_size = size + value.byte_size() + value.effective_length();
+  static void* allocate_node_impl(Bytes size, Value const& value) {
+    Bytes alloc_size = size + value.byte_size() + value.effective_length();
 #if INCLUDE_CDS
     if (CDSConfig::is_dumping_static_archive()) {
       MutexLocker ml(DumpRegion_lock, Mutex::_no_safepoint_check_flag);
@@ -201,11 +201,11 @@ private:
     }
 #endif
     if (value.refcount() != PERM_REFCOUNT) {
-      return AllocateHeap(alloc_size, mtSymbol);
+      return AllocateHeap(untype(alloc_size), mtSymbol);
     } else {
       // Allocate to global arena
       MutexLocker ml(SymbolArena_lock, Mutex::_no_safepoint_check_flag); // Protect arena
-      return SymbolTable::arena()->Amalloc(alloc_size);
+      return SymbolTable::arena()->Amalloc(untype(alloc_size));
     }
   }
 };
@@ -490,8 +490,8 @@ Symbol* SymbolTable::do_add_if_needed(const char* name, int len, uintx hash, boo
   Symbol* sym;
 
   ResourceMark rm(current);
-  const int alloc_size = Symbol::byte_size(len);
-  u1* u1_buf = NEW_RESOURCE_ARRAY_IN_THREAD(current, u1, alloc_size);
+  const Bytes alloc_size = Symbol::byte_size(len);
+  u1* u1_buf = NEW_RESOURCE_ARRAY_IN_THREAD(current, u1, untype(alloc_size));
   Symbol* tmp = ::new ((void*)u1_buf) Symbol((const u1*)name, len,
                                              (is_permanent || CDSConfig::is_dumping_static_archive()) ? PERM_REFCOUNT : 1);
 
@@ -543,9 +543,9 @@ Symbol* SymbolTable::new_permanent_symbol(const char* name) {
 }
 
 struct SizeFunc : StackObj {
-  size_t operator()(Symbol* value) {
+  Bytes operator()(Symbol* value) {
     assert(value != nullptr, "expected valid value");
-    return (value)->size() * HeapWordSize;
+    return to_Bytes((value)->size());
   };
 };
 
@@ -663,7 +663,7 @@ void SymbolTable::copy_shared_symbol_table(GrowableArray<Symbol*>* symbols,
   }
 }
 
-size_t SymbolTable::estimate_size_for_archive() {
+Bytes SymbolTable::estimate_size_for_archive() {
   if (_items_count > (size_t)max_jint) {
     fatal("Too many symbols to be archived: %zu", _items_count);
   }
@@ -888,25 +888,25 @@ class HistogramIterator : StackObj {
 public:
   static const size_t results_length = 100;
   size_t counts[results_length];
-  size_t sizes[results_length];
-  size_t total_size;
+  Words  sizes[results_length];
+  Words  total_size;
   size_t total_count;
   size_t total_length;
   size_t max_length;
   size_t out_of_range_count;
-  size_t out_of_range_size;
-  HistogramIterator() : total_size(0), total_count(0), total_length(0),
-                        max_length(0), out_of_range_count(0), out_of_range_size(0) {
+  Words  out_of_range_size;
+  HistogramIterator() : total_size(Words(0)), total_count(0), total_length(0),
+                        max_length(0), out_of_range_count(0), out_of_range_size(Words(0)) {
     // initialize results to zero
     for (size_t i = 0; i < results_length; i++) {
       counts[i] = 0;
-      sizes[i] = 0;
+      sizes[i] = Words(0);
     }
   }
   bool operator()(Symbol* value) {
     assert(value != nullptr, "expected valid value");
     Symbol* sym = value;
-    size_t size = sym->size();
+    Words size = sym->size();
     size_t len = sym->utf8_length();
     if (len < results_length) {
       counts[len]++;
@@ -929,7 +929,7 @@ void SymbolTable::print_histogram() {
   _local_table->do_scan(Thread::current(), hi);
   tty->print_cr("Symbol Table Histogram:");
   tty->print_cr("  Total number of symbols  " SIZE_FORMAT_W(7), hi.total_count);
-  tty->print_cr("  Total size in memory     " SIZE_FORMAT_W(7) "K", (hi.total_size * wordSize) / K);
+  tty->print_cr("  Total size in memory     " SIZE_FORMAT_W(7) "K", to_Bytes(hi.total_size) / K);
   tty->print_cr("  Total counted            " SIZE_FORMAT_W(7), _symbols_counted);
   tty->print_cr("  Total removed            " SIZE_FORMAT_W(7), _symbols_removed);
   if (_symbols_counted > 0) {
@@ -947,7 +947,7 @@ void SymbolTable::print_histogram() {
   for (size_t i = 0; i < hi.results_length; i++) {
     if (hi.counts[i] > 0) {
       tty->print_cr("    " SIZE_FORMAT_W(6) " " SIZE_FORMAT_W(10) " " SIZE_FORMAT_W(10) "K",
-                    i, hi.counts[i], (hi.sizes[i] * wordSize) / K);
+                    i, hi.counts[i], to_Bytes(hi.sizes[i]) / K);
     }
   }
   tty->print_cr("  >=" SIZE_FORMAT_W(6) " " SIZE_FORMAT_W(10) " " SIZE_FORMAT_W(10) "K\n",

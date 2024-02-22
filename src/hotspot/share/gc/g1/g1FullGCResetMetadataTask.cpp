@@ -64,7 +64,7 @@ void G1FullGCResetMetadataTask::G1ResetMetadataClosure::scrub_skip_compacting_re
   while (current_obj < limit) {
     if (bitmap->is_marked(current_obj)) {
       oop current = cast_to_oop(current_obj);
-      size_t size = current->size();
+      Words size = current->size();
       if (update_bot_for_live) {
         hr->update_bot_for_block(current_obj, current_obj + size);
       }

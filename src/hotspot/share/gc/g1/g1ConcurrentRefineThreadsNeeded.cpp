@@ -52,7 +52,7 @@ G1ConcurrentRefineThreadsNeeded::G1ConcurrentRefineThreadsNeeded(G1Policy* polic
 // be refined can be beneficial, as further writes to the same card don't
 // create more work.
 void G1ConcurrentRefineThreadsNeeded::update(uint active_threads,
-                                             size_t available_bytes,
+                                             Bytes available_bytes,
                                              size_t num_cards,
                                              size_t target_num_cards) {
   const G1Analytics* analytics = _policy->analytics();
@@ -60,7 +60,7 @@ void G1ConcurrentRefineThreadsNeeded::update(uint active_threads,
   // Estimate time until next GC, based on remaining bytes available for
   // allocation and the allocation rate.
   double alloc_region_rate = analytics->predict_alloc_rate_ms();
-  double alloc_bytes_rate = alloc_region_rate * HeapRegion::GrainBytes;
+  double alloc_bytes_rate = alloc_region_rate * untype(HeapRegion::GrainBytes);
   if (alloc_bytes_rate == 0.0) {
     // A zero rate indicates we don't yet have data to use for predictions.
     // Since we don't have any idea how long until the next GC, use a time of
@@ -72,7 +72,7 @@ void G1ConcurrentRefineThreadsNeeded::update(uint active_threads,
     // (such as overflow) in other calculations.  Limit the prediction to one
     // hour, which is still large in this context.
     const double one_hour_ms = 60.0 * 60.0 * MILLIUNITS;
-    double raw_time_ms = available_bytes / alloc_bytes_rate;
+    double raw_time_ms = untype(available_bytes) / alloc_bytes_rate;
     _predicted_time_until_next_gc_ms = MIN2(raw_time_ms, one_hour_ms);
   }
 

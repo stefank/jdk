@@ -89,7 +89,7 @@ VtableStub* VtableStubs::create_vtable_stub(int vtable_index) {
 
     // check offset vs vtable length
     __ ldrw(rscratch1, Address(r16, Klass::vtable_length_offset()));
-    __ cmpw(rscratch1, vtable_index * vtableEntry::size());
+    __ cmpw(rscratch1, vtable_index * checked_cast<int>(vtableEntry::size()));
     __ br(Assembler::GT, L);
     __ enter();
     __ mov(r2, vtable_index);

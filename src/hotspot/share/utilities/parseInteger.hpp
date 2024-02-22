@@ -85,7 +85,7 @@ inline bool parse_integer_impl(const char *s, char **endptr, int base, T* result
     return false;
   }
   errno = 0; // errno is thread safe
-  *result = strtoull(s, endptr, base);
+  *result = (T)strtoull(s, endptr, base);
   return errno == 0;
 }
 
@@ -122,7 +122,7 @@ static bool parse_integer(const char *s, char **endptr, T* result) {
     return false;
   }
 
-  T n = 0;
+  T n = T(0);
   bool is_hex = (s[0] == '0' && (s[1] == 'x' || s[1] == 'X')) ||
                 (s[0] == '-' && s[1] == '0' && (s[2] == 'x' || s[3] == 'X'));
   char* remainder;

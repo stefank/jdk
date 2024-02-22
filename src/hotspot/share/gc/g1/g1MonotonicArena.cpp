@@ -42,8 +42,8 @@ G1MonotonicArena::Segment* G1MonotonicArena::Segment::create_segment(uint slot_s
                                                                      uint num_slots,
                                                                      Segment* next,
                                                                      MEMFLAGS mem_flag) {
-  size_t block_size = size_in_bytes(slot_size, num_slots);
-  char* alloc_block = NEW_C_HEAP_ARRAY(char, block_size, mem_flag);
+  Bytes block_size = size_in_bytes(slot_size, num_slots);
+  char* alloc_block = NEW_C_HEAP_ARRAY(char, untype(block_size), mem_flag);
   return new (alloc_block) Segment(slot_size, num_slots, next, mem_flag);
 }
 
@@ -60,10 +60,10 @@ void G1MonotonicArena::Segment::delete_segment(Segment* segment) {
 void G1MonotonicArena::SegmentFreeList::bulk_add(Segment& first,
                                                  Segment& last,
                                                  size_t num,
-                                                 size_t mem_size) {
+                                                 Bytes mem_size) {
   _list.prepend(first, last);
   Atomic::add(&_num_segments, num, memory_order_relaxed);
-  Atomic::add(&_mem_size, mem_size, memory_order_relaxed);
+  Atomic::add((volatile size_t*)&_mem_size, untype(mem_size), memory_order_relaxed);
 }
 
 void G1MonotonicArena::SegmentFreeList::print_on(outputStream* out, const char* prefix) {
@@ -72,7 +72,7 @@ void G1MonotonicArena::SegmentFreeList::print_on(outputStream* out, const char* 
 }
 
 G1MonotonicArena::Segment* G1MonotonicArena::SegmentFreeList::get_all(size_t& num_segments,
-                                                                      size_t& mem_size) {
+                                                                      Bytes& mem_size) {
   GlobalCounter::CriticalSection cs(Thread::current());
 
   Segment* result = _list.pop_all();
@@ -81,14 +81,14 @@ G1MonotonicArena::Segment* G1MonotonicArena::SegmentFreeList::get_all(size_t& nu
 
   if (result != nullptr) {
     Atomic::sub(&_num_segments, num_segments, memory_order_relaxed);
-    Atomic::sub(&_mem_size, mem_size, memory_order_relaxed);
+    Atomic::sub((volatile size_t*)&_mem_size, untype(mem_size), memory_order_relaxed);
   }
   return result;
 }
 
 void G1MonotonicArena::SegmentFreeList::free_all() {
   size_t num_freed = 0;
-  size_t mem_size_freed = 0;
+  Bytes mem_size_freed = Bytes(0);
   Segment* cur;
 
   while ((cur = _list.pop()) != nullptr) {
@@ -98,7 +98,7 @@ void G1MonotonicArena::SegmentFreeList::free_all() {
   }
 
   Atomic::sub(&_num_segments, num_freed, memory_order_relaxed);
-  Atomic::sub(&_mem_size, mem_size_freed, memory_order_relaxed);
+  Atomic::sub((volatile size_t*)&_mem_size, untype(mem_size_freed), memory_order_relaxed);
 }
 
 G1MonotonicArena::Segment* G1MonotonicArena::new_segment(Segment* const prev) {
@@ -128,7 +128,7 @@ G1MonotonicArena::Segment* G1MonotonicArena::new_segment(Segment* const prev) {
     }
     // Successfully installed the segment into the list.
     Atomic::inc(&_num_segments, memory_order_relaxed);
-    Atomic::add(&_mem_size, next->mem_size(), memory_order_relaxed);
+    Atomic::add((volatile size_t*)&_mem_size, untype(next->mem_size()), memory_order_relaxed);
     Atomic::add(&_num_total_slots, next->num_slots(), memory_order_relaxed);
     return next;
   }
@@ -140,7 +140,7 @@ G1MonotonicArena::G1MonotonicArena(const AllocOptions* alloc_options,
   _first(nullptr),
   _last(nullptr),
   _num_segments(0),
-  _mem_size(0),
+  _mem_size(Bytes(0)),
   _segment_free_list(segment_free_list),
   _num_total_slots(0),
   _num_allocated_slots(0) {
@@ -166,7 +166,7 @@ void G1MonotonicArena::drop_all() {
     // Check list consistency.
     Segment* last = cur;
     uint num_segments = 0;
-    size_t mem_size = 0;
+    Bytes mem_size = Bytes(0);
     while (cur != nullptr) {
       mem_size += cur->mem_size();
       num_segments++;
@@ -186,7 +186,7 @@ void G1MonotonicArena::drop_all() {
   _first = nullptr;
   _last = nullptr;
   _num_segments = 0;
-  _mem_size = 0;
+  _mem_size = Bytes(0);
   _num_total_slots = 0;
   _num_allocated_slots = 0;
 }

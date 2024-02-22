@@ -679,7 +679,7 @@ csize_t CodeBuffer::copy_relocations_to(address buf, csize_t buf_limit, bool onl
         // Use wordwise copies if possible:
         Copy::disjoint_words((HeapWord*)lstart,
                              (HeapWord*)(buf+buf_offset),
-                             (lsize + HeapWordSize-1) / HeapWordSize);
+                             Words((lsize + HeapWordSize-1) / HeapWordSize));
       } else {
         Copy::conjoint_jbytes(lstart, buf+buf_offset, lsize);
       }
@@ -767,7 +767,7 @@ void CodeBuffer::relocate_code_to(CodeBuffer* dest) const {
     // This may also include an uninitialized partial word at the end.
     Copy::disjoint_words((HeapWord*)cs->start(),
                          (HeapWord*)dest_cs->start(),
-                         wsize / HeapWordSize);
+                         Words(wsize / HeapWordSize));
 
     if (dest->blob() == nullptr) {
       // Destination is a final resting place, not just another buffer.

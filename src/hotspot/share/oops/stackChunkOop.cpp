@@ -598,7 +598,7 @@ bool stackChunkOopDesc::verify(size_t* out_size, int* out_oops, int* out_frames,
   }
 
   if (has_bitmap()) {
-    assert(bitmap().size() == InstanceStackChunkKlass::bitmap_size_in_bits(stack_size()),
+    assert(bitmap().size() == InstanceStackChunkKlass::bitmap_size_in_bits(in_Words(stack_size())),
            "bitmap().size(): %zu stack_size: %d",
            bitmap().size(), stack_size());
 

@@ -54,8 +54,8 @@ TEST_VM_ASSERT_MSG(metaspace, test_overwriter, ".*Metaspace corruption.*") {
     // Note: there is of course no guarantee that blocks allocated sequentially are neighbors;
     //  but in this case (clean standard-sized test arena and very small allocations) it can
     //  be safely assumed).
-    MetaWord* p1 = arena->allocate(8);
-    MetaWord* p2 = arena->allocate(2);
+    MetaWord* p1 = arena->allocate(Words(8));
+    MetaWord* p2 = arena->allocate(Words(2));
     p1[8] = (MetaWord)0x9345; // Overwriter
     // Now we delete the arena (as happens during class unloading); this will check all
     // block canaries and should trigger an assert (see MetaspaceArena::verify_allocation_guards()).

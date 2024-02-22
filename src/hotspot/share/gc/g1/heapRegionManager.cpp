@@ -266,17 +266,17 @@ void HeapRegionManager::clear_auxiliary_data_structures(uint start, uint num_reg
 }
 
 MemoryUsage HeapRegionManager::get_auxiliary_data_memory_usage() const {
-  size_t used_sz =
+  Bytes used_sz =
     _bitmap_mapper->committed_size() +
     _bot_mapper->committed_size() +
     _cardtable_mapper->committed_size();
 
-  size_t committed_sz =
+  Bytes committed_sz =
     _bitmap_mapper->reserved_size() +
     _bot_mapper->reserved_size() +
     _cardtable_mapper->reserved_size();
 
-  return MemoryUsage(0, used_sz, committed_sz, committed_sz);
+  return MemoryUsage(Bytes(0), used_sz, committed_sz, committed_sz);
 }
 
 bool HeapRegionManager::has_inactive_regions() const {

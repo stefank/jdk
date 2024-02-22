@@ -233,7 +233,7 @@ class Method : public Metadata {
   u2 code_size() const                   { return constMethod()->code_size(); }
 
   // method size in words
-  int method_size() const                { return sizeof(Method)/wordSize + ( is_native() ? 2 : 0 ); }
+  Words method_size() const                { return in_Words(sizeof(Method)/wordSize + ( is_native() ? 2 : 0 )); }
 
   // constant pool for Klass* holding this method
   ConstantPool* constants() const              { return constMethod()->constants(); }
@@ -599,11 +599,11 @@ public:
   bool needs_clinit_barrier() const;
 
   // sizing
-  static int header_size()                       {
-    return align_up((int)sizeof(Method), wordSize) / wordSize;
+  static Words header_size()                       {
+    return in_Words(align_up((int)sizeof(Method), wordSize) / wordSize);
   }
-  static int size(bool is_native);
-  int size() const                               { return method_size(); }
+  static Words size(bool is_native);
+  Words size() const                               { return method_size(); }
   void log_touched(Thread* current);
   static void print_touched_methods(outputStream* out);
 

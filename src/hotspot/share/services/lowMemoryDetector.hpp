@@ -71,46 +71,46 @@ class ThresholdSupport : public CHeapObj<mtInternal> {
  private:
   bool            _support_high_threshold;
   bool            _support_low_threshold;
-  size_t          _high_threshold;
-  size_t          _low_threshold;
+  Bytes           _high_threshold;
+  Bytes           _low_threshold;
  public:
   ThresholdSupport(bool support_high, bool support_low) {
     _support_high_threshold = support_high;
     _support_low_threshold = support_low;
-    _high_threshold = 0;
-    _low_threshold= 0;
+    _high_threshold = Bytes(0);
+    _low_threshold= Bytes(0);
   }
 
-  size_t      high_threshold() const        { return _high_threshold; }
-  size_t      low_threshold()  const        { return _low_threshold; }
+  Bytes       high_threshold() const        { return _high_threshold; }
+  Bytes       low_threshold()  const        { return _low_threshold; }
   bool        is_high_threshold_supported() { return _support_high_threshold; }
   bool        is_low_threshold_supported()  { return _support_low_threshold; }
 
   bool        is_high_threshold_crossed(MemoryUsage usage) {
-    if (_support_high_threshold && _high_threshold > 0) {
+    if (_support_high_threshold && _high_threshold > Bytes(0)) {
       return (usage.used() >= _high_threshold);
     }
     return false;
   }
   bool        is_low_threshold_crossed(MemoryUsage usage) {
-    if (_support_low_threshold && _low_threshold > 0) {
+    if (_support_low_threshold && _low_threshold > Bytes(0)) {
       return (usage.used() < _low_threshold);
     }
     return false;
   }
 
-  size_t      set_high_threshold(size_t new_threshold) {
+  Bytes       set_high_threshold(Bytes new_threshold) {
     assert(_support_high_threshold, "can only be set if supported");
     assert(new_threshold >= _low_threshold, "new_threshold must be >= _low_threshold");
-    size_t prev = _high_threshold;
+    Bytes prev = _high_threshold;
     _high_threshold = new_threshold;
     return prev;
   }
 
-  size_t      set_low_threshold(size_t new_threshold) {
+  Bytes       set_low_threshold(Bytes new_threshold) {
     assert(_support_low_threshold, "can only be set if supported");
     assert(new_threshold <= _high_threshold, "new_threshold must be <= _high_threshold");
-    size_t prev = _low_threshold;
+    Bytes prev = _low_threshold;
     _low_threshold = new_threshold;
     return prev;
   }
@@ -234,7 +234,7 @@ public:
     } else {
       ThresholdSupport* threshold_support = pool->usage_threshold();
       return (threshold_support->is_high_threshold_supported() ?
-               (threshold_support->high_threshold() > 0) : false);
+               (threshold_support->high_threshold() > Bytes(0)) : false);
     }
   }
 
@@ -254,8 +254,8 @@ public:
       // if low memory detection is enabled then check if the
       // current used exceeds the high threshold
       if (pool->is_collected_pool() && is_enabled(pool)) {
-        size_t used = pool->used_in_bytes();
-        size_t high = pool->usage_threshold()->high_threshold();
+        Bytes used = pool->used_in_bytes();
+        Bytes high = pool->usage_threshold()->high_threshold();
         if (used > high) {
           detect_low_memory(pool);
         }

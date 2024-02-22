@@ -98,7 +98,7 @@ G1ParScanThreadState::G1ParScanThreadState(G1CollectedHeap* g1h,
   const size_t padding_elem_num = (DEFAULT_PADDING_SIZE / sizeof(size_t));
   size_t array_length = padding_elem_num + _surviving_words_length + padding_elem_num;
 
-  _surviving_young_words_base = NEW_C_HEAP_ARRAY(size_t, array_length, mtGC);
+  _surviving_young_words_base = NEW_C_HEAP_ARRAY(Words, array_length, mtGC);
   _surviving_young_words = _surviving_young_words_base + padding_elem_num;
   memset(_surviving_young_words, 0, _surviving_words_length * sizeof(size_t));
 
@@ -113,7 +113,7 @@ G1ParScanThreadState::G1ParScanThreadState(G1CollectedHeap* g1h,
   initialize_numa_stats();
 }
 
-size_t G1ParScanThreadState::flush_stats(size_t* surviving_young_words, uint num_workers) {
+Words G1ParScanThreadState::flush_stats(Words* surviving_young_words, uint num_workers) {
   _rdc_local_qset.flush();
   flush_numa_stats();
   // Update allocation statistics.
@@ -124,7 +124,7 @@ size_t G1ParScanThreadState::flush_stats(size_t* surviving_young_words, uint num
      _g1h->gc_tracer_stw()->report_evacuation_failed(_evacuation_failed_info);
   }
 
-  size_t sum = 0;
+  Words sum = Words(0);
   for (uint i = 0; i < _surviving_words_length; i++) {
     surviving_young_words[i] += _surviving_young_words[i];
     sum += _surviving_young_words[i];
@@ -140,11 +140,11 @@ G1ParScanThreadState::~G1ParScanThreadState() {
   FREE_C_HEAP_ARRAY(size_t, _obj_alloc_stat);
 }
 
-size_t G1ParScanThreadState::lab_waste_words() const {
+Words G1ParScanThreadState::lab_waste_words() const {
   return _plab_allocator->waste();
 }
 
-size_t G1ParScanThreadState::lab_undo_waste_words() const {
+Words G1ParScanThreadState::lab_undo_waste_words() const {
   return _plab_allocator->undo_waste();
 }
 
@@ -329,7 +329,7 @@ void G1ParScanThreadState::steal_and_trim_queue(G1ScannerTasksQueueSet* task_que
 }
 
 HeapWord* G1ParScanThreadState::allocate_in_next_plab(G1HeapRegionAttr* dest,
-                                                      size_t word_sz,
+                                                      Words word_sz,
                                                       bool previous_plab_refill_failed,
                                                       uint node_index) {
 
@@ -383,15 +383,15 @@ G1HeapRegionAttr G1ParScanThreadState::next_region_attr(G1HeapRegionAttr const r
 }
 
 void G1ParScanThreadState::report_promotion_event(G1HeapRegionAttr const dest_attr,
-                                                  oop const old, size_t word_sz, uint age,
+                                                  oop const old, Words word_sz, uint age,
                                                   HeapWord * const obj_ptr, uint node_index) const {
   PLAB* alloc_buf = _plab_allocator->alloc_buffer(dest_attr, node_index);
   if (alloc_buf->contains(obj_ptr)) {
-    _g1h->gc_tracer_stw()->report_promotion_in_new_plab_event(old->klass(), word_sz * HeapWordSize, age,
+    _g1h->gc_tracer_stw()->report_promotion_in_new_plab_event(old->klass(), to_Bytes(word_sz), age,
                                                               dest_attr.type() == G1HeapRegionAttr::Old,
-                                                              alloc_buf->word_sz() * HeapWordSize);
+                                                              to_Bytes(alloc_buf->word_sz()));
   } else {
-    _g1h->gc_tracer_stw()->report_promotion_outside_plab_event(old->klass(), word_sz * HeapWordSize, age,
+    _g1h->gc_tracer_stw()->report_promotion_outside_plab_event(old->klass(), to_Bytes(word_sz), age,
                                                                dest_attr.type() == G1HeapRegionAttr::Old);
   }
 }
@@ -399,7 +399,7 @@ void G1ParScanThreadState::report_promotion_event(G1HeapRegionAttr const dest_at
 NOINLINE
 HeapWord* G1ParScanThreadState::allocate_copy_slow(G1HeapRegionAttr* dest_attr,
                                                    oop old,
-                                                   size_t word_sz,
+                                                   Words word_sz,
                                                    uint age,
                                                    uint node_index) {
   HeapWord* obj_ptr = nullptr;
@@ -436,12 +436,12 @@ bool G1ParScanThreadState::inject_allocation_failure(uint region_idx) {
 NOINLINE
 void G1ParScanThreadState::undo_allocation(G1HeapRegionAttr dest_attr,
                                            HeapWord* obj_ptr,
-                                           size_t word_sz,
+                                           Words word_sz,
                                            uint node_index) {
   _plab_allocator->undo_allocation(dest_attr, obj_ptr, word_sz, node_index);
 }
 
-void G1ParScanThreadState::update_bot_after_copying(oop obj, size_t word_sz) {
+void G1ParScanThreadState::update_bot_after_copying(oop obj, Words word_sz) {
   HeapWord* obj_start = cast_from_oop<HeapWord*>(obj);
   HeapRegion* region = _g1h->heap_region_containing(obj_start);
   region->update_bot_for_obj(obj_start, word_sz);
@@ -459,7 +459,7 @@ oop G1ParScanThreadState::do_copy_to_survivor_space(G1HeapRegionAttr const regio
   // Get the klass once.  We'll need it again later, and this avoids
   // re-decoding when it's compressed.
   Klass* klass = old->klass();
-  const size_t word_sz = old->size_given_klass(klass);
+  const Words word_sz = old->size_given_klass(klass);
 
   // JNI only allows pinning of typeArrays, so we only need to keep those in place.
   if (region_attr.is_pinned() && klass->is_typeArray_klass()) {
@@ -586,7 +586,7 @@ G1ParScanThreadState* G1ParScanThreadStateSet::state_for_worker(uint worker_id) 
   return _states[worker_id];
 }
 
-const size_t* G1ParScanThreadStateSet::surviving_young_words() const {
+const Words* G1ParScanThreadStateSet::surviving_young_words() const {
   assert(_flushed, "thread local state from the per thread states should have been flushed");
   return _surviving_young_words_total;
 }
@@ -602,14 +602,14 @@ void G1ParScanThreadStateSet::flush_stats() {
 
     // Need to get the following two before the call to G1ParThreadScanState::flush()
     // because it resets the PLAB allocator where we get this info from.
-    size_t lab_waste_bytes = pss->lab_waste_words() * HeapWordSize;
-    size_t lab_undo_waste_bytes = pss->lab_undo_waste_words() * HeapWordSize;
-    size_t copied_bytes = pss->flush_stats(_surviving_young_words_total, _num_workers) * HeapWordSize;
+    Bytes lab_waste_bytes = to_Bytes(pss->lab_waste_words());
+    Bytes lab_undo_waste_bytes = to_Bytes(pss->lab_undo_waste_words());
+    Bytes copied_bytes = to_Bytes(pss->flush_stats(_surviving_young_words_total, _num_workers));
     size_t evac_fail_enqueued_cards = pss->evac_failure_enqueued_cards();
 
-    p->record_or_add_thread_work_item(G1GCPhaseTimes::MergePSS, worker_id, copied_bytes, G1GCPhaseTimes::MergePSSCopiedBytes);
-    p->record_or_add_thread_work_item(G1GCPhaseTimes::MergePSS, worker_id, lab_waste_bytes, G1GCPhaseTimes::MergePSSLABWasteBytes);
-    p->record_or_add_thread_work_item(G1GCPhaseTimes::MergePSS, worker_id, lab_undo_waste_bytes, G1GCPhaseTimes::MergePSSLABUndoWasteBytes);
+    p->record_or_add_thread_work_item(G1GCPhaseTimes::MergePSS, worker_id, untype(copied_bytes), G1GCPhaseTimes::MergePSSCopiedBytes);
+    p->record_or_add_thread_work_item(G1GCPhaseTimes::MergePSS, worker_id, untype(lab_waste_bytes), G1GCPhaseTimes::MergePSSLABWasteBytes);
+    p->record_or_add_thread_work_item(G1GCPhaseTimes::MergePSS, worker_id, untype(lab_undo_waste_bytes), G1GCPhaseTimes::MergePSSLABUndoWasteBytes);
     p->record_or_add_thread_work_item(G1GCPhaseTimes::MergePSS, worker_id, evac_fail_enqueued_cards, G1GCPhaseTimes::MergePSSEvacFailExtra);
 
     delete pss;
@@ -629,7 +629,7 @@ void G1ParScanThreadStateSet::record_unused_optional_region(HeapRegion* hr) {
 }
 
 NOINLINE
-oop G1ParScanThreadState::handle_evacuation_failure_par(oop old, markWord m, size_t word_sz, bool cause_pinned) {
+oop G1ParScanThreadState::handle_evacuation_failure_par(oop old, markWord m, Words word_sz, bool cause_pinned) {
   assert(_g1h->is_in_cset(old), "Object " PTR_FORMAT " should be in the CSet", p2i(old));
 
   oop forward_ptr = old->forward_to_atomic(old, m, memory_order_relaxed);
@@ -706,7 +706,7 @@ G1ParScanThreadStateSet::G1ParScanThreadStateSet(G1CollectedHeap* g1h,
     _rdcqs(G1BarrierSet::dirty_card_queue_set().allocator()),
     _preserved_marks_set(true /* in_c_heap */),
     _states(NEW_C_HEAP_ARRAY(G1ParScanThreadState*, num_workers, mtGC)),
-    _surviving_young_words_total(NEW_C_HEAP_ARRAY(size_t, collection_set->young_region_length() + 1, mtGC)),
+    _surviving_young_words_total(NEW_C_HEAP_ARRAY(Words, collection_set->young_region_length() + 1, mtGC)),
     _num_workers(num_workers),
     _flushed(false),
     _evac_failure_regions(evac_failure_regions) {

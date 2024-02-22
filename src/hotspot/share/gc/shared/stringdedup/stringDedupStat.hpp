@@ -40,9 +40,9 @@ private:
   size_t _known;
   size_t _known_shared;
   size_t _new;
-  size_t _new_bytes;
+  Bytes  _new_bytes;
   size_t _deduped;
-  size_t _deduped_bytes;
+  Bytes  _deduped_bytes;
   size_t _replaced;
   size_t _deleted;
   size_t _skipped_dead;
@@ -107,13 +107,13 @@ public:
   }
 
   // Track number of inspected strings added and accumulated size.
-  void inc_new(size_t bytes) {
+  void inc_new(Bytes bytes) {
     _new++;
     _new_bytes += bytes;
   }
 
   // Track number of inspected strings dedup'ed and accumulated savings.
-  void inc_deduped(size_t bytes) {
+  void inc_deduped(Bytes bytes) {
     _deduped++;
     _deduped_bytes += bytes;
   }

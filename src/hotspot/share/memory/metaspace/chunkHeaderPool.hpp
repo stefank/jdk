@@ -119,7 +119,7 @@ public:
   int freelist_size() const          { return _freelist.count(); }
 
   // Returns size of memory used.
-  size_t memory_footprint_words() const;
+  Words memory_footprint_words() const;
 
   DEBUG_ONLY(void verify() const;)
 

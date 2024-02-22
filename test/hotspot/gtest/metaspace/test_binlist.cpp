@@ -35,7 +35,7 @@ using metaspace::MemRangeCounter;
 
 #define CHECK_BL_CONTENT(bl, expected_num, expected_size) { \
   EXPECT_EQ(bl.count(), (unsigned)expected_num); \
-  EXPECT_EQ(bl.total_size(), (size_t)expected_size); \
+  EXPECT_EQ(bl.total_size(), expected_size); \
   if (expected_num == 0) { \
     EXPECT_TRUE(bl.is_empty()); \
   } else { \
@@ -46,23 +46,23 @@ using metaspace::MemRangeCounter;
 template <class BINLISTTYPE>
 struct BinListBasicTest {
 
-  static const size_t maxws;
+  static const Words maxws;
 
   static void basic_test() {
 
     BINLISTTYPE bl;
 
-    CHECK_BL_CONTENT(bl, 0, 0);
+    CHECK_BL_CONTENT(bl, 0, Words(0));
 
     MetaWord arr[1000];
 
-    size_t innocous_size = MAX2((size_t)1, maxws / 2);
+    Words innocous_size = MAX2((Words)1, maxws / 2);
 
     // Try to get a block from an empty list.
-    size_t real_size = 4711;
+    Words real_size = Words(4711);
     MetaWord* p = bl.remove_block(innocous_size, &real_size);
     EXPECT_EQ(p, (MetaWord*)nullptr);
-    EXPECT_EQ((size_t)0, real_size);
+    EXPECT_EQ((Words)0, real_size);
 
     // Add a block...
     bl.add_block(arr, innocous_size);
@@ -70,11 +70,11 @@ struct BinListBasicTest {
     DEBUG_ONLY(bl.verify();)
 
     // And retrieve it.
-    real_size = 4711;
+    real_size = Words(4711);
     p = bl.remove_block(innocous_size, &real_size);
     EXPECT_EQ(p, arr);
-    EXPECT_EQ((size_t)innocous_size, real_size);
-    CHECK_BL_CONTENT(bl, 0, 0);
+    EXPECT_EQ(innocous_size, real_size);
+    CHECK_BL_CONTENT(bl, 0, Words(0));
     DEBUG_ONLY(bl.verify();)
 
   }
@@ -83,34 +83,34 @@ struct BinListBasicTest {
 
     BINLISTTYPE bl;
 
-    CHECK_BL_CONTENT(bl, 0, 0);
+    CHECK_BL_CONTENT(bl, 0, Words(0));
 
     MetaWord arr[1000];
 
-    for (size_t s1 = 1; s1 <= maxws; s1++) {
-      for (size_t s2 = 1; s2 <= maxws; s2++) {
+    for (Words s1 = Words(1); s1 <= maxws; s1++) {
+      for (Words s2 = Words(1); s2 <= maxws; s2++) {
 
         bl.add_block(arr, s1);
         CHECK_BL_CONTENT(bl, 1, s1);
         DEBUG_ONLY(bl.verify();)
 
-        size_t real_size = 4711;
+        Words real_size = Words(4711);
         MetaWord* p = bl.remove_block(s2, &real_size);
         if (s1 >= s2) {
           EXPECT_EQ(p, arr);
-          EXPECT_EQ((size_t)s1, real_size);
-          CHECK_BL_CONTENT(bl, 0, 0);
+          EXPECT_EQ(s1, real_size);
+          CHECK_BL_CONTENT(bl, 0, Words(0));
           DEBUG_ONLY(bl.verify();)
         } else {
           EXPECT_EQ(p, (MetaWord*)nullptr);
-          EXPECT_EQ((size_t)0, real_size);
+          EXPECT_EQ(Words(0), real_size);
           CHECK_BL_CONTENT(bl, 1, s1);
           DEBUG_ONLY(bl.verify();)
           // drain bl
-          p = bl.remove_block(1, &real_size);
+          p = bl.remove_block(Words(1), &real_size);
           EXPECT_EQ(p, arr);
-          EXPECT_EQ((size_t)s1, real_size);
-          CHECK_BL_CONTENT(bl, 0, 0);
+          EXPECT_EQ(s1, real_size);
+          CHECK_BL_CONTENT(bl, 0, Words(0));
         }
       }
     }
@@ -127,13 +127,13 @@ struct BinListBasicTest {
   ASSERT_EQ(cnt[0].total_size(), bl[0].total_size()); \
   ASSERT_EQ(cnt[1].total_size(), bl[1].total_size());
 
-    FeederBuffer fb(1024);
-    RandSizeGenerator rgen(1, maxws + 1);
+    FeederBuffer fb(Words(1024));
+    RandSizeGenerator rgen(Words(1), maxws + Words(1));
 
     // feed all
     int which = 0;
     for (;;) {
-      size_t s = rgen.get();
+      Words s = rgen.get();
       MetaWord* p = fb.get(s);
       if (p != nullptr) {
         bl[which].add_block(p, s);
@@ -150,11 +150,11 @@ struct BinListBasicTest {
 
     // play pingpong
     for (int iter = 0; iter < 1000; iter++) {
-      size_t s = rgen.get();
+      Words s = rgen.get();
       int taker = iter % 2;
       int giver = taker == 0 ? 1 : 0;
 
-      size_t real_size = 4711;
+      Words real_size = Words(4711);
       MetaWord* p = bl[giver].remove_block(s, &real_size);
       if (p != nullptr) {
 
@@ -166,7 +166,7 @@ struct BinListBasicTest {
         cnt[taker].add(real_size);
 
       } else {
-        ASSERT_EQ(real_size, (size_t)nullptr);
+        ASSERT_EQ(real_size, Words(0));
       }
 
       CHECK_COUNTERS;
@@ -179,14 +179,14 @@ struct BinListBasicTest {
 
     // drain both lists.
     for (int which = 0; which < 2; which++) {
-      size_t last_size = 0;
+      Words last_size = Words(0);
       while (bl[which].is_empty() == false) {
 
-        size_t real_size = 4711;
-        MetaWord* p = bl[which].remove_block(1, &real_size);
+        Words real_size = Words(4711);
+        MetaWord* p = bl[which].remove_block(Words(1), &real_size);
 
         ASSERT_NE(p, (MetaWord*) nullptr);
-        ASSERT_GE(real_size, (size_t)1);
+        ASSERT_GE(real_size, Words(1));
         ASSERT_TRUE(fb.is_valid_range(p, real_size));
 
         // This must hold true since we always return the smallest fit.
@@ -204,7 +204,7 @@ struct BinListBasicTest {
   }
 };
 
-template <typename BINLISTTYPE> const size_t BinListBasicTest<BINLISTTYPE>::maxws = BINLISTTYPE::MaxWordSize;
+template <typename BINLISTTYPE> const Words BinListBasicTest<BINLISTTYPE>::maxws = BINLISTTYPE::MaxWordSize;
 
 TEST_VM(metaspace, BinList_basic_1)     { BinListBasicTest< BinListImpl<1> >::basic_test(); }
 TEST_VM(metaspace, BinList_basic_8)     { BinListBasicTest< BinListImpl<8> >::basic_test(); }

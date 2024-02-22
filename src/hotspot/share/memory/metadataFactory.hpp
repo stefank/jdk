@@ -55,7 +55,7 @@ class MetadataFactory : AllStatic {
     if (data != nullptr) {
       assert(loader_data != nullptr, "shouldn't pass null");
       assert(!data->is_shared(), "cannot deallocate array in shared spaces");
-      int size = data->size();
+      Words size = data->size();
       loader_data->metaspace_non_null()->deallocate((MetaWord*)data, size, false);
     }
   }
@@ -65,7 +65,7 @@ class MetadataFactory : AllStatic {
   static void free_metadata(ClassLoaderData* loader_data, T* md) {
     if (md != nullptr) {
       assert(loader_data != nullptr, "shouldn't pass null");
-      int size = md->size();
+      Words size = md->size();
       // Call metadata's deallocate function which will deallocate fields and release_C_heap_structures
       assert(!md->on_stack(), "can't deallocate things on stack");
       assert(!md->is_shared(), "cannot deallocate if in shared spaces");

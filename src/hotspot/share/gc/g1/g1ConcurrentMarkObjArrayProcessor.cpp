@@ -35,11 +35,11 @@ void G1CMObjArrayProcessor::push_array_slice(HeapWord* what) {
   _task->push(G1TaskQueueEntry::from_slice(what));
 }
 
-size_t G1CMObjArrayProcessor::process_array_slice(objArrayOop obj, HeapWord* start_from, size_t remaining) {
-  size_t words_to_scan = MIN2(remaining, (size_t)ObjArrayMarkingStride);
+Words G1CMObjArrayProcessor::process_array_slice(objArrayOop obj, HeapWord* start_from, Words remaining) {
+  Words words_to_scan = MIN2(remaining, in_Words(ObjArrayMarkingStride));
 
-  if (remaining > ObjArrayMarkingStride) {
-    push_array_slice(start_from + ObjArrayMarkingStride);
+  if (remaining > in_Words(ObjArrayMarkingStride)) {
+    push_array_slice(start_from + in_Words(ObjArrayMarkingStride));
   }
 
   // Then process current area.
@@ -47,13 +47,13 @@ size_t G1CMObjArrayProcessor::process_array_slice(objArrayOop obj, HeapWord* sta
   return _task->scan_objArray(obj, mr);
 }
 
-size_t G1CMObjArrayProcessor::process_obj(oop obj) {
+Words G1CMObjArrayProcessor::process_obj(oop obj) {
   assert(should_be_sliced(obj), "Must be an array object %d and large " SIZE_FORMAT, obj->is_objArray(), obj->size());
 
   return process_array_slice(objArrayOop(obj), cast_from_oop<HeapWord*>(obj), objArrayOop(obj)->size());
 }
 
-size_t G1CMObjArrayProcessor::process_slice(HeapWord* slice) {
+Words G1CMObjArrayProcessor::process_slice(HeapWord* slice) {
 
   // Find the start address of the objArrayOop.
   // Shortcut the BOT access if the given address is from a humongous object. The BOT
@@ -74,8 +74,8 @@ size_t G1CMObjArrayProcessor::process_slice(HeapWord* slice) {
 
   objArrayOop objArray = objArrayOop(cast_to_oop(start_address));
 
-  size_t already_scanned = pointer_delta(slice, start_address);
-  size_t remaining = objArray->size() - already_scanned;
+  Words already_scanned = pointer_delta(slice, start_address);
+  Words remaining = objArray->size() - already_scanned;
 
   return process_array_slice(objArray, slice, remaining);
 }

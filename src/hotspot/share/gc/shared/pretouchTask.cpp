@@ -34,8 +34,8 @@
 PretouchTask::PretouchTask(const char* task_name,
                            char* start_address,
                            char* end_address,
-                           size_t page_size,
-                           size_t chunk_size) :
+                           Bytes page_size,
+                           Bytes chunk_size) :
     WorkerTask(task_name),
     _cur_addr(start_address),
     _end_addr(end_address),
@@ -47,36 +47,36 @@ PretouchTask::PretouchTask(const char* task_name,
          chunk_size, page_size);
 }
 
-size_t PretouchTask::chunk_size() {
-  return PreTouchParallelChunkSize;
+Bytes PretouchTask::chunk_size() {
+  return in_Bytes(PreTouchParallelChunkSize);
 }
 
 void PretouchTask::work(uint worker_id) {
   while (true) {
     char* cur_start = Atomic::load(&_cur_addr);
-    char* cur_end = cur_start + MIN2(_chunk_size, pointer_delta(_end_addr, cur_start, 1));
+    char* cur_end = cur_start + MIN2(_chunk_size, in_Bytes(pointer_delta(_end_addr, cur_start, 1)));
     if (cur_start >= cur_end) {
       break;
     } else if (cur_start == Atomic::cmpxchg(&_cur_addr, cur_start, cur_end)) {
-      os::pretouch_memory(cur_start, cur_end, _page_size);
+      os::pretouch_memory(cur_start, cur_end, untype(_page_size));
     } // Else attempt to claim chunk failed, so try again.
   }
 }
 
 void PretouchTask::pretouch(const char* task_name, char* start_address, char* end_address,
-                            size_t page_size, WorkerThreads* pretouch_workers) {
+                            Bytes page_size, WorkerThreads* pretouch_workers) {
   // Page-align the chunk size, so if start_address is also page-aligned (as
   // is common) then there won't be any pages shared by multiple chunks.
-  size_t chunk_size = align_down_bounded(PretouchTask::chunk_size(), page_size);
+  Bytes chunk_size = align_down_bounded(PretouchTask::chunk_size(), page_size);
   PretouchTask task(task_name, start_address, end_address, page_size, chunk_size);
-  size_t total_bytes = pointer_delta(end_address, start_address, sizeof(char));
+  Bytes total_bytes = in_Bytes(pointer_delta(end_address, start_address, sizeof(char)));
 
-  if (total_bytes == 0) {
+  if (total_bytes == Bytes(0)) {
     return;
   }
 
   if (pretouch_workers != nullptr) {
-    size_t num_chunks = ((total_bytes - 1) / chunk_size) + 1;
+    size_t num_chunks = ((total_bytes - Bytes(1)) / chunk_size) + 1;
 
     uint num_workers = (uint)MIN2(num_chunks, (size_t)pretouch_workers->max_workers());
     log_debug(gc, heap)("Running %s with %u workers for " SIZE_FORMAT " work units pre-touching " SIZE_FORMAT "B.",

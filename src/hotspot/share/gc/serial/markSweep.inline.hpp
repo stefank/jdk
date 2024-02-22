@@ -58,7 +58,7 @@ void AdjustPointerClosure::do_oop_work(T* p)           { MarkSweep::adjust_point
 inline void AdjustPointerClosure::do_oop(oop* p)       { do_oop_work(p); }
 inline void AdjustPointerClosure::do_oop(narrowOop* p) { do_oop_work(p); }
 
-inline size_t MarkSweep::adjust_pointers(oop obj) {
+inline Words MarkSweep::adjust_pointers(oop obj) {
   return obj->oop_iterate_size(&MarkSweep::adjust_pointer_closure);
 }
 

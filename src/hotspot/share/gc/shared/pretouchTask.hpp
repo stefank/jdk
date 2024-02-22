@@ -30,18 +30,18 @@
 class PretouchTask : public WorkerTask {
   char* volatile _cur_addr;
   char* const _end_addr;
-  size_t _page_size;
-  size_t _chunk_size;
+  Bytes _page_size;
+  Bytes _chunk_size;
 
 public:
-  PretouchTask(const char* task_name, char* start_address, char* end_address, size_t page_size, size_t chunk_size);
+  PretouchTask(const char* task_name, char* start_address, char* end_address, Bytes page_size, Bytes chunk_size);
 
   virtual void work(uint worker_id);
 
-  static size_t chunk_size();
+  static Bytes chunk_size();
 
   static void pretouch(const char* task_name, char* start_address, char* end_address,
-                       size_t page_size, WorkerThreads* pretouch_workers);
+                       Bytes page_size, WorkerThreads* pretouch_workers);
 
 };
 

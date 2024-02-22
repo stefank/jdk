@@ -149,7 +149,7 @@ class G1ConcurrentRefine : public CHeapObj<mtGC> {
   class RemSetSamplingClosure;  // Helper class for adjusting young length.
   void adjust_young_list_target_length();
 
-  void adjust_threads_wanted(size_t available_bytes);
+  void adjust_threads_wanted(Bytes available_bytes);
 
   NONCOPYABLE(G1ConcurrentRefine);
 

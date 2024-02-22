@@ -59,6 +59,11 @@ constexpr bool is_aligned(T size, A alignment) {
   return (size & alignment_mask(alignment)) == 0;
 }
 
+template<typename T, typename A, ENABLE_IF(std::is_enum<T>::value)>
+constexpr bool is_aligned(T size, A alignment) {
+  return is_aligned(std::underlying_type_t<T>(size), alignment);
+}
+
 template<typename T, typename A, ENABLE_IF(std::is_integral<T>::value)>
 constexpr T align_down(T size, A alignment) {
   // Convert mask to T before logical_not.  Otherwise, if alignment is unsigned
@@ -70,9 +75,27 @@ constexpr T align_down(T size, A alignment) {
   return result;
 }
 
+template<typename T, typename A, ENABLE_IF(std::is_enum<T>::value)>
+constexpr T align_down(T size, A alignment) {
+  // Convert mask to T before logical_not.  Otherwise, if alignment is unsigned
+  // and smaller than T, the result of the logical_not will be zero-extended
+  // by integral promotion, and upper bits of size will be discarded.
+  // FIXME: Was this a bug?
+  T result = T(std::underlying_type_t<T>(size) & ~std::underlying_type_t<T>((alignment_mask(alignment))));
+  assert(is_aligned(result, alignment),
+         "must be aligned: " UINT64_FORMAT, (uint64_t)result);
+  return result;
+}
+
 template<typename T, typename A, ENABLE_IF(std::is_integral<T>::value)>
 constexpr T align_up(T size, A alignment) {
   T adjusted = checked_cast<T>(size + alignment_mask(alignment));
+  return align_down(adjusted, alignment);
+}
+
+template<typename T, typename A, ENABLE_IF(std::is_enum<T>::value)>
+constexpr T align_up(T size, A alignment) {
+  T adjusted = checked_cast<T>(std::underlying_type_t<T>(size) + alignment_mask(alignment));
   return align_down(adjusted, alignment);
 }
 
@@ -80,7 +103,7 @@ constexpr T align_up(T size, A alignment) {
 template <typename T, typename A>
 constexpr T align_down_bounded(T size, A alignment) {
   T aligned_size = align_down(size, alignment);
-  return (aligned_size > 0) ? aligned_size : T(alignment);
+  return (aligned_size > T(0)) ? aligned_size : T(alignment);
 }
 
 // Align pointers and check for alignment.
@@ -101,19 +124,21 @@ inline bool is_aligned(T* ptr, A alignment) {
 }
 
 // Align metaspace objects by rounding up to natural word boundary
-template <typename T>
-inline T align_metadata_size(T size) {
+inline Words align_metadata_size(Words size) {
   return align_up(size, 1);
 }
 
 // Align objects in the Java Heap by rounding up their size, in HeapWord units.
-template <typename T>
-inline T align_object_size(T word_size) {
+inline Words align_object_size(Words word_size) {
   return align_up(word_size, MinObjAlignment);
 }
 
 inline bool is_object_aligned(size_t word_size) {
   return is_aligned(word_size, MinObjAlignment);
+}
+
+inline bool is_object_aligned(Words word_size) {
+  return is_object_aligned(untype(word_size));
 }
 
 inline bool is_object_aligned(const void* addr) {
@@ -123,6 +148,11 @@ inline bool is_object_aligned(const void* addr) {
 // Pad out certain offsets to jlong alignment, in HeapWord units.
 template <typename T>
 constexpr T align_object_offset(T offset) {
+  return align_up(offset, HeapWordsPerLong);
+}
+
+// Pad out certain offsets to jlong alignment, in HeapWord units.
+constexpr Words align_object_offset(Words offset) {
   return align_up(offset, HeapWordsPerLong);
 }
 

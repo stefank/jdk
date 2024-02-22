@@ -151,14 +151,14 @@ void ciMethodData::load_remaining_extra_data() {
   Copy::disjoint_words_atomic((HeapWord*) mdo->extra_data_base(),
                               (HeapWord*) extra_data_base(),
                               // copy everything from extra_data_base() up to parameters_data_base()
-                              pointer_delta(parameters_data_base(), extra_data_base(), HeapWordSize));
+                              (Words)pointer_delta(parameters_data_base(), extra_data_base(), HeapWordSize));
 
   // skip parameter data copying. Already done in 'load_data'
 
   // copy exception handler data
   Copy::disjoint_words_atomic((HeapWord*) mdo->exception_handler_data_base(),
                               (HeapWord*) exception_handler_data_base(),
-                              exception_handler_data_size() / HeapWordSize);
+                              Words(exception_handler_data_size() / HeapWordSize));
 
   // speculative trap entries also hold a pointer to a Method so need to be translated
   DataLayout* dp_src  = mdo->extra_data_base();
@@ -237,7 +237,7 @@ bool ciMethodData::load_data() {
 #endif
   Copy::disjoint_words_atomic((HeapWord*) &mdo->_compiler_counters,
                               (HeapWord*) &_orig,
-                              sizeof(_orig) / HeapWordSize);
+                              Words(sizeof(_orig) / HeapWordSize));
   Arena* arena = CURRENT_ENV->arena();
   _data_size = mdo->data_size();
   _extra_data_size = mdo->extra_data_size();
@@ -245,7 +245,7 @@ bool ciMethodData::load_data() {
   _data = (intptr_t *) arena->Amalloc(total_size);
   Copy::disjoint_words_atomic((HeapWord*) mdo->data_base(),
                               (HeapWord*) _data,
-                              _data_size / HeapWordSize);
+                              Words(_data_size / HeapWordSize));
   // Copy offsets. This is used below
   _parameters_data_offset = mdo->parameters_type_data_di();
   _exception_handlers_data_offset = mdo->exception_handlers_data_di();
@@ -255,7 +255,7 @@ bool ciMethodData::load_data() {
     // Snapshot the parameter data
     Copy::disjoint_words_atomic((HeapWord*) mdo->parameters_data_base(),
                                 (HeapWord*) parameters_data_base(),
-                                parameters_data_size / HeapWordSize);
+                                Words(parameters_data_size / HeapWordSize));
   }
   // Traverse the profile data, translating any oops into their
   // ci equivalents.

@@ -30,7 +30,7 @@
 #include "oops/oop.inline.hpp"
 
 // add entry
-void AgeTable::add(oop p, size_t oop_size) {
+void AgeTable::add(oop p, Words oop_size) {
   add(p->age(), oop_size);
 }
 

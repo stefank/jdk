@@ -33,36 +33,35 @@
 #include "oops/oop.inline.hpp"
 #include "runtime/globals_extension.hpp"
 
-size_t PLAB::min_size() {
+Words PLAB::min_size() {
   // Make sure that we return something that is larger than AlignmentReserve
-  return align_object_size(MAX2(MinTLABSize / HeapWordSize, (size_t)oopDesc::header_size())) + CollectedHeap::lab_alignment_reserve();
+  return align_object_size(MAX2(to_Words(in_Bytes(MinTLABSize)), oopDesc::header_size())) + CollectedHeap::lab_alignment_reserve();
 }
 
-size_t PLAB::max_size() {
+Words PLAB::max_size() {
   return ThreadLocalAllocBuffer::max_size();
 }
 
 void PLAB::startup_initialization() {
   if (!FLAG_IS_DEFAULT(MinTLABSize)) {
     if (FLAG_IS_DEFAULT(YoungPLABSize)) {
-      FLAG_SET_ERGO(YoungPLABSize, MAX2(ThreadLocalAllocBuffer::min_size(), YoungPLABSize));
+      FLAG_SET_ERGO(YoungPLABSize, untype(MAX2(ThreadLocalAllocBuffer::min_size(), in_Words(YoungPLABSize))));
     }
     if (FLAG_IS_DEFAULT(OldPLABSize)) {
-      FLAG_SET_ERGO(OldPLABSize, MAX2(ThreadLocalAllocBuffer::min_size(), OldPLABSize));
+      FLAG_SET_ERGO(OldPLABSize, untype(MAX2(ThreadLocalAllocBuffer::min_size(), in_Words(OldPLABSize))));
     }
   }
-  uint obj_alignment = checked_cast<uint>(ObjectAlignmentInBytes / HeapWordSize);
-  if (!is_aligned(YoungPLABSize, obj_alignment)) {
-    FLAG_SET_ERGO(YoungPLABSize, align_up(YoungPLABSize, obj_alignment));
+  if (!is_object_aligned(in_Words(YoungPLABSize))) {
+    FLAG_SET_ERGO(YoungPLABSize, untype(align_object_size(in_Words(YoungPLABSize))));
   }
-  if (!is_aligned(OldPLABSize, obj_alignment)) {
-    FLAG_SET_ERGO(OldPLABSize, align_up(OldPLABSize, obj_alignment));
+  if (!is_object_aligned(in_Words(OldPLABSize))) {
+    FLAG_SET_ERGO(OldPLABSize, untype(align_object_size(in_Words(OldPLABSize))));
   }
 }
 
-PLAB::PLAB(size_t desired_plab_sz_) :
+PLAB::PLAB(Words desired_plab_sz_) :
   _word_sz(desired_plab_sz_), _bottom(nullptr), _top(nullptr),
-  _end(nullptr), _hard_end(nullptr), _allocated(0), _wasted(0), _undo_wasted(0)
+  _end(nullptr), _hard_end(nullptr), _allocated(Words(0)), _wasted(Words(0)), _undo_wasted(Words(0))
 {
   assert(min_size() > CollectedHeap::lab_alignment_reserve(),
          "Minimum PLAB size " SIZE_FORMAT " must be larger than alignment reserve " SIZE_FORMAT " "
@@ -71,7 +70,7 @@ PLAB::PLAB(size_t desired_plab_sz_) :
 
 void PLAB::flush_and_retire_stats(PLABStats* stats) {
   // Retire the last allocation buffer.
-  size_t unused = retire_internal();
+  Words unused = retire_internal();
 
   // Now flush the statistics.
   stats->add_allocated(_allocated);
@@ -82,17 +81,17 @@ void PLAB::flush_and_retire_stats(PLABStats* stats) {
   // Since we have flushed the stats we need to clear  the _allocated and _wasted
   // fields in case somebody retains an instance of this over GCs. Not doing so
   // will artificially inflate the values in the statistics.
-  _allocated   = 0;
-  _wasted      = 0;
-  _undo_wasted = 0;
+  _allocated   = Words(0);
+  _wasted      = Words(0);
+  _undo_wasted = Words(0);
 }
 
 void PLAB::retire() {
   _wasted += retire_internal();
 }
 
-size_t PLAB::retire_internal() {
-  size_t result = 0;
+Words PLAB::retire_internal() {
+  Words result = Words(0);
   if (_top < _hard_end) {
     Universe::heap()->fill_with_dummy_object(_top, _hard_end, true);
     result += invalidate();
@@ -100,18 +99,18 @@ size_t PLAB::retire_internal() {
   return result;
 }
 
-void PLAB::add_undo_waste(HeapWord* obj, size_t word_sz) {
+void PLAB::add_undo_waste(HeapWord* obj, Words word_sz) {
   Universe::heap()->fill_with_dummy_object(obj, obj + word_sz, true);
   _undo_wasted += word_sz;
 }
 
-void PLAB::undo_last_allocation(HeapWord* obj, size_t word_sz) {
+void PLAB::undo_last_allocation(HeapWord* obj, Words word_sz) {
   assert(pointer_delta(_top, _bottom) >= word_sz, "Bad undo");
   assert(pointer_delta(_top, obj) == word_sz, "Bad undo");
   _top = obj;
 }
 
-void PLAB::undo_allocation(HeapWord* obj, size_t word_sz) {
+void PLAB::undo_allocation(HeapWord* obj, Words word_sz) {
   // Is the alloc in the current alloc buffer?
   if (contains(obj)) {
     assert(contains(obj + word_sz - 1),

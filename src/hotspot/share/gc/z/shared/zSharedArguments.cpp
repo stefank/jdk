@@ -66,8 +66,8 @@ size_t ZSharedArguments::heap_virtual_to_physical_ratio() {
   }
 }
 
-size_t ZSharedArguments::conservative_max_heap_alignment() {
-  return 0;
+Bytes ZSharedArguments::conservative_max_heap_alignment() {
+  return Bytes(0);
 }
 
 CollectedHeap* ZSharedArguments::create_heap() {

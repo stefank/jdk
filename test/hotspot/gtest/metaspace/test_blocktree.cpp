@@ -35,9 +35,9 @@ using metaspace::MemRangeCounter;
 
 // Small helper. Given a 0-terminated array of sizes, a feeder buffer and a tree,
 //  add blocks of these sizes to the tree in the order they appear in the array.
-static void create_nodes(const size_t sizes[], FeederBuffer& fb, BlockTree& bt) {
-  for (int i = 0; sizes[i] > 0; i ++) {
-    size_t s = sizes[i];
+static void create_nodes(const Words sizes[], FeederBuffer& fb, BlockTree& bt) {
+  for (int i = 0; sizes[i] > Words(0); i ++) {
+    Words s = sizes[i];
     MetaWord* p = fb.get(s);
     bt.add_block(p, s);
   }
@@ -45,7 +45,7 @@ static void create_nodes(const size_t sizes[], FeederBuffer& fb, BlockTree& bt) 
 
 #define CHECK_BT_CONTENT(bt, expected_num, expected_size) { \
   EXPECT_EQ(bt.count(), (unsigned)expected_num); \
-  EXPECT_EQ(bt.total_size(), (size_t)expected_size); \
+  EXPECT_EQ(bt.total_size(), expected_size); \
   if (expected_num == 0) { \
     EXPECT_TRUE(bt.is_empty()); \
   } else { \
@@ -56,32 +56,32 @@ static void create_nodes(const size_t sizes[], FeederBuffer& fb, BlockTree& bt) 
 TEST_VM(metaspace, BlockTree_basic) {
 
   BlockTree bt;
-  CHECK_BT_CONTENT(bt, 0, 0);
+  CHECK_BT_CONTENT(bt, 0, Words(0));
 
-  size_t real_size = 0;
+  Words real_size = Words(0);
   MetaWord* p = nullptr;
   MetaWord arr[10000];
 
-  ASSERT_LE(BlockTree::MinWordSize, (size_t)6); // Sanity check. Adjust if Node is changed.
+  ASSERT_LE(BlockTree::MinWordSize, Words(6)); // Sanity check. Adjust if Node is changed.
 
-  const size_t minws = BlockTree::MinWordSize;
+  const Words minws = BlockTree::MinWordSize;
 
   // remove_block from empty tree should yield nothing
   p = bt.remove_block(minws, &real_size);
   EXPECT_NULL(p);
   EXPECT_0(real_size);
-  CHECK_BT_CONTENT(bt, 0, 0);
+  CHECK_BT_CONTENT(bt, 0, Words(0));
 
   // Add some blocks and retrieve them right away.
-  size_t sizes[] = {
+  Words sizes[] = {
       minws, // smallest possible
-      minws + 10,
-      1024,
-      4711,
-      0
+      minws + Words(10),
+      Words(1024),
+      Words(4711),
+      Words(0)
   };
 
-  for (int i = 0; sizes[i] > 0; i++) {
+  for (int i = 0; sizes[i] > Words(0); i++) {
     bt.add_block(arr, sizes[i]);
     CHECK_BT_CONTENT(bt, 1, sizes[i]);
 
@@ -89,8 +89,8 @@ TEST_VM(metaspace, BlockTree_basic) {
 
     MetaWord* p = bt.remove_block(sizes[i], &real_size);
     EXPECT_EQ(p, arr);
-    EXPECT_EQ(real_size, (size_t)sizes[i]);
-    CHECK_BT_CONTENT(bt, 0, 0);
+    EXPECT_EQ(real_size, sizes[i]);
+    CHECK_BT_CONTENT(bt, 0, Words(0));
   }
 
 }
@@ -98,9 +98,9 @@ TEST_VM(metaspace, BlockTree_basic) {
 // Helper for test_find_nearest_fit_with_tree.
 // Out of an array of sizes return the closest upper match to a requested size.
 // Returns SIZE_MAX if none found.
-static size_t helper_find_nearest_fit(const size_t sizes[], size_t request_size) {
-  size_t best = SIZE_MAX;
-  for (int i = 0; sizes[i] > 0; i++) {
+static Words helper_find_nearest_fit(const Words sizes[], Words request_size) {
+  Words best = in_Words(SIZE_MAX);
+  for (int i = 0; sizes[i] > Words(0); i++) {
     if (sizes[i] >= request_size && sizes[i] < best) {
       best = sizes[i];
     }
@@ -110,20 +110,20 @@ static size_t helper_find_nearest_fit(const size_t sizes[], size_t request_size)
 
 // Given a sequence of (0-terminated) sizes, add blocks of those sizes to the tree in the order given. Then, ask
 // for a request size and check that it is the expected result.
-static void test_find_nearest_fit_with_tree(const size_t sizes[], size_t request_size) {
+static void test_find_nearest_fit_with_tree(const Words sizes[], Words request_size) {
 
   BlockTree bt;
-  FeederBuffer fb(4 * K);
+  FeederBuffer fb(in_Words(4 * K));
 
   create_nodes(sizes, fb, bt);
 
   DEBUG_ONLY(bt.verify();)
 
-  size_t expected_size = helper_find_nearest_fit(sizes, request_size);
-  size_t real_size = 0;
+  Words expected_size = helper_find_nearest_fit(sizes, request_size);
+  Words real_size = Words(0);
   MetaWord* p = bt.remove_block(request_size, &real_size);
 
-  if (expected_size != SIZE_MAX) {
+  if (expected_size != in_Words(SIZE_MAX)) {
     EXPECT_NOT_NULL(p);
     EXPECT_EQ(real_size, expected_size);
   } else {
@@ -149,18 +149,18 @@ TEST_VM(metaspace, BlockTree_find_nearest_fit) {
   //                    \
   //                     35
 
-  static const size_t sizes[] = {
-    30, 17, 10, 28,
-    50, 32, 51, 35,
-    0 // stop
+  static const Words sizes[] = {
+    Words(30), Words(17), Words(10), Words(28),
+    Words(50), Words(32), Words(32), Words(32),
+    Words(32) // stop
   };
 
   BlockTree bt;
-  FeederBuffer fb(4 * K);
+  FeederBuffer fb(in_Words(4 * K));
 
   create_nodes(sizes, fb, bt);
 
-  for (int i = BlockTree::MinWordSize; i <= 60; i ++) {
+  for (Words i = BlockTree::MinWordSize; i <= Words(60); i ++) {
     test_find_nearest_fit_with_tree(sizes, i);
   }
 
@@ -171,11 +171,11 @@ TEST_VM(metaspace, BlockTree_find_nearest_fit) {
 TEST_VM(metaspace, BlockTree_basic_siblings)
 {
   BlockTree bt;
-  FeederBuffer fb(4 * K);
+  FeederBuffer fb(in_Words(4 * K));
 
-  CHECK_BT_CONTENT(bt, 0, 0);
+  CHECK_BT_CONTENT(bt, 0, Words(0));
 
-  const size_t test_size = BlockTree::MinWordSize;
+  const Words test_size = BlockTree::MinWordSize;
   const int num = 10;
 
   for (int i = 0; i < num; i++) {
@@ -186,10 +186,10 @@ TEST_VM(metaspace, BlockTree_basic_siblings)
   DEBUG_ONLY(bt.verify();)
 
   for (int i = num; i > 0; i --) {
-    size_t real_size = 4711;
+    Words real_size = Words(4711);
     MetaWord* p = bt.remove_block(test_size, &real_size);
     EXPECT_TRUE(fb.is_valid_pointer(p));
-    EXPECT_EQ(real_size, (size_t)test_size);
+    EXPECT_EQ(real_size, test_size);
     CHECK_BT_CONTENT(bt, i - 1, (i - 1) * test_size);
   }
 
@@ -198,14 +198,14 @@ TEST_VM(metaspace, BlockTree_basic_siblings)
 #ifdef ASSERT
 TEST_VM(metaspace, BlockTree_print_test) {
 
-  static const size_t sizes[] = {
-    30, 17, 10, 28,
-    50, 32, 51, 35,
-    0 // stop
+  static const Words sizes[] = {
+    Words(30), Words(17), Words(10), Words(28),
+    Words(50), Words(32), Words(51), Words(35),
+    Words(0) // stop
   };
 
   BlockTree bt;
-  FeederBuffer fb(4 * K);
+  FeederBuffer fb(in_Words(4 * K));
 
   create_nodes(sizes, fb, bt);
 
@@ -219,18 +219,18 @@ TEST_VM(metaspace, BlockTree_print_test) {
 
 // Test that an overwritten node would result in an assert and a printed tree
 TEST_VM_ASSERT_MSG(metaspace, BlockTree_overwriter_test, ".*failed: Invalid node") {
-  static const size_t sizes1[] = { 30, 17, 0 };
-  static const size_t sizes2[] = { 12, 12, 0 };
+  static const Words sizes1[] = { Words(30), Words(17), Words(0) };
+  static const Words sizes2[] = { Words(12), Words(12), Words(0) };
 
   BlockTree bt;
-  FeederBuffer fb(4 * K);
+  FeederBuffer fb(in_Words(4 * K));
 
   // some nodes...
   create_nodes(sizes1, fb, bt);
 
   // a node we will break...
-  MetaWord* p_broken = fb.get(12);
-  bt.add_block(p_broken, 12);
+  MetaWord* p_broken = fb.get(Words(12));
+  bt.add_block(p_broken, Words(12));
 
   // some more nodes...
   create_nodes(sizes2, fb, bt);
@@ -259,8 +259,8 @@ class BlockTreeTest {
   CHECK_BT_CONTENT(_bt[1], _cnt[1].count(), _cnt[1].total_size())
 
 #define CHECK_COUNTERS_ARE_0 \
-  CHECK_BT_CONTENT(_bt[0], 0, 0) \
-  CHECK_BT_CONTENT(_bt[1], 0, 0)
+  CHECK_BT_CONTENT(_bt[0], 0, Words(0)) \
+  CHECK_BT_CONTENT(_bt[1], 0, Words(0))
 
 #ifdef ASSERT
   void verify_trees() {
@@ -284,9 +284,9 @@ class BlockTreeTest {
     // If we feed in small graining, we cap the number of blocks to limit test duration.
     const unsigned max_blocks = 2000;
 
-    size_t old_feeding_size = feeding_pattern == right_left ? _rgen.max() : _rgen.min();
+    Words old_feeding_size = feeding_pattern == right_left ? _rgen.max() : _rgen.min();
     do {
-      size_t s = 0;
+      Words s = Words(0);
       switch (feeding_pattern) {
       case scatter:
         // fill completely random
@@ -332,8 +332,8 @@ class BlockTreeTest {
       if ((os::random() % 10) > 5) {
         giver = 0; taker = 1;
       }
-      size_t s =_rgen.get();
-      size_t real_size = 0;
+      Words s =_rgen.get();
+      Words real_size = Words(0);
       MetaWord* p = _bt[giver].remove_block(s, &real_size);
       if (p != nullptr) {
         ASSERT_TRUE(_fb.is_valid_range(p, real_size));
@@ -357,12 +357,12 @@ class BlockTreeTest {
 
     for (int which = 0; which < 2; which++) {
       BlockTree* bt = _bt + which;
-      size_t last_size = 0;
+      Words last_size = Words(0);
       while (!bt->is_empty()) {
 
         // We only query for the minimal size. Actually returned size should be
         // monotonously growing since remove_block should always return the closest fit.
-        size_t real_size = 4711;
+        Words real_size = Words(4711);
         MetaWord* p = bt->remove_block(BlockTree::MinWordSize, &real_size);
         ASSERT_TRUE(_fb.is_valid_range(p, real_size));
 
@@ -402,8 +402,8 @@ class BlockTreeTest {
 
 public:
 
-  BlockTreeTest(size_t min_word_size, size_t max_word_size) :
-    _fb(2 * M),
+  BlockTreeTest(Words min_word_size, Words max_word_size) :
+    _fb(in_Words(2 * M)),
     _bt(),
     _rgen(min_word_size, max_word_size)
   {
@@ -419,7 +419,7 @@ public:
 
 #define DO_TEST(name, feedingpattern, min, max) \
   TEST_VM(metaspace, BlockTree_##name##_##feedingpattern) { \
-    BlockTreeTest btt(min, max); \
+    BlockTreeTest btt(Words(min), Words(max)); \
     btt.test_##feedingpattern(); \
   }
 

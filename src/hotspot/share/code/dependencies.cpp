@@ -390,7 +390,7 @@ void Dependencies::copy_to(nmethod* nm) {
   guarantee(end - beg >= (ptrdiff_t) size_in_bytes(), "bad sizing");
   Copy::disjoint_words((HeapWord*) content_bytes(),
                        (HeapWord*) beg,
-                       size_in_bytes() / sizeof(HeapWord));
+                       in_Words(size_in_bytes() / sizeof(HeapWord)));
   assert(size_in_bytes() % sizeof(HeapWord) == 0, "copy by words");
 }
 

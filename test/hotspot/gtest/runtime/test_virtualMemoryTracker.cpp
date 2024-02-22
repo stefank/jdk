@@ -47,7 +47,7 @@
 namespace {
   struct R {
     address _addr;
-    size_t  _size;
+    Bytes  _size;
   };
 }
 
@@ -69,7 +69,7 @@ static void diagnostic_print(ReservedMemoryRegion* rmr) {
 static void check_inner(ReservedMemoryRegion* rmr, R* regions, size_t regions_size, const char* file, int line) {
   CommittedRegionIterator iter = rmr->iterate_committed_regions();
   size_t i = 0;
-  size_t size = 0;
+  Bytes size = 0_b;
 
   // Helpful log
   diagnostic_print(rmr);
@@ -92,7 +92,7 @@ class VirtualMemoryTrackerTest {
 public:
   static void test_add_committed_region_adjacent() {
 
-    size_t size  = 0x01000000;
+    Bytes size  = 0x01000000_b;
     ReservedSpace rs(size);
     address addr = (address)rs.base();
 
@@ -109,7 +109,7 @@ public:
     ASSERT_EQ(rmr->base(), addr);
 
     // Commit Size Granularity
-    const size_t cs = 0x1000;
+    const Bytes cs = 0x1000_b;
 
     // Commit adjacent regions with same stack
 
@@ -133,7 +133,7 @@ public:
 
     // Cleanup
     rmr->remove_uncommitted_region(addr, 3 * cs);
-    ASSERT_EQ(rmr->committed_size(), 0u);
+    ASSERT_EQ(rmr->committed_size(), 0_b);
 
 
     // Commit adjacent regions with different stacks
@@ -161,12 +161,12 @@ public:
 
     // Cleanup
     rmr->remove_uncommitted_region(addr, 3 * cs);
-    ASSERT_EQ(rmr->committed_size(), 0u);
+    ASSERT_EQ(rmr->committed_size(), 0_b);
   }
 
   static void test_add_committed_region_adjacent_overlapping() {
 
-    size_t size  = 0x01000000;
+    Bytes size  = 0x01000000_b;
     ReservedSpace rs(size);
     address addr = (address)rs.base();
 
@@ -186,7 +186,7 @@ public:
     ASSERT_EQ(rmr->base(), addr);
 
     // Commit Size Granularity
-    const size_t cs = 0x1000;
+    const Bytes cs = 0x1000_b;
 
     // Commit adjacent and overlapping regions with same stack
 
@@ -216,7 +216,7 @@ public:
 
     // Cleanup
     rmr->remove_uncommitted_region(addr, 5 * cs);
-    ASSERT_EQ(rmr->committed_size(), 0u);
+    ASSERT_EQ(rmr->committed_size(), 0_b);
 
 
     // Commit adjacent and overlapping regions with different stacks
@@ -253,7 +253,7 @@ public:
 
   static void test_add_committed_region_overlapping() {
 
-    size_t size  = 0x01000000;
+    Bytes size  = 0x01000000_b;
     ReservedSpace rs(size);
     address addr = (address)rs.base();
 
@@ -270,7 +270,7 @@ public:
     ASSERT_EQ(rmr->base(), addr);
 
     // Commit Size Granularity
-    const size_t cs = 0x1000;
+    const Bytes cs = 0x1000_b;
 
     // With same stack
 
@@ -324,7 +324,7 @@ public:
 
     // Cleanup
     rmr->remove_uncommitted_region(addr, 3 * cs);
-    ASSERT_EQ(rmr->committed_size(), 0u);
+    ASSERT_EQ(rmr->committed_size(), 0_b);
 
     // With preceding region
 
@@ -354,7 +354,7 @@ public:
 
     // Cleanup
     rmr->remove_uncommitted_region(addr, 5 * cs);
-    ASSERT_EQ(rmr->committed_size(), 0u);
+    ASSERT_EQ(rmr->committed_size(), 0_b);
 
     // With different stacks
 
@@ -424,7 +424,7 @@ public:
 
   static void test_remove_uncommitted_region() {
 
-    size_t size  = 0x01000000;
+    Bytes size  = 0x01000000_b;
     ReservedSpace rs(size);
     address addr = (address)rs.base();
 
@@ -441,7 +441,7 @@ public:
     ASSERT_EQ(rmr->base(), addr);
 
     // Commit Size Granularity
-    const size_t cs = 0x1000;
+    const Bytes cs = 0x1000_b;
 
     { // Commit regions
       rmr->add_committed_region(addr, 3 * cs, stack);

@@ -48,8 +48,8 @@ class ObjectSampler : public CHeapObj<mtTracing> {
  private:
   SamplePriorityQueue* _priority_queue;
   SampleList* _list;
-  size_t _total_allocated;
-  size_t _threshold;
+  Bytes _total_allocated;
+  Bytes _threshold;
   size_t _size;
 
   // Lifecycle
@@ -60,8 +60,8 @@ class ObjectSampler : public CHeapObj<mtTracing> {
   static void destroy();
 
   // Sampling
-  static void sample(HeapWord* object, size_t size, JavaThread* thread);
-  void add(HeapWord* object, size_t size, traceid thread_id, bool virtual_thread, const JfrBlobHandle& bh, JavaThread* thread);
+  static void sample(HeapWord* object, Bytes size, JavaThread* thread);
+  void add(HeapWord* object, Bytes size, traceid thread_id, bool virtual_thread, const JfrBlobHandle& bh, JavaThread* thread);
   void scavenge();
   void remove_dead(ObjectSample* sample);
 

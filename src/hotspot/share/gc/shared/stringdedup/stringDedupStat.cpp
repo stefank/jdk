@@ -32,9 +32,9 @@ StringDedup::Stat::Stat() :
   _known(0),
   _known_shared(0),
   _new(0),
-  _new_bytes(0),
+  _new_bytes(Bytes(0)),
   _deduped(0),
-  _deduped_bytes(0),
+  _deduped_bytes(Bytes(0)),
   _replaced(0),
   _deleted(0),
   _skipped_dead(0),
@@ -94,7 +94,7 @@ static double strdedup_elapsed_param_ms(Tickspan t) {
 void StringDedup::Stat::log_summary(const Stat* last_stat, const Stat* total_stat) {
   double total_deduped_bytes_percent = 0.0;
 
-  if (total_stat->_new_bytes > 0) {
+  if (total_stat->_new_bytes > Bytes(0)) {
     // Avoid division by zero
     total_deduped_bytes_percent = percent_of(total_stat->_deduped_bytes, total_stat->_new_bytes);
   }

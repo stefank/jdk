@@ -280,7 +280,7 @@ static char* reserve_mmapped_memory(size_t bytes, char* requested_addr, MEMFLAGS
                        flags, -1, 0);
 
   if (addr != MAP_FAILED) {
-    MemTracker::record_virtual_memory_reserve((address)addr, bytes, CALLER_PC, flag);
+    MemTracker::record_virtual_memory_reserve((address)addr, in_Bytes(bytes), CALLER_PC, flag);
     return addr;
   }
   return nullptr;
@@ -410,7 +410,7 @@ char* os::map_memory_to_file_aligned(size_t size, size_t alignment, int file_des
   if (replace_existing_mapping_with_file_mapping(aligned_base, size, file_desc) == nullptr) {
     vm_exit_during_initialization(err_msg("Error in mapping Java heap at the given filesystem directory"));
   }
-  MemTracker::record_virtual_memory_commit((address)aligned_base, size, CALLER_PC);
+  MemTracker::record_virtual_memory_commit((address)aligned_base, in_Bytes(size), CALLER_PC);
   return aligned_base;
 }
 

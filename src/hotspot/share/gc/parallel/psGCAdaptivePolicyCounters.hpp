@@ -75,14 +75,14 @@ class PSGCAdaptivePolicyCounters : public GCAdaptivePolicyCounters {
  public:
   PSGCAdaptivePolicyCounters(const char* name, int collectors, int generations,
                              PSAdaptiveSizePolicy* size_policy);
-  inline void update_old_capacity(size_t size_in_bytes) {
-    _old_capacity->set_value(size_in_bytes);
+  inline void update_old_capacity(Bytes size_in_bytes) {
+    _old_capacity->set_value(untype(size_in_bytes));
   }
-  inline void update_old_eden_size(size_t old_size) {
-    _old_eden_size->set_value(old_size);
+  inline void update_old_eden_size(Bytes old_size) {
+    _old_eden_size->set_value(untype(old_size));
   }
-  inline void update_old_promo_size(size_t old_size) {
-    _old_promo_size->set_value(old_size);
+  inline void update_old_promo_size(Bytes old_size) {
+    _old_promo_size->set_value(untype(old_size));
   }
   inline void update_avg_promoted_avg() {
     _avg_promoted_avg_counter->set_value(
@@ -142,7 +142,7 @@ class PSGCAdaptivePolicyCounters : public GCAdaptivePolicyCounters {
     _live_space->set_value(ps_size_policy()->live_space());
   }
   inline void update_free_space() {
-    _free_space->set_value(ps_size_policy()->free_space());
+    _free_space->set_value(untype(ps_size_policy()->free_space()));
   }
 
   inline void update_avg_base_footprint() {

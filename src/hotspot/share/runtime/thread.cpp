@@ -98,7 +98,7 @@ Thread::Thread() {
   debug_only(_owned_locks = nullptr;)
   NOT_PRODUCT(_skip_gcalot = false;)
   _jvmti_env_iteration_count = 0;
-  set_allocated_bytes(0);
+  set_allocated_bytes(Bytes(0));
   _current_pending_raw_monitor = nullptr;
   _vm_error_callbacks = nullptr;
 
@@ -183,11 +183,11 @@ void Thread::record_stack_base_and_size() {
 }
 
 void Thread::register_thread_stack_with_NMT() {
-  MemTracker::record_thread_stack(stack_end(), stack_size());
+  MemTracker::record_thread_stack(stack_end(), in_Bytes(stack_size()));
 }
 
 void Thread::unregister_thread_stack_with_NMT() {
-  MemTracker::release_thread_stack(stack_end(), stack_size());
+  MemTracker::release_thread_stack(stack_end(), in_Bytes(stack_size()));
 }
 
 void Thread::call_run() {

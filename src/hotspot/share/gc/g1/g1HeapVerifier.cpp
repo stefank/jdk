@@ -199,13 +199,13 @@ public:
 class VerifyObjsInRegionClosure: public ObjectClosure {
 private:
   G1CollectedHeap* _g1h;
-  size_t _live_bytes;
+  Bytes _live_bytes;
   HeapRegion *_hr;
   VerifyOption _vo;
 
 public:
   VerifyObjsInRegionClosure(HeapRegion *hr, VerifyOption vo)
-    : _live_bytes(0), _hr(hr), _vo(vo) {
+    : _live_bytes(Bytes(0)), _hr(hr), _vo(vo) {
     _g1h = G1CollectedHeap::heap();
   }
   void do_object(oop o) {
@@ -225,12 +225,12 @@ public:
 
       o->oop_iterate(&isLive);
       if (!_hr->is_in_parsable_area(o)) {
-        size_t obj_size = o->size();
-        _live_bytes += (obj_size * HeapWordSize);
+        Words obj_size = o->size();
+        _live_bytes += to_Bytes(obj_size);
       }
     }
   }
-  size_t live_bytes() { return _live_bytes; }
+  Bytes live_bytes() { return _live_bytes; }
 };
 
 class VerifyRegionClosure: public HeapRegionClosure {
@@ -439,18 +439,18 @@ void G1HeapVerifier::verify_region_sets() {
 
 class G1VerifyRegionMarkingStateClosure : public HeapRegionClosure {
   class MarkedBytesClosure {
-    size_t _marked_words;
+    Words _marked_words;
 
   public:
-    MarkedBytesClosure() : _marked_words(0) { }
+    MarkedBytesClosure() : _marked_words(Words(0)) { }
 
-    inline size_t apply(oop obj) {
-      size_t result = obj->size();
+    inline Words apply(oop obj) {
+      Words result = obj->size();
       _marked_words += result;
       return result;
     }
 
-    size_t marked_bytes() const { return _marked_words * HeapWordSize; }
+    Bytes marked_bytes() const { return to_Bytes(_marked_words); }
   };
 
 public:
@@ -466,7 +466,7 @@ public:
     if (part_of_marking) {
       guarantee(r->bottom() != r->top_at_mark_start(), "region %u (%s) does not have TAMS set",
                                                        r->hrm_index(), r->get_short_type_str());
-      size_t marked_bytes = cm->live_bytes(r->hrm_index());
+      Bytes marked_bytes = cm->live_bytes(r->hrm_index());
 
       MarkedBytesClosure cl;
       r->apply_to_marked_objects(cm->mark_bitmap(), &cl);
@@ -478,7 +478,7 @@ public:
       guarantee(r->bottom() == r->top_at_mark_start(),
                 "region %u (%s) has TAMS set " PTR_FORMAT " " PTR_FORMAT,
                 r->hrm_index(), r->get_short_type_str(), p2i(r->bottom()), p2i(r->top_at_mark_start()));
-      guarantee(cm->live_bytes(r->hrm_index()) == 0,
+      guarantee(cm->live_bytes(r->hrm_index()) == Bytes(0),
                 "region %u (%s) has %zu live bytes recorded",
                 r->hrm_index(), r->get_short_type_str(), cm->live_bytes(r->hrm_index()));
       guarantee(cm->mark_bitmap()->get_next_marked_addr(r->bottom(), r->end()) == r->end(),

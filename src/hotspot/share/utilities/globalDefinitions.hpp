@@ -29,6 +29,7 @@
 #include "utilities/compilerWarnings.hpp"
 #include "utilities/debug.hpp"
 #include "utilities/macros.hpp"
+#include "utilities/sizes.hpp"
 
 // Get constants like JVM_T_CHAR and JVM_SIGNATURE_INT, before pulling in <jvm.h>.
 #include "classfile_constants.h"
@@ -289,8 +290,12 @@ const int LogHeapWordsPerLong = LogBytesPerLong - LogHeapWordSize;
 
 // The minimum number of native machine words necessary to contain "byte_size"
 // bytes.
-inline size_t heap_word_size(size_t byte_size) {
-  return (byte_size + (HeapWordSize-1)) >> LogHeapWordSize;
+inline Words heap_word_size(size_t byte_size) {
+  return Words((byte_size + (HeapWordSize-1)) >> LogHeapWordSize);
+}
+
+inline Words heap_word_size(Bytes byte_size) {
+  return heap_word_size(untype(byte_size));
 }
 
 inline jfloat jfloat_cast(jint x);
@@ -359,8 +364,11 @@ inline const char* proper_unit_for_byte_size(size_t s) {
     return "B";
   }
 }
+inline const char* proper_unit_for_byte_size(Bytes s) {
+  return proper_unit_for_byte_size(untype(s));
+}
 
-template <class T>
+template <typename T>
 inline T byte_size_in_proper_unit(T s) {
 #ifdef _LP64
   if (s >= 100*G) {
@@ -374,6 +382,9 @@ inline T byte_size_in_proper_unit(T s) {
   } else {
     return s;
   }
+}
+inline size_t byte_size_in_proper_unit(Bytes s) {
+  return byte_size_in_proper_unit(untype(s));
 }
 
 #define PROPERFMT             SIZE_FORMAT "%s"
@@ -394,6 +405,10 @@ inline const char* exact_unit_for_byte_size(size_t s) {
   return "B";
 }
 
+inline const char* exact_unit_for_byte_size(Bytes s) {
+  return exact_unit_for_byte_size(untype(s));
+}
+
 inline size_t byte_size_in_exact_unit(size_t s) {
 #ifdef _LP64
   if (s >= G && (s % G) == 0) {
@@ -407,6 +422,10 @@ inline size_t byte_size_in_exact_unit(size_t s) {
     return s / K;
   }
   return s;
+}
+
+inline size_t byte_size_in_exact_unit(Bytes s) {
+  return byte_size_in_exact_unit(untype(s));
 }
 
 #define EXACTFMT            SIZE_FORMAT "%s"
@@ -467,13 +486,53 @@ inline size_t pointer_delta(const volatile void* left,
 }
 
 // A version specialized for HeapWord*'s.
-inline size_t pointer_delta(const HeapWord* left, const HeapWord* right) {
-  return pointer_delta(left, right, sizeof(HeapWord));
+inline Words pointer_delta(const HeapWord* left, const HeapWord* right) {
+  return in_Words(pointer_delta(left, right, sizeof(HeapWord)));
 }
 // A version specialized for MetaWord*'s.
-inline size_t pointer_delta(const MetaWord* left, const MetaWord* right) {
-  return pointer_delta(left, right, sizeof(MetaWord));
+inline Words pointer_delta(const MetaWord* left, const MetaWord* right) {
+  return in_Words(pointer_delta(left, right, sizeof(MetaWord)));
 }
+
+// A version that helps creating a Bytes difference
+inline Bytes pointer_delta_bytes(void* left, void* right) {
+  return in_Bytes(pointer_delta(left, right, sizeof(char)));
+}
+
+// Located here instead of size.hpp to break circular dependency
+
+constexpr address  operator +  (address  x, Bytes y) { return x + untype(y);     }
+constexpr address  operator -  (address  x, Bytes y) { return x - untype(y);     }
+
+constexpr address& operator += (address& x, Bytes y) { x += untype(y); return x; }
+constexpr address& operator -= (address& x, Bytes y) { x -= untype(y); return x; }
+
+constexpr char*    operator +  (char*    x, Bytes y) { return x + untype(y);     }
+constexpr char*    operator -  (char*    x, Bytes y) { return x - untype(y);     }
+
+constexpr char*&   operator += (char*&   x, Bytes y) { x += untype(y); return x; }
+constexpr char*&   operator -= (char*&   x, Bytes y) { x -= untype(y); return x; }
+
+// Functions to convert back and forth between Words and Bytes.
+
+constexpr Words to_Words(Bytes count) {
+  return in_Words(untype(count) >> LogBytesPerWord);
+}
+
+constexpr Bytes to_Bytes(Words count) {
+  return in_Bytes(untype(count) << LogBytesPerWord);
+}
+
+// ... as the above, but also erases the type to size_t
+
+constexpr size_t to_words(Bytes count) {
+  return untype(to_Words(count));
+}
+
+constexpr size_t to_bytes(Words count) {
+  return untype(to_Bytes(count));
+}
+
 
 // pointer_delta_as_int is called to do pointer subtraction for nearby pointers that
 // returns a non-negative int, usually used as a size of a code buffer range.
@@ -638,7 +697,7 @@ inline double fabsd(double value) {
 // is zero, return 0.0.
 template<typename T>
 inline double percent_of(T numerator, T denominator) {
-  return denominator != 0 ? (double)numerator / (double)denominator * 100.0 : 0.0;
+  return denominator != T(0) ? (double)numerator / (double)denominator * 100.0 : 0.0;
 }
 
 //----------------------------------------------------------------------------------------------------
@@ -1146,8 +1205,9 @@ static inline julong uabs(jlong n) { return uabs((julong)n); }
 static inline unsigned int uabs(int n) { return uabs((unsigned int)n); }
 
 // "to" should be greater than "from."
-inline size_t byte_size(void* from, void* to) {
-  return pointer_delta(to, from, sizeof(char));
+// NOTE: Be careful! bytes_size and pointer_delta uses different params order!
+inline Bytes byte_size(void* from, void* to) {
+  return in_Bytes(pointer_delta(to, from, sizeof(char)));
 }
 
 // Pack and extract shorts to/from ints:

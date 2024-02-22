@@ -77,9 +77,9 @@ void G1BlockOffsetTable::set_offset_array(size_t index, u_char offset) {
 void G1BlockOffsetTable::set_offset_array(size_t index, HeapWord* high, HeapWord* low) {
   check_index(index, "index out of range");
   assert(high >= low, "addresses out of order");
-  size_t offset = pointer_delta(high, low);
+  Words offset = pointer_delta(high, low);
   check_offset(offset, "offset too large");
-  set_offset_array(index, (u_char)offset);
+  set_offset_array(index, (u_char)untype(offset));
 }
 
 void G1BlockOffsetTable::set_offset_array(size_t left, size_t right, u_char offset) {

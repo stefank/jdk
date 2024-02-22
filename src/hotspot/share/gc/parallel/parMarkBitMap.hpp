@@ -45,8 +45,8 @@ public:
   bool initialize(MemRegion covered_region);
 
   // Atomically mark an object as live.
-  bool mark_obj(HeapWord* addr, size_t size);
-  inline bool mark_obj(oop obj, size_t size);
+  bool mark_obj(HeapWord* addr, Words size);
+  inline bool mark_obj(oop obj, Words size);
 
   // Return whether the specified begin or end bit is set.
   inline bool is_obj_beg(idx_t bit) const;
@@ -65,17 +65,17 @@ public:
   // Convert sizes from bits to HeapWords and back.  An object that is n bits
   // long will be bits_to_words(n) words long.  An object that is m words long
   // will take up words_to_bits(m) bits in the bitmap.
-  inline static size_t bits_to_words(idx_t bits);
-  inline static idx_t  words_to_bits(size_t words);
+  inline static Words bits_to_words(idx_t bits);
+  inline static idx_t  words_to_bits(Words words);
 
   // Return the size in words of an object given a begin bit and an end bit, or
   // the equivalent beg_addr and end_addr.
-  inline size_t obj_size(idx_t beg_bit, idx_t end_bit) const;
-  inline size_t obj_size(HeapWord* beg_addr, HeapWord* end_addr) const;
+  inline Words obj_size(idx_t beg_bit, idx_t end_bit) const;
+  inline Words obj_size(HeapWord* beg_addr, HeapWord* end_addr) const;
 
   // Return the size in words of the object (a search is done for the end bit).
-  inline size_t obj_size(idx_t beg_bit)  const;
-  inline size_t obj_size(HeapWord* addr) const;
+  inline Words obj_size(idx_t beg_bit)  const;
+  inline Words obj_size(HeapWord* addr) const;
 
   // Apply live_closure to each live object that lies completely within the
   // range [live_range_beg, live_range_end).  This is used to iterate over the
@@ -125,14 +125,14 @@ public:
   // the range are included in the result. The end of the range must be a live object,
   // which is the case when updating pointers.  This allows a branch to be removed
   // from inside the loop.
-  size_t live_words_in_range(ParCompactionManager* cm, HeapWord* beg_addr, oop end_obj) const;
+  Words live_words_in_range(ParCompactionManager* cm, HeapWord* beg_addr, oop end_obj) const;
 
   inline HeapWord* region_start() const;
   inline HeapWord* region_end() const;
-  inline size_t    region_size() const;
+  inline Words     region_size() const;
   inline size_t    size() const;
 
-  size_t reserved_byte_size() const { return _reserved_byte_size; }
+  Bytes reserved_byte_size() const { return _reserved_byte_size; }
 
   // Convert a heap address to/from a bit index.
   inline idx_t     addr_to_bit(HeapWord* addr) const;
@@ -156,7 +156,7 @@ public:
 
   // Return the number of bits required to represent the specified number of
   // HeapWords, or the specified region.
-  static inline idx_t bits_required(size_t words);
+  static inline idx_t bits_required(Words words);
   static inline idx_t bits_required(MemRegion covered_region);
 
   void print_on_error(outputStream* st) const {
@@ -172,24 +172,24 @@ public:
 #endif  // #ifdef ASSERT
 
 private:
-  size_t live_words_in_range_helper(HeapWord* beg_addr, oop end_obj) const;
+  Words live_words_in_range_helper(HeapWord* beg_addr, oop end_obj) const;
 
   bool is_live_words_in_range_in_cache(ParCompactionManager* cm, HeapWord* beg_addr) const;
-  size_t live_words_in_range_use_cache(ParCompactionManager* cm, HeapWord* beg_addr, oop end_obj) const;
-  void update_live_words_in_range_cache(ParCompactionManager* cm, HeapWord* beg_addr, oop end_obj, size_t result) const;
+  Words live_words_in_range_use_cache(ParCompactionManager* cm, HeapWord* beg_addr, oop end_obj) const;
+  void update_live_words_in_range_cache(ParCompactionManager* cm, HeapWord* beg_addr, oop end_obj, Words result) const;
 
   // Each bit in the bitmap represents one unit of 'object granularity.' Objects
   // are double-word aligned in 32-bit VMs, but not in 64-bit VMs, so the 32-bit
   // granularity is 2, 64-bit is 1.
-  static inline size_t obj_granularity() { return size_t(MinObjAlignment); }
+  static inline Words obj_granularity() { return Words(MinObjAlignment); }
   static inline int obj_granularity_shift() { return LogMinObjAlignment; }
 
   HeapWord*       _region_start;
-  size_t          _region_size;
+  Words           _region_size;
   BitMapView      _beg_bits;
   BitMapView      _end_bits;
   PSVirtualSpace* _virtual_space;
-  size_t          _reserved_byte_size;
+  Bytes          _reserved_byte_size;
 };
 
 #endif // SHARE_GC_PARALLEL_PARMARKBITMAP_HPP

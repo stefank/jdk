@@ -36,10 +36,10 @@ EpsilonMemoryPool::EpsilonMemoryPool(EpsilonHeap* heap) :
 }
 
 MemoryUsage EpsilonMemoryPool::get_memory_usage() {
-  size_t initial_sz = initial_size();
-  size_t max_sz     = max_size();
-  size_t used       = used_in_bytes();
-  size_t committed  = committed_in_bytes();
+  Bytes initial_sz = initial_size();
+  Bytes max_sz     = max_size();
+  Bytes used       = used_in_bytes();
+  Bytes committed  = committed_in_bytes();
 
   return MemoryUsage(initial_sz, used, committed, max_sz);
 }

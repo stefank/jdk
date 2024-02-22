@@ -34,7 +34,7 @@
 #include "utilities/macros.hpp"
 #include "utilities/nativeCallStack.hpp"
 
-inline MallocHeader::MallocHeader(size_t size, MEMFLAGS flags, uint32_t mst_marker)
+inline MallocHeader::MallocHeader(Bytes size, MEMFLAGS flags, uint32_t mst_marker)
   : _size(size), _mst_marker(mst_marker), _flags(flags),
     _unused(0), _canary(_header_canary_live_mark)
 {
@@ -123,7 +123,7 @@ inline bool MallocHeader::looks_valid() const {
   // E.g. we don't check footer canary.
   return ( (_canary == _header_canary_live_mark NOT_LP64(&& _alt_canary == _header_alt_canary_live_mark)) ||
            (_canary == _header_canary_dead_mark NOT_LP64(&& _alt_canary == _header_alt_canary_dead_mark)) ) &&
-           _size > 0 && _size < max_reasonable_malloc_size;
+           _size > Bytes(0) && _size < max_reasonable_malloc_size;
 }
 
 inline bool MallocHeader::check_block_integrity(char* msg, size_t msglen, address* p_corruption) const {

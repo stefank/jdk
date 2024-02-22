@@ -43,8 +43,8 @@ public:
   const char* internal_name()  const {
     return "MyMetaData";
   }
-  int size() const {
-    return align_up((int)sizeof(MyMetaData), wordSize) / wordSize;
+  Words size() const {
+    return in_Words(align_up((int)sizeof(MyMetaData), wordSize) / wordSize);
   };
 
   static bool is_read_only_by_default() {

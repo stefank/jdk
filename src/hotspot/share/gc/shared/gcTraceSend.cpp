@@ -129,30 +129,30 @@ bool YoungGCTracer::should_send_promotion_outside_plab_event() const {
   return EventPromoteObjectOutsidePLAB::is_enabled();
 }
 
-void YoungGCTracer::send_promotion_in_new_plab_event(Klass* klass, size_t obj_size,
+void YoungGCTracer::send_promotion_in_new_plab_event(Klass* klass, Bytes obj_size,
                                                      uint age, bool tenured,
-                                                     size_t plab_size) const {
+                                                     Bytes plab_size) const {
 
   EventPromoteObjectInNewPLAB event;
   if (event.should_commit()) {
     event.set_gcId(GCId::current());
     event.set_objectClass(klass);
-    event.set_objectSize(obj_size);
+    event.set_objectSize(untype(obj_size));
     event.set_tenured(tenured);
     event.set_tenuringAge(age);
-    event.set_plabSize(plab_size);
+    event.set_plabSize(untype(plab_size));
     event.commit();
   }
 }
 
-void YoungGCTracer::send_promotion_outside_plab_event(Klass* klass, size_t obj_size,
+void YoungGCTracer::send_promotion_outside_plab_event(Klass* klass, Bytes obj_size,
                                                       uint age, bool tenured) const {
 
   EventPromoteObjectOutsidePLAB event;
   if (event.should_commit()) {
     event.set_gcId(GCId::current());
     event.set_objectClass(klass);
-    event.set_objectSize(obj_size);
+    event.set_objectSize(untype(obj_size));
     event.set_tenured(tenured);
     event.set_tenuringAge(age);
     event.commit();
@@ -172,9 +172,9 @@ void OldGCTracer::send_old_gc_event() const {
 static JfrStructCopyFailed to_struct(const CopyFailedInfo& cf_info) {
   JfrStructCopyFailed failed_info;
   failed_info.set_objectCount(cf_info.failed_count());
-  failed_info.set_firstSize(cf_info.first_size() * HeapWordSize);
-  failed_info.set_smallestSize(cf_info.smallest_size() * HeapWordSize);
-  failed_info.set_totalSize(cf_info.total_size() * HeapWordSize);
+  failed_info.set_firstSize(to_bytes(cf_info.first_size()));
+  failed_info.set_smallestSize(to_bytes(cf_info.smallest_size()));
+  failed_info.set_totalSize(to_bytes(cf_info.total_size()));
   return failed_info;
 }
 
@@ -211,8 +211,8 @@ static JfrStructObjectSpace to_struct(const SpaceSummary& summary) {
   JfrStructObjectSpace space;
   space.set_start((TraceAddress)summary.start());
   space.set_end((TraceAddress)summary.end());
-  space.set_used(summary.used());
-  space.set_size(summary.size());
+  space.set_used(untype(summary.used()));
+  space.set_size(untype(summary.size()));
   return space;
 }
 
@@ -229,7 +229,7 @@ class GCHeapSummaryEventSender : public GCHeapSummaryVisitor {
       e.set_gcId(GCId::current());
       e.set_when((u1)_when);
       e.set_heapSpace(to_struct(heap_space));
-      e.set_heapUsed(heap_summary->used());
+      e.set_heapUsed(untype(heap_summary->used()));
       e.commit();
     }
   }
@@ -241,10 +241,10 @@ class GCHeapSummaryEventSender : public GCHeapSummaryVisitor {
     if (e.should_commit()) {
       e.set_gcId(GCId::current());
       e.set_when((u1)_when);
-      e.set_edenUsedSize(g1_heap_summary->edenUsed());
-      e.set_edenTotalSize(g1_heap_summary->edenCapacity());
-      e.set_survivorUsedSize(g1_heap_summary->survivorUsed());
-      e.set_oldGenUsedSize(g1_heap_summary->oldGenUsed());
+      e.set_edenUsedSize(untype(g1_heap_summary->edenUsed()));
+      e.set_edenTotalSize(untype(g1_heap_summary->edenCapacity()));
+      e.set_survivorUsedSize(untype(g1_heap_summary->survivorUsed()));
+      e.set_oldGenUsedSize(untype(g1_heap_summary->oldGenUsed()));
       e.set_numberOfRegions(g1_heap_summary->numberOfRegions());
       e.commit();
     }
@@ -283,9 +283,9 @@ void GCTracer::send_gc_heap_summary_event(GCWhen::Type when, const GCHeapSummary
 
 static JfrStructMetaspaceSizes to_struct(const MetaspaceStats& sizes) {
   JfrStructMetaspaceSizes meta_sizes;
-  meta_sizes.set_committed(sizes.committed());
-  meta_sizes.set_used(sizes.used());
-  meta_sizes.set_reserved(sizes.reserved());
+  meta_sizes.set_committed(untype(sizes.committed()));
+  meta_sizes.set_used(untype(sizes.used()));
+  meta_sizes.set_reserved(untype(sizes.reserved()));
   return meta_sizes;
 }
 
@@ -294,7 +294,7 @@ void GCTracer::send_meta_space_summary_event(GCWhen::Type when, const MetaspaceS
   if (e.should_commit()) {
     e.set_gcId(GCId::current());
     e.set_when((u1) when);
-    e.set_gcThreshold(meta_space_summary.capacity_until_GC());
+    e.set_gcThreshold(untype(meta_space_summary.capacity_until_GC()));
     e.set_metaspace(to_struct(meta_space_summary.stats())); // total stats (class + nonclass)
     e.set_dataSpace(to_struct(meta_space_summary.stats().non_class_space_stats())); // "dataspace" aka non-class space
     e.set_classSpace(to_struct(meta_space_summary.stats().class_space_stats()));

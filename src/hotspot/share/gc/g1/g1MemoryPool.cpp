@@ -30,8 +30,8 @@
 
 G1MemoryPoolSuper::G1MemoryPoolSuper(G1CollectedHeap* g1h,
                                      const char* name,
-                                     size_t init_size,
-                                     size_t max_size,
+                                     Bytes init_size,
+                                     Bytes max_size,
                                      bool support_usage_threshold) :
   CollectedMemoryPool(name,
                       init_size,
@@ -41,7 +41,7 @@ G1MemoryPoolSuper::G1MemoryPoolSuper(G1CollectedHeap* g1h,
   assert(UseG1GC, "sanity");
 }
 
-G1EdenPool::G1EdenPool(G1CollectedHeap* g1h, size_t initial_size) :
+G1EdenPool::G1EdenPool(G1CollectedHeap* g1h, Bytes initial_size) :
   G1MemoryPoolSuper(g1h,
                     "G1 Eden Space",
                     initial_size,
@@ -52,7 +52,7 @@ MemoryUsage G1EdenPool::get_memory_usage() {
   return _g1mm->eden_space_memory_usage(initial_size(), max_size());
 }
 
-G1SurvivorPool::G1SurvivorPool(G1CollectedHeap* g1h, size_t initial_size) :
+G1SurvivorPool::G1SurvivorPool(G1CollectedHeap* g1h, Bytes initial_size) :
   G1MemoryPoolSuper(g1h,
                     "G1 Survivor Space",
                     initial_size,
@@ -63,7 +63,7 @@ MemoryUsage G1SurvivorPool::get_memory_usage() {
   return _g1mm->survivor_space_memory_usage(initial_size(), max_size());
 }
 
-G1OldGenPool::G1OldGenPool(G1CollectedHeap* g1h, size_t initial_size, size_t max_size) :
+G1OldGenPool::G1OldGenPool(G1CollectedHeap* g1h, Bytes initial_size, Bytes max_size) :
   G1MemoryPoolSuper(g1h,
                     "G1 Old Gen",
                     initial_size,

@@ -70,43 +70,41 @@ using metaspace::MetaspaceReporter;
 using metaspace::RunningCounters;
 using metaspace::VirtualSpaceList;
 
-size_t MetaspaceUtils::used_words() {
+Words MetaspaceUtils::used_words() {
   return RunningCounters::used_words();
 }
 
-size_t MetaspaceUtils::used_words(Metaspace::MetadataType mdtype) {
+Words MetaspaceUtils::used_words(Metaspace::MetadataType mdtype) {
   return mdtype == Metaspace::ClassType ? RunningCounters::used_words_class() : RunningCounters::used_words_nonclass();
 }
 
-size_t MetaspaceUtils::reserved_words() {
+Words MetaspaceUtils::reserved_words() {
   return RunningCounters::reserved_words();
 }
 
-size_t MetaspaceUtils::reserved_words(Metaspace::MetadataType mdtype) {
+Words MetaspaceUtils::reserved_words(Metaspace::MetadataType mdtype) {
   return mdtype == Metaspace::ClassType ? RunningCounters::reserved_words_class() : RunningCounters::reserved_words_nonclass();
 }
 
-size_t MetaspaceUtils::committed_words() {
+Words MetaspaceUtils::committed_words() {
   return RunningCounters::committed_words();
 }
 
-size_t MetaspaceUtils::committed_words(Metaspace::MetadataType mdtype) {
+Words MetaspaceUtils::committed_words(Metaspace::MetadataType mdtype) {
   return mdtype == Metaspace::ClassType ? RunningCounters::committed_words_class() : RunningCounters::committed_words_nonclass();
 }
 
 // Helper for get_statistics()
-static void get_values_for(Metaspace::MetadataType mdtype, size_t* reserved, size_t* committed, size_t* used) {
-#define w2b(x) (x * sizeof(MetaWord))
+static void get_values_for(Metaspace::MetadataType mdtype, Bytes* reserved, Bytes* committed, Bytes* used) {
   if (mdtype == Metaspace::ClassType) {
-    *reserved = w2b(RunningCounters::reserved_words_class());
-    *committed = w2b(RunningCounters::committed_words_class());
-    *used = w2b(RunningCounters::used_words_class());
+    *reserved = to_Bytes(RunningCounters::reserved_words_class());
+    *committed = to_Bytes(RunningCounters::committed_words_class());
+    *used = to_Bytes(RunningCounters::used_words_class());
   } else {
-    *reserved = w2b(RunningCounters::reserved_words_nonclass());
-    *committed = w2b(RunningCounters::committed_words_nonclass());
-    *used = w2b(RunningCounters::used_words_nonclass());
+    *reserved = to_Bytes(RunningCounters::reserved_words_nonclass());
+    *committed = to_Bytes(RunningCounters::committed_words_nonclass());
+    *used = to_Bytes(RunningCounters::used_words_nonclass());
   }
-#undef w2b
 }
 
 // Retrieve all statistics in one go; make sure the values are consistent.
@@ -123,7 +121,7 @@ MetaspaceStats MetaspaceUtils::get_statistics(Metaspace::MetadataType mdtype) {
   // Reading these values under lock protection would would only help for the first case. Therefore
   //   we don't bother and just re-read several times, then give up and correct the values.
 
-  size_t r = 0, c = 0, u = 0; // Note: byte values.
+  Bytes r = Bytes(0), c = Bytes(0), u = Bytes(0); // Note: byte values.
   get_values_for(mdtype, &r, &c, &u);
   int retries = 10;
   // If the first retrieval resulted in inconsistent values, retry a bit...
@@ -263,7 +261,7 @@ void MetaspaceUtils::verify() {
 ////////////////////////////////7
 // MetaspaceGC methods
 
-volatile size_t MetaspaceGC::_capacity_until_GC = 0;
+volatile Bytes MetaspaceGC::_capacity_until_GC = Bytes(0);
 uint MetaspaceGC::_shrink_factor = 0;
 
 // VM_CollectForMetadataAllocation is the vm operation used to GC.
@@ -290,10 +288,10 @@ uint MetaspaceGC::_shrink_factor = 0;
 // enough to satisfy the allocation, increase by MaxMetaspaceExpansion.
 // If that is still not enough, expand by the size of the allocation
 // plus some.
-size_t MetaspaceGC::delta_capacity_until_GC(size_t bytes) {
-  size_t min_delta = MinMetaspaceExpansion;
-  size_t max_delta = MaxMetaspaceExpansion;
-  size_t delta = align_up(bytes, Metaspace::commit_alignment());
+Bytes MetaspaceGC::delta_capacity_until_GC(Bytes bytes) {
+  Bytes min_delta = in_Bytes(MinMetaspaceExpansion);
+  Bytes max_delta = in_Bytes(MaxMetaspaceExpansion);
+  Bytes delta = align_up(bytes, Metaspace::commit_alignment());
 
   if (delta <= min_delta) {
     delta = min_delta;
@@ -313,9 +311,9 @@ size_t MetaspaceGC::delta_capacity_until_GC(size_t bytes) {
   return delta;
 }
 
-size_t MetaspaceGC::capacity_until_GC() {
-  size_t value = Atomic::load_acquire(&_capacity_until_GC);
-  assert(value >= MetaspaceSize, "Not initialized properly?");
+Bytes MetaspaceGC::capacity_until_GC() {
+  Bytes value = Atomic::load_acquire(&_capacity_until_GC);
+  assert(value >= in_Bytes(MetaspaceSize), "Not initialized properly?");
   return value;
 }
 
@@ -327,18 +325,18 @@ size_t MetaspaceGC::capacity_until_GC() {
 // new_cap_until_GC and old_cap_until_GC respectively.
 // On error, optionally sets can_retry to indicate whether if there is
 // actually enough space remaining to satisfy the request.
-bool MetaspaceGC::inc_capacity_until_GC(size_t v, size_t* new_cap_until_GC, size_t* old_cap_until_GC, bool* can_retry) {
+bool MetaspaceGC::inc_capacity_until_GC(Bytes v, Bytes* new_cap_until_GC, Bytes* old_cap_until_GC, bool* can_retry) {
   assert_is_aligned(v, Metaspace::commit_alignment());
 
-  size_t old_capacity_until_GC = _capacity_until_GC;
-  size_t new_value = old_capacity_until_GC + v;
+  Bytes old_capacity_until_GC = _capacity_until_GC;
+  Bytes new_value = old_capacity_until_GC + v;
 
   if (new_value < old_capacity_until_GC) {
     // The addition wrapped around, set new_value to aligned max value.
-    new_value = align_down(max_uintx, Metaspace::reserve_alignment());
+    new_value = align_down(in_Bytes(max_uintx), Metaspace::reserve_alignment());
   }
 
-  if (new_value > MaxMetaspaceSize) {
+  if (new_value > in_Bytes(MaxMetaspaceSize)) {
     if (can_retry != nullptr) {
       *can_retry = false;
     }
@@ -348,7 +346,7 @@ bool MetaspaceGC::inc_capacity_until_GC(size_t v, size_t* new_cap_until_GC, size
   if (can_retry != nullptr) {
     *can_retry = true;
   }
-  size_t prev_value = Atomic::cmpxchg(&_capacity_until_GC, old_capacity_until_GC, new_value);
+  Bytes prev_value = in_Bytes(Atomic::cmpxchg((volatile size_t*)&_capacity_until_GC, untype(old_capacity_until_GC), untype(new_value)));
 
   if (old_capacity_until_GC != prev_value) {
     return false;
@@ -363,28 +361,28 @@ bool MetaspaceGC::inc_capacity_until_GC(size_t v, size_t* new_cap_until_GC, size
   return true;
 }
 
-size_t MetaspaceGC::dec_capacity_until_GC(size_t v) {
+Bytes MetaspaceGC::dec_capacity_until_GC(Bytes v) {
   assert_is_aligned(v, Metaspace::commit_alignment());
 
-  return Atomic::sub(&_capacity_until_GC, v);
+  return in_Bytes(Atomic::sub((volatile size_t*)&_capacity_until_GC, untype(v)));
 }
 
 void MetaspaceGC::initialize() {
   // Set the high-water mark to MaxMetapaceSize during VM initializaton since
   // we can't do a GC during initialization.
-  _capacity_until_GC = MaxMetaspaceSize;
+  _capacity_until_GC = in_Bytes(MaxMetaspaceSize);
 }
 
 void MetaspaceGC::post_initialize() {
   // Reset the high-water mark once the VM initialization is done.
-  _capacity_until_GC = MAX2(MetaspaceUtils::committed_bytes(), MetaspaceSize);
+  _capacity_until_GC = MAX2(MetaspaceUtils::committed_bytes(), in_Bytes(MetaspaceSize));
 }
 
-bool MetaspaceGC::can_expand(size_t word_size, bool is_class) {
+bool MetaspaceGC::can_expand(Words word_size, bool is_class) {
   // Check if the compressed class space is full.
   if (is_class && Metaspace::using_class_space()) {
-    size_t class_committed = MetaspaceUtils::committed_bytes(Metaspace::ClassType);
-    if (class_committed + word_size * BytesPerWord > CompressedClassSpaceSize) {
+    Bytes class_committed = MetaspaceUtils::committed_bytes(Metaspace::ClassType);
+    if (class_committed + to_Bytes(word_size) > in_Bytes(CompressedClassSpaceSize)) {
       log_trace(gc, metaspace, freelist)("Cannot expand %s metaspace by " SIZE_FORMAT " words (CompressedClassSpaceSize = " SIZE_FORMAT " words)",
                 (is_class ? "class" : "non-class"), word_size, CompressedClassSpaceSize / sizeof(MetaWord));
       return false;
@@ -392,8 +390,8 @@ bool MetaspaceGC::can_expand(size_t word_size, bool is_class) {
   }
 
   // Check if the user has imposed a limit on the metaspace memory.
-  size_t committed_bytes = MetaspaceUtils::committed_bytes();
-  if (committed_bytes + word_size * BytesPerWord > MaxMetaspaceSize) {
+  Bytes committed_bytes = MetaspaceUtils::committed_bytes();
+  if (committed_bytes + to_Bytes(word_size) > in_Bytes(MaxMetaspaceSize)) {
     log_trace(gc, metaspace, freelist)("Cannot expand %s metaspace by " SIZE_FORMAT " words (MaxMetaspaceSize = " SIZE_FORMAT " words)",
               (is_class ? "class" : "non-class"), word_size, MaxMetaspaceSize / sizeof(MetaWord));
     return false;
@@ -402,21 +400,21 @@ bool MetaspaceGC::can_expand(size_t word_size, bool is_class) {
   return true;
 }
 
-size_t MetaspaceGC::allowed_expansion() {
-  size_t committed_bytes = MetaspaceUtils::committed_bytes();
-  size_t capacity_until_gc = capacity_until_GC();
+Words MetaspaceGC::allowed_expansion() {
+  Bytes committed_bytes = MetaspaceUtils::committed_bytes();
+  Bytes capacity_until_gc = capacity_until_GC();
 
-  size_t left_until_max  = MaxMetaspaceSize - committed_bytes;
+  Bytes left_until_max  = in_Bytes(MaxMetaspaceSize) - committed_bytes;
   // capacity_until_GC may have been decreased concurrently and may
   // temporarily be lower than what metaspace has committed. Allow for that.
-  size_t left_until_GC = capacity_until_gc > committed_bytes ?
-      capacity_until_gc - committed_bytes : 0;
-  size_t left_to_commit = MIN2(left_until_GC, left_until_max);
+  Bytes left_until_GC = capacity_until_gc > committed_bytes ?
+      capacity_until_gc - committed_bytes : Bytes(0);
+  Bytes left_to_commit = MIN2(left_until_GC, left_until_max);
   log_trace(gc, metaspace, freelist)("allowed expansion words: " SIZE_FORMAT
             " (left_until_max: " SIZE_FORMAT ", left_until_GC: " SIZE_FORMAT ".",
-            left_to_commit / BytesPerWord, left_until_max / BytesPerWord, left_until_GC / BytesPerWord);
+            to_Words(left_to_commit), to_Words(left_until_max), to_Words(left_until_GC));
 
-  return left_to_commit / BytesPerWord;
+  return to_Words(left_to_commit);
 }
 
 void MetaspaceGC::compute_new_size() {
@@ -433,32 +431,32 @@ void MetaspaceGC::compute_new_size() {
   // necessary. Not including the chunk free lists can cause capacity_until_GC to
   // shrink below committed_bytes() and this has caused serious bugs in the past.
   const double used_after_gc = (double)MetaspaceUtils::committed_bytes();
-  const size_t capacity_until_GC = MetaspaceGC::capacity_until_GC();
+  const Bytes capacity_until_GC = MetaspaceGC::capacity_until_GC();
 
   const double minimum_free_percentage = MinMetaspaceFreeRatio / 100.0;
   const double maximum_used_percentage = 1.0 - minimum_free_percentage;
 
   const double min_tmp = used_after_gc / maximum_used_percentage;
-  size_t minimum_desired_capacity =
-    (size_t)MIN2(min_tmp, double(MaxMetaspaceSize));
+  Bytes minimum_desired_capacity =
+    in_Bytes((size_t)MIN2(min_tmp, double(MaxMetaspaceSize)));
   // Don't shrink less than the initial generation size
   minimum_desired_capacity = MAX2(minimum_desired_capacity,
-                                  MetaspaceSize);
+                                  in_Bytes(MetaspaceSize));
 
   log_trace(gc, metaspace)("MetaspaceGC::compute_new_size: ");
   log_trace(gc, metaspace)("    minimum_free_percentage: %6.2f  maximum_used_percentage: %6.2f",
                            minimum_free_percentage, maximum_used_percentage);
   log_trace(gc, metaspace)("     used_after_gc       : %6.1fKB", used_after_gc / (double) K);
 
-  size_t shrink_bytes = 0;
+  Bytes shrink_bytes = Bytes(0);
   if (capacity_until_GC < minimum_desired_capacity) {
     // If we have less capacity below the metaspace HWM, then
     // increment the HWM.
-    size_t expand_bytes = minimum_desired_capacity - capacity_until_GC;
+    Bytes expand_bytes = minimum_desired_capacity - capacity_until_GC;
     expand_bytes = align_up(expand_bytes, Metaspace::commit_alignment());
     // Don't expand unless it's significant
-    if (expand_bytes >= MinMetaspaceExpansion) {
-      size_t new_capacity_until_GC = 0;
+    if (expand_bytes >= in_Bytes(MinMetaspaceExpansion)) {
+      Bytes new_capacity_until_GC = Bytes(0);
       bool succeeded = MetaspaceGC::inc_capacity_until_GC(expand_bytes, &new_capacity_until_GC);
       assert(succeeded, "Should always successfully increment HWM when at safepoint");
 
@@ -479,16 +477,16 @@ void MetaspaceGC::compute_new_size() {
   assert(capacity_until_GC >= minimum_desired_capacity,
          SIZE_FORMAT " >= " SIZE_FORMAT,
          capacity_until_GC, minimum_desired_capacity);
-  size_t max_shrink_bytes = capacity_until_GC - minimum_desired_capacity;
+  Bytes max_shrink_bytes = capacity_until_GC - minimum_desired_capacity;
 
   // Should shrinking be considered?
   if (MaxMetaspaceFreeRatio < 100) {
     const double maximum_free_percentage = MaxMetaspaceFreeRatio / 100.0;
     const double minimum_used_percentage = 1.0 - maximum_free_percentage;
     const double max_tmp = used_after_gc / minimum_used_percentage;
-    size_t maximum_desired_capacity = (size_t)MIN2(max_tmp, double(MaxMetaspaceSize));
+    Bytes maximum_desired_capacity = in_Bytes((size_t)MIN2(max_tmp, double(MaxMetaspaceSize)));
     maximum_desired_capacity = MAX2(maximum_desired_capacity,
-                                    MetaspaceSize);
+                                    in_Bytes(MetaspaceSize));
     log_trace(gc, metaspace)("    maximum_free_percentage: %6.2f  minimum_used_percentage: %6.2f",
                              maximum_free_percentage, minimum_used_percentage);
     log_trace(gc, metaspace)("    minimum_desired_capacity: %6.1fKB  maximum_desired_capacity: %6.1fKB",
@@ -526,9 +524,9 @@ void MetaspaceGC::compute_new_size() {
   }
 
   // Don't shrink unless it's significant
-  if (shrink_bytes >= MinMetaspaceExpansion &&
-      ((capacity_until_GC - shrink_bytes) >= MetaspaceSize)) {
-    size_t new_capacity_until_GC = MetaspaceGC::dec_capacity_until_GC(shrink_bytes);
+  if (shrink_bytes >= in_Bytes(MinMetaspaceExpansion) &&
+      ((capacity_until_GC - shrink_bytes) >= in_Bytes(MetaspaceSize))) {
+    Bytes new_capacity_until_GC = MetaspaceGC::dec_capacity_until_GC(shrink_bytes);
     Metaspace::tracer()->report_gc_threshold(capacity_until_GC,
                                              new_capacity_until_GC,
                                              MetaspaceGCThresholdUpdater::ComputeNewSize);
@@ -549,7 +547,7 @@ bool Metaspace::initialized() {
 void Metaspace::print_compressed_class_space(outputStream* st) {
   if (VirtualSpaceList::vslist_class() != nullptr) {
     MetaWord* base = VirtualSpaceList::vslist_class()->base_of_first_node();
-    size_t size = VirtualSpaceList::vslist_class()->word_size_of_first_node();
+    Words size = VirtualSpaceList::vslist_class()->word_size_of_first_node();
     MetaWord* top = base + size;
     st->print("Compressed class space mapped at: " PTR_FORMAT "-" PTR_FORMAT ", reserved size: " SIZE_FORMAT,
                p2i(base), p2i(top), (top - base) * BytesPerWord);
@@ -559,11 +557,11 @@ void Metaspace::print_compressed_class_space(outputStream* st) {
 
 // Given a prereserved space, use that to set up the compressed class space list.
 void Metaspace::initialize_class_space(ReservedSpace rs) {
-  assert(rs.size() >= CompressedClassSpaceSize,
+  assert(rs.size() >= in_Bytes(CompressedClassSpaceSize),
          SIZE_FORMAT " != " SIZE_FORMAT, rs.size(), CompressedClassSpaceSize);
   assert(using_class_space(), "Must be using class space");
 
-  assert(rs.size() == CompressedClassSpaceSize, SIZE_FORMAT " != " SIZE_FORMAT,
+  assert(rs.size() == in_Bytes(CompressedClassSpaceSize), SIZE_FORMAT " != " SIZE_FORMAT,
          rs.size(), CompressedClassSpaceSize);
   assert(is_aligned(rs.base(), Metaspace::reserve_alignment()) &&
          is_aligned(rs.size(), Metaspace::reserve_alignment()),
@@ -579,17 +577,17 @@ bool Metaspace::class_space_is_initialized() {
 
 // Reserve a range of memory that is to contain narrow Klass IDs. If "try_in_low_address_ranges"
 // is true, we will attempt to reserve memory suitable for zero-based encoding.
-ReservedSpace Metaspace::reserve_address_space_for_compressed_classes(size_t size, bool optimize_for_zero_base) {
+ReservedSpace Metaspace::reserve_address_space_for_compressed_classes(Bytes size, bool optimize_for_zero_base) {
   char* result = nullptr;
 
   NOT_ZERO(result =
-      (char*) CompressedKlassPointers::reserve_address_space_for_compressed_classes(size, RandomizeClassSpaceLocation,
+      (char*) CompressedKlassPointers::reserve_address_space_for_compressed_classes(untype(size), RandomizeClassSpaceLocation,
                                                                                     optimize_for_zero_base));
 
   if (result == nullptr) {
     // Fallback: reserve anywhere
     log_debug(metaspace, map)("Trying anywhere...");
-    result = os::reserve_memory_aligned(size, Metaspace::reserve_alignment(), false);
+    result = os::reserve_memory_aligned(untype(size), untype(Metaspace::reserve_alignment()), false);
   }
 
   // Wrap resulting range in ReservedSpace
@@ -598,7 +596,7 @@ ReservedSpace Metaspace::reserve_address_space_for_compressed_classes(size_t siz
     log_debug(metaspace, map)("Mapped at " PTR_FORMAT, p2i(result));
     assert(is_aligned(result, Metaspace::reserve_alignment()), "Alignment too small for metaspace");
     rs = ReservedSpace::space_for_range(result, size, Metaspace::reserve_alignment(),
-                                                      os::vm_page_size(), false, false);
+                                                      in_Bytes(os::vm_page_size()), false, false);
   } else {
     log_debug(metaspace, map)("Failed to map.");
     rs = ReservedSpace();
@@ -607,11 +605,11 @@ ReservedSpace Metaspace::reserve_address_space_for_compressed_classes(size_t siz
 }
 #endif // _LP64
 
-size_t Metaspace::reserve_alignment_words() {
+Words Metaspace::reserve_alignment_words() {
   return metaspace::Settings::virtual_space_node_reserve_alignment_words();
 }
 
-size_t Metaspace::commit_alignment_words() {
+Words Metaspace::commit_alignment_words() {
   return metaspace::Settings::commit_granule_words();
 }
 
@@ -644,7 +642,7 @@ void Metaspace::ergo_initialize() {
   // We still adjust CompressedClassSpaceSize to reasonable limits, mainly to
   //  save on reserved space, and to make ergnonomics less confusing.
 
-  MaxMetaspaceSize = MAX2(MaxMetaspaceSize, commit_alignment());
+  MaxMetaspaceSize = untype(MAX2(in_Bytes(MaxMetaspaceSize), commit_alignment()));
 
   if (UseCompressedClassPointers) {
     // Let CCS size not be larger than 80% of MaxMetaspaceSize. Note that is
@@ -652,8 +650,8 @@ void Metaspace::ergo_initialize() {
     // class space : non class space usage is about 1:6. With many small classes,
     // it can get as low as 1:2. It is not a big deal though since ccs is only
     // reserved and will be committed on demand only.
-    size_t max_ccs_size = 8 * (MaxMetaspaceSize / 10);
-    size_t adjusted_ccs_size = MIN2(CompressedClassSpaceSize, max_ccs_size);
+    Bytes max_ccs_size = in_Bytes(8 * (MaxMetaspaceSize / 10));
+    Bytes adjusted_ccs_size = MIN2(in_Bytes(CompressedClassSpaceSize), max_ccs_size);
 
     // CCS must be aligned to root chunk size, and be at least the size of one
     //  root chunk.
@@ -664,8 +662,8 @@ void Metaspace::ergo_initialize() {
     //  larger than MaxMetaspaceSize for very small values of MaxMetaspaceSize.
     //  Lets just live with that, its not a big deal.
 
-    if (adjusted_ccs_size != CompressedClassSpaceSize) {
-      FLAG_SET_ERGO(CompressedClassSpaceSize, adjusted_ccs_size);
+    if (adjusted_ccs_size != in_Bytes(CompressedClassSpaceSize)) {
+      FLAG_SET_ERGO(CompressedClassSpaceSize, untype(adjusted_ccs_size));
       log_info(metaspace)("Setting CompressedClassSpaceSize to " SIZE_FORMAT ".",
                           CompressedClassSpaceSize);
     }
@@ -724,7 +722,7 @@ void Metaspace::global_initialize() {
 
     // case (b) (No CDS)
     ReservedSpace rs;
-    const size_t size = align_up(CompressedClassSpaceSize, Metaspace::reserve_alignment());
+    const Bytes size = align_up(in_Bytes(CompressedClassSpaceSize), Metaspace::reserve_alignment());
 
     // If CompressedClassSpaceBaseAddress is set, we attempt to force-map class space to
     // the given address. This is a debug-only feature aiding tests. Due to the ASLR lottery
@@ -739,14 +737,14 @@ void Metaspace::global_initialize() {
                     CompressedClassSpaceBaseAddress, Metaspace::reserve_alignment()));
       }
       rs = ReservedSpace(size, Metaspace::reserve_alignment(),
-                         os::vm_page_size() /* large */, (char*)base);
+                         in_Bytes(os::vm_page_size()) /* large */, (char*)base);
       if (rs.is_reserved()) {
         log_info(metaspace)("Successfully forced class space address to " PTR_FORMAT, p2i(base));
       } else {
         LogTarget(Debug, metaspace) lt;
         if (lt.is_enabled()) {
           LogStream ls(lt);
-          os::print_memory_mappings((char*)base, size, &ls);
+          os::print_memory_mappings((char*)base, untype(size), &ls);
         }
         vm_exit_during_initialization(
             err_msg("CompressedClassSpaceBaseAddress=" PTR_FORMAT " given, but reserving class space failed.",
@@ -774,7 +772,7 @@ void Metaspace::global_initialize() {
     Metaspace::initialize_class_space(rs);
 
     // Set up compressed class pointer encoding.
-    CompressedKlassPointers::initialize((address)rs.base(), rs.size());
+    CompressedKlassPointers::initialize((address)rs.base(), untype(rs.size()));
   }
 
 #endif
@@ -818,14 +816,14 @@ void Metaspace::post_initialize() {
   MetaspaceGC::post_initialize();
 }
 
-size_t Metaspace::max_allocation_word_size() {
+Words Metaspace::max_allocation_word_size() {
   return metaspace::chunklevel::MAX_CHUNK_WORD_SIZE;
 }
 
 // This version of Metaspace::allocate does not throw OOM but simply returns null, and
 // is suitable for calling from non-Java threads.
 // Callers are responsible for checking null.
-MetaWord* Metaspace::allocate(ClassLoaderData* loader_data, size_t word_size,
+MetaWord* Metaspace::allocate(ClassLoaderData* loader_data, Words word_size,
                               MetaspaceObj::Type type) {
   assert(word_size <= Metaspace::max_allocation_word_size(),
          "allocation size too large (" SIZE_FORMAT ")", word_size);
@@ -851,7 +849,7 @@ MetaWord* Metaspace::allocate(ClassLoaderData* loader_data, size_t word_size,
   return result;
 }
 
-MetaWord* Metaspace::allocate(ClassLoaderData* loader_data, size_t word_size,
+MetaWord* Metaspace::allocate(ClassLoaderData* loader_data, Words word_size,
                               MetaspaceObj::Type type, TRAPS) {
 
   if (HAS_PENDING_EXCEPTION) {
@@ -888,7 +886,7 @@ MetaWord* Metaspace::allocate(ClassLoaderData* loader_data, size_t word_size,
   return result;
 }
 
-void Metaspace::report_metadata_oome(ClassLoaderData* loader_data, size_t word_size, MetaspaceObj::Type type, MetadataType mdtype, TRAPS) {
+void Metaspace::report_metadata_oome(ClassLoaderData* loader_data, Words word_size, MetaspaceObj::Type type, MetadataType mdtype, TRAPS) {
   tracer()->report_metadata_oom(loader_data, word_size, type, mdtype);
 
   // If result is still null, we are out of memory.
@@ -913,8 +911,8 @@ void Metaspace::report_metadata_oome(ClassLoaderData* loader_data, size_t word_s
     ClassLoaderMetaspace* metaspace = loader_data->metaspace_non_null();
     out_of_compressed_class_space =
       MetaspaceUtils::committed_bytes(Metaspace::ClassType) +
-      align_up(word_size * BytesPerWord, 4 * M) >
-      CompressedClassSpaceSize;
+      align_up(to_Bytes(word_size), 4 * M) >
+      in_Bytes(CompressedClassSpaceSize);
   }
 
   // -XX:+HeapDumpOnOutOfMemoryError and -XX:OnOutOfMemoryError support

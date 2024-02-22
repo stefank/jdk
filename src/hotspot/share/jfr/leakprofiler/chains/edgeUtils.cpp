@@ -49,7 +49,7 @@ static int field_offset(const Edge& edge, const oop ref_owner) {
   UnifiedOopRef reference = edge.reference();
   assert(!reference.is_null(), "invariant");
   const size_t offset = (reference.addr<uintptr_t>() - cast_from_oop<uintptr_t>(ref_owner));
-  assert(offset < ref_owner->size() * HeapWordSize, "invariant");
+  assert(offset < to_bytes(ref_owner->size()), "invariant");
   assert(offset <= size_t(INT_MAX), "invariant");
   return (int)offset;
 }

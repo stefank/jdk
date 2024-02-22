@@ -70,7 +70,7 @@ TypeArrayKlass* TypeArrayKlass::allocate(ClassLoaderData* loader_data, BasicType
   assert(TypeArrayKlass::header_size() <= InstanceKlass::header_size(),
       "array klasses must be same size as InstanceKlass");
 
-  int size = ArrayKlass::static_size(TypeArrayKlass::header_size());
+  Words size = ArrayKlass::static_size(TypeArrayKlass::header_size());
 
   return new (loader_data, size, THREAD) TypeArrayKlass(type, name);
 }
@@ -89,7 +89,7 @@ TypeArrayKlass::TypeArrayKlass(BasicType type, Symbol* name) : ArrayKlass(name, 
 typeArrayOop TypeArrayKlass::allocate_common(int length, bool do_zero, TRAPS) {
   assert(log2_element_size() >= 0, "bad scale");
   check_array_allocation_length(length, max_length(), CHECK_NULL);
-  size_t size = typeArrayOopDesc::object_size(layout_helper(), length);
+  Words size = typeArrayOopDesc::object_size(layout_helper(), length);
   return (typeArrayOop)Universe::heap()->array_allocate(this, size, length,
                                                         do_zero, CHECK_NULL);
 }
@@ -170,7 +170,7 @@ void TypeArrayKlass::copy_array(arrayOop s, int src_pos, arrayOop d, int dst_pos
   ArrayAccess<ARRAYCOPY_ATOMIC>::arraycopy<void>(s, src_offset, d, dst_offset, (size_t)length << l2es);
 }
 
-size_t TypeArrayKlass::oop_size(oop obj) const {
+Words TypeArrayKlass::oop_size(oop obj) const {
   assert(obj->is_typeArray(),"must be a type array");
   typeArrayOop t = typeArrayOop(obj);
   return t->object_size(this);

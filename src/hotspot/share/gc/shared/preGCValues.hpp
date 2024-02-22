@@ -33,14 +33,14 @@
 // after GC for comparison/printing.
 class PreGenGCValues {
 public:
-  PreGenGCValues(size_t young_gen_used,
-                 size_t young_gen_capacity,
-                 size_t eden_used,
-                 size_t eden_capacity,
-                 size_t from_used,
-                 size_t from_capacity,
-                 size_t old_gen_used,
-                 size_t old_gen_capacity)
+  PreGenGCValues(Bytes young_gen_used,
+                 Bytes young_gen_capacity,
+                 Bytes eden_used,
+                 Bytes eden_capacity,
+                 Bytes from_used,
+                 Bytes from_capacity,
+                 Bytes old_gen_used,
+                 Bytes old_gen_capacity)
       : _young_gen_used(young_gen_used),
         _young_gen_capacity(young_gen_capacity),
         _eden_used(eden_used),
@@ -51,25 +51,25 @@ public:
         _old_gen_capacity(old_gen_capacity),
         _meta_sizes(MetaspaceUtils::get_combined_statistics()){ }
 
-  size_t young_gen_used()     const { return _young_gen_used;     }
-  size_t young_gen_capacity() const { return _young_gen_capacity; }
-  size_t eden_used()          const { return _eden_used;          }
-  size_t eden_capacity()      const { return _eden_capacity;      }
-  size_t from_used()          const { return _from_used;          }
-  size_t from_capacity()      const { return _from_capacity;      }
-  size_t old_gen_used()       const { return _old_gen_used;       }
-  size_t old_gen_capacity()   const { return _old_gen_capacity;   }
+  Bytes young_gen_used()     const { return _young_gen_used;     }
+  Bytes young_gen_capacity() const { return _young_gen_capacity; }
+  Bytes eden_used()          const { return _eden_used;          }
+  Bytes eden_capacity()      const { return _eden_capacity;      }
+  Bytes from_used()          const { return _from_used;          }
+  Bytes from_capacity()      const { return _from_capacity;      }
+  Bytes old_gen_used()       const { return _old_gen_used;       }
+  Bytes old_gen_capacity()   const { return _old_gen_capacity;   }
   const MetaspaceCombinedStats& metaspace_sizes() const { return _meta_sizes; }
 
 private:
-  const size_t _young_gen_used;
-  const size_t _young_gen_capacity;
-  const size_t _eden_used;
-  const size_t _eden_capacity;
-  const size_t _from_used;
-  const size_t _from_capacity;
-  const size_t _old_gen_used;
-  const size_t _old_gen_capacity;
+  const Bytes _young_gen_used;
+  const Bytes _young_gen_capacity;
+  const Bytes _eden_used;
+  const Bytes _eden_capacity;
+  const Bytes _from_used;
+  const Bytes _from_capacity;
+  const Bytes _old_gen_used;
+  const Bytes _old_gen_capacity;
   const MetaspaceCombinedStats _meta_sizes;
 };
 

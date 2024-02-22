@@ -45,13 +45,13 @@ class PSOldGen : public CHeapObj<mtGC> {
   SpaceCounters*           _space_counters;
 
   // Sizing information, in bytes, set in constructor
-  const size_t _min_gen_size;
-  const size_t _max_gen_size;
+  const Bytes _min_gen_size;
+  const Bytes _max_gen_size;
 
   // Block size for parallel iteration
-  static const size_t IterateBlockSize = 1024 * 1024;
+  static const Bytes IterateBlockSize = in_Bytes(1024 * 1024);
 
-  HeapWord* cas_allocate_noexpand(size_t word_size) {
+  HeapWord* cas_allocate_noexpand(Words word_size) {
     assert_locked_or_safepoint(Heap_lock);
     HeapWord* res = object_space()->cas_allocate(word_size);
     if (res != nullptr) {
@@ -60,25 +60,25 @@ class PSOldGen : public CHeapObj<mtGC> {
     return res;
   }
 
-  bool expand_for_allocate(size_t word_size);
-  bool expand(size_t bytes);
-  bool expand_by(size_t bytes);
+  bool expand_for_allocate(Words word_size);
+  bool expand(Bytes bytes);
+  bool expand_by(Bytes bytes);
   bool expand_to_reserved();
 
-  void shrink(size_t bytes);
+  void shrink(Bytes bytes);
 
   void post_resize();
 
-  void initialize(ReservedSpace rs, size_t initial_size, size_t alignment,
+  void initialize(ReservedSpace rs, Bytes initial_size, Bytes alignment,
                   const char* perf_data_name, int level);
-  void initialize_virtual_space(ReservedSpace rs, size_t initial_size, size_t alignment);
+  void initialize_virtual_space(ReservedSpace rs, Bytes initial_size, Bytes alignment);
   void initialize_work(const char* perf_data_name, int level);
   void initialize_performance_counters(const char* perf_data_name, int level);
 
  public:
   // Initialize the generation.
-  PSOldGen(ReservedSpace rs, size_t initial_size, size_t min_size,
-           size_t max_size, const char* perf_data_name, int level);
+  PSOldGen(ReservedSpace rs, Bytes initial_size, Bytes min_size,
+           Bytes max_size, const char* perf_data_name, int level);
 
   MemRegion reserved() const {
     return MemRegion((HeapWord*)(_virtual_space->low_boundary()),
@@ -90,8 +90,8 @@ class PSOldGen : public CHeapObj<mtGC> {
                      (HeapWord*)(_virtual_space->high()));
   }
 
-  size_t max_gen_size() const { return _max_gen_size; }
-  size_t min_gen_size() const { return _min_gen_size; }
+  Bytes max_gen_size() const { return _max_gen_size; }
+  Bytes min_gen_size() const { return _min_gen_size; }
 
   bool is_in(const void* p) const           {
     return _virtual_space->is_in_committed((void *)p);
@@ -109,24 +109,24 @@ class PSOldGen : public CHeapObj<mtGC> {
   bool is_allocated();
 
   // Size info
-  size_t capacity_in_bytes() const        { return object_space()->capacity_in_bytes(); }
-  size_t used_in_bytes() const            { return object_space()->used_in_bytes(); }
-  size_t free_in_bytes() const            { return object_space()->free_in_bytes(); }
+  Bytes capacity_in_bytes() const        { return object_space()->capacity_in_bytes(); }
+  Bytes used_in_bytes() const            { return object_space()->used_in_bytes(); }
+  Bytes free_in_bytes() const            { return object_space()->free_in_bytes(); }
 
-  size_t capacity_in_words() const        { return object_space()->capacity_in_words(); }
-  size_t used_in_words() const            { return object_space()->used_in_words(); }
-  size_t free_in_words() const            { return object_space()->free_in_words(); }
+  Words capacity_in_words() const        { return object_space()->capacity_in_words(); }
+  Words used_in_words() const            { return object_space()->used_in_words(); }
+  Words free_in_words() const            { return object_space()->free_in_words(); }
 
   bool is_maximal_no_gc() const {
-    return virtual_space()->uncommitted_size() == 0;
+    return virtual_space()->uncommitted_size() == Bytes(0);
   }
 
   void complete_loaded_archive_space(MemRegion archive_space);
 
   // Calculating new sizes
-  void resize(size_t desired_free_space);
+  void resize(Bytes desired_free_space);
 
-  HeapWord* allocate(size_t word_size) {
+  HeapWord* allocate(Words word_size) {
     HeapWord* res;
     do {
       res = cas_allocate_noexpand(word_size);

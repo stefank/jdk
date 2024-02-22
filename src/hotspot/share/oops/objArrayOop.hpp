@@ -53,7 +53,7 @@ class objArrayOopDesc : public arrayOopDesc {
 
 private:
   // Give size of objArrayOop in HeapWords minus the header
-  static int array_size(int length) {
+  static Words array_size(int length) {
     const uint OopsPerHeapWord = HeapWordSize/heapOopSize;
     assert(OopsPerHeapWord >= 1 && (HeapWordSize % heapOopSize == 0),
            "Else the following (new) computation would be in error");
@@ -74,7 +74,7 @@ private:
     }
     assert(res == old_res, "Inconsistency between old and new.");
 #endif  // ASSERT
-    return res;
+    return Words(res);
   }
 
  public:
@@ -94,16 +94,16 @@ private:
   oop replace_if_null(int index, oop exchange_value);
 
   // Sizing
-  static int header_size()    { return arrayOopDesc::header_size(T_OBJECT); }
-  size_t object_size()        { return object_size(length()); }
+  static Words header_size()  { return arrayOopDesc::header_size(T_OBJECT); }
+  Words object_size()         { return object_size(length()); }
 
-  static size_t object_size(int length) {
+  static Words object_size(int length) {
     // This returns the object size in HeapWords.
-    uint asz = array_size(length);
-    uint osz = align_object_size(header_size() + asz);
+    Words asz = array_size(length);
+    Words osz = align_object_size(header_size() + asz);
     assert(osz >= asz,   "no overflow");
     assert((int)osz > 0, "no overflow");
-    return (size_t)osz;
+    return osz;
   }
 
   Klass* element_klass();

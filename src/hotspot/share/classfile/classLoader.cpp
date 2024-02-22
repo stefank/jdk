@@ -1460,7 +1460,7 @@ int ClassLoader::compute_Object_vtable() {
   // code to determine actual value from file
   // Would be value '11' if finals were in vtable
   int JDK_1_2_Object_vtable_size = 5;
-  return JDK_1_2_Object_vtable_size * vtableEntry::size();
+  return checked_cast<int>(JDK_1_2_Object_vtable_size * vtableEntry::size());
 }
 
 

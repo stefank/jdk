@@ -65,7 +65,7 @@ class Annotations: public MetaspaceObj {
   DEBUG_ONLY(bool on_stack() { return false; })  // for template
 
   // Sizing (in words)
-  static int size()    { return sizeof(Annotations) / wordSize; }
+  static Words size()    { return in_Words(sizeof(Annotations) / wordSize); }
 
   // Annotations should be stored in the read-only region of CDS archive.
   static bool is_read_only_by_default() { return true; }

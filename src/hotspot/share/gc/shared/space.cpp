@@ -105,7 +105,7 @@ void Space::print_short() const { print_short_on(tty); }
 
 void Space::print_short_on(outputStream* st) const {
   st->print(" space " SIZE_FORMAT "K, %3d%% used", capacity() / K,
-              (int) ((double) used() * 100 / capacity()));
+              (int) ((double) used() * 100 / untype(capacity())));
 }
 
 void Space::print() const { print_on(tty); }
@@ -169,7 +169,7 @@ HeapWord* ContiguousSpace::block_start_const(const void* p) const {
 }
 
 // This version requires locking.
-inline HeapWord* ContiguousSpace::allocate_impl(size_t size) {
+inline HeapWord* ContiguousSpace::allocate_impl(Words size) {
   assert(Heap_lock->owned_by_self() ||
          (SafepointSynchronize::is_at_safepoint() && Thread::current()->is_VM_thread()),
          "not locked");
@@ -185,7 +185,7 @@ inline HeapWord* ContiguousSpace::allocate_impl(size_t size) {
 }
 
 // This version is lock-free.
-inline HeapWord* ContiguousSpace::par_allocate_impl(size_t size) {
+inline HeapWord* ContiguousSpace::par_allocate_impl(Words size) {
   do {
     HeapWord* obj = top();
     if (pointer_delta(end(), obj) >= size) {
@@ -205,12 +205,12 @@ inline HeapWord* ContiguousSpace::par_allocate_impl(size_t size) {
 }
 
 // Requires locking.
-HeapWord* ContiguousSpace::allocate(size_t size) {
+HeapWord* ContiguousSpace::allocate(Words size) {
   return allocate_impl(size);
 }
 
 // Lock-free.
-HeapWord* ContiguousSpace::par_allocate(size_t size) {
+HeapWord* ContiguousSpace::par_allocate(Words size) {
   return par_allocate_impl(size);
 }
 

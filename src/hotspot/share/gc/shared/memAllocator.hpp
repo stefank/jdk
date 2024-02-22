@@ -40,7 +40,7 @@ protected:
 
   Thread* const        _thread;
   Klass* const         _klass;
-  const size_t         _word_size;
+  const Words          _word_size;
 
   // Allocate from the current thread's TLAB, without taking a new TLAB (no safepoint).
  HeapWord* mem_allocate_inside_tlab_fast() const;
@@ -57,7 +57,7 @@ private:
   HeapWord* mem_allocate_slow(Allocation& allocation) const;
 
 protected:
-  MemAllocator(Klass* klass, size_t word_size, Thread* thread)
+  MemAllocator(Klass* klass, Words word_size, Thread* thread)
     : _thread(thread),
       _klass(klass),
       _word_size(word_size)
@@ -87,7 +87,7 @@ public:
 
 class ObjAllocator: public MemAllocator {
 public:
-  ObjAllocator(Klass* klass, size_t word_size, Thread* thread = Thread::current())
+  ObjAllocator(Klass* klass, Words word_size, Thread* thread = Thread::current())
     : MemAllocator(klass, word_size, thread) {}
 
   virtual oop initialize(HeapWord* mem) const;
@@ -101,7 +101,7 @@ protected:
   void mem_zap_end_padding(HeapWord* mem) const PRODUCT_RETURN;
 
 public:
-  ObjArrayAllocator(Klass* klass, size_t word_size, int length, bool do_zero,
+  ObjArrayAllocator(Klass* klass, Words word_size, int length, bool do_zero,
                     Thread* thread = Thread::current())
     : MemAllocator(klass, word_size, thread),
       _length(length),
@@ -112,7 +112,7 @@ public:
 
 class ClassAllocator: public MemAllocator {
 public:
-  ClassAllocator(Klass* klass, size_t word_size, Thread* thread = Thread::current())
+  ClassAllocator(Klass* klass, Words word_size, Thread* thread = Thread::current())
     : MemAllocator(klass, word_size, thread) {}
 
   virtual oop initialize(HeapWord* mem) const;

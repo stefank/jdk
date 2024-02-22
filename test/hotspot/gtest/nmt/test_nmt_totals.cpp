@@ -37,15 +37,15 @@ static size_t get_total_malloc_invocs() {
   return MallocMemorySummary::as_snapshot()->total_count();
 }
 
-static size_t get_total_malloc_size() {
+static Bytes get_total_malloc_size() {
   return MallocMemorySummary::as_snapshot()->total();
 }
 
-static size_t get_malloc_overhead() {
+static Bytes get_malloc_overhead() {
   return MallocMemorySummary::as_snapshot()->malloc_overhead();
 }
 
-struct totals_t { size_t n; size_t s; size_t ovrh; };
+struct totals_t { size_t n; Bytes s; Bytes ovrh; };
 
 static totals_t get_totals() {
   totals_t tot;
@@ -56,16 +56,16 @@ static totals_t get_totals() {
 }
 
 // Concurrent code can malloc and free too, therefore we need to compare with a leeway factor
-#define compare_totals(t_real, t_expected) {                                  \
-  double leeway_factor = 0.33;                                                \
-  size_t leeway_n = (size_t)(((double)t_expected.n) * leeway_factor);         \
-  size_t leeway_s = (size_t)(((double)t_expected.s) * leeway_factor);         \
-  EXPECT_GE(t_real.n, t_expected.n - leeway_n);                               \
-  EXPECT_LE(t_real.n, t_expected.n + leeway_n);                               \
-  EXPECT_GE(t_real.s, t_expected.s - leeway_s);                               \
-  EXPECT_LE(t_real.s, t_expected.s + leeway_s);                               \
-  EXPECT_GE(t_real.ovrh, t_expected.ovrh - (leeway_n * sizeof(MallocHeader)));   \
-  EXPECT_LE(t_real.ovrh, t_expected.ovrh + (leeway_n * sizeof(MallocHeader)));   \
+#define compare_totals(t_real, t_expected) {                                     \
+  double leeway_factor = 0.33;                                                   \
+  size_t leeway_n = (size_t)(((double)t_expected.n) * leeway_factor);            \
+  Bytes leeway_s = in_Bytes((((double)t_expected.s) * leeway_factor));           \
+  EXPECT_GE(t_real.n, t_expected.n - leeway_n);                                  \
+  EXPECT_LE(t_real.n, t_expected.n + leeway_n);                                  \
+  EXPECT_GE(t_real.s, t_expected.s - leeway_s);                                  \
+  EXPECT_LE(t_real.s, t_expected.s + leeway_s);                                  \
+  EXPECT_GE(t_real.ovrh, t_expected.ovrh - (leeway_n * in_Bytes(sizeof(MallocHeader)))); \
+  EXPECT_LE(t_real.ovrh, t_expected.ovrh + (leeway_n * in_Bytes(sizeof(MallocHeader)))); \
   LOG("Deviation: n=" SSIZE_FORMAT ", s=" SSIZE_FORMAT ", ovrh=" SSIZE_FORMAT,   \
       (ssize_t)t_real.n - (ssize_t)t_expected.n,                                 \
       (ssize_t)t_real.s - (ssize_t)t_expected.s,                                 \
@@ -84,13 +84,13 @@ TEST_VM(NMTNumbers, totals) {
   LOG("t1: " SIZE_FORMAT " - " SIZE_FORMAT " - " SIZE_FORMAT, t1.n, t1.s, t1.ovrh);
 
   static const int NUM_ALLOCS = 1024 * 16;
-  static const int ALLOC_SIZE = 1024;
+  static const Bytes ALLOC_SIZE = 1024_b;
 
   void* p[NUM_ALLOCS];
   for (int i = 0; i < NUM_ALLOCS; i ++) {
     // spread over categories
     int category = i % (mt_number_of_types - 1);
-    p[i] = NEW_C_HEAP_ARRAY(char, ALLOC_SIZE, (MEMFLAGS)category);
+    p[i] = NEW_C_HEAP_ARRAY(char, untype(ALLOC_SIZE), (MEMFLAGS)category);
   }
 
   const totals_t t2 = get_totals();
@@ -99,7 +99,7 @@ TEST_VM(NMTNumbers, totals) {
   totals_t t2_expected;
   t2_expected.n = t1.n + NUM_ALLOCS;
   t2_expected.s = t1.s + ALLOC_SIZE * NUM_ALLOCS;
-  t2_expected.ovrh = (t1.n + NUM_ALLOCS) * sizeof(MallocHeader);
+  t2_expected.ovrh = (t1.n + NUM_ALLOCS) * in_Bytes(sizeof(MallocHeader));
 
   LOG("t2 expected: " SIZE_FORMAT " - " SIZE_FORMAT " - " SIZE_FORMAT, t2_expected.n, t2_expected.s, t2_expected.ovrh);
 

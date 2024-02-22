@@ -93,20 +93,20 @@ class ParallelScavengeHeap : public CollectedHeap {
 
   void initialize_serviceability() override;
 
-  void trace_actual_reserved_page_size(const size_t reserved_heap_size, const ReservedSpace rs);
+  void trace_actual_reserved_page_size(const Bytes reserved_heap_size, const ReservedSpace rs);
   void trace_heap(GCWhen::Type when, const GCTracer* tracer) override;
 
   // Allocate in oldgen and record the allocation with the size_policy.
-  HeapWord* allocate_old_gen_and_record(size_t word_size);
+  HeapWord* allocate_old_gen_and_record(Words word_size);
 
   void update_parallel_worker_threads_cpu_time();
 
  protected:
-  HeapWord* allocate_new_tlab(size_t min_size, size_t requested_size, size_t* actual_size) override;
+  HeapWord* allocate_new_tlab(Words min_size, Words requested_size, Words* actual_size) override;
 
-  inline bool should_alloc_in_eden(size_t size) const;
-  inline void death_march_check(HeapWord* const result, size_t size);
-  HeapWord* mem_allocate_old_gen(size_t size);
+  inline bool should_alloc_in_eden(Words size) const;
+  inline void death_march_check(HeapWord* const result, Words size);
+  HeapWord* mem_allocate_old_gen(Words size);
 
  public:
   ParallelScavengeHeap() :
@@ -153,8 +153,8 @@ class ParallelScavengeHeap : public CollectedHeap {
   void post_initialize() override;
   void update_counters();
 
-  size_t capacity() const override;
-  size_t used() const override;
+  Bytes capacity() const override;
+  Bytes used() const override;
 
   // Return "true" if all generations have reached the
   // maximal committed limit that they can reach, without a garbage
@@ -168,7 +168,7 @@ class ParallelScavengeHeap : public CollectedHeap {
   void prune_scavengable_nmethods();
   void prune_unlinked_nmethods();
 
-  size_t max_capacity() const override;
+  Bytes max_capacity() const override;
 
   // Whether p is in the allocated part of the heap
   bool is_in(const void* p) const override;
@@ -187,12 +187,12 @@ class ParallelScavengeHeap : public CollectedHeap {
   // an excessive amount of time is being spent doing collections
   // and caused a null to be returned.  If a null is not returned,
   // "gc_time_limit_was_exceeded" has an undefined meaning.
-  HeapWord* mem_allocate(size_t size, bool* gc_overhead_limit_was_exceeded) override;
+  HeapWord* mem_allocate(Words size, bool* gc_overhead_limit_was_exceeded) override;
 
   // Allocation attempt(s) during a safepoint. It should never be called
   // to allocate a new TLAB as this allocation might be satisfied out
   // of the old generation.
-  HeapWord* failed_mem_allocate(size_t size);
+  HeapWord* failed_mem_allocate(Words size);
 
   // Support for System.gc()
   void collect(GCCause::Cause cause) override;
@@ -212,9 +212,9 @@ class ParallelScavengeHeap : public CollectedHeap {
   void ensure_parsability(bool retire_tlabs) override;
   void resize_all_tlabs() override;
 
-  size_t tlab_capacity(Thread* thr) const override;
-  size_t tlab_used(Thread* thr) const override;
-  size_t unsafe_max_tlab_alloc(Thread* thr) const override;
+  Bytes tlab_capacity(Thread* thr) const override;
+  Bytes tlab_used(Thread* thr) const override;
+  Bytes unsafe_max_tlab_alloc(Thread* thr) const override;
 
   void object_iterate(ObjectClosure* cl) override;
   void object_iterate_parallel(ObjectClosure* cl, HeapBlockClaimer* claimer);
@@ -242,11 +242,11 @@ class ParallelScavengeHeap : public CollectedHeap {
 
   // Resize the young generation.  The reserved space for the
   // generation may be expanded in preparation for the resize.
-  void resize_young_gen(size_t eden_size, size_t survivor_size);
+  void resize_young_gen(Bytes eden_size, Bytes survivor_size);
 
   // Resize the old generation.  The reserved space for the
   // generation may be expanded in preparation for the resize.
-  void resize_old_gen(size_t desired_free_space);
+  void resize_old_gen(Bytes desired_free_space);
 
   // Save the tops of the spaces in all generations
   void record_gen_tops_before_GC() PRODUCT_RETURN;
@@ -263,7 +263,7 @@ class ParallelScavengeHeap : public CollectedHeap {
 
   // Support for loading objects from CDS archive into the heap
   bool can_load_archived_objects() const override { return UseCompressedOops; }
-  HeapWord* allocate_loaded_archive_space(size_t size) override;
+  HeapWord* allocate_loaded_archive_space(Words size) override;
   void complete_loaded_archive_space(MemRegion archive_space) override;
 
   void pin_object(JavaThread* thread, oop obj) override;

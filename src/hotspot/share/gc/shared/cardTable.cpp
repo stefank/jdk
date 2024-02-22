@@ -57,19 +57,18 @@ void CardTable::initialize_card_size() {
   log_info_p(gc, init)("CardTable entry size: " UINT32_FORMAT,  _card_size);
 }
 
-size_t CardTable::compute_byte_map_size(size_t num_bytes) {
-  assert(_page_size != 0, "uninitialized, check declaration order");
-  const size_t granularity = os::vm_allocation_granularity();
+Bytes CardTable::compute_byte_map_size(Bytes num_bytes) {
+  assert(_page_size != Bytes(0), "uninitialized, check declaration order");
+  const Bytes granularity = in_Bytes(os::vm_allocation_granularity());
   return align_up(num_bytes, MAX2(_page_size, granularity));
 }
 
 CardTable::CardTable(MemRegion whole_heap) :
   _whole_heap(whole_heap),
-  _page_size(os::vm_page_size()),
-  _byte_map_size(0),
+  _page_size(in_Bytes(os::vm_page_size())),
+  _byte_map_size(Bytes(0)),
   _byte_map(nullptr),
-  _byte_map_base(nullptr),
-  _guard_region()
+  _byte_map_base(nullptr)
 {
   assert((uintptr_t(_whole_heap.start())  & (_card_size - 1))  == 0, "heap must start at card boundary");
   assert((uintptr_t(_whole_heap.end()) & (_card_size - 1))  == 0, "heap must end at card boundary");
@@ -79,20 +78,20 @@ void CardTable::initialize(void* region0_start, void* region1_start) {
   size_t num_cards = cards_required(_whole_heap.word_size());
 
   // each card takes 1 byte; + 1 for the guard card
-  size_t num_bytes = num_cards + 1;
+  Bytes num_bytes = in_Bytes(num_cards + 1);
   _byte_map_size = compute_byte_map_size(num_bytes);
 
   HeapWord* low_bound  = _whole_heap.start();
   HeapWord* high_bound = _whole_heap.end();
 
-  const size_t rs_align = _page_size == os::vm_page_size() ? 0 :
-    MAX2(_page_size, os::vm_allocation_granularity());
+  const Bytes rs_align = _page_size == in_Bytes(os::vm_page_size()) ? Bytes(0) :
+    MAX2(_page_size, in_Bytes(os::vm_allocation_granularity()));
   ReservedSpace heap_rs(_byte_map_size, rs_align, _page_size);
 
   MemTracker::record_virtual_memory_type((address)heap_rs.base(), mtGC);
 
-  os::trace_page_sizes("Card Table", num_bytes, num_bytes,
-                       heap_rs.base(), heap_rs.size(), _page_size);
+  os::trace_page_sizes("Card Table", untype(num_bytes), untype(num_bytes),
+                       heap_rs.base(), untype(heap_rs.size()), untype(_page_size));
   if (!heap_rs.is_reserved()) {
     vm_exit_during_initialization("Could not reserve enough space for the "
                                   "card marking array");
@@ -109,7 +108,7 @@ void CardTable::initialize(void* region0_start, void* region1_start) {
 
   CardValue* guard_card = &_byte_map[num_cards];
   assert(is_aligned(guard_card, _page_size), "must be on its own OS page");
-  _guard_region = MemRegion((HeapWord*)guard_card, _page_size);
+  // FIXME: _guard_region was buggy and unused. So I removed it.
 
   initialize_covered_region(region0_start, region1_start);
 
@@ -140,8 +139,8 @@ void CardTable::initialize_covered_region(void* region0_start, void* region1_sta
   assert(_covered[0].start() == nullptr, "precondition");
   assert(_covered[1].start() == nullptr, "precondition");
 
-  _covered[0] = MemRegion((HeapWord*)region0_start, (size_t)0);
-  _covered[1] = MemRegion((HeapWord*)region1_start, (size_t)0);
+  _covered[0] = MemRegion((HeapWord*)region0_start, (Words)0);
+  _covered[1] = MemRegion((HeapWord*)region1_start, (Words)0);
 }
 
 void CardTable::resize_covered_region(MemRegion new_region) {
@@ -172,18 +171,18 @@ void CardTable::resize_covered_region(MemRegion new_region) {
                                 new_committed.word_size() - old_committed.word_size());
 
     os::commit_memory_or_exit((char*)delta.start(),
-                              delta.byte_size(),
-                              _page_size,
+                              untype(delta.byte_size()),
+                              untype(_page_size),
                               !ExecMem,
                               "card table expansion");
 
-    memset(delta.start(), clean_card, delta.byte_size());
+    memset(delta.start(), clean_card, untype(delta.byte_size()));
   } else {
     // Shrink.
     MemRegion delta = MemRegion(new_committed.end(),
                                 old_committed.word_size() - new_committed.word_size());
     bool res = os::uncommit_memory((char*)delta.start(),
-                                   delta.byte_size());
+                                   untype(delta.byte_size()));
     assert(res, "uncommit should succeed");
   }
 
@@ -233,9 +232,9 @@ void CardTable::clear_MemRegion(MemRegion mr) {
   memset(cur, clean_card, pointer_delta(last, cur, sizeof(CardValue)));
 }
 
-uintx CardTable::ct_max_alignment_constraint() {
+Bytes CardTable::ct_max_alignment_constraint() {
   // Calculate maximum alignment using GCCardSizeInBytes as card_size hasn't been set yet
-  return GCCardSizeInBytes * os::vm_page_size();
+  return in_Bytes(GCCardSizeInBytes * os::vm_page_size());
 }
 
 void CardTable::invalidate(MemRegion mr) {

@@ -58,17 +58,17 @@ void JfrNativeMemoryEvent::send_total_event(const Ticks& timestamp) {
 
   EventNativeMemoryUsageTotal event(UNTIMED);
   event.set_starttime(timestamp);
-  event.set_reserved(usage->total_reserved());
-  event.set_committed(usage->total_committed());
+  event.set_reserved(untype(usage->total_reserved()));
+  event.set_committed(untype(usage->total_committed()));
   event.commit();
 }
 
-void JfrNativeMemoryEvent::send_type_event(const Ticks& starttime, MEMFLAGS flag, size_t reserved, size_t committed) {
+void JfrNativeMemoryEvent::send_type_event(const Ticks& starttime, MEMFLAGS flag, Bytes reserved, Bytes committed) {
   EventNativeMemoryUsage event(UNTIMED);
   event.set_starttime(starttime);
   event.set_type(NMTUtil::flag_to_index(flag));
-  event.set_reserved(reserved);
-  event.set_committed(committed);
+  event.set_reserved(untype(reserved));
+  event.set_committed(untype(committed));
   event.commit();
 }
 

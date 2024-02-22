@@ -63,10 +63,10 @@ G1HeapTransition::Data::~Data() {
 G1HeapTransition::G1HeapTransition(G1CollectedHeap* g1_heap) : _g1_heap(g1_heap), _before(g1_heap) { }
 
 struct G1HeapTransition::DetailedUsage : public StackObj {
-  size_t _eden_used;
-  size_t _survivor_used;
-  size_t _old_used;
-  size_t _humongous_used;
+  Bytes _eden_used;
+  Bytes _survivor_used;
+  Bytes _old_used;
+  Bytes _humongous_used;
 
   size_t _eden_region_count;
   size_t _survivor_region_count;
@@ -74,7 +74,7 @@ struct G1HeapTransition::DetailedUsage : public StackObj {
   size_t _humongous_region_count;
 
   DetailedUsage() :
-    _eden_used(0), _survivor_used(0), _old_used(0), _humongous_used(0),
+    _eden_used(Bytes(0)), _survivor_used(Bytes(0)), _old_used(Bytes(0)), _humongous_used(Bytes(0)),
     _eden_region_count(0), _survivor_region_count(0), _old_region_count(0),
     _humongous_region_count(0) {}
 };
@@ -96,7 +96,7 @@ public:
       _usage._humongous_used += r->used();
       _usage._humongous_region_count++;
     } else {
-      assert(r->used() == 0, "Expected used to be 0 but it was " SIZE_FORMAT, r->used());
+      assert(r->used() == Bytes(0), "Expected used to be 0 but it was " SIZE_FORMAT, r->used());
     }
     return false;
   }

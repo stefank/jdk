@@ -33,13 +33,13 @@
 #include "utilities/debug.hpp"
 #include "utilities/globalDefinitions.hpp"
 
-inline size_t ZUtils::bytes_to_words(size_t size_in_bytes) {
+inline Words ZUtils::bytes_to_words(size_t size_in_bytes) {
   assert(is_aligned(size_in_bytes, BytesPerWord), "Size not word aligned");
-  return size_in_bytes >> LogBytesPerWord;
+  return in_Words(size_in_bytes >> LogBytesPerWord);
 }
 
-inline size_t ZUtils::words_to_bytes(size_t size_in_words) {
-  return size_in_words << LogBytesPerWord;
+inline size_t ZUtils::words_to_bytes(Words size_in_words) {
+  return untype(size_in_words) << LogBytesPerWord;
 }
 
 inline size_t ZUtils::object_size(zaddress addr) {

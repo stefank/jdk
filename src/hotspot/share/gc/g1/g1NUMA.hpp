@@ -47,15 +47,15 @@ class G1NUMA: public CHeapObj<mtGC> {
   uint _num_active_node_ids;
 
   // HeapRegion size
-  size_t _region_size;
+  Bytes _region_size;
   // Necessary when touching memory.
-  size_t _page_size;
+  Bytes _page_size;
 
   // Stores statistic data.
   G1NUMAStats* _stats;
 
-  size_t region_size() const;
-  size_t page_size() const;
+  Bytes region_size() const;
+  Bytes page_size() const;
 
   // Returns node index of the given node id.
   // Precondition: node_id is an active node id.
@@ -79,7 +79,7 @@ public:
 
   // Sets heap region size and page size after those values
   // are determined at G1CollectedHeap::initialize().
-  void set_region_info(size_t region_size, size_t page_size);
+  void set_region_info(Bytes region_size, Bytes page_size);
 
   // Returns active memory node count.
   uint num_active_nodes() const;
@@ -110,7 +110,7 @@ public:
   uint index_for_region(HeapRegion* hr) const;
 
   // Requests the given memory area to be located at the given node index.
-  void request_memory_on_node(void* aligned_address, size_t size_in_bytes, uint region_index);
+  void request_memory_on_node(void* aligned_address, Bytes size_in_bytes, uint region_index);
 
   // Returns maximum search depth which is used to limit heap region search iterations.
   // The number of active nodes, page size and heap region size are considered.

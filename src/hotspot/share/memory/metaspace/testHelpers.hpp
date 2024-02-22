@@ -61,8 +61,8 @@ public:
   MetaspaceTestArena(Mutex* lock, MetaspaceArena* arena);
   ~MetaspaceTestArena();
 
-  MetaWord* allocate(size_t word_size);
-  void deallocate(MetaWord* p, size_t word_size);
+  MetaWord* allocate(Words word_size);
+  void deallocate(MetaWord* p, Words word_size);
 
 };
 
@@ -70,12 +70,12 @@ public:
 class MetaspaceTestContext : public CHeapObj<mtInternal> {
 
   const char* const _name;
-  const size_t _reserve_limit;
-  const size_t _commit_limit;
+  const Words _reserve_limit;
+  const Words _commit_limit;
 
   MetaspaceContext* _context;
   CommitLimiter _commit_limiter;
-  SizeAtomicCounter _used_words_counter;
+  WordsAtomicCounter _used_words_counter;
 
   // For non-expandable contexts we keep track of the space
   // and delete it at destruction time.
@@ -86,7 +86,7 @@ public:
   // Note: limit == 0 means unlimited
   // Reserve limit > 0 simulates a non-expandable VirtualSpaceList (like CompressedClassSpace)
   // Commit limit > 0 simulates a limit to max committable space (like MaxMetaspaceSize)
-  MetaspaceTestContext(const char* name, size_t commit_limit = 0, size_t reserve_limit = 0);
+  MetaspaceTestContext(const char* name, Words commit_limit = Words(0), Words reserve_limit = Words(0));
   ~MetaspaceTestContext();
 
   // Create an arena, feeding off this area.
@@ -101,12 +101,13 @@ public:
 
   // Returns reserve- and commit limit we run the test with (in the real world,
   // these would be equivalent to CompressedClassSpaceSize resp MaxMetaspaceSize)
-  size_t reserve_limit() const    { return _reserve_limit == 0 ? max_uintx : 0; }
-  size_t commit_limit() const     { return _commit_limit == 0 ? max_uintx : 0; }
+  // FIXME: This looks like a bug. Why not return _reserve_limit?
+  Words reserve_limit() const    { return in_Words(_reserve_limit == Words(0) ? max_uintx : 0); }
+  Words commit_limit() const     { return in_Words(_commit_limit == Words(0) ? max_uintx : 0); }
 
   // Convenience function to retrieve total committed/used words
-  size_t used_words() const       { return _used_words_counter.get(); }
-  size_t committed_words() const  { return _commit_limiter.committed_words(); }
+  Words used_words() const       { return _used_words_counter.get(); }
+  Words committed_words() const  { return _commit_limiter.committed_words(); }
 
   DEBUG_ONLY(void verify() const;)
 

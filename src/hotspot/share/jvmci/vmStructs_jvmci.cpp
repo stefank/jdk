@@ -276,7 +276,7 @@
   nonstatic_field(MethodCounters,              _invocation_counter,                           InvocationCounter)                     \
   nonstatic_field(MethodCounters,              _backedge_counter,                             InvocationCounter)                     \
                                                                                                                                      \
-  nonstatic_field(MethodData,                  _size,                                         int)                                   \
+  nonstatic_field(MethodData,                  _size,                                         Bytes)                                   \
   nonstatic_field(MethodData,                  _method,                                       Method*)                               \
   nonstatic_field(MethodData,                  _data_size,                                    int)                                   \
   nonstatic_field(MethodData,                  _data[0],                                      intptr_t)                              \
@@ -398,8 +398,8 @@
   nonstatic_field(ThreadLocalAllocBuffer,   _top,                                             HeapWord*)                             \
   nonstatic_field(ThreadLocalAllocBuffer,   _end,                                             HeapWord*)                             \
   nonstatic_field(ThreadLocalAllocBuffer,   _pf_top,                                          HeapWord*)                             \
-  nonstatic_field(ThreadLocalAllocBuffer,   _desired_size,                                    size_t)                                \
-  nonstatic_field(ThreadLocalAllocBuffer,   _refill_waste_limit,                              size_t)                                \
+  nonstatic_field(ThreadLocalAllocBuffer,   _desired_size,                                    Words)                                \
+  nonstatic_field(ThreadLocalAllocBuffer,   _refill_waste_limit,                              Words)                                \
   nonstatic_field(ThreadLocalAllocBuffer,   _number_of_refills,                               unsigned)                              \
   nonstatic_field(ThreadLocalAllocBuffer,   _slow_allocations,                                unsigned)                              \
                                                                                                                                      \

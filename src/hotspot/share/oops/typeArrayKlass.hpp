@@ -61,7 +61,7 @@ class TypeArrayKlass : public ArrayKlass {
     return create_klass(type, external_name(type), THREAD);
   }
 
-  size_t oop_size(oop obj) const;
+  Words oop_size(oop obj) const;
 
   // Allocation
   typeArrayOop allocate_common(int length, bool do_zero, TRAPS);
@@ -107,8 +107,8 @@ class TypeArrayKlass : public ArrayKlass {
   static const char* external_name(BasicType type);
 
   // Sizing
-  static int header_size()  { return sizeof(TypeArrayKlass)/wordSize; }
-  int size() const          { return ArrayKlass::static_size(header_size()); }
+  static Words header_size()  { return in_Words(sizeof(TypeArrayKlass)/wordSize); }
+  Words size() const          { return ArrayKlass::static_size(header_size()); }
 
   // Initialization (virtual from Klass)
   void initialize(TRAPS);

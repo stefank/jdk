@@ -41,7 +41,7 @@ class ArchiveHeapInfo {
   MemRegion _buffer_region;             // Contains the archived objects to be written into the CDS archive.
   CHeapBitMap _oopmap;
   CHeapBitMap _ptrmap;
-  size_t _heap_roots_offset;            // Offset of the HeapShared::roots() object, from the bottom
+  Bytes _heap_roots_offset;             // Offset of the HeapShared::roots() object, from the bottom
                                         // of the archived heap objects, in bytes.
 
 public:
@@ -52,13 +52,13 @@ public:
   void set_buffer_region(MemRegion r) { _buffer_region = r; }
 
   char* buffer_start() { return (char*)_buffer_region.start(); }
-  size_t buffer_byte_size() { return _buffer_region.byte_size();    }
+  Bytes buffer_byte_size() { return _buffer_region.byte_size();    }
 
   CHeapBitMap* oopmap() { return &_oopmap; }
   CHeapBitMap* ptrmap() { return &_ptrmap; }
 
-  void set_heap_roots_offset(size_t n) { _heap_roots_offset = n; }
-  size_t heap_roots_offset() const { return _heap_roots_offset; }
+  void set_heap_roots_offset(Bytes n) { _heap_roots_offset = n; }
+  Bytes heap_roots_offset() const { return _heap_roots_offset; }
 };
 
 #if INCLUDE_CDS_JAVA_HEAP
@@ -123,16 +123,16 @@ private:
   // ArchiveHeapLoader::can_map() mode. Currently only G1 is supported. G1's region size
   // depends on -Xmx, but can never be smaller than 1 * M.
   // (TODO: Perhaps change to 256K to be compatible with Shenandoah)
-  static constexpr int MIN_GC_REGION_ALIGNMENT = 1 * M;
+  static constexpr Bytes MIN_GC_REGION_ALIGNMENT = in_Bytes(1 * M);
 
   static GrowableArrayCHeap<u1, mtClassShared>* _buffer;
 
   // The number of bytes that have written into _buffer (may be smaller than _buffer->length()).
-  static size_t _buffer_used;
+  static Bytes _buffer_used;
 
   // The bottom of the copy of Heap::roots() inside this->_buffer.
-  static size_t _heap_roots_offset;
-  static size_t _heap_roots_word_size;
+  static Bytes  _heap_roots_offset;
+  static Words  _heap_roots_word_size;
 
   // The address range of the requested location of the archived heap objects.
   static address _requested_bottom;
@@ -148,9 +148,9 @@ private:
   static BufferOffsetToSourceObjectTable* _buffer_offset_to_source_obj_table;
 
   static void allocate_buffer();
-  static void ensure_buffer_space(size_t min_bytes);
+  static void ensure_buffer_space(Bytes min_bytes);
 
-  // Both Java bytearray and GrowableArraty use int indices and lengths. Do a safe typecast with range check
+  // Both Java bytearray and GrowableArray use int indices and lengths. Do a safe typecast with range check
   static int to_array_index(size_t i) {
     assert(i <= (size_t)max_jint, "must be");
     return (int)i;
@@ -159,12 +159,12 @@ private:
     return to_array_index(n);
   }
 
-  template <typename T> static T offset_to_buffered_address(size_t offset) {
-    return (T)(_buffer->adr_at(to_array_index(offset)));
+  template <typename T> static T offset_to_buffered_address(Bytes offset) {
+    return (T)(_buffer->adr_at(to_array_index(untype(offset))));
   }
 
   static address buffer_bottom() {
-    return offset_to_buffered_address<address>(0);
+    return offset_to_buffered_address<address>(Bytes(0));
   }
 
   // The exclusive end of the last object that was copied into the buffer.
@@ -183,18 +183,18 @@ private:
 
   static void copy_roots_to_buffer(GrowableArrayCHeap<oop, mtClassShared>* roots);
   static void copy_source_objs_to_buffer(GrowableArrayCHeap<oop, mtClassShared>* roots);
-  static size_t copy_one_source_obj_to_buffer(oop src_obj);
+  static Bytes copy_one_source_obj_to_buffer(oop src_obj);
 
-  static void maybe_fill_gc_region_gap(size_t required_byte_size);
-  static size_t filler_array_byte_size(int length);
-  static int filler_array_length(size_t fill_bytes);
-  static HeapWord* init_filler_array_at_buffer_top(int array_length, size_t fill_bytes);
+  static void maybe_fill_gc_region_gap(Bytes required_byte_size);
+  static Bytes filler_array_byte_size(int length);
+  static int filler_array_length(Bytes fill_bytes);
+  static HeapWord* init_filler_array_at_buffer_top(int array_length, Bytes fill_bytes);
 
   static void set_requested_address(ArchiveHeapInfo* info);
   static void relocate_embedded_oops(GrowableArrayCHeap<oop, mtClassShared>* roots, ArchiveHeapInfo* info);
   static void compute_ptrmap(ArchiveHeapInfo *info);
   static bool is_in_requested_range(oop o);
-  static oop requested_obj_from_buffer_offset(size_t offset);
+  static oop requested_obj_from_buffer_offset(Bytes offset);
 
   static oop load_oop_from_buffer(oop* buffered_addr);
   static oop load_oop_from_buffer(narrowOop* buffered_addr);
@@ -213,7 +213,7 @@ private:
 public:
   static void init() NOT_CDS_JAVA_HEAP_RETURN;
   static void add_source_obj(oop src_obj);
-  static bool is_too_large_to_archive(size_t size);
+  static bool is_too_large_to_archive(Words size);
   static bool is_too_large_to_archive(oop obj);
   static bool is_string_too_large_to_archive(oop string);
   static void write(GrowableArrayCHeap<oop, mtClassShared>*, ArchiveHeapInfo* heap_info);
@@ -222,10 +222,10 @@ public:
   static address buffered_heap_roots_addr() {
     return offset_to_buffered_address<address>(_heap_roots_offset);
   }
-  static size_t heap_roots_word_size() {
+  static Words heap_roots_word_size() {
     return _heap_roots_word_size;
   }
-  static size_t get_filler_size_at(address buffered_addr);
+  static Bytes get_filler_size_at(address buffered_addr);
 
   static void mark_native_pointer(oop src_obj, int offset);
   static bool is_marked_as_native_pointer(ArchiveHeapInfo* heap_info, oop src_obj, int field_offset);

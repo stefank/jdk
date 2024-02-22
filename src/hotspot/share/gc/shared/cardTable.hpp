@@ -44,8 +44,8 @@ protected:
   // The declaration order of these const fields is important; see the
   // constructor before changing.
   const MemRegion _whole_heap;       // the region covered by the card table
-  const size_t    _page_size;        // page size used when mapping _byte_map
-  size_t          _byte_map_size;    // in bytes
+  const Bytes     _page_size;        // page size used when mapping _byte_map
+  Bytes           _byte_map_size;    // in bytes
   CardValue*      _byte_map;         // the card marking array
   CardValue*      _byte_map_base;
 
@@ -59,10 +59,7 @@ protected:
   // The covered regions should be in address order.
   MemRegion _covered[max_covered_regions];
 
-  // The last card is a guard card; never committed.
-  MemRegion _guard_region;
-
-  inline size_t compute_byte_map_size(size_t num_bytes);
+  inline Bytes compute_byte_map_size(Bytes num_bytes);
 
   enum CardValues {
     clean_card                  = (CardValue)-1,
@@ -97,9 +94,9 @@ public:
 
   // Initialization utilities; covered_words is the size of the covered region
   // in, um, words.
-  inline size_t cards_required(size_t covered_words) const {
+  inline size_t cards_required(Words covered_words) const {
     assert(is_aligned(covered_words, _card_size_in_words), "precondition");
-    return covered_words / _card_size_in_words;
+    return untype(covered_words) / _card_size_in_words;
   }
 
   // Dirty the bytes corresponding to "mr" (not all of which must be
@@ -179,7 +176,7 @@ public:
 
   // *** Card-table-RemSet-specific things.
 
-  static uintx ct_max_alignment_constraint();
+  static Bytes ct_max_alignment_constraint();
 
   static uint card_shift() {
     return _card_shift;

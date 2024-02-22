@@ -120,7 +120,7 @@ public:
   G1FullGCCompactionPoint* humongous_compaction_point() { return &_humongous_compaction_point; }
   G1CMBitMap*              mark_bitmap();
   ReferenceProcessor*      reference_processor();
-  size_t live_words(uint region_index) const {
+  Words live_words(uint region_index) const {
     assert(region_index < _heap->max_regions(), "sanity");
     return _live_stats[region_index]._live_words;
   }

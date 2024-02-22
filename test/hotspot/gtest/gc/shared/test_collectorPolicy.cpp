@@ -98,11 +98,11 @@ class TestGenCollectorPolicy {
     void execute() {
       SerialArguments sa;
       sa.initialize_heap_sizes();
-      ASSERT_LE(MinNewSize, param);
+      ASSERT_LE(MinNewSize, in_Bytes(param));
     }
   };
 
-  static size_t scale_by_NewRatio_aligned(size_t value, size_t alignment) {
+  static Bytes scale_by_NewRatio_aligned(Bytes value, Bytes alignment) {
     // Accessible via friend declaration
     return GenArguments::scale_by_NewRatio_aligned(value, alignment);
   }
@@ -110,18 +110,18 @@ class TestGenCollectorPolicy {
   class CheckScaledYoungInitial : public Executor {
    public:
     void execute() {
-      size_t initial_heap_size = InitialHeapSize;
+      Bytes initial_heap_size = in_Bytes(InitialHeapSize);
       SerialArguments sa;
       sa.initialize_heap_sizes();
 
-      if (InitialHeapSize > initial_heap_size) {
+      if (in_Bytes(InitialHeapSize) > initial_heap_size) {
         // InitialHeapSize was adapted by sa.initialize_heap_sizes, e.g. due to alignment
         // caused by 64K page size.
-        initial_heap_size = InitialHeapSize;
+        initial_heap_size = in_Bytes(InitialHeapSize);
       }
 
-      size_t expected = scale_by_NewRatio_aligned(initial_heap_size, GenAlignment);
-      ASSERT_EQ(expected, NewSize);
+      Bytes expected = scale_by_NewRatio_aligned(initial_heap_size, GenAlignment);
+      ASSERT_EQ(expected, in_Bytes(NewSize));
     }
   };
 
@@ -156,10 +156,10 @@ class TestGenCollectorPolicy {
    public:
     SetMaxNewSizeCmd(size_t param1, size_t param2) : BinaryExecutor(param1, param2) { }
     void execute() {
-      size_t heap_alignment = GCArguments::compute_heap_alignment();
-      size_t new_size_value = align_up(MaxHeapSize, heap_alignment)
-              - param1 + param2;
-      FLAG_SET_CMDLINE(MaxNewSize, new_size_value);
+      Bytes heap_alignment = GCArguments::compute_heap_alignment();
+      Bytes new_size_value = align_up(in_Bytes(MaxHeapSize), heap_alignment)
+              - in_Bytes(param1) + in_Bytes(param2);
+      FLAG_SET_CMDLINE(MaxNewSize, untype(new_size_value));
     }
   };
 
@@ -169,14 +169,14 @@ class TestGenCollectorPolicy {
     void execute() {
       SerialArguments sa;
       sa.initialize_heap_sizes();
-      ASSERT_LE(MinOldSize, param);
+      ASSERT_LE(MinOldSize, in_Bytes(param));
     }
   };
 
   class CheckOldInitial : public Executor {
    public:
     void execute() {
-      size_t heap_alignment = GCArguments::compute_heap_alignment();
+      Bytes heap_alignment = GCArguments::compute_heap_alignment();
 
       SerialArguments sa;
       sa.initialize_heap_sizes();
@@ -192,17 +192,17 @@ class TestGenCollectorPolicy {
    public:
     CheckOldInitialMaxNewSize(size_t param1, size_t param2) : BinaryExecutor(param1, param2) { }
     void execute() {
-      size_t heap_alignment = GCArguments::compute_heap_alignment();
-      size_t new_size_value = align_up(MaxHeapSize, heap_alignment)
-              - param1 + param2;
+      Bytes heap_alignment = GCArguments::compute_heap_alignment();
+      Bytes new_size_value = align_up(in_Bytes(MaxHeapSize), heap_alignment)
+              - in_Bytes(param1) + in_Bytes(param2);
 
       SerialArguments sa;
       sa.initialize_heap_sizes();
 
-      size_t expected_old_initial = align_up(MaxHeapSize, heap_alignment)
+      Bytes expected_old_initial = align_up(in_Bytes(MaxHeapSize), heap_alignment)
               - new_size_value;
 
-      ASSERT_EQ(expected_old_initial, OldSize);
+      ASSERT_EQ(expected_old_initial, in_Bytes(OldSize));
     }
   };
 };

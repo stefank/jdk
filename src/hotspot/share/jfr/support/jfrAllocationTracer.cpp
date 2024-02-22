@@ -28,7 +28,7 @@
 #include "jfr/support/jfrObjectAllocationSample.hpp"
 #include "runtime/javaThread.hpp"
 
-JfrAllocationTracer::JfrAllocationTracer(const Klass* klass, HeapWord* obj, size_t alloc_size, bool outside_tlab, JavaThread* thread) {
+JfrAllocationTracer::JfrAllocationTracer(const Klass* klass, HeapWord* obj, Bytes alloc_size, bool outside_tlab, JavaThread* thread) {
   if (LeakProfiler::is_running()) {
     LeakProfiler::sample(obj, alloc_size, thread);
   }

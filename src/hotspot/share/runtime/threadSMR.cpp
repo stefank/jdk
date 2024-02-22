@@ -681,7 +681,7 @@ ThreadsList *ThreadsList::add_thread(ThreadsList *list, JavaThread *java_thread)
   ThreadsList *const new_list = new ThreadsList(new_length);
 
   if (head_length > 0) {
-    Copy::disjoint_words((HeapWord*)list->_threads, (HeapWord*)new_list->_threads, head_length);
+    Copy::disjoint_words((HeapWord*)list->_threads, (HeapWord*)new_list->_threads, in_Words(head_length));
   }
   *(JavaThread**)(new_list->_threads + index) = java_thread;
 
@@ -762,10 +762,10 @@ ThreadsList *ThreadsList::remove_thread(ThreadsList* list, JavaThread* java_thre
   ThreadsList *const new_list = new ThreadsList(new_length);
 
   if (head_length > 0) {
-    Copy::disjoint_words((HeapWord*)list->_threads, (HeapWord*)new_list->_threads, head_length);
+    Copy::disjoint_words((HeapWord*)list->_threads, (HeapWord*)new_list->_threads, in_Words(head_length));
   }
   if (tail_length > 0) {
-    Copy::disjoint_words((HeapWord*)list->_threads + index + 1, (HeapWord*)new_list->_threads + index, tail_length);
+    Copy::disjoint_words((HeapWord*)list->_threads + index + 1, (HeapWord*)new_list->_threads + index, in_Words(tail_length));
   }
 
   return new_list;

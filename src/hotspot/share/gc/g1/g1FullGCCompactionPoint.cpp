@@ -80,8 +80,8 @@ GrowableArray<HeapRegion*>* G1FullGCCompactionPoint::regions() {
   return _compaction_regions;
 }
 
-bool G1FullGCCompactionPoint::object_will_fit(size_t size) {
-  size_t space_left = pointer_delta(_current_region->end(), _compaction_top);
+bool G1FullGCCompactionPoint::object_will_fit(Words size) {
+  Words space_left = pointer_delta(_current_region->end(), _compaction_top);
   return size <= space_left;
 }
 
@@ -93,7 +93,7 @@ void G1FullGCCompactionPoint::switch_region() {
   initialize_values();
 }
 
-void G1FullGCCompactionPoint::forward(oop object, size_t size) {
+void G1FullGCCompactionPoint::forward(oop object, Words size) {
   assert(_current_region != nullptr, "Must have been initialized");
 
   // Ensure the object fit in the current region.
@@ -153,7 +153,7 @@ void G1FullGCCompactionPoint::forward_humongous(HeapRegion* hr) {
   assert(hr->is_starts_humongous(), "Sanity!");
 
   oop obj = cast_to_oop(hr->bottom());
-  size_t obj_size = obj->size();
+  Words obj_size = obj->size();
   uint num_regions = (uint)G1CollectedHeap::humongous_obj_size_in_regions(obj_size);
 
   if (!has_regions()) {

@@ -61,16 +61,16 @@ void G1EvacStats::log_plab_allocation() {
                       _failure_waste * HeapWordSize);
 }
 
-void G1EvacStats::log_sizing(size_t calculated_words, size_t net_desired_words) {
+void G1EvacStats::log_sizing(Words calculated_words, Words net_desired_words) {
   log_debug(gc, plab)("%s sizing: "
                       "calculated: %zuB, "
                       "actual: %zuB",
                       _description,
-                      calculated_words * HeapWordSize,
-                      net_desired_words * HeapWordSize);
+                      to_Bytes(calculated_words),
+                      to_Bytes(net_desired_words));
 }
 
-size_t G1EvacStats::compute_desired_plab_size() const {
+Words G1EvacStats::compute_desired_plab_size() const {
   // The size of the PLAB caps the amount of space that can be wasted at the
   // end of the collection. In the worst case the last PLAB could be completely
   // empty.
@@ -110,28 +110,28 @@ size_t G1EvacStats::compute_desired_plab_size() const {
   // threads do not allocate anything but a few rather large objects. In this
   // degenerate case the PLAB size would simply quickly tend to minimum PLAB size,
   // which is an okay reaction.
-  size_t const used_for_waste_calculation = used() > _region_end_waste ? used() - _region_end_waste : 0;
+  Words const used_for_waste_calculation = used() > _region_end_waste ? used() - _region_end_waste : Words(0);
 
-  size_t const total_waste_allowed = used_for_waste_calculation * TargetPLABWastePct;
-  return (size_t)((double)total_waste_allowed / (100 - G1LastPLABAverageOccupancy));
+  Words const total_waste_allowed = used_for_waste_calculation * TargetPLABWastePct;
+  return in_Words((size_t)((double)total_waste_allowed / (100 - G1LastPLABAverageOccupancy)));
 }
 
-G1EvacStats::G1EvacStats(const char* description, size_t default_per_thread_plab_size, unsigned wt) :
+G1EvacStats::G1EvacStats(const char* description, Words default_per_thread_plab_size, unsigned wt) :
   PLABStats(description),
   _default_plab_size(default_per_thread_plab_size),
   _desired_net_plab_size(default_per_thread_plab_size * ParallelGCThreads),
   _net_plab_size_filter(wt),
-  _region_end_waste(0),
+  _region_end_waste(Words(0)),
   _regions_filled(0),
   _num_plab_filled(0),
-  _direct_allocated(0),
+  _direct_allocated(Words(0)),
   _num_direct_allocated(0),
   _failure_used(0),
   _failure_waste(0) {
 }
 
 // Calculates plab size for current number of gc worker threads.
-size_t G1EvacStats::desired_plab_size(uint no_of_gc_workers) const {
+Words G1EvacStats::desired_plab_size(uint no_of_gc_workers) const {
   if (!ResizePLAB) {
     // There is a circular dependency between the heap and PLAB initialization,
     // so _default_plab_size can have an unaligned value.
@@ -147,7 +147,7 @@ void G1EvacStats::adjust_desired_plab_size() {
     assert(is_object_aligned(max_size()) && min_size() <= max_size(),
            "PLAB clipping computation may be incorrect");
 
-    assert(_allocated != 0 || _unused == 0,
+    assert(_allocated != Words(0) || _unused == Words(0),
            "Inconsistency in PLAB stats: "
            "_allocated: %zu, "
            "_wasted: %zu, "
@@ -155,10 +155,10 @@ void G1EvacStats::adjust_desired_plab_size() {
            "_undo_wasted: %zu",
            _allocated, _wasted, _unused, _undo_wasted);
 
-    size_t plab_size = compute_desired_plab_size();
+    Words plab_size = compute_desired_plab_size();
     // Take historical weighted average
-    _net_plab_size_filter.sample(plab_size);
-    _desired_net_plab_size = MAX2(min_size(), (size_t)_net_plab_size_filter.average());
+    _net_plab_size_filter.sample(untype(plab_size));
+    _desired_net_plab_size = MAX2(min_size(), in_Words((size_t)_net_plab_size_filter.average()));
 
     log_sizing(plab_size, _desired_net_plab_size);
   }

@@ -432,7 +432,7 @@ public:
 
   // CodeHeap State Analytics.
   static void print_info(outputStream *out);
-  static void print_heapinfo(outputStream *out, const char* function, size_t granularity);
+  static void print_heapinfo(outputStream *out, const char* function, Bytes granularity);
 };
 
 #endif // SHARE_COMPILER_COMPILEBROKER_HPP

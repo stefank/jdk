@@ -43,14 +43,14 @@ using namespace metaspace::chunklevel;
 // Test ChunkManager::get_chunk
 TEST_VM(metaspace, get_chunk) {
 
-  ChunkGtestContext context(8 * M);
+  ChunkGtestContext context(8_w * M);
   Metachunk* c = nullptr;
 
   for (chunklevel_t pref_lvl = LOWEST_CHUNK_LEVEL; pref_lvl <= HIGHEST_CHUNK_LEVEL; pref_lvl++) {
 
     for (chunklevel_t max_lvl = pref_lvl; max_lvl <= HIGHEST_CHUNK_LEVEL; max_lvl++) {
 
-      for (size_t min_committed_words = Settings::commit_granule_words();
+      for (Words min_committed_words = Settings::commit_granule_words();
            min_committed_words <= word_size_for_level(max_lvl); min_committed_words *= 2) {
         context.alloc_chunk_expect_success(&c, pref_lvl, max_lvl, min_committed_words);
         context.return_chunk(c);
@@ -66,7 +66,7 @@ TEST_VM(metaspace, get_chunk_with_commit_limit) {
 
   // Here we test different combinations of commit limit, preferred and highest chunk level, and min_committed_size.
 
-  for (size_t commit_limit_words = Settings::commit_granule_words();
+  for (Words commit_limit_words = Settings::commit_granule_words();
        commit_limit_words < MAX_CHUNK_WORD_SIZE * 2; commit_limit_words *= 2) {
 
     ChunkGtestContext context(commit_limit_words);
@@ -76,7 +76,7 @@ TEST_VM(metaspace, get_chunk_with_commit_limit) {
 
       for (chunklevel_t max_lvl = pref_lvl; max_lvl <= HIGHEST_CHUNK_LEVEL; max_lvl++) {
 
-        for (size_t min_committed_words = Settings::commit_granule_words();
+        for (Words min_committed_words = Settings::commit_granule_words();
              min_committed_words <= word_size_for_level(max_lvl); min_committed_words *= 2) {
 
           // When should commit work? As long as min_committed_words is smaller than commit_limit_words.
@@ -104,7 +104,7 @@ TEST_VM(metaspace, get_chunk_recommit) {
 
   ChunkGtestContext context;
   Metachunk* c = nullptr;
-  context.alloc_chunk_expect_success(&c, ROOT_CHUNK_LEVEL, ROOT_CHUNK_LEVEL, 0);
+  context.alloc_chunk_expect_success(&c, ROOT_CHUNK_LEVEL, ROOT_CHUNK_LEVEL, 0_w);
   context.uncommit_chunk_with_test(c);
 
   context.commit_chunk_with_test(c, Settings::commit_granule_words());
@@ -124,8 +124,8 @@ TEST_VM(metaspace, get_chunk_recommit) {
 // (meaning, the underlying VirtualSpaceList cannot expand, like compressed class space).
 TEST_VM(metaspace, get_chunk_with_reserve_limit) {
 
-  const size_t reserve_limit_words = word_size_for_level(ROOT_CHUNK_LEVEL);
-  const size_t commit_limit_words = 1024 * M; // just very high
+  const Words reserve_limit_words = word_size_for_level(ROOT_CHUNK_LEVEL);
+  const Words commit_limit_words = 1024_w * M; // just very high
   ChunkGtestContext context(commit_limit_words, reserve_limit_words);
 
   // Reserve limit works at root chunk size granularity: if the chunk manager cannot satisfy
@@ -171,11 +171,11 @@ TEST_VM(metaspace, chunk_allocate_random) {
     context.alloc_chunk_expect_success(&c, lvl);
     context.uncommit_chunk_with_test(c); // start out fully uncommitted
 
-    RandSizeGenerator rgen(1, c->word_size() / 30);
+    RandSizeGenerator rgen(1_w, c->word_size() / 30);
     bool stop = false;
 
     while (!stop) {
-      const size_t s = rgen.get();
+      const Words s = rgen.get();
       if (s <= c->free_words()) {
         context.commit_chunk_with_test(c, s);
         context.allocate_from_chunk(c, s);
@@ -229,13 +229,13 @@ TEST_VM(metaspace, chunk_buddy_stuff) {
 
 TEST_VM(metaspace, chunk_allocate_with_commit_limit) {
 
-  const size_t granule_sz = Settings::commit_granule_words();
-  const size_t commit_limit = granule_sz * 3;
+  const Words granule_sz = Settings::commit_granule_words();
+  const Words commit_limit = granule_sz * 3;
   ChunkGtestContext context(commit_limit);
 
   // A big chunk, but uncommitted.
   Metachunk* c = nullptr;
-  context.alloc_chunk_expect_success(&c, ROOT_CHUNK_LEVEL, ROOT_CHUNK_LEVEL, 0);
+  context.alloc_chunk_expect_success(&c, ROOT_CHUNK_LEVEL, ROOT_CHUNK_LEVEL, 0_w);
   context.uncommit_chunk_with_test(c); // ... just to make sure.
 
   // first granule...
@@ -395,13 +395,13 @@ TEST_VM(metaspace, chunk_enlarge_in_place) {
   while (l != ROOT_CHUNK_LEVEL) {
 
     // commit and allocate from chunk to pattern it...
-    const size_t original_chunk_size = c->word_size();
+    const Words original_chunk_size = c->word_size();
     context.commit_chunk_with_test(c, c->free_words());
     context.allocate_from_chunk(c, c->free_words());
 
-    size_t used_before = c->used_words();
-    size_t free_before = c->free_words();
-    size_t free_below_committed_before = c->free_below_committed_words();
+    Words used_before = c->used_words();
+    Words free_before = c->free_words();
+    Words free_below_committed_before = c->free_below_committed_words();
     const MetaWord* top_before = c->top();
 
     EXPECT_TRUE(context.cm().attempt_enlarge_chunk(c));

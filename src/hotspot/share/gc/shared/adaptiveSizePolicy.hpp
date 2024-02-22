@@ -64,10 +64,10 @@ class AdaptiveSizePolicy : public CHeapObj<mtGC> {
   const double _throughput_goal;
 
   // Last calculated sizes, in bytes, and aligned
-  size_t _eden_size;        // calculated eden free space in bytes
-  size_t _promo_size;       // calculated promoted free space in bytes
+  Bytes _eden_size;        // calculated eden free space in bytes
+  Bytes _promo_size;       // calculated promoted free space in bytes
 
-  size_t _survivor_size;    // calculated survivor size in bytes
+  Bytes _survivor_size;    // calculated survivor size in bytes
 
   // Support for UseGCOverheadLimit
   GCOverheadChecker _overhead_checker;
@@ -257,12 +257,12 @@ class AdaptiveSizePolicy : public CHeapObj<mtGC> {
     // to use minor_collection_end() in its current form.
   }
 
-  size_t eden_increment(size_t cur_eden);
-  size_t eden_increment(size_t cur_eden, uint percent_change);
-  size_t eden_decrement(size_t cur_eden);
-  size_t promo_increment(size_t cur_eden);
-  size_t promo_increment(size_t cur_eden, uint percent_change);
-  size_t promo_decrement(size_t cur_eden);
+  Bytes eden_increment(Bytes cur_eden);
+  Bytes eden_increment(Bytes cur_eden, uint percent_change);
+  Bytes eden_decrement(Bytes cur_eden);
+  Bytes promo_increment(Bytes cur_eden);
+  Bytes promo_increment(Bytes cur_eden, uint percent_change);
+  Bytes promo_decrement(Bytes cur_eden);
 
   virtual void clear_generation_free_space_flags();
 
@@ -308,9 +308,9 @@ class AdaptiveSizePolicy : public CHeapObj<mtGC> {
   bool tenuring_threshold_change() const;
 
  public:
-  AdaptiveSizePolicy(size_t init_eden_size,
-                     size_t init_promo_size,
-                     size_t init_survivor_size,
+  AdaptiveSizePolicy(Bytes init_eden_size,
+                     Bytes init_promo_size,
+                     Bytes init_survivor_size,
                      double gc_pause_goal_sec,
                      uint gc_cost_ratio);
 
@@ -362,22 +362,22 @@ class AdaptiveSizePolicy : public CHeapObj<mtGC> {
     return _minor_pause_old_estimator->slope();
   }
 
-  void set_eden_size(size_t new_size) {
+  void set_eden_size(Bytes new_size) {
     _eden_size = new_size;
   }
-  void set_survivor_size(size_t new_size) {
+  void set_survivor_size(Bytes new_size) {
     _survivor_size = new_size;
   }
 
-  size_t calculated_eden_size_in_bytes() const {
+  Bytes calculated_eden_size_in_bytes() const {
     return _eden_size;
   }
 
-  size_t calculated_promo_size_in_bytes() const {
+  Bytes calculated_promo_size_in_bytes() const {
     return _promo_size;
   }
 
-  size_t calculated_survivor_size_in_bytes() const {
+  Bytes calculated_survivor_size_in_bytes() const {
     return _survivor_size;
   }
 
@@ -407,9 +407,9 @@ class AdaptiveSizePolicy : public CHeapObj<mtGC> {
 
   // Check the conditions for an out-of-memory due to excessive GC time.
   // Set _gc_overhead_limit_exceeded if all the conditions have been met.
-  void check_gc_overhead_limit(size_t eden_live,
-                               size_t max_old_gen_size,
-                               size_t max_eden_size,
+  void check_gc_overhead_limit(Bytes eden_live,
+                               Bytes max_old_gen_size,
+                               Bytes max_eden_size,
                                bool   is_full_gc,
                                GCCause::Cause gc_cause,
                                SoftRefPolicy* soft_ref_policy);

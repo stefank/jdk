@@ -30,7 +30,7 @@
 
 // PSVirtualSpace
 
-PSVirtualSpace::PSVirtualSpace(ReservedSpace rs, size_t alignment) :
+PSVirtualSpace::PSVirtualSpace(ReservedSpace rs, Bytes alignment) :
   _alignment(alignment)
 {
   set_reserved(rs);
@@ -40,7 +40,7 @@ PSVirtualSpace::PSVirtualSpace(ReservedSpace rs, size_t alignment) :
 
 // Deprecated.
 PSVirtualSpace::PSVirtualSpace():
-  _alignment(os::vm_page_size()),
+  _alignment(in_Bytes(os::vm_page_size())),
   _reserved_low_addr(nullptr),
   _reserved_high_addr(nullptr),
   _committed_low_addr(nullptr),
@@ -68,7 +68,7 @@ void PSVirtualSpace::release() {
   _special = false;
 }
 
-bool PSVirtualSpace::expand_by(size_t bytes) {
+bool PSVirtualSpace::expand_by(Bytes bytes) {
   assert(is_aligned(bytes, _alignment), "arg not aligned");
   DEBUG_ONLY(PSVirtualSpaceVerifier this_verifier(this));
 
@@ -78,7 +78,7 @@ bool PSVirtualSpace::expand_by(size_t bytes) {
 
   char* const base_addr = committed_high_addr();
   bool result = special() ||
-         os::commit_memory(base_addr, bytes, alignment(), !ExecMem);
+         os::commit_memory(base_addr, untype(bytes), untype(alignment()), !ExecMem);
   if (result) {
     _committed_high_addr += bytes;
   }
@@ -86,7 +86,7 @@ bool PSVirtualSpace::expand_by(size_t bytes) {
   return result;
 }
 
-bool PSVirtualSpace::shrink_by(size_t bytes) {
+bool PSVirtualSpace::shrink_by(Bytes bytes) {
   assert(is_aligned(bytes, _alignment), "arg not aligned");
   DEBUG_ONLY(PSVirtualSpaceVerifier this_verifier(this));
 
@@ -95,7 +95,7 @@ bool PSVirtualSpace::shrink_by(size_t bytes) {
   }
 
   char* const base_addr = committed_high_addr() - bytes;
-  bool result = special() || os::uncommit_memory(base_addr, bytes);
+  bool result = special() || os::uncommit_memory(base_addr, untype(bytes));
   if (result) {
     _committed_high_addr -= bytes;
   }

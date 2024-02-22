@@ -56,13 +56,13 @@ static const char* describe_spacetype(Metaspace::MetaspaceType st) {
 }
 
 static void print_vs(outputStream* out, size_t scale) {
-  const size_t reserved_nc = RunningCounters::reserved_words_nonclass();
-  const size_t committed_nc = RunningCounters::committed_words_nonclass();
+  const Words reserved_nc = RunningCounters::reserved_words_nonclass();
+  const Words committed_nc = RunningCounters::committed_words_nonclass();
   const int num_nodes_nc = VirtualSpaceList::vslist_nonclass()->num_nodes();
 
   if (Metaspace::using_class_space()) {
-    const size_t reserved_c = RunningCounters::reserved_words_class();
-    const size_t committed_c = RunningCounters::committed_words_class();
+    const Words reserved_c = RunningCounters::reserved_words_class();
+    const Words committed_c = RunningCounters::committed_words_class();
     const int num_nodes_c = VirtualSpaceList::vslist_class()->num_nodes();
 
     out->print("  Non-class space:  ");
@@ -100,18 +100,18 @@ static void print_settings(outputStream* out, size_t scale) {
   if (MaxMetaspaceSize == max_uintx) {
     out->print("unlimited");
   } else {
-    print_human_readable_size(out, MaxMetaspaceSize, scale);
+    print_human_readable_size(out, in_Bytes(MaxMetaspaceSize), scale);
   }
   out->cr();
   if (Metaspace::using_class_space()) {
     out->print("CompressedClassSpaceSize: ");
-    print_human_readable_size(out, CompressedClassSpaceSize, scale);
+    print_human_readable_size(out, in_Bytes(CompressedClassSpaceSize), scale);
   } else {
     out->print("No class space");
   }
   out->cr();
   out->print("Initial GC threshold: ");
-  print_human_readable_size(out, MetaspaceSize, scale);
+  print_human_readable_size(out, in_Bytes(MetaspaceSize), scale);
   out->cr();
   out->print("Current GC threshold: ");
   print_human_readable_size(out, MetaspaceGC::capacity_until_GC(), scale);
@@ -137,19 +137,19 @@ void MetaspaceReporter::print_basic_report(outputStream* out, size_t scale) {
   // for Usage stats (statistics over in-use chunks) all we can print is the
   // used words. We cannot print committed areas, or free/waste areas, of in-use chunks require
   // walking.
-  const size_t used_nc = MetaspaceUtils::used_words(Metaspace::NonClassType);
+  const Words used_nc = MetaspaceUtils::used_words(Metaspace::NonClassType);
 
   print_scaled_words(out, used_nc, scale, 5);
   out->print(" used.");
   out->cr();
   if (Metaspace::using_class_space()) {
-    const size_t used_c = MetaspaceUtils::used_words(Metaspace::ClassType);
+    const Words used_c = MetaspaceUtils::used_words(Metaspace::ClassType);
     out->print("      Class:  ");
     print_scaled_words(out, used_c, scale, 5);
     out->print(" used.");
     out->cr();
     out->print("       Both:  ");
-    const size_t used = used_nc + used_c;
+    const Words used = used_nc + used_c;
     print_scaled_words(out, used, scale, 5);
     out->print(" used.");
     out->cr();
@@ -323,7 +323,7 @@ void MetaspaceReporter::print_report(outputStream* out, size_t scale, int flags)
   out->cr();
   out->print("Waste (unused committed space):");
   // For all wastages, print percentages from total. As total use the total size of memory committed for metaspace.
-  const size_t committed_words = RunningCounters::committed_words();
+  const Words committed_words = RunningCounters::committed_words();
 
   out->print("(percentages refer to total committed size ");
   print_scaled_words(out, committed_words, scale);
@@ -332,8 +332,8 @@ void MetaspaceReporter::print_report(outputStream* out, size_t scale, int flags)
   // Print waste for in-use chunks.
   InUseChunkStats ucs_nonclass = cl._stats_total._arena_stats_nonclass.totals();
   InUseChunkStats ucs_class = cl._stats_total._arena_stats_class.totals();
-  const size_t waste_in_chunks_in_use = ucs_nonclass._waste_words + ucs_class._waste_words;
-  const size_t free_in_chunks_in_use = ucs_nonclass._free_words + ucs_class._free_words;
+  const Words waste_in_chunks_in_use = ucs_nonclass._waste_words + ucs_class._waste_words;
+  const Words free_in_chunks_in_use = ucs_nonclass._free_words + ucs_class._free_words;
 
   out->print("        Waste in chunks in use: ");
   print_scaled_words_and_percentage(out, waste_in_chunks_in_use, committed_words, scale, 6);
@@ -343,7 +343,7 @@ void MetaspaceReporter::print_report(outputStream* out, size_t scale, int flags)
   out->cr();
 
   // Print waste in free chunks.
-  const size_t committed_in_free_chunks = total_cm_stat.total_committed_word_size();
+  const Words committed_in_free_chunks = total_cm_stat.total_committed_word_size();
   out->print("                In free chunks: ");
   print_scaled_words_and_percentage(out, committed_in_free_chunks, committed_words, scale, 6);
   out->cr();
@@ -352,7 +352,7 @@ void MetaspaceReporter::print_report(outputStream* out, size_t scale, int flags)
   const uintx free_blocks_num =
       cl._stats_total._arena_stats_nonclass._free_blocks_num +
       cl._stats_total._arena_stats_class._free_blocks_num;
-  const size_t free_blocks_cap_words =
+  const Words free_blocks_cap_words =
       cl._stats_total._arena_stats_nonclass._free_blocks_word_size +
       cl._stats_total._arena_stats_class._free_blocks_word_size;
   out->print("Deallocated from chunks in use: ");
@@ -361,7 +361,7 @@ void MetaspaceReporter::print_report(outputStream* out, size_t scale, int flags)
   out->cr();
 
   // Print total waste.
-  const size_t total_waste =
+  const Words total_waste =
       waste_in_chunks_in_use +
       free_in_chunks_in_use +
       committed_in_free_chunks +

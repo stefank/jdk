@@ -42,9 +42,9 @@
   nonstatic_field(TenuredGeneration,                 _rs,                    CardTableRS*)                  \
   nonstatic_field(TenuredGeneration,                 _bts,                   SerialBlockOffsetSharedArray*) \
   nonstatic_field(TenuredGeneration,                 _shrink_factor,         size_t)                        \
-  nonstatic_field(TenuredGeneration,                 _capacity_at_prologue,  size_t)                        \
-  nonstatic_field(TenuredGeneration,                 _used_at_prologue,      size_t)                        \
-  nonstatic_field(TenuredGeneration,                 _min_heap_delta_bytes,  size_t)                        \
+  nonstatic_field(TenuredGeneration,                 _capacity_at_prologue,  Bytes)                         \
+  nonstatic_field(TenuredGeneration,                 _used_at_prologue,      Bytes)                         \
+  nonstatic_field(TenuredGeneration,                 _min_heap_delta_bytes,  Bytes)                         \
   nonstatic_field(TenuredGeneration,                 _the_space,             TenuredSpace*)                 \
                                                                                                             \
   nonstatic_field(DefNewGeneration,                  _old_gen,               TenuredGeneration*)            \

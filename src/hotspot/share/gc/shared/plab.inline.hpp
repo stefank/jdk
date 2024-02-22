@@ -31,20 +31,24 @@
 #include "memory/allocation.inline.hpp"
 #include "runtime/atomic.hpp"
 
-void PLABStats::add_allocated(size_t v) {
-  Atomic::add(&_allocated, v);
+static void add(Words* addr, Words v) {
+  Atomic::add((size_t*)addr, untype(v));
 }
 
-void PLABStats::add_unused(size_t v) {
-  Atomic::add(&_unused, v);
+void PLABStats::add_allocated(Words v) {
+  add(&_allocated, v);
 }
 
-void PLABStats::add_wasted(size_t v) {
-  Atomic::add(&_wasted, v);
+void PLABStats::add_unused(Words v) {
+  add(&_unused, v);
 }
 
-void PLABStats::add_undo_wasted(size_t v) {
-  Atomic::add(&_undo_wasted, v);
+void PLABStats::add_wasted(Words v) {
+  add(&_wasted, v);
+}
+
+void PLABStats::add_undo_wasted(Words v) {
+  add(&_undo_wasted, v);
 }
 
 #endif // SHARE_GC_SHARED_PLAB_INLINE_HPP

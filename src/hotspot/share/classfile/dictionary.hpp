@@ -47,7 +47,7 @@ class Dictionary : public CHeapObj<mtClass> {
    public:
     using Value = DictionaryEntry*;
     static uintx get_hash(Value const& value, bool* is_dead);
-    static void* allocate_node(void* context, size_t size, Value const& value);
+    static void* allocate_node(void* context, Bytes size, Value const& value);
     static void free_node(void* context, void* memory, Value const& value);
   };
 

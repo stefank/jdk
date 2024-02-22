@@ -54,7 +54,7 @@ void G1RemSetTrackingPolicy::update_at_free(HeapRegion* r) {
   /* nothing to do */
 }
 
-static void print_before_rebuild(HeapRegion* r, bool selected_for_rebuild, size_t total_live_bytes, size_t live_bytes) {
+static void print_before_rebuild(HeapRegion* r, bool selected_for_rebuild, Bytes total_live_bytes, Bytes live_bytes) {
   log_trace(gc, remset, tracking)("Before rebuild region %u "
                                   "(tams: " PTR_FORMAT ") "
                                   "total_live_bytes %zu "
@@ -84,13 +84,13 @@ bool G1RemSetTrackingPolicy::update_humongous_before_rebuild(HeapRegion* r, bool
     selected_for_rebuild = true;
   }
 
-  size_t const live_bytes = is_live ? HeapRegion::GrainBytes : 0;
+  Bytes const live_bytes = is_live ? HeapRegion::GrainBytes : Bytes(0);
   print_before_rebuild(r, selected_for_rebuild, live_bytes, live_bytes);
 
   return selected_for_rebuild;
 }
 
-bool G1RemSetTrackingPolicy::update_before_rebuild(HeapRegion* r, size_t live_bytes_below_tams) {
+bool G1RemSetTrackingPolicy::update_before_rebuild(HeapRegion* r, Bytes live_bytes_below_tams) {
   assert(SafepointSynchronize::is_at_safepoint(), "should be at safepoint");
   assert(!r->is_humongous(), "Region %u is humongous", r->hrm_index());
 
@@ -101,8 +101,8 @@ bool G1RemSetTrackingPolicy::update_before_rebuild(HeapRegion* r, size_t live_by
 
   assert(!r->rem_set()->is_updating(), "Remembered set of region %u is updating before rebuild", r->hrm_index());
 
-  size_t live_bytes_above_tams = pointer_delta(r->top(), r->top_at_mark_start()) * HeapWordSize;
-  size_t total_live_bytes = live_bytes_below_tams + live_bytes_above_tams;
+  Bytes live_bytes_above_tams = to_Bytes(pointer_delta(r->top(), r->top_at_mark_start()));
+  Bytes total_live_bytes = live_bytes_below_tams + live_bytes_above_tams;
 
   bool selected_for_rebuild = false;
   // For old regions, to be of interest for rebuilding the remembered set the following must apply:
@@ -110,7 +110,7 @@ bool G1RemSetTrackingPolicy::update_before_rebuild(HeapRegion* r, size_t live_by
   // - Only need to rebuild non-complete remembered sets.
   // - Otherwise only add those old gen regions which occupancy is low enough that there
   // is a chance that we will ever evacuate them in the mixed gcs.
-  if ((total_live_bytes > 0) &&
+  if ((total_live_bytes > Bytes(0)) &&
       G1CollectionSetChooser::region_occupancy_low_enough_for_evac(total_live_bytes) &&
       !r->rem_set()->is_tracked()) {
 

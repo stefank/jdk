@@ -67,6 +67,6 @@ G1FullGCTracer* G1FullGCScope::tracer() {
   return _tracer;
 }
 
-size_t G1FullGCScope::region_compaction_threshold() const {
+Words G1FullGCScope::region_compaction_threshold() const {
   return _region_compaction_threshold;
 }

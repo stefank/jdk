@@ -238,7 +238,7 @@ public:
   virtual void do_object(oop obj) {
     const uintptr_t p_int = reinterpret_cast<uintptr_t>(_p);
     const uintptr_t base_int = cast_from_oop<uintptr_t>(obj);
-    const uintptr_t end_int = base_int + wordSize * obj->size();
+    const uintptr_t end_int = base_int + to_bytes(obj->size());
     if (p_int >= base_int && p_int < end_int) {
       _result = obj;
     }

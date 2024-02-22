@@ -33,9 +33,9 @@
 
 class SimpleThreadStackSite : public AllocationSite {
   const address _base;
-  const size_t  _size;
+  const Bytes   _size;
 public:
-  SimpleThreadStackSite(address base, size_t size, const NativeCallStack& stack) :
+  SimpleThreadStackSite(address base, Bytes size, const NativeCallStack& stack) :
     AllocationSite(stack, mtThreadStack),
     _base(base),
     _size(size) {}
@@ -46,7 +46,7 @@ public:
     return eq;
   }
 
-  size_t  size() const { return _size; }
+  Bytes   size() const { return _size; }
   address base() const { return _base; }
 };
 
@@ -71,8 +71,8 @@ private:
 public:
   static bool initialize(NMT_TrackingLevel level);
 
-  static void new_thread_stack(void* base, size_t size, const NativeCallStack& stack);
-  static void delete_thread_stack(void* base, size_t size);
+  static void new_thread_stack(void* base, Bytes size, const NativeCallStack& stack);
+  static void delete_thread_stack(void* base, Bytes size);
 
   static bool   track_as_vm()  { return AIX_ONLY(false) NOT_AIX(true); }
   static size_t thread_count() { return _thread_count; }

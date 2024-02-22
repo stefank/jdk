@@ -32,12 +32,12 @@ class VM_GenCollectForAllocation : public VM_CollectForAllocation {
  private:
   bool        _tlab;                       // alloc is of a tlab.
  public:
-  VM_GenCollectForAllocation(size_t word_size,
+  VM_GenCollectForAllocation(Words word_size,
                              bool tlab,
                              uint gc_count_before)
     : VM_CollectForAllocation(word_size, gc_count_before, GCCause::_allocation_failure),
       _tlab(tlab) {
-    assert(word_size != 0, "An allocation should always be requested with this operation.");
+    assert(word_size != Words(0), "An allocation should always be requested with this operation.");
   }
   ~VM_GenCollectForAllocation()  {}
   virtual VMOp_Type type() const { return VMOp_GenCollectForAllocation; }

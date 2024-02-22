@@ -118,7 +118,7 @@ Metachunk*  VirtualSpaceList::allocate_root_chunk() {
     // root-chunk-size units, and the node size must be root-chunk-size aligned,
     // we should never have left-over space.
     if (_first_node != nullptr) {
-      assert(_first_node->free_words() == 0, "Sanity");
+      assert(_first_node->free_words() == Words(0), "Sanity");
     }
 #endif
 
@@ -162,8 +162,8 @@ void VirtualSpaceList::verify_locked() const {
   int n = 0;
 
   if (_first_node != nullptr) {
-    size_t total_reserved_words = 0;
-    size_t total_committed_words = 0;
+    Words total_reserved_words = Words(0);
+    Words total_committed_words = Words(0);
     const VirtualSpaceNode* vsn = _first_node;
     while (vsn != nullptr) {
       n++;
@@ -176,8 +176,8 @@ void VirtualSpaceList::verify_locked() const {
     _reserved_words_counter.check(total_reserved_words);
     _committed_words_counter.check(total_committed_words);
   } else {
-    _reserved_words_counter.check(0);
-    _committed_words_counter.check(0);
+    _reserved_words_counter.check(Words(0));
+    _committed_words_counter.check(Words(0));
   }
 }
 

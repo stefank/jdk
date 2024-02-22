@@ -30,7 +30,7 @@
 
 G1SurvivorRegions::G1SurvivorRegions() :
   _regions(new (mtGC) GrowableArray<HeapRegion*>(8, mtGC)),
-  _used_bytes(0),
+  _used_bytes(Bytes(0)),
   _regions_on_node() {}
 
 uint G1SurvivorRegions::add(HeapRegion* hr) {
@@ -59,10 +59,10 @@ void G1SurvivorRegions::convert_to_eden() {
 
 void G1SurvivorRegions::clear() {
   _regions->clear();
-  _used_bytes = 0;
+  _used_bytes = Bytes(0);
   _regions_on_node.clear();
 }
 
-void G1SurvivorRegions::add_used_bytes(size_t used_bytes) {
-  _used_bytes += used_bytes;
+void G1SurvivorRegions::add_used_bytes(Bytes used_bytes) {
+  _used_bytes = _used_bytes + used_bytes;
 }

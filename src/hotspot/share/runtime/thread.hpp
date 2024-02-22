@@ -422,8 +422,8 @@ class Thread: public ThreadShadow {
   void initialize_tlab();
 
   jlong allocated_bytes()               { return _allocated_bytes; }
-  void set_allocated_bytes(jlong value) { _allocated_bytes = value; }
-  void incr_allocated_bytes(jlong size) { _allocated_bytes += size; }
+  void set_allocated_bytes(Bytes value) { _allocated_bytes = untype(value); }
+  void incr_allocated_bytes(Bytes size) { _allocated_bytes += untype(size); }
   inline jlong cooked_allocated_bytes();
 
   ThreadHeapSampler& heap_sampler()     { return _heap_sampler; }

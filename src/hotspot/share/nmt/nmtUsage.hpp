@@ -29,8 +29,8 @@
 #include "utilities/globalDefinitions.hpp"
 
 struct NMTUsagePair {
-  size_t reserved;
-  size_t committed;
+  Bytes reserved;
+  Bytes committed;
 };
 
 struct NMTUsageOptions {
@@ -41,8 +41,8 @@ struct NMTUsageOptions {
 
 class NMTUsage : public CHeapObj<mtNMT> {
 private:
-  size_t _malloc_by_type[mt_number_of_types];
-  size_t _malloc_total;
+  Bytes _malloc_by_type[mt_number_of_types];
+  Bytes _malloc_total;
   NMTUsagePair _vm_by_type[mt_number_of_types];
   NMTUsagePair _vm_total;
 
@@ -59,10 +59,10 @@ public:
   NMTUsage(NMTUsageOptions options = OptionsAll);
   void refresh();
 
-  size_t total_reserved() const;
-  size_t total_committed() const;
-  size_t reserved(MEMFLAGS flag) const;
-  size_t committed(MEMFLAGS flag) const;
+  Bytes total_reserved() const;
+  Bytes total_committed() const;
+  Bytes reserved(MEMFLAGS flag) const;
+  Bytes committed(MEMFLAGS flag) const;
 };
 
 #endif // SHARE_NMT_NMTUSAGE_HPP

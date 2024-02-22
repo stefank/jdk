@@ -77,11 +77,11 @@ void GCTracer::report_gc_reference_stats(const ReferenceProcessorStats& rps) con
 #if INCLUDE_SERVICES
 class ObjectCountEventSenderClosure : public KlassInfoClosure {
   const double _size_threshold_percentage;
-  const size_t _total_size_in_words;
+  const Words _total_size_in_words;
   const Ticks _timestamp;
 
  public:
-  ObjectCountEventSenderClosure(size_t total_size_in_words, const Ticks& timestamp) :
+  ObjectCountEventSenderClosure(Words total_size_in_words, const Ticks& timestamp) :
     _size_threshold_percentage(ObjectCountCutOffPercent / 100),
     _total_size_in_words(total_size_in_words),
     _timestamp(timestamp)
@@ -95,7 +95,7 @@ class ObjectCountEventSenderClosure : public KlassInfoClosure {
 
  private:
   bool should_send_event(const KlassInfoEntry* entry) const {
-    double percentage_of_heap = ((double) entry->words()) / _total_size_in_words;
+    double percentage_of_heap = ((double) entry->words()) / untype(_total_size_in_words);
     return percentage_of_heap >= _size_threshold_percentage;
   }
 };
@@ -160,13 +160,13 @@ bool YoungGCTracer::should_report_promotion_outside_plab_event() const {
   return should_send_promotion_outside_plab_event();
 }
 
-void YoungGCTracer::report_promotion_in_new_plab_event(Klass* klass, size_t obj_size,
+void YoungGCTracer::report_promotion_in_new_plab_event(Klass* klass, Bytes obj_size,
                                                        uint age, bool tenured,
-                                                       size_t plab_size) const {
+                                                       Bytes plab_size) const {
   send_promotion_in_new_plab_event(klass, obj_size, age, tenured, plab_size);
 }
 
-void YoungGCTracer::report_promotion_outside_plab_event(Klass* klass, size_t obj_size,
+void YoungGCTracer::report_promotion_outside_plab_event(Klass* klass, Bytes obj_size,
                                                         uint age, bool tenured) const {
   send_promotion_outside_plab_event(klass, obj_size, age, tenured);
 }

@@ -29,15 +29,15 @@
 #include "unittest.hpp"
 
 static void test_update_allocation_tracker(G1OldGenAllocationTracker* alloc_tracker,
-                                           size_t alloc_amount) {
+                                           Bytes alloc_amount) {
   alloc_tracker->add_allocated_bytes_since_last_gc(alloc_amount);
-  alloc_tracker->reset_after_gc((size_t)0);
+  alloc_tracker->reset_after_gc(0_b);
 }
 
 static void test_update(G1IHOPControl* ctrl,
                         G1OldGenAllocationTracker* alloc_tracker,
-                        double alloc_time, size_t alloc_amount,
-                        size_t young_size, double mark_time) {
+                        double alloc_time, Bytes alloc_amount,
+                        Bytes young_size, double mark_time) {
   test_update_allocation_tracker(alloc_tracker, alloc_amount);
   for (int i = 0; i < 100; i++) {
     ctrl->update_allocation_info(alloc_time, young_size);
@@ -48,10 +48,10 @@ static void test_update(G1IHOPControl* ctrl,
 static void test_update_humongous(G1IHOPControl* ctrl,
                                   G1OldGenAllocationTracker* alloc_tracker,
                                   double alloc_time,
-                                  size_t alloc_amount_non_hum,
-                                  size_t alloc_amount_hum,
-                                  size_t humongous_bytes_after_last_gc,
-                                  size_t young_size,
+                                  Bytes alloc_amount_non_hum,
+                                  Bytes alloc_amount_hum,
+                                  Bytes humongous_bytes_after_last_gc,
+                                  Bytes young_size,
                                   double mark_time) {
   alloc_tracker->add_allocated_bytes_since_last_gc(alloc_amount_non_hum);
   alloc_tracker->add_allocated_humongous_bytes_since_last_gc(alloc_amount_hum);
@@ -69,17 +69,18 @@ TEST_VM(G1StaticIHOPControl, simple) {
     return;
   }
 
-  const size_t initial_ihop = 45;
+  const Bytes initial_ihop = 45_b;
+  const double initial_ihop_percent = untype(initial_ihop);
 
   G1OldGenAllocationTracker alloc_tracker;
-  G1StaticIHOPControl ctrl(initial_ihop, &alloc_tracker);
-  ctrl.update_target_occupancy(100);
+  G1StaticIHOPControl ctrl(initial_ihop_percent, &alloc_tracker);
+  ctrl.update_target_occupancy(100_b);
 
-  size_t threshold = ctrl.get_conc_mark_start_threshold();
+  Bytes threshold = ctrl.get_conc_mark_start_threshold();
   EXPECT_EQ(initial_ihop, threshold);
 
-  test_update_allocation_tracker(&alloc_tracker, 100);
-  ctrl.update_allocation_info(100.0, 100);
+  test_update_allocation_tracker(&alloc_tracker, 100_b);
+  ctrl.update_allocation_info(100.0, 100_b);
   threshold = ctrl.get_conc_mark_start_threshold();
   EXPECT_EQ(initial_ihop, threshold);
 
@@ -88,12 +89,12 @@ TEST_VM(G1StaticIHOPControl, simple) {
   EXPECT_EQ(initial_ihop, threshold);
 
   // Whatever we pass, the IHOP value must stay the same.
-  test_update(&ctrl, &alloc_tracker, 2, 10, 10, 3);
+  test_update(&ctrl, &alloc_tracker, 2, 10_b, 10_b, 3);
   threshold = ctrl.get_conc_mark_start_threshold();
 
   EXPECT_EQ(initial_ihop, threshold);
 
-  test_update(&ctrl, &alloc_tracker, 12, 10, 10, 3);
+  test_update(&ctrl, &alloc_tracker, 12, 10_b, 10_b, 3);
   threshold = ctrl.get_conc_mark_start_threshold();
 
   EXPECT_EQ(initial_ihop, threshold);
@@ -106,26 +107,27 @@ TEST_VM(G1AdaptiveIHOPControl, simple) {
     return;
   }
 
-  const size_t initial_threshold = 45;
-  const size_t young_size = 10;
-  const size_t target_size = 100;
+  const Bytes initial_threshold = 45_b;
+  const double initial_threshold_percent = untype(initial_threshold);
+  const Bytes young_size = 10_b;
+  const Bytes target_size = 100_b;
 
   // The final IHOP value is always
   // target_size - (young_size + alloc_amount/alloc_time * marking_time)
 
   G1OldGenAllocationTracker alloc_tracker;
   G1Predictions pred(0.95);
-  G1AdaptiveIHOPControl ctrl(initial_threshold, &alloc_tracker, &pred, 0, 0);
+  G1AdaptiveIHOPControl ctrl(initial_threshold_percent, &alloc_tracker, &pred, 0, 0);
   ctrl.update_target_occupancy(target_size);
 
   // First "load".
   const size_t alloc_time1 = 2;
-  const size_t alloc_amount1 = 10;
+  const Bytes alloc_amount1 = 10_b;
   const size_t marking_time1 = 2;
-  const size_t settled_ihop1 = target_size
+  const Bytes settled_ihop1 = target_size
           - (young_size + alloc_amount1 / alloc_time1 * marking_time1);
 
-  size_t threshold;
+  Bytes threshold;
   threshold = ctrl.get_conc_mark_start_threshold();
 
   EXPECT_EQ(initial_threshold, threshold);
@@ -148,9 +150,9 @@ TEST_VM(G1AdaptiveIHOPControl, simple) {
 
   // Second "load". A bit higher allocation rate.
   const size_t alloc_time2 = 2;
-  const size_t alloc_amount2 = 30;
+  const Bytes alloc_amount2 = 30_b;
   const size_t marking_time2 = 2;
-  const size_t settled_ihop2 = target_size
+  const Bytes settled_ihop2 = target_size
           - (young_size + alloc_amount2 / alloc_time2 * marking_time2);
 
   test_update(&ctrl, &alloc_tracker, alloc_time2, alloc_amount2, young_size, marking_time2);
@@ -161,9 +163,9 @@ TEST_VM(G1AdaptiveIHOPControl, simple) {
 
   // Third "load". Very high (impossible) allocation rate.
   const size_t alloc_time3 = 1;
-  const size_t alloc_amount3 = 50;
+  const Bytes alloc_amount3 = 50_b;
   const size_t marking_time3 = 2;
-  const size_t settled_ihop3 = 0;
+  const Bytes settled_ihop3 = 0_b;
 
   test_update(&ctrl, &alloc_tracker, alloc_time3, alloc_amount3, young_size, marking_time3);
   threshold = ctrl.get_conc_mark_start_threshold();
@@ -185,8 +187,8 @@ TEST_VM(G1AdaptiveIHOPControl, humongous) {
   }
 
   const size_t initial_threshold = 45;
-  const size_t young_size = 10;
-  const size_t target_size = 100;
+  const Bytes young_size = 10_b;
+  const Bytes target_size = 100_b;
   const double duration = 10.0;
   const size_t marking_time = 2;
 
@@ -195,21 +197,21 @@ TEST_VM(G1AdaptiveIHOPControl, humongous) {
   G1AdaptiveIHOPControl ctrl(initial_threshold, &alloc_tracker, &pred, 0, 0);
   ctrl.update_target_occupancy(target_size);
 
-  size_t old_bytes = 100;
-  size_t humongous_bytes = 200;
-  size_t humongous_bytes_after_gc = 150;
-  size_t humongous_bytes_after_last_gc = 50;
+  Bytes old_bytes = 100_b;
+  Bytes humongous_bytes = 200_b;
+  Bytes humongous_bytes_after_gc = 150_b;
+  Bytes humongous_bytes_after_last_gc = 50_b;
   // Load 1
-  test_update_humongous(&ctrl, &alloc_tracker, duration, 0, humongous_bytes,
+  test_update_humongous(&ctrl, &alloc_tracker, duration, 0_b, humongous_bytes,
                         humongous_bytes_after_last_gc, young_size, marking_time);
   // Test threshold
-  size_t threshold;
+  Bytes threshold;
   threshold = ctrl.get_conc_mark_start_threshold();
   // Adjusted allocated bytes:
   // Total bytes: humongous_bytes
   // Freed hum bytes: humongous_bytes - humongous_bytes_after_last_gc
-  double alloc_rate = humongous_bytes_after_last_gc / duration;
-  size_t target_threshold = target_size - (size_t)(young_size + alloc_rate * marking_time);
+  double alloc_rate = untype(humongous_bytes_after_last_gc) / duration;
+  Bytes target_threshold = target_size - in_Bytes((size_t)(untype(young_size) + alloc_rate * marking_time));
 
   EXPECT_EQ(threshold, target_threshold);
 
@@ -222,14 +224,14 @@ TEST_VM(G1AdaptiveIHOPControl, humongous) {
   // Adjusted allocated bytes:
   // Total bytes: old_bytes + humongous_bytes
   // Freed hum bytes: humongous_bytes - (humongous_bytes_after_gc - humongous_bytes_after_last_gc)
-  alloc_rate = (old_bytes + (humongous_bytes_after_gc - humongous_bytes_after_last_gc)) / duration;
-  target_threshold = target_size - (size_t)(young_size + alloc_rate * marking_time);
+  alloc_rate = untype(old_bytes + (humongous_bytes_after_gc - humongous_bytes_after_last_gc)) / duration;
+  target_threshold = target_size - (young_size + in_Bytes(alloc_rate * marking_time));
 
   EXPECT_EQ(threshold, target_threshold);
 
   // Load 3
   humongous_bytes_after_last_gc = humongous_bytes_after_gc;
-  humongous_bytes_after_gc = 50;
+  humongous_bytes_after_gc = 50_b;
   G1AdaptiveIHOPControl ctrl3(initial_threshold, &alloc_tracker, &pred, 0, 0);
   ctrl3.update_target_occupancy(target_size);
   test_update_humongous(&ctrl3, &alloc_tracker, duration, old_bytes, humongous_bytes,
@@ -239,8 +241,8 @@ TEST_VM(G1AdaptiveIHOPControl, humongous) {
   // All humongous are cleaned up since humongous_bytes_after_gc < humongous_bytes_after_last_gc
   // Total bytes: old_bytes + humongous_bytes
   // Freed hum bytes: humongous_bytes
-  alloc_rate = old_bytes / duration;
-  target_threshold = target_size - (size_t)(young_size + alloc_rate * marking_time);
+  alloc_rate = untype(old_bytes) / duration;
+  target_threshold = target_size - (young_size + in_Bytes(alloc_rate * marking_time));
 
   EXPECT_EQ(threshold, target_threshold);
 }

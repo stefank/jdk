@@ -126,7 +126,7 @@ static void print_method_profiling_data() {
     collected_profiled_methods->sort(&compare_methods);
 
     int count = collected_profiled_methods->length();
-    int total_size = 0;
+    Bytes total_size = Bytes(0);
     if (count > 0) {
       for (int index = 0; index < count; index++) {
         Method* m = collected_profiled_methods->at(index);
@@ -138,7 +138,7 @@ static void print_method_profiling_data() {
 
         ss.print_cr("------------------------------------------------------------------------");
         m->print_invocation_count(&ss);
-        ss.print_cr("  mdo size: %d bytes", m->method_data()->size_in_bytes());
+        ss.print_cr("  mdo size: %zu bytes", m->method_data()->size_in_bytes());
         ss.cr();
         // Dump data on parameters if any
         if (m->method_data() != nullptr && m->method_data()->parameters_type_data() != nullptr) {
@@ -150,7 +150,7 @@ static void print_method_profiling_data() {
         total_size += m->method_data()->size_in_bytes();
       }
       tty->print_cr("------------------------------------------------------------------------");
-      tty->print_cr("Total MDO size: %d bytes", total_size);
+      tty->print_cr("Total MDO size: %zu bytes", total_size);
     }
   }
 }
@@ -313,7 +313,7 @@ void print_statistics() {
 
   // CodeHeap State Analytics.
   if (PrintCodeHeapAnalytics) {
-    CompileBroker::print_heapinfo(nullptr, "all", 4096); // details
+    CompileBroker::print_heapinfo(nullptr, "all", Bytes(4096)); // details
   }
 
   if (PrintCodeCache2) {

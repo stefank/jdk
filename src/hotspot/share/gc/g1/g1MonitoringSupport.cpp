@@ -39,8 +39,8 @@ protected:
 public:
   G1GenerationCounters(G1MonitoringSupport* monitoring_support,
                        const char* name, int ordinal, int spaces,
-                       size_t min_capacity, size_t max_capacity,
-                       size_t curr_capacity) :
+                       Bytes min_capacity, Bytes max_capacity,
+                       Bytes curr_capacity) :
     GenerationCounters(name, ordinal, spaces, min_capacity,
                        max_capacity, curr_capacity),
     _monitoring_support(monitoring_support) { }
@@ -48,43 +48,43 @@ public:
 
 class G1YoungGenerationCounters : public G1GenerationCounters {
 public:
-  G1YoungGenerationCounters(G1MonitoringSupport* monitoring_support, const char* name, size_t max_size) :
+  G1YoungGenerationCounters(G1MonitoringSupport* monitoring_support, const char* name, Bytes max_size) :
     G1GenerationCounters(monitoring_support,
                          name,
                          0 /* ordinal */,
                          3 /* spaces */,
-                         0 /* min_capacity */,
+                         Bytes(0) /* min_capacity */,
                          max_size,
-                         0 /* curr_capacity */) {
+                         Bytes(0) /* curr_capacity */) {
     if (UsePerfData) {
       update_all();
     }
   }
 
   virtual void update_all() {
-    size_t committed = _monitoring_support->young_gen_committed();
-    _current_size->set_value(committed);
+    Bytes committed = _monitoring_support->young_gen_committed();
+    _current_size->set_value(untype(committed));
   }
 };
 
 class G1OldGenerationCounters : public G1GenerationCounters {
 public:
-  G1OldGenerationCounters(G1MonitoringSupport* monitoring_support, const char* name, size_t max_size) :
+  G1OldGenerationCounters(G1MonitoringSupport* monitoring_support, const char* name, Bytes max_size) :
     G1GenerationCounters(monitoring_support,
                          name,
                          1 /* ordinal */,
                          1 /* spaces */,
-                         0 /* min_capacity */,
+                         Bytes(0) /* min_capacity */,
                          max_size,
-                         0 /* curr_capacity */) {
+                         Bytes(0) /* curr_capacity */) {
     if (UsePerfData) {
       update_all();
     }
   }
 
   virtual void update_all() {
-    size_t committed = _monitoring_support->old_gen_committed();
-    _current_size->set_value(committed);
+    Bytes committed = _monitoring_support->old_gen_committed();
+    _current_size->set_value(untype(committed));
   }
 };
 
@@ -106,16 +106,16 @@ G1MonitoringSupport::G1MonitoringSupport(G1CollectedHeap* g1h) :
   _from_space_counters(nullptr),
   _to_space_counters(nullptr),
 
-  _overall_committed(0),
-  _overall_used(0),
-  _young_gen_committed(0),
-  _old_gen_committed(0),
+  _overall_committed(Bytes(0)),
+  _overall_used(Bytes(0)),
+  _young_gen_committed(Bytes(0)),
+  _old_gen_committed(Bytes(0)),
 
-  _eden_space_committed(0),
-  _eden_space_used(0),
-  _survivor_space_committed(0),
-  _survivor_space_used(0),
-  _old_gen_used(0) {
+  _eden_space_committed(Bytes(0)),
+  _eden_space_used(Bytes(0)),
+  _survivor_space_committed(Bytes(0)),
+  _survivor_space_used(Bytes(0)),
+  _old_gen_used(Bytes(0)) {
 
   recalculate_sizes();
 
@@ -170,13 +170,13 @@ G1MonitoringSupport::G1MonitoringSupport(G1CollectedHeap* g1h) :
   // Set the arguments to indicate that this survivor space is not used.
   _from_space_counters = new HSpaceCounters(young_collection_name_space,
                                             "s0", 1 /* ordinal */,
-                                            0 /* max_capacity */,
-                                            0 /* init_capacity */);
+                                            Bytes(0) /* max_capacity */,
+                                            Bytes(0) /* init_capacity */);
   // Given that this survivor space is not used, we update it here
   // once to reflect that its used space is 0 so that we don't have to
   // worry about updating it again later.
   if (UsePerfData) {
-    _from_space_counters->update_used(0);
+    _from_space_counters->update_used(Bytes(0));
   }
 
   //  name "generation.0.space.2"
@@ -211,7 +211,7 @@ void G1MonitoringSupport::initialize_serviceability() {
 
 MemoryUsage G1MonitoringSupport::memory_usage() {
   MutexLocker x(MonitoringSupport_lock, Mutex::_no_safepoint_check_flag);
-  return MemoryUsage(InitialHeapSize, _overall_used, _overall_committed, _g1h->max_capacity());
+  return MemoryUsage(in_Bytes(InitialHeapSize), _overall_used, _overall_committed, _g1h->max_capacity());
 }
 
 GrowableArray<GCMemoryManager*> G1MonitoringSupport::memory_managers() {
@@ -258,7 +258,7 @@ void G1MonitoringSupport::recalculate_sizes() {
 
   // Next, start with the overall committed size.
   _overall_committed = _g1h->capacity();
-  size_t committed = _overall_committed;
+  Bytes committed = _overall_committed;
 
   // Remove the committed size we have calculated so far (for the
   // survivor and old space).
@@ -322,7 +322,7 @@ void G1MonitoringSupport::update_eden_size() {
   }
 }
 
-MemoryUsage G1MonitoringSupport::eden_space_memory_usage(size_t initial_size, size_t max_size) {
+MemoryUsage G1MonitoringSupport::eden_space_memory_usage(Bytes initial_size, Bytes max_size) {
   MutexLocker x(MonitoringSupport_lock, Mutex::_no_safepoint_check_flag);
 
   return MemoryUsage(initial_size,
@@ -331,7 +331,7 @@ MemoryUsage G1MonitoringSupport::eden_space_memory_usage(size_t initial_size, si
                      max_size);
 }
 
-MemoryUsage G1MonitoringSupport::survivor_space_memory_usage(size_t initial_size, size_t max_size) {
+MemoryUsage G1MonitoringSupport::survivor_space_memory_usage(Bytes initial_size, Bytes max_size) {
   MutexLocker x(MonitoringSupport_lock, Mutex::_no_safepoint_check_flag);
 
   return MemoryUsage(initial_size,
@@ -340,7 +340,7 @@ MemoryUsage G1MonitoringSupport::survivor_space_memory_usage(size_t initial_size
                      max_size);
 }
 
-MemoryUsage G1MonitoringSupport::old_gen_memory_usage(size_t initial_size, size_t max_size) {
+MemoryUsage G1MonitoringSupport::old_gen_memory_usage(Bytes initial_size, Bytes max_size) {
   MutexLocker x(MonitoringSupport_lock, Mutex::_no_safepoint_check_flag);
 
   return MemoryUsage(initial_size,

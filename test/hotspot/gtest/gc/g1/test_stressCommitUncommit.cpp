@@ -77,11 +77,11 @@ TEST_VM(G1RegionToSpaceMapper, smallStressAdjacent) {
   // Fake a heap with 1m regions and create a BOT like mapper. This
   // will give a G1RegionsSmallerThanCommitSizeMapper to stress.
   uint num_regions = G1MapperWorkers::MaxWorkers;
-  size_t region_size = 1*M;
-  size_t size = G1BlockOffsetTable::compute_size(num_regions * region_size / HeapWordSize);
-  size_t page_size = os::vm_page_size();
+  Bytes region_size = Bytes(1*M);
+  Bytes size = G1BlockOffsetTable::compute_size(to_Words(num_regions * region_size));
+  Bytes page_size = in_Bytes(os::vm_page_size());
 
-  ReservedSpace rs(size, os::vm_page_size());
+  ReservedSpace rs(size, page_size);
 
   G1RegionToSpaceMapper* small_mapper  =
     G1RegionToSpaceMapper::create_mapper(rs,
@@ -101,9 +101,9 @@ TEST_VM(G1RegionToSpaceMapper, largeStressAdjacent) {
   // Fake a heap with 2m regions and create a BOT like mapper. This
   // will give a G1RegionsLargerThanCommitSizeMapper to stress.
   uint num_regions = G1MapperWorkers::MaxWorkers;
-  size_t region_size = 2*M;
-  size_t size = G1BlockOffsetTable::compute_size(num_regions * region_size / HeapWordSize);
-  size_t page_size = os::vm_page_size();
+  Bytes region_size = Bytes(2*M);
+  Bytes size = G1BlockOffsetTable::compute_size(to_Words(num_regions * region_size));
+  Bytes page_size = in_Bytes(os::vm_page_size());
 
   ReservedSpace rs(size, page_size);
 

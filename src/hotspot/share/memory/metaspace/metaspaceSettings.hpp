@@ -35,10 +35,10 @@ namespace metaspace {
 class Settings : public AllStatic {
 
   // Granularity, in bytes, metaspace is committed with.
-  static constexpr size_t _commit_granule_bytes = 64 * K;
+  static constexpr Bytes _commit_granule_bytes = Bytes(64 * K);
 
   // Granularity, in words, metaspace is committed with.
-  static constexpr size_t _commit_granule_words = _commit_granule_bytes / BytesPerWord;
+  static constexpr Words _commit_granule_words = to_Words(_commit_granule_bytes);
 
   // The default size of a VirtualSpaceNode, unless created with an explicitly specified size.
   //  Must be a multiple of the root chunk size.
@@ -46,11 +46,11 @@ class Settings : public AllStatic {
   //  increases. Matters mostly for 32bit platforms due to limited address space.
   // Note that this only affects the non-class metaspace. Class space ignores this size (it is one
   //  single large mapping).
-  static const size_t _virtual_space_node_default_word_size =
+  static const Words _virtual_space_node_default_word_size =
       chunklevel::MAX_CHUNK_WORD_SIZE * NOT_LP64(1) LP64_ONLY(4); // 16MB (32-bit) / 64MB (64-bit)
 
   // Alignment of the base address of a virtual space node
-  static const size_t _virtual_space_node_reserve_alignment_words = chunklevel::MAX_CHUNK_WORD_SIZE;
+  static const Words _virtual_space_node_reserve_alignment_words = chunklevel::MAX_CHUNK_WORD_SIZE;
 
   // When allocating from a chunk, if the remaining area in the chunk is too small to hold
   // the requested size, we attempt to double the chunk size in place...
@@ -61,10 +61,10 @@ class Settings : public AllStatic {
 
 public:
 
-  static size_t commit_granule_bytes()                        { return _commit_granule_bytes; }
-  static size_t commit_granule_words()                        { return _commit_granule_words; }
-  static size_t virtual_space_node_default_word_size()        { return _virtual_space_node_default_word_size; }
-  static size_t virtual_space_node_reserve_alignment_words()  { return _virtual_space_node_reserve_alignment_words; }
+  static Bytes commit_granule_bytes()                         { return _commit_granule_bytes; }
+  static Words commit_granule_words()                         { return _commit_granule_words; }
+  static Words virtual_space_node_default_word_size()         { return _virtual_space_node_default_word_size; }
+  static Words virtual_space_node_reserve_alignment_words()   { return _virtual_space_node_reserve_alignment_words; }
   static bool enlarge_chunks_in_place()                       { return _enlarge_chunks_in_place; }
   static bool use_allocation_guard()                          { return DEBUG_ONLY(_use_allocation_guard) NOT_DEBUG(false); }
 

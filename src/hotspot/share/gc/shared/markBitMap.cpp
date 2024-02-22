@@ -31,8 +31,11 @@ void MarkBitMap::print_on_error(outputStream* st, const char* prefix) const {
   _bm.print_on_error(st, prefix);
 }
 
-size_t MarkBitMap::compute_size(size_t heap_size) {
-  return ReservedSpace::allocation_align_size_up(heap_size / mark_distance());
+Bytes MarkBitMap::compute_size(Bytes heap_size) {
+  size_t num_slots = untype(heap_size) / mark_distance();
+  // TODO: Some assumption
+  Bytes num_slots_bytes = in_Bytes(num_slots);
+  return ReservedSpace::allocation_align_size_up(num_slots_bytes);
 }
 
 size_t MarkBitMap::mark_distance() {
@@ -42,7 +45,7 @@ size_t MarkBitMap::mark_distance() {
 void MarkBitMap::initialize(MemRegion heap, MemRegion storage) {
   _covered = heap;
 
-  _bm = BitMapView((BitMap::bm_word_t*) storage.start(), _covered.word_size() >> _shifter);
+  _bm = BitMapView((BitMap::bm_word_t*) storage.start(), untype(_covered.word_size()) >> _shifter);
 }
 
 void MarkBitMap::do_clear(MemRegion mr, bool large) {

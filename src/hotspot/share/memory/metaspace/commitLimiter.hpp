@@ -51,27 +51,27 @@ namespace metaspace {
 class CommitLimiter : public CHeapObj<mtMetaspace> {
 
   // Counts total words committed for metaspace
-  SizeCounter _cnt;
+  WordsCounter _cnt;
 
   // Purely for testing purposes: cap, in words.
-  const size_t _cap;
+  const Words _cap;
 
 public:
 
   // Create a commit limiter. This is only useful for testing, with a cap != 0,
   // since normal code should use the global commit limiter.
   // If cap != 0 (word size), the cap replaces the internal logic of limiting.
-  CommitLimiter(size_t cap = 0) : _cnt(), _cap(cap) {}
+  CommitLimiter(Words cap = Words(0)) : _cnt(), _cap(cap) {}
 
   // Returns the size, in words, by which we may expand the metaspace committed area without:
   // - _cap == 0: hitting GC threshold or the MaxMetaspaceSize
   // - _cap > 0: hitting cap (this is just for testing purposes)
-  size_t possible_expansion_words() const;
+  Words possible_expansion_words() const;
 
-  void increase_committed(size_t word_size)   { _cnt.increment_by(word_size); }
-  void decrease_committed(size_t word_size)   { _cnt.decrement_by(word_size); }
+  void increase_committed(Words word_size)   { _cnt.increment_by(word_size); }
+  void decrease_committed(Words word_size)   { _cnt.decrement_by(word_size); }
 
-  size_t committed_words() const              { return _cnt.get(); }
+  Words committed_words() const              { return _cnt.get(); }
 
   // Returns the global metaspace commit counter
   static CommitLimiter* globalLimiter();

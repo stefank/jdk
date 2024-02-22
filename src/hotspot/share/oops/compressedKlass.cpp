@@ -68,16 +68,16 @@ void CompressedKlassPointers::initialize_for_given_encoding(address addr, size_t
 }
 
 char* CompressedKlassPointers::reserve_address_space_X(uintptr_t from, uintptr_t to, size_t size, size_t alignment, bool aslr) {
-  alignment = MAX2(Metaspace::reserve_alignment(), alignment);
+  alignment = MAX2(untype(Metaspace::reserve_alignment()), alignment);
   return os::attempt_reserve_memory_between((char*)from, (char*)to, size, alignment, aslr);
 }
 
 char* CompressedKlassPointers::reserve_address_space_for_unscaled_encoding(size_t size, bool aslr) {
-  return reserve_address_space_X(0, nth_bit(32), size, Metaspace::reserve_alignment(), aslr);
+  return reserve_address_space_X(0, nth_bit(32), size, untype(Metaspace::reserve_alignment()), aslr);
 }
 
 char* CompressedKlassPointers::reserve_address_space_for_zerobased_encoding(size_t size, bool aslr) {
-  return reserve_address_space_X(nth_bit(32), nth_bit(32 + LogKlassAlignmentInBytes), size, Metaspace::reserve_alignment(), aslr);
+  return reserve_address_space_X(nth_bit(32), nth_bit(32 + LogKlassAlignmentInBytes), size, untype(Metaspace::reserve_alignment()), aslr);
 }
 
 char* CompressedKlassPointers::reserve_address_space_for_16bit_move(size_t size, bool aslr) {

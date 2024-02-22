@@ -546,9 +546,9 @@ TRACE_REQUEST_FUNC(JavaThreadStatistics) {
 TRACE_REQUEST_FUNC(GCHeapMemoryUsage) {
   MemoryUsage usage = Universe::heap()->memory_usage();
   EventGCHeapMemoryUsage event(UNTIMED);
-  event.set_used(usage.used());
-  event.set_committed(usage.committed());
-  event.set_max(usage.max_size());
+  event.set_used(untype(usage.used()));
+  event.set_committed(untype(usage.committed()));
+  event.set_max(untype(usage.max_size()));
   event.set_starttime(timestamp());
   event.set_endtime(timestamp());
   event.commit();
@@ -563,9 +563,9 @@ TRACE_REQUEST_FUNC(GCHeapMemoryPoolUsage) {
       MemoryUsage usage = pool->get_memory_usage();
       EventGCHeapMemoryPoolUsage event(UNTIMED);
       event.set_name(pool->name());
-      event.set_used(usage.used());
-      event.set_committed(usage.committed());
-      event.set_max(usage.max_size());
+      event.set_used(untype(usage.used()));
+      event.set_committed(untype(usage.committed()));
+      event.set_max(untype(usage.max_size()));
       event.set_starttime(timestamp());
       event.set_endtime(timestamp());
       event.commit();
@@ -599,11 +599,11 @@ public:
     event.set_parentClassLoader(parent_cld);
     event.set_classLoaderData((intptr_t)cls._cld);
     event.set_classCount(cls._classes_count);
-    event.set_chunkSize(cls._chunk_sz);
-    event.set_blockSize(cls._block_sz);
+    event.set_chunkSize(untype(cls._chunk_sz));
+    event.set_blockSize(untype(cls._block_sz));
     event.set_hiddenClassCount(cls._hidden_classes_count);
-    event.set_hiddenChunkSize(cls._hidden_chunk_sz);
-    event.set_hiddenBlockSize(cls._hidden_block_sz);
+    event.set_hiddenChunkSize(untype(cls._hidden_chunk_sz));
+    event.set_hiddenBlockSize(untype(cls._hidden_block_sz));
     event.commit();
     return true;
   }
@@ -634,7 +634,7 @@ static void emit_table_statistics(TableStatistics statistics) {
   EVENT event;
   event.set_bucketCount(statistics._number_of_buckets);
   event.set_entryCount(statistics._number_of_entries);
-  event.set_totalFootprint(statistics._total_footprint);
+  event.set_totalFootprint(untype(statistics._total_footprint));
   event.set_bucketCountMaximum(statistics._maximum_bucket_size);
   event.set_bucketCountAverage(statistics._average_bucket_size);
   event.set_bucketCountVariance(statistics._variance_of_bucket_size);
@@ -690,7 +690,7 @@ TRACE_REQUEST_FUNC(CodeCacheStatistics) {
       event.set_entryCount(CodeCache::blob_count(bt));
       event.set_methodCount(CodeCache::nmethod_count(bt));
       event.set_adaptorCount(CodeCache::adapter_count(bt));
-      event.set_unallocatedCapacity(CodeCache::unallocated_capacity(bt));
+      event.set_unallocatedCapacity(untype(CodeCache::unallocated_capacity(bt)));
       event.set_fullCount(CodeCache::get_codemem_full_count(bt));
       event.commit();
     }

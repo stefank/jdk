@@ -70,7 +70,7 @@ public:
   void reset();
   void start_adding_regions();
   void stop_adding_regions();
-  void record_surviving_words(uint age, size_t surv_words);
+  void record_surviving_words(uint age, Words surv_words);
   void all_surviving_words_recorded(const G1Predictions& predictor, bool update_predictors);
 
   double accum_surv_rate_pred(uint age) const {

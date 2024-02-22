@@ -123,7 +123,7 @@ bool MetaspaceShared::_use_optimized_module_handling = true;
 
 static DumpRegion _symbol_region("symbols");
 
-char* MetaspaceShared::symbol_space_alloc(size_t num_bytes) {
+char* MetaspaceShared::symbol_space_alloc(Bytes num_bytes) {
   return _symbol_region.allocate(num_bytes);
 }
 
@@ -136,8 +136,8 @@ char* MetaspaceShared::symbol_space_alloc(size_t num_bytes) {
 // Upon successful configuration, the compactible alignment then can be defined in:
 //   os_linux_aarch64.cpp
 //   os_bsd_x86.cpp
-size_t MetaspaceShared::core_region_alignment() {
-  return os::cds_core_region_alignment();
+Bytes MetaspaceShared::core_region_alignment() {
+  return in_Bytes(os::cds_core_region_alignment());
 }
 
 static bool shared_base_valid(char* shared_base) {
@@ -254,7 +254,7 @@ void MetaspaceShared::initialize_for_static_dump() {
   // The max allowed size for CDS archive. We use this to limit SharedBaseAddress
   // to avoid address space wrap around.
   size_t cds_max;
-  const size_t reserve_alignment = core_region_alignment();
+  const Bytes reserve_alignment = core_region_alignment();
 
 #ifdef _LP64
   const uint64_t UnscaledClassSpaceMax = (uint64_t(max_juint) + 1);
@@ -268,7 +268,7 @@ void MetaspaceShared::initialize_for_static_dump() {
   _requested_base_address = compute_shared_base(cds_max);
   SharedBaseAddress = (size_t)_requested_base_address;
 
-  size_t symbol_rs_size = LP64_ONLY(3 * G) NOT_LP64(128 * M);
+  Bytes symbol_rs_size = in_Bytes(LP64_ONLY(3 * G) NOT_LP64(128 * M));
   _symbol_rs = ReservedSpace(symbol_rs_size);
   if (!_symbol_rs.is_reserved()) {
     log_error(cds)("Unable to reserve memory for symbols: " SIZE_FORMAT " bytes.", symbol_rs_size);
@@ -1253,12 +1253,12 @@ char* MetaspaceShared::reserve_address_space_for_archives(FileMapInfo* static_ma
                                                           ReservedSpace& class_space_rs) {
 
   address const base_address = (address) (use_archive_base_addr ? static_mapinfo->requested_base_address() : nullptr);
-  const size_t archive_space_alignment = core_region_alignment();
+  const Bytes archive_space_alignment = core_region_alignment();
 
   // Size and requested location of the archive_space_rs (for both static and dynamic archives)
   assert(static_mapinfo->mapping_base_offset() == 0, "Must be");
   size_t archive_end_offset  = (dynamic_mapinfo == nullptr) ? static_mapinfo->mapping_end_offset() : dynamic_mapinfo->mapping_end_offset();
-  size_t archive_space_size = align_up(archive_end_offset, archive_space_alignment);
+  Bytes archive_space_size = align_up(in_Bytes(archive_end_offset - 0), archive_space_alignment);
 
   // If a base address is given, it must have valid alignment and be suitable as encoding base.
   if (base_address != nullptr) {
@@ -1270,7 +1270,7 @@ char* MetaspaceShared::reserve_address_space_for_archives(FileMapInfo* static_ma
     // Get the simple case out of the way first:
     // no compressed class space, simple allocation.
     archive_space_rs = ReservedSpace(archive_space_size, archive_space_alignment,
-                                     os::vm_page_size(), (char*)base_address);
+                                     in_Bytes(os::vm_page_size()), (char*)base_address);
     if (archive_space_rs.is_reserved()) {
       assert(base_address == nullptr ||
              (address)archive_space_rs.base() == base_address, "Sanity");
@@ -1287,7 +1287,7 @@ char* MetaspaceShared::reserve_address_space_for_archives(FileMapInfo* static_ma
   //  with narrow class pointers.
   // We reserve the whole range spanning both spaces, then split that range up.
 
-  const size_t class_space_alignment = Metaspace::reserve_alignment();
+  const Bytes class_space_alignment = Metaspace::reserve_alignment();
 
   // To simplify matters, lets assume that metaspace alignment will always be
   //  equal or a multiple of archive alignment.
@@ -1296,17 +1296,17 @@ char* MetaspaceShared::reserve_address_space_for_archives(FileMapInfo* static_ma
                        class_space_alignment >= archive_space_alignment,
                        "Sanity");
 
-  const size_t class_space_size = CompressedClassSpaceSize;
+  const Bytes class_space_size = in_Bytes(CompressedClassSpaceSize);
   assert(CompressedClassSpaceSize > 0 &&
          is_aligned(CompressedClassSpaceSize, class_space_alignment),
          "CompressedClassSpaceSize malformed: "
          SIZE_FORMAT, CompressedClassSpaceSize);
 
-  const size_t ccs_begin_offset = align_up(base_address + archive_space_size,
-                                           class_space_alignment) - base_address;
-  const size_t gap_size = ccs_begin_offset - archive_space_size;
+  const Bytes ccs_begin_offset = in_Bytes(
+      align_up(base_address + archive_space_size, class_space_alignment) - base_address);
+  const Bytes gap_size = ccs_begin_offset - archive_space_size;
 
-  const size_t total_range_size =
+  const Bytes total_range_size =
       align_up(archive_space_size + gap_size + class_space_size, core_region_alignment());
 
   assert(total_range_size > ccs_begin_offset, "must be");
@@ -1319,9 +1319,9 @@ char* MetaspaceShared::reserve_address_space_for_archives(FileMapInfo* static_ma
       // via sequential file IO.
       address ccs_base = base_address + archive_space_size + gap_size;
       archive_space_rs = ReservedSpace(archive_space_size, archive_space_alignment,
-                                       os::vm_page_size(), (char*)base_address);
+                                       in_Bytes(os::vm_page_size()), (char*)base_address);
       class_space_rs   = ReservedSpace(class_space_size, class_space_alignment,
-                                       os::vm_page_size(), (char*)ccs_base);
+                                       in_Bytes(os::vm_page_size()), (char*)ccs_base);
     }
     if (!archive_space_rs.is_reserved() || !class_space_rs.is_reserved()) {
       release_reserved_spaces(total_space_rs, archive_space_rs, class_space_rs);
@@ -1330,7 +1330,7 @@ char* MetaspaceShared::reserve_address_space_for_archives(FileMapInfo* static_ma
   } else {
     if (use_archive_base_addr && base_address != nullptr) {
       total_space_rs = ReservedSpace(total_range_size, archive_space_alignment,
-                                     os::vm_page_size(), (char*) base_address);
+                                     in_Bytes(os::vm_page_size()), (char*) base_address);
     } else {
       // We did not manage to reserve at the preferred address, or were instructed to relocate. In that
       // case we reserve wherever possible, but the start address needs to be encodable as narrow Klass
@@ -1353,7 +1353,7 @@ char* MetaspaceShared::reserve_address_space_for_archives(FileMapInfo* static_ma
     // Now split up the space into ccs and cds archive. For simplicity, just leave
     //  the gap reserved at the end of the archive space. Do not do real splitting.
     archive_space_rs = total_space_rs.first_part(ccs_begin_offset,
-                                                 (size_t)archive_space_alignment);
+                                                 archive_space_alignment);
     class_space_rs = total_space_rs.last_part(ccs_begin_offset);
     MemTracker::record_virtual_memory_split_reserved(total_space_rs.base(), total_space_rs.size(),
                                                      ccs_begin_offset);
@@ -1404,7 +1404,7 @@ MapArchiveResult MetaspaceShared::map_archive(FileMapInfo* mapinfo, char* mapped
   }
 
   mapinfo->set_is_mapped(false);
-  if (mapinfo->core_region_alignment() != (size_t)core_region_alignment()) {
+  if (mapinfo->core_region_alignment() != core_region_alignment()) {
     log_info(cds)("Unable to map CDS archive -- core_region_alignment() expected: " SIZE_FORMAT
                   " actual: " SIZE_FORMAT, mapinfo->core_region_alignment(), core_region_alignment());
     return MAP_ARCHIVE_OTHER_FAILURE;

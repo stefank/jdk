@@ -396,7 +396,7 @@ static int _num_inited_module_entries = 0;
 
 ModuleEntry* ModuleEntry::allocate_archived_entry() const {
   assert(is_named(), "unnamed packages/modules are not archived");
-  ModuleEntry* archived_entry = (ModuleEntry*)ArchiveBuilder::rw_region_alloc(sizeof(ModuleEntry));
+  ModuleEntry* archived_entry = (ModuleEntry*)ArchiveBuilder::rw_region_alloc(in_Bytes(sizeof(ModuleEntry)));
   memcpy((void*)archived_entry, (void*)this, sizeof(ModuleEntry));
   archived_entry->_archived_module_index = -1;
 

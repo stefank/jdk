@@ -397,10 +397,10 @@ void ThreadHeapSampler::pick_next_geometric_sample() {
       (0.0 < log_val ? 0.0 : log_val) * (-log(2.0) * (get_sampling_interval())) + 1;
   assert(result > 0 && result < static_cast<double>(SIZE_MAX), "Result is not in an acceptable range.");
   size_t interval = static_cast<size_t>(result);
-  _bytes_until_sample = interval;
+  _bytes_until_sample = in_Bytes(interval);
 }
 
-void ThreadHeapSampler::pick_next_sample(size_t overflowed_bytes) {
+void ThreadHeapSampler::pick_next_sample(Bytes overflowed_bytes) {
 #ifndef PRODUCT
   if (!log_table_checked) {
     verify_or_generate_log_table();
@@ -409,15 +409,15 @@ void ThreadHeapSampler::pick_next_sample(size_t overflowed_bytes) {
   // Explicitly test if the sampling interval is 0, return 0 to sample every
   // allocation.
   if (get_sampling_interval() == 0) {
-    _bytes_until_sample = 0;
+    _bytes_until_sample = Bytes(0);
     return;
   }
 
   pick_next_geometric_sample();
 }
 
-void ThreadHeapSampler::check_for_sampling(oop obj, size_t allocation_size, size_t bytes_since_allocation) {
-  size_t total_allocated_bytes = bytes_since_allocation + allocation_size;
+void ThreadHeapSampler::check_for_sampling(oop obj, Bytes allocation_size, Bytes bytes_since_allocation) {
+  Bytes total_allocated_bytes = bytes_since_allocation + allocation_size;
 
   // If not yet time for a sample, skip it.
   if (total_allocated_bytes < _bytes_until_sample) {
@@ -427,7 +427,7 @@ void ThreadHeapSampler::check_for_sampling(oop obj, size_t allocation_size, size
 
   JvmtiExport::sampled_object_alloc_event_collector(obj);
 
-  size_t overflow_bytes = total_allocated_bytes - _bytes_until_sample;
+  Bytes overflow_bytes = total_allocated_bytes - _bytes_until_sample;
   pick_next_sample(overflow_bytes);
 }
 

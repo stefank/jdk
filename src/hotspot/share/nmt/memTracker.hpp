@@ -53,7 +53,7 @@ class Tracker : public StackObj {
 
  public:
   Tracker(enum TrackerType type) : _type(type) { }
-  void record(address addr, size_t size);
+  void record(address addr, Bytes size);
  private:
   enum TrackerType  _type;
   // Virtual memory tracking data structures are protected by ThreadCritical lock.
@@ -93,7 +93,7 @@ class MemTracker : AllStatic {
     return enabled() ? MallocTracker::overhead_per_malloc : 0;
   }
 
-  static inline void* record_malloc(void* mem_base, size_t size, MEMFLAGS flag,
+  static inline void* record_malloc(void* mem_base, Bytes size, MEMFLAGS flag,
     const NativeCallStack& stack) {
     assert(mem_base != nullptr, "caller should handle null");
     if (enabled()) {
@@ -138,7 +138,7 @@ class MemTracker : AllStatic {
   // Note: virtual memory operations should only ever be called after NMT initialization
   //  (we do not do any reservations before that).
 
-  static inline void record_virtual_memory_reserve(void* addr, size_t size, const NativeCallStack& stack,
+  static inline void record_virtual_memory_reserve(void* addr, Bytes size, const NativeCallStack& stack,
     MEMFLAGS flag = mtNone) {
     assert_post_init();
     if (!enabled()) return;
@@ -148,7 +148,7 @@ class MemTracker : AllStatic {
     }
   }
 
-  static inline void record_virtual_memory_reserve_and_commit(void* addr, size_t size,
+  static inline void record_virtual_memory_reserve_and_commit(void* addr, Bytes size,
     const NativeCallStack& stack, MEMFLAGS flag = mtNone) {
     assert_post_init();
     if (!enabled()) return;
@@ -159,7 +159,7 @@ class MemTracker : AllStatic {
     }
   }
 
-  static inline void record_virtual_memory_commit(void* addr, size_t size,
+  static inline void record_virtual_memory_commit(void* addr, Bytes size,
     const NativeCallStack& stack) {
     assert_post_init();
     if (!enabled()) return;
@@ -175,7 +175,7 @@ class MemTracker : AllStatic {
   //
   // The two new memory regions will be both registered under stack and
   //  memory flags of the original region.
-  static inline void record_virtual_memory_split_reserved(void* addr, size_t size, size_t split) {
+  static inline void record_virtual_memory_split_reserved(void* addr, Bytes size, Bytes split) {
     assert_post_init();
     if (!enabled()) return;
     if (addr != nullptr) {
@@ -193,7 +193,7 @@ class MemTracker : AllStatic {
     }
   }
 
-  static void record_thread_stack(void* addr, size_t size) {
+  static void record_thread_stack(void* addr, Bytes size) {
     assert_post_init();
     if (!enabled()) return;
     if (addr != nullptr) {
@@ -201,7 +201,7 @@ class MemTracker : AllStatic {
     }
   }
 
-  static inline void release_thread_stack(void* addr, size_t size) {
+  static inline void release_thread_stack(void* addr, Bytes size) {
     assert_post_init();
     if (!enabled()) return;
     if (addr != nullptr) {
@@ -232,7 +232,7 @@ class MemTracker : AllStatic {
 
   // MallocLimt: Given an allocation size s, check if mallocing this much
   // under category f would hit either the global limit or the limit for category f.
-  static inline bool check_exceeds_limit(size_t s, MEMFLAGS f);
+  static inline bool check_exceeds_limit(Bytes s, MEMFLAGS f);
 
   // Given an unknown pointer, check if it points into a known region; print region if found
   // and return true; false if not found.

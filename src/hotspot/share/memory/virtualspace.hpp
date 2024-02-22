@@ -36,18 +36,18 @@ class ReservedSpace {
   friend class VMStructs;
  protected:
   char*  _base;
-  size_t _size;
-  size_t _noaccess_prefix;
-  size_t _alignment;
-  size_t _page_size;
+  Bytes  _size;
+  Bytes  _noaccess_prefix;
+  Bytes  _alignment;
+  Bytes  _page_size;
   bool   _special;
   int    _fd_for_heap;
  private:
   bool   _executable;
 
   // ReservedSpace
-  ReservedSpace(char* base, size_t size, size_t alignment,
-                size_t page_size, bool special, bool executable);
+  ReservedSpace(char* base, Bytes size, Bytes alignment,
+                Bytes page_size, bool special, bool executable);
  protected:
   // Helpers to clear and set members during initialization. Two members
   // require special treatment:
@@ -57,69 +57,69 @@ class ReservedSpace {
   //                       the reservation is initialized. Always set to
   //                       0 during initialization.
   void clear_members();
-  void initialize_members(char* base, size_t size, size_t alignment,
-                          size_t page_size, bool special, bool executable);
+  void initialize_members(char* base, Bytes size, Bytes alignment,
+                          Bytes page_size, bool special, bool executable);
 
-  void initialize(size_t size, size_t alignment, size_t page_size,
+  void initialize(Bytes size, Bytes alignment, Bytes page_size,
                   char* requested_address, bool executable);
 
-  void reserve(size_t size, size_t alignment, size_t page_size,
+  void reserve(Bytes size, Bytes alignment, Bytes page_size,
                char* requested_address, bool executable);
  public:
   // Constructor
   ReservedSpace();
   // Initialize the reserved space with the given size. Depending on the size
   // a suitable page size and alignment will be used.
-  explicit ReservedSpace(size_t size);
+  explicit ReservedSpace(Bytes size);
   // Initialize the reserved space with the given size. The preferred_page_size
   // is used as the minimum page size/alignment. This may waste some space if
   // the given size is not aligned to that value, as the reservation will be
   // aligned up to the final alignment in this case.
-  ReservedSpace(size_t size, size_t preferred_page_size);
-  ReservedSpace(size_t size, size_t alignment, size_t page_size,
+  ReservedSpace(Bytes size, Bytes preferred_page_size);
+  ReservedSpace(Bytes size, Bytes alignment, Bytes page_size,
                 char* requested_address = nullptr);
 
   // Accessors
   char*  base()            const { return _base;      }
-  size_t size()            const { return _size;      }
+  Bytes  size()            const { return _size;      }
   char*  end()             const { return _base + _size; }
-  size_t alignment()       const { return _alignment; }
-  size_t page_size()       const { return _page_size; }
+  Bytes  alignment()       const { return _alignment; }
+  Bytes  page_size()       const { return _page_size; }
   bool   special()         const { return _special;   }
   bool   executable()      const { return _executable;   }
-  size_t noaccess_prefix() const { return _noaccess_prefix;   }
+  Bytes noaccess_prefix()  const { return _noaccess_prefix;   }
   bool is_reserved()       const { return _base != nullptr; }
   void release();
 
   // Splitting
   // This splits the space into two spaces, the first part of which will be returned.
-  ReservedSpace first_part(size_t partition_size, size_t alignment);
-  ReservedSpace last_part (size_t partition_size, size_t alignment);
+  ReservedSpace first_part(Bytes partition_size, Bytes alignment);
+  ReservedSpace last_part (Bytes partition_size, Bytes alignment);
 
   // These simply call the above using the default alignment.
-  inline ReservedSpace first_part(size_t partition_size);
-  inline ReservedSpace last_part (size_t partition_size);
+  inline ReservedSpace first_part(Bytes partition_size);
+  inline ReservedSpace last_part (Bytes partition_size);
 
   // Alignment
-  static size_t page_align_size_up(size_t size);
-  static size_t page_align_size_down(size_t size);
-  static size_t allocation_align_size_up(size_t size);
+  static Bytes page_align_size_up(Bytes size);
+  static Bytes page_align_size_down(Bytes size);
+  static Bytes allocation_align_size_up(Bytes size);
   bool contains(const void* p) const {
     return (base() <= ((char*)p)) && (((char*)p) < (base() + size()));
   }
 
   // Put a ReservedSpace over an existing range
-  static ReservedSpace space_for_range(char* base, size_t size, size_t alignment,
-                                       size_t page_size, bool special, bool executable);
+  static ReservedSpace space_for_range(char* base, Bytes size, Bytes alignment,
+                                       Bytes page_size, bool special, bool executable);
 };
 
 ReservedSpace
-ReservedSpace::first_part(size_t partition_size)
+ReservedSpace::first_part(Bytes partition_size)
 {
   return first_part(partition_size, alignment());
 }
 
-ReservedSpace ReservedSpace::last_part(size_t partition_size)
+ReservedSpace ReservedSpace::last_part(Bytes partition_size)
 {
   return last_part(partition_size, alignment());
 }
@@ -127,19 +127,19 @@ ReservedSpace ReservedSpace::last_part(size_t partition_size)
 // Class encapsulating behavior specific of memory space reserved for Java heap.
 class ReservedHeapSpace : public ReservedSpace {
  private:
-  void try_reserve_heap(size_t size, size_t alignment, size_t page_size,
+  void try_reserve_heap(Bytes size, Bytes alignment, Bytes page_size,
                         char *requested_address);
   void try_reserve_range(char *highest_start, char *lowest_start,
                          size_t attach_point_alignment, char *aligned_HBMA,
-                         char *upper_bound, size_t size, size_t alignment, size_t page_size);
-  void initialize_compressed_heap(const size_t size, size_t alignment, size_t page_size);
+                         char *upper_bound, Bytes size, Bytes alignment, Bytes page_size);
+  void initialize_compressed_heap(const Bytes size, Bytes alignment, Bytes page_size);
   // Create protection page at the beginning of the space.
   void establish_noaccess_prefix();
  public:
   // Constructor. Tries to find a heap that is good for compressed oops.
   // heap_allocation_directory is the path to the backing memory for Java heap. When set, Java heap will be allocated
   // on the device which is managed by the file system where the directory resides.
-  ReservedHeapSpace(size_t size, size_t forced_base_alignment, size_t page_size, const char* heap_allocation_directory = nullptr);
+  ReservedHeapSpace(Bytes size, Bytes forced_base_alignment, Bytes page_size, const char* heap_allocation_directory = nullptr);
   // Returns the base to be used for compression, i.e. so that null can be
   // encoded safely and implicit null checks can work.
   char *compressed_oop_base() const { return _base - _noaccess_prefix; }
@@ -150,7 +150,7 @@ class ReservedHeapSpace : public ReservedSpace {
 class ReservedCodeSpace : public ReservedSpace {
  public:
   // Constructor
-  ReservedCodeSpace(size_t r_size, size_t rs_align, size_t page_size);
+  ReservedCodeSpace(Bytes r_size, Bytes rs_align, Bytes page_size);
 };
 
 // VirtualSpace is data structure for committing a previously reserved address range in smaller chunks.
@@ -187,9 +187,9 @@ class VirtualSpace {
   char* _middle_high_boundary;
   char* _upper_high_boundary;
 
-  size_t _lower_alignment;
-  size_t _middle_alignment;
-  size_t _upper_alignment;
+  Bytes _lower_alignment;
+  Bytes _middle_alignment;
+  Bytes _upper_alignment;
 
   // MPSS Accessors
   char* lower_high() const { return _lower_high; }
@@ -200,9 +200,9 @@ class VirtualSpace {
   char* middle_high_boundary() const { return _middle_high_boundary; }
   char* upper_high_boundary() const { return _upper_high_boundary; }
 
-  size_t lower_alignment() const { return _lower_alignment; }
-  size_t middle_alignment() const { return _middle_alignment; }
-  size_t upper_alignment() const { return _upper_alignment; }
+  Bytes lower_alignment() const { return _lower_alignment; }
+  Bytes middle_alignment() const { return _middle_alignment; }
+  Bytes upper_alignment() const { return _upper_alignment; }
 
  public:
   // Committed area
@@ -218,27 +218,27 @@ class VirtualSpace {
  public:
   // Initialization
   VirtualSpace();
-  bool initialize_with_granularity(ReservedSpace rs, size_t committed_byte_size, size_t max_commit_ganularity);
-  bool initialize(ReservedSpace rs, size_t committed_byte_size);
+  bool initialize_with_granularity(ReservedSpace rs, Bytes committed_byte_size, Bytes max_commit_ganularity);
+  bool initialize(ReservedSpace rs, Bytes committed_byte_size);
 
   // Destruction
   ~VirtualSpace();
 
   // Reserved memory
-  size_t reserved_size() const;
+  Bytes reserved_size() const;
   // Actually committed OS memory
-  size_t actual_committed_size() const;
+  Bytes actual_committed_size() const;
   // Memory used/expanded in this virtual space
-  size_t committed_size() const;
+  Bytes committed_size() const;
   // Memory left to use/expand in this virtual space
-  size_t uncommitted_size() const;
+  Bytes uncommitted_size() const;
 
   bool   contains(const void* p) const;
 
   // Operations
   // returns true on success, false otherwise
-  bool expand_by(size_t bytes, bool pre_touch = false);
-  void shrink_by(size_t bytes);
+  bool expand_by(Bytes bytes, bool pre_touch = false);
+  void shrink_by(Bytes bytes);
   void release();
 
   void check_for_contiguity() PRODUCT_RETURN;

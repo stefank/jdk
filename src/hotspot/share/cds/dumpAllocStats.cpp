@@ -27,7 +27,7 @@
 #include "logging/log.hpp"
 #include "logging/logMessage.hpp"
 
-void DumpAllocStats::print_stats(int ro_all, int rw_all) {
+void DumpAllocStats::print_stats(Bytes ro_all, Bytes rw_all) {
   // symbols
   _counts[RO][SymbolHashentryType] = _symbol_stats.hashentry_count;
   _bytes [RO][SymbolHashentryType] = _symbol_stats.hashentry_bytes;
@@ -43,12 +43,12 @@ void DumpAllocStats::print_stats(int ro_all, int rw_all) {
   _bytes [RO][StringBucketType] = _string_stats.bucket_bytes;
 
   int all_ro_count = 0;
-  int all_ro_bytes = 0;
+  Bytes all_ro_bytes = Bytes(0);
   int all_rw_count = 0;
-  int all_rw_bytes = 0;
+  Bytes all_rw_bytes = Bytes(0);
 
 // To make fmt_stats be a syntactic constant (for format warnings), use #define.
-#define fmt_stats "%-20s: %8d %10d %5.1f | %8d %10d %5.1f | %8d %10d %5.1f"
+#define fmt_stats "%-20s: %8d %10zu %5.1f | %8d %10zi %5.1f | %8d %10zu %5.1f"
   const char *sep = "--------------------+---------------------------+---------------------------+--------------------------";
   const char *hdr = "                        ro_cnt   ro_bytes     % |   rw_cnt   rw_bytes     % |  all_cnt  all_bytes     %";
 
@@ -60,11 +60,11 @@ void DumpAllocStats::print_stats(int ro_all, int rw_all) {
   for (int type = 0; type < int(_number_of_types); type ++) {
     const char *name = type_name((Type)type);
     int ro_count = _counts[RO][type];
-    int ro_bytes = _bytes [RO][type];
+    Bytes ro_bytes = _bytes [RO][type];
     int rw_count = _counts[RW][type];
-    int rw_bytes = _bytes [RW][type];
+    Bytes rw_bytes = _bytes [RW][type];
     int count = ro_count + rw_count;
-    int bytes = ro_bytes + rw_bytes;
+    Bytes bytes = ro_bytes + rw_bytes;
 
     double ro_perc = percent_of(ro_bytes, ro_all);
     double rw_perc = percent_of(rw_bytes, rw_all);
@@ -82,7 +82,7 @@ void DumpAllocStats::print_stats(int ro_all, int rw_all) {
   }
 
   int all_count = all_ro_count + all_rw_count;
-  int all_bytes = all_ro_bytes + all_rw_bytes;
+  Bytes all_bytes = all_ro_bytes + all_rw_bytes;
 
   double all_ro_perc = percent_of(all_ro_bytes, ro_all);
   double all_rw_perc = percent_of(all_rw_bytes, rw_all);
@@ -97,7 +97,7 @@ void DumpAllocStats::print_stats(int ro_all, int rw_all) {
   msg.flush();
 
   assert(all_ro_bytes == ro_all && all_rw_bytes == rw_all,
-         "everything should have been counted (used/counted: ro %d/%d, rw %d/%d",
+         "everything should have been counted (used/counted: ro %zu/%zu, rw %zu/%zu",
          ro_all, all_ro_bytes, rw_all, all_rw_bytes);
 
 #undef fmt_stats

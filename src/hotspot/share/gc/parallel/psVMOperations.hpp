@@ -31,7 +31,7 @@
 
 class VM_ParallelGCFailedAllocation : public VM_CollectForAllocation {
  public:
-  VM_ParallelGCFailedAllocation(size_t word_size, uint gc_count);
+  VM_ParallelGCFailedAllocation(Words word_size, uint gc_count);
 
   virtual VMOp_Type type() const {
     return VMOp_ParallelGCFailedAllocation;

@@ -38,9 +38,9 @@
 #include "runtime/threadSMR.hpp"
 #include "utilities/align.hpp"
 
-MutableNUMASpace::MutableNUMASpace(size_t alignment) : MutableSpace(alignment), _must_use_large_pages(false) {
+MutableNUMASpace::MutableNUMASpace(Bytes alignment) : MutableSpace(alignment), _must_use_large_pages(false) {
   _lgrp_spaces = new (mtGC) GrowableArray<LGRPSpace*>(0, mtGC);
-  _page_size = os::vm_page_size();
+  _page_size = in_Bytes(os::vm_page_size());
   _adaptation_cycles = 0;
   _samples_count = 0;
 
@@ -107,11 +107,11 @@ void MutableNUMASpace::ensure_parsability() {
     LGRPSpace *ls = lgrp_spaces()->at(i);
     MutableSpace *s = ls->space();
     if (s->top() < top()) { // For all spaces preceding the one containing top()
-      if (s->free_in_words() > 0) {
+      if (s->free_in_words() > Words(0)) {
         HeapWord* cur_top = s->top();
-        size_t words_left_to_fill = pointer_delta(s->end(), s->top());;
-        while (words_left_to_fill > 0) {
-          size_t words_to_fill = MIN2(words_left_to_fill, CollectedHeap::filler_array_max_size());
+        Words words_left_to_fill = pointer_delta(s->end(), s->top());;
+        while (words_left_to_fill > Words(0)) {
+          Words words_to_fill = MIN2(words_left_to_fill, CollectedHeap::filler_array_max_size());
           assert(words_to_fill >= CollectedHeap::min_fill_size(),
                  "Remaining size (" SIZE_FORMAT ") is too small to fill (based on " SIZE_FORMAT " and " SIZE_FORMAT ")",
                  words_to_fill, words_left_to_fill, CollectedHeap::filler_array_max_size());
@@ -126,16 +126,16 @@ void MutableNUMASpace::ensure_parsability() {
   }
 }
 
-size_t MutableNUMASpace::used_in_words() const {
-  size_t s = 0;
+Words MutableNUMASpace::used_in_words() const {
+  Words s = Words(0);
   for (int i = 0; i < lgrp_spaces()->length(); i++) {
     s += lgrp_spaces()->at(i)->space()->used_in_words();
   }
   return s;
 }
 
-size_t MutableNUMASpace::free_in_words() const {
-  size_t s = 0;
+Words MutableNUMASpace::free_in_words() const {
+  Words s = Words(0);
   for (int i = 0; i < lgrp_spaces()->length(); i++) {
     s += lgrp_spaces()->at(i)->space()->free_in_words();
   }
@@ -148,7 +148,7 @@ int MutableNUMASpace::lgrp_space_index(int lgrp_id) const {
   });
 }
 
-size_t MutableNUMASpace::tlab_capacity(Thread *thr) const {
+Bytes MutableNUMASpace::tlab_capacity(Thread *thr) const {
   guarantee(thr != nullptr, "No thread");
   int lgrp_id = thr->lgrp_id();
   if (lgrp_id == -1) {
@@ -161,18 +161,18 @@ size_t MutableNUMASpace::tlab_capacity(Thread *thr) const {
       return capacity_in_bytes() / lgrp_spaces()->length();
     } else {
       assert(false, "There should be at least one locality group");
-      return 0;
+      return Bytes(0);
     }
   }
   // That's the normal case, where we know the locality group of the thread.
   int i = lgrp_space_index(lgrp_id);
   if (i == -1) {
-    return 0;
+    return Bytes(0);
   }
   return lgrp_spaces()->at(i)->space()->capacity_in_bytes();
 }
 
-size_t MutableNUMASpace::tlab_used(Thread *thr) const {
+Bytes MutableNUMASpace::tlab_used(Thread *thr) const {
   // Please see the comments for tlab_capacity().
   guarantee(thr != nullptr, "No thread");
   int lgrp_id = thr->lgrp_id();
@@ -181,18 +181,18 @@ size_t MutableNUMASpace::tlab_used(Thread *thr) const {
       return (used_in_bytes()) / lgrp_spaces()->length();
     } else {
       assert(false, "There should be at least one locality group");
-      return 0;
+      return Bytes(0);
     }
   }
   int i = lgrp_space_index(lgrp_id);
   if (i == -1) {
-    return 0;
+    return Bytes(0);
   }
   return lgrp_spaces()->at(i)->space()->used_in_bytes();
 }
 
 
-size_t MutableNUMASpace::unsafe_max_tlab_alloc(Thread *thr) const {
+Bytes MutableNUMASpace::unsafe_max_tlab_alloc(Thread *thr) const {
   // Please see the comments for tlab_capacity().
   guarantee(thr != nullptr, "No thread");
   int lgrp_id = thr->lgrp_id();
@@ -201,12 +201,12 @@ size_t MutableNUMASpace::unsafe_max_tlab_alloc(Thread *thr) const {
       return free_in_bytes() / lgrp_spaces()->length();
     } else {
       assert(false, "There should be at least one locality group");
-      return 0;
+      return Bytes(0);
     }
   }
   int i = lgrp_space_index(lgrp_id);
   if (i == -1) {
-    return 0;
+    return Bytes(0);
   }
   return lgrp_spaces()->at(i)->space()->free_in_bytes();
 }
@@ -217,19 +217,19 @@ void MutableNUMASpace::bias_region(MemRegion mr, uint lgrp_id) {
   HeapWord *end = align_down(mr.end(), page_size());
   if (end > start) {
     MemRegion aligned_region(start, end);
-    assert((intptr_t)aligned_region.start()     % page_size() == 0 &&
-           (intptr_t)aligned_region.byte_size() % page_size() == 0, "Bad alignment");
+    assert(is_aligned(aligned_region.start(), page_size()) &&
+           is_aligned(aligned_region.byte_size(), page_size()), "Bad alignment");
     assert(region().contains(aligned_region), "Sanity");
     // First we tell the OS which page size we want in the given range. The underlying
     // large page can be broken down if we require small pages.
-    const size_t os_align = UseLargePages ? page_size() : os::vm_page_size();
-    os::realign_memory((char*)aligned_region.start(), aligned_region.byte_size(), os_align);
+    const Bytes os_align = UseLargePages ? page_size() : in_Bytes(os::vm_page_size());
+    os::realign_memory((char*)aligned_region.start(), untype(aligned_region.byte_size()), untype(os_align));
     // Then we uncommit the pages in the range.
     // The alignment_hint argument must be less than or equal to the small page
     // size if not using large pages or else this function does nothing.
-    os::free_memory((char*)aligned_region.start(), aligned_region.byte_size(), os_align);
+    os::free_memory((char*)aligned_region.start(), untype(aligned_region.byte_size()), untype(os_align));
     // And make them local/first-touch biased.
-    os::numa_make_local((char*)aligned_region.start(), aligned_region.byte_size(), checked_cast<int>(lgrp_id));
+    os::numa_make_local((char*)aligned_region.start(), untype(aligned_region.byte_size()), checked_cast<int>(lgrp_id));
   }
 }
 
@@ -258,7 +258,7 @@ void MutableNUMASpace::accumulate_statistics() {
 // difference between chunk ends. This allows it to work correctly in
 // case the whole space is resized and during the process of adaptive
 // chunk resizing.
-size_t MutableNUMASpace::current_chunk_size(int i) {
+Bytes MutableNUMASpace::current_chunk_size(int i) {
   HeapWord *cur_end, *prev_end;
   if (i == 0) {
     prev_end = bottom();
@@ -271,21 +271,21 @@ size_t MutableNUMASpace::current_chunk_size(int i) {
     cur_end = lgrp_spaces()->at(i)->space()->end();
   }
   if (cur_end > prev_end) {
-    return pointer_delta(cur_end, prev_end, sizeof(char));
+    return in_Bytes(pointer_delta(cur_end, prev_end, sizeof(char)));
   }
-  return 0;
+  return Bytes(0);
 }
 
 // Return the default chunk size by equally diving the space.
 // page_size() aligned.
-size_t MutableNUMASpace::default_chunk_size() {
+Bytes MutableNUMASpace::default_chunk_size() {
   return base_space_size() / lgrp_spaces()->length() * page_size();
 }
 
 // Produce a new chunk size. page_size() aligned.
 // This function is expected to be called on sequence of i's from 0 to
 // lgrp_spaces()->length().
-size_t MutableNUMASpace::adaptive_chunk_size(int i, size_t limit) {
+Bytes MutableNUMASpace::adaptive_chunk_size(int i, Bytes limit) {
   size_t pages_available = base_space_size();
   for (int j = 0; j < i; j++) {
     pages_available -= align_down(current_chunk_size(j), page_size()) / page_size();
@@ -296,17 +296,17 @@ size_t MutableNUMASpace::adaptive_chunk_size(int i, size_t limit) {
   for (int j = i; j < lgrp_spaces()->length(); j++) {
     alloc_rate += lgrp_spaces()->at(j)->alloc_rate()->average();
   }
-  size_t chunk_size = 0;
+  Bytes chunk_size = Bytes(0);
   if (alloc_rate > 0) {
     LGRPSpace *ls = lgrp_spaces()->at(i);
     chunk_size = (size_t)(ls->alloc_rate()->average() / alloc_rate * pages_available) * page_size();
   }
   chunk_size = MAX2(chunk_size, page_size());
 
-  if (limit > 0) {
+  if (limit > Bytes(0)) {
     limit = align_down(limit, page_size());
     if (chunk_size > current_chunk_size(i)) {
-      size_t upper_bound = pages_available * page_size();
+      Bytes upper_bound = pages_available * page_size();
       if (upper_bound > limit &&
           current_chunk_size(i) < upper_bound - limit) {
         // The resulting upper bound should not exceed the available
@@ -315,7 +315,7 @@ size_t MutableNUMASpace::adaptive_chunk_size(int i, size_t limit) {
       }
       chunk_size = MIN2(chunk_size, upper_bound);
     } else {
-      size_t lower_bound = page_size();
+      Bytes lower_bound = page_size();
       if (current_chunk_size(i) > limit) { // lower_bound shouldn't underflow.
         lower_bound = current_chunk_size(i) - limit;
       }
@@ -338,7 +338,7 @@ void MutableNUMASpace::select_tails(MemRegion new_region, MemRegion intersection
     if (UseLargePages && page_size() >= alignment()) {
       HeapWord* p = align_up(intersection.start(), alignment());
       if (new_region.contains(p)
-          && pointer_delta(p, new_region.start(), sizeof(char)) >= alignment()) {
+          && in_Bytes(pointer_delta(p, new_region.start(), sizeof(char))) >= alignment()) {
         if (intersection.contains(p)) {
           intersection = MemRegion(p, intersection.end());
         } else {
@@ -357,7 +357,7 @@ void MutableNUMASpace::select_tails(MemRegion new_region, MemRegion intersection
     if (UseLargePages && page_size() >= alignment()) {
       HeapWord* p = align_down(intersection.end(), alignment());
       if (new_region.contains(p)
-          && pointer_delta(new_region.end(), p, sizeof(char)) >= alignment()) {
+          && in_Bytes(pointer_delta(new_region.end(), p, sizeof(char))) >= alignment()) {
         if (intersection.contains(p)) {
           intersection = MemRegion(intersection.start(), p);
         } else {
@@ -386,23 +386,23 @@ void MutableNUMASpace::initialize(MemRegion mr,
   clear(SpaceDecorator::DontMangle);
 
   // Compute chunk sizes
-  size_t prev_page_size = page_size();
+  Bytes prev_page_size = page_size();
   set_page_size(alignment());
   HeapWord* rounded_bottom = align_up(bottom(), page_size());
   HeapWord* rounded_end = align_down(end(), page_size());
-  size_t base_space_size_pages = pointer_delta(rounded_end, rounded_bottom, sizeof(char)) / page_size();
+  size_t base_space_size_pages = in_Bytes(pointer_delta(rounded_end, rounded_bottom, sizeof(char))) / page_size();
 
   // Try small pages if the chunk size is too small
   if (base_space_size_pages / lgrp_spaces()->length() == 0
-      && page_size() > os::vm_page_size()) {
+      && page_size() > in_Bytes( os::vm_page_size())) {
     // Changing the page size below can lead to freeing of memory. So we fail initialization.
     if (_must_use_large_pages) {
       vm_exit_during_initialization("Failed initializing NUMA with large pages. Too small heap size");
     }
-    set_page_size(os::vm_page_size());
+    set_page_size(in_Bytes(os::vm_page_size()));
     rounded_bottom = align_up(bottom(), page_size());
     rounded_end = align_down(end(), page_size());
-    base_space_size_pages = pointer_delta(rounded_end, rounded_bottom, sizeof(char)) / page_size();
+    base_space_size_pages = in_Bytes(pointer_delta(rounded_end, rounded_bottom, sizeof(char))) / page_size();
   }
   guarantee(base_space_size_pages / lgrp_spaces()->length() > 0, "Space too small");
   set_base_space_size(base_space_size_pages);
@@ -436,7 +436,7 @@ void MutableNUMASpace::initialize(MemRegion mr,
     MutableSpace *s = ls->space();
     old_region = s->region();
 
-    size_t chunk_byte_size = 0, old_chunk_byte_size = 0;
+    Bytes chunk_byte_size = Bytes(0), old_chunk_byte_size = Bytes(0);
     if (i < lgrp_spaces()->length() - 1) {
       if (!UseAdaptiveNUMAChunkSizing                                ||
           (UseAdaptiveNUMAChunkSizing && NUMAChunkResizeWeight == 0) ||
@@ -447,12 +447,12 @@ void MutableNUMASpace::initialize(MemRegion mr,
         if (!layout_valid || NUMASpaceResizeRate == 0) {
           // Fast adaptation. If no space resize rate is set, resize
           // the chunks instantly.
-          chunk_byte_size = adaptive_chunk_size(i, 0);
+          chunk_byte_size = adaptive_chunk_size(i, Bytes(0));
         } else {
           // Slow adaptation. Resize the chunks moving no more than
           // NUMASpaceResizeRate bytes per collection.
-          size_t limit = NUMASpaceResizeRate /
-                         (lgrp_spaces()->length() * (lgrp_spaces()->length() + 1) / 2);
+          Bytes limit = in_Bytes(NUMASpaceResizeRate /
+                         (lgrp_spaces()->length() * (lgrp_spaces()->length() + 1) / 2));
           chunk_byte_size = adaptive_chunk_size(i, MAX2(limit * (i + 1), page_size()));
         }
 
@@ -462,7 +462,7 @@ void MutableNUMASpace::initialize(MemRegion mr,
 
     if (i == 0) { // Bottom chunk
       if (i != lgrp_spaces()->length() - 1) {
-        new_region = MemRegion(bottom(), rounded_bottom + (chunk_byte_size >> LogHeapWordSize));
+        new_region = MemRegion(bottom(), rounded_bottom + to_Words(chunk_byte_size));
       } else {
         new_region = MemRegion(bottom(), end());
       }
@@ -470,7 +470,7 @@ void MutableNUMASpace::initialize(MemRegion mr,
       if (i < lgrp_spaces()->length() - 1) { // Middle chunks
         MutableSpace *ps = lgrp_spaces()->at(i - 1)->space();
         new_region = MemRegion(ps->end(),
-                               ps->end() + (chunk_byte_size >> LogHeapWordSize));
+                               ps->end() + to_Words(chunk_byte_size));
       } else { // Top chunk
         MutableSpace *ps = lgrp_spaces()->at(i - 1)->space();
         new_region = MemRegion(ps->end(), end());
@@ -519,9 +519,9 @@ void MutableNUMASpace::set_top(HeapWord* value) {
       // Check if setting the chunk's top to a given value would create a hole less than
       // a minimal object; assuming that's not the last chunk in which case we don't care.
       if (i < lgrp_spaces()->length() - 1) {
-        size_t remainder = pointer_delta(s->end(), value);
-        const size_t min_fill_size = CollectedHeap::min_fill_size();
-        if (remainder < min_fill_size && remainder > 0) {
+        Words remainder = pointer_delta(s->end(), value);
+        const Words min_fill_size = CollectedHeap::min_fill_size();
+        if (remainder < min_fill_size && remainder > Words(0)) {
           // Add a minimum size filler object; it will cross the chunk boundary.
           CollectedHeap::fill_with_object(value, min_fill_size);
           value += min_fill_size;
@@ -566,7 +566,7 @@ void MutableNUMASpace::clear(bool mangle_space) {
    objects.
  */
 
-HeapWord* MutableNUMASpace::cas_allocate(size_t size) {
+HeapWord* MutableNUMASpace::cas_allocate(Words size) {
   Thread* thr = Thread::current();
   int lgrp_id = thr->lgrp_id();
   if (lgrp_id == -1 || !os::numa_has_group_homing()) {
@@ -584,8 +584,8 @@ HeapWord* MutableNUMASpace::cas_allocate(size_t size) {
   MutableSpace *s = ls->space();
   HeapWord *p = s->cas_allocate(size);
   if (p != nullptr) {
-    size_t remainder = pointer_delta(s->end(), p + size);
-    if (remainder < CollectedHeap::min_fill_size() && remainder > 0) {
+    Words remainder = pointer_delta(s->end(), p + size);
+    if (remainder < CollectedHeap::min_fill_size() && remainder > Words(0)) {
       if (s->cas_deallocate(p, size)) {
         // We were the last to allocate and created a fragment less than
         // a minimal object.
@@ -652,7 +652,7 @@ void MutableNUMASpace::verify() {
 }
 
 // Scan pages and gather stats about page placement and size.
-void MutableNUMASpace::LGRPSpace::accumulate_statistics(size_t page_size) {
+void MutableNUMASpace::LGRPSpace::accumulate_statistics(Bytes page_size) {
   clear_space_stats();
   char *start = (char*)align_up(space()->bottom(), page_size);
   char* end = (char*)align_down(space()->end(), page_size);

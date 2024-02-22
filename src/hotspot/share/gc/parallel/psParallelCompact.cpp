@@ -97,19 +97,17 @@
 
 // All sizes are in HeapWords.
 const size_t ParallelCompactData::Log2RegionSize  = 16; // 64K words
-const size_t ParallelCompactData::RegionSize      = (size_t)1 << Log2RegionSize;
-const size_t ParallelCompactData::RegionSizeBytes =
-  RegionSize << LogHeapWordSize;
-const size_t ParallelCompactData::RegionSizeOffsetMask = RegionSize - 1;
-const size_t ParallelCompactData::RegionAddrOffsetMask = RegionSizeBytes - 1;
+const Words  ParallelCompactData::RegionSize      = Words((size_t)1 << Log2RegionSize);
+const Bytes  ParallelCompactData::RegionSizeBytes = to_Bytes(RegionSize);
+const size_t ParallelCompactData::RegionSizeOffsetMask = untype(RegionSize) - 1;
+const size_t ParallelCompactData::RegionAddrOffsetMask = untype(RegionSizeBytes) - 1;
 const size_t ParallelCompactData::RegionAddrMask       = ~RegionAddrOffsetMask;
 
 const size_t ParallelCompactData::Log2BlockSize   = 7; // 128 words
-const size_t ParallelCompactData::BlockSize       = (size_t)1 << Log2BlockSize;
-const size_t ParallelCompactData::BlockSizeBytes  =
-  BlockSize << LogHeapWordSize;
-const size_t ParallelCompactData::BlockSizeOffsetMask = BlockSize - 1;
-const size_t ParallelCompactData::BlockAddrOffsetMask = BlockSizeBytes - 1;
+const Words ParallelCompactData::BlockSize       = in_Words((size_t)1 << Log2BlockSize);
+const Bytes ParallelCompactData::BlockSizeBytes  = to_Bytes(BlockSize);
+const size_t ParallelCompactData::BlockSizeOffsetMask = untype(BlockSize) - 1;
+const size_t ParallelCompactData::BlockAddrOffsetMask = untype(BlockSizeBytes) - 1;
 const size_t ParallelCompactData::BlockAddrMask       = ~BlockAddrOffsetMask;
 
 const size_t ParallelCompactData::BlocksPerRegion = RegionSize / BlockSize;
@@ -147,11 +145,11 @@ double PSParallelCompact::_dwl_adjustment;
 bool   PSParallelCompact::_dwl_initialized = false;
 #endif  // #ifdef ASSERT
 
-void SplitInfo::record(size_t src_region_idx, size_t partial_obj_size,
+void SplitInfo::record(size_t src_region_idx, Words partial_obj_size,
                        HeapWord* destination)
 {
   assert(src_region_idx != 0, "invalid src_region_idx");
-  assert(partial_obj_size != 0, "invalid partial_obj_size argument");
+  assert(partial_obj_size != Words(0), "invalid partial_obj_size argument");
   assert(destination != nullptr, "invalid destination argument");
 
   _src_region_idx = src_region_idx;
@@ -183,7 +181,7 @@ void SplitInfo::record(size_t src_region_idx, size_t partial_obj_size,
     // object will be the first word copied to the second destination region.
     _destination_count = 2;
     _dest_region_addr = end_region_addr;
-    const size_t ofs = pointer_delta(end_region_addr, destination);
+    const Words ofs = pointer_delta(end_region_addr, destination);
     assert(ofs < _partial_obj_size, "sanity");
     _first_src_addr = sd.region_to_addr(src_region_idx) + ofs;
   }
@@ -192,7 +190,7 @@ void SplitInfo::record(size_t src_region_idx, size_t partial_obj_size,
 void SplitInfo::clear()
 {
   _src_region_idx = 0;
-  _partial_obj_size = 0;
+  _partial_obj_size = Words(0);
   _destination = nullptr;
   _destination_count = 0;
   _dest_region_addr = nullptr;
@@ -204,7 +202,7 @@ void SplitInfo::clear()
 void SplitInfo::verify_clear()
 {
   assert(_src_region_idx == 0, "not clear");
-  assert(_partial_obj_size == 0, "not clear");
+  assert(_partial_obj_size == Words(0), "not clear");
   assert(_destination == nullptr, "not clear");
   assert(_destination_count == 0, "not clear");
   assert(_dest_region_addr == nullptr, "not clear");
@@ -272,14 +270,14 @@ print_generic_summary_data(ParallelCompactData& summary_data,
                            HeapWord* const beg_addr,
                            HeapWord* const end_addr)
 {
-  size_t total_words = 0;
+  Words total_words = Words(0);
   size_t i = summary_data.addr_to_region_idx(beg_addr);
   const size_t last = summary_data.addr_to_region_idx(end_addr);
   HeapWord* pdest = 0;
 
   while (i < last) {
     ParallelCompactData::RegionData* c = summary_data.region(i);
-    if (c->data_size() != 0 || c->destination() != pdest) {
+    if (c->data_size() != Words(0) || c->destination() != pdest) {
       print_generic_summary_region(i, c);
       total_words += c->data_size();
       pdest = c->destination();
@@ -287,7 +285,7 @@ print_generic_summary_data(ParallelCompactData& summary_data,
     ++i;
   }
 
-  log_develop_trace(gc, compaction)("summary_data_bytes=" SIZE_FORMAT, total_words * HeapWordSize);
+  log_develop_trace(gc, compaction)("summary_data_bytes=" SIZE_FORMAT, to_bytes(total_words));
 }
 
 void
@@ -319,13 +317,13 @@ print_initial_summary_data(ParallelCompactData& summary_data,
     return;
   }
 
-  const size_t region_size = ParallelCompactData::RegionSize;
+  const Words region_size = ParallelCompactData::RegionSize;
   typedef ParallelCompactData::RegionData RegionData;
   HeapWord* const top_aligned_up = summary_data.region_align_up(space->top());
   const size_t end_region = summary_data.addr_to_region_idx(top_aligned_up);
   const RegionData* c = summary_data.region(end_region - 1);
   HeapWord* end_addr = c->destination() + c->data_size();
-  const size_t live_in_space = pointer_delta(end_addr, space->bottom());
+  const Words live_in_space = pointer_delta(end_addr, space->bottom());
 
   // Print (and count) the full regions at the beginning of the space.
   size_t full_region_count = 0;
@@ -341,22 +339,22 @@ print_initial_summary_data(ParallelCompactData& summary_data,
     ++i;
   }
 
-  size_t live_to_right = live_in_space - full_region_count * region_size;
+  Words live_to_right = live_in_space - full_region_count * region_size;
 
   double max_reclaimed_ratio = 0.0;
   size_t max_reclaimed_ratio_region = 0;
-  size_t max_dead_to_right = 0;
-  size_t max_live_to_right = 0;
+  Words max_dead_to_right = Words(0);
+  Words max_live_to_right = Words(0);
 
   // Print the 'reclaimed ratio' for regions while there is something live in
   // the region or to the right of it.  The remaining regions are empty (and
   // uninteresting), and computing the ratio will result in division by 0.
-  while (i < end_region && live_to_right > 0) {
+  while (i < end_region && live_to_right > Words(0)) {
     c = summary_data.region(i);
     HeapWord* const region_addr = summary_data.region_to_addr(i);
-    const size_t used_to_right = pointer_delta(space->top(), region_addr);
-    const size_t dead_to_right = used_to_right - live_to_right;
-    const double reclaimed_ratio = double(dead_to_right) / live_to_right;
+    const Words used_to_right = pointer_delta(space->top(), region_addr);
+    const Words dead_to_right = used_to_right - live_to_right;
+    const double reclaimed_ratio = double(dead_to_right) / untype(live_to_right);
 
     if (reclaimed_ratio > max_reclaimed_ratio) {
             max_reclaimed_ratio = reclaimed_ratio;
@@ -418,7 +416,7 @@ ParallelCompactData::ParallelCompactData() :
   _heap_start(nullptr),
   DEBUG_ONLY(_heap_end(nullptr) COMMA)
   _region_vspace(nullptr),
-  _reserved_byte_size(0),
+  _reserved_byte_size(Bytes(0)),
   _region_data(nullptr),
   _region_count(0),
   _block_vspace(nullptr),
@@ -428,7 +426,7 @@ ParallelCompactData::ParallelCompactData() :
 bool ParallelCompactData::initialize(MemRegion reserved_heap)
 {
   _heap_start = reserved_heap.start();
-  const size_t heap_size = reserved_heap.word_size();
+  const Words heap_size = reserved_heap.word_size();
   DEBUG_ONLY(_heap_end = _heap_start + heap_size;)
 
   assert(region_align_down(_heap_start) == _heap_start,
@@ -439,18 +437,18 @@ bool ParallelCompactData::initialize(MemRegion reserved_heap)
 }
 
 PSVirtualSpace*
-ParallelCompactData::create_vspace(size_t count, size_t element_size)
+ParallelCompactData::create_vspace(size_t count, Bytes element_size)
 {
-  const size_t raw_bytes = count * element_size;
-  const size_t page_sz = os::page_size_for_region_aligned(raw_bytes, 10);
-  const size_t granularity = os::vm_allocation_granularity();
+  const Bytes raw_bytes = count * element_size;
+  const Bytes page_sz = in_Bytes(os::page_size_for_region_aligned(untype(raw_bytes), 10));
+  const Bytes granularity = in_Bytes(os::vm_allocation_granularity());
   _reserved_byte_size = align_up(raw_bytes, MAX2(page_sz, granularity));
 
-  const size_t rs_align = page_sz == os::vm_page_size() ? 0 :
+  const Bytes rs_align = page_sz == in_Bytes(os::vm_page_size()) ? Bytes(0) :
     MAX2(page_sz, granularity);
   ReservedSpace rs(_reserved_byte_size, rs_align, page_sz);
-  os::trace_page_sizes("Parallel Compact Data", raw_bytes, raw_bytes, rs.base(),
-                       rs.size(), page_sz);
+  os::trace_page_sizes("Parallel Compact Data", untype(raw_bytes), untype(raw_bytes), rs.base(),
+                       untype(rs.size()), untype(page_sz));
 
   MemTracker::record_virtual_memory_type((address)rs.base(), mtGC);
 
@@ -467,12 +465,12 @@ ParallelCompactData::create_vspace(size_t count, size_t element_size)
   return 0;
 }
 
-bool ParallelCompactData::initialize_region_data(size_t heap_size)
+bool ParallelCompactData::initialize_region_data(Words heap_size)
 {
   assert(is_aligned(heap_size, RegionSize), "precondition");
 
-  const size_t count = heap_size >> Log2RegionSize;
-  _region_vspace = create_vspace(count, sizeof(RegionData));
+  const size_t count = untype(heap_size) >> Log2RegionSize;
+  _region_vspace = create_vspace(count, in_Bytes(sizeof(RegionData)));
   if (_region_vspace != 0) {
     _region_data = (RegionData*)_region_vspace->reserved_low_addr();
     _region_count = count;
@@ -485,7 +483,7 @@ bool ParallelCompactData::initialize_block_data()
 {
   assert(_region_count != 0, "region data must be initialized first");
   const size_t count = _region_count << Log2BlocksPerRegion;
-  _block_vspace = create_vspace(count, sizeof(BlockData));
+  _block_vspace = create_vspace(count, in_Bytes(sizeof(BlockData)));
   if (_block_vspace != 0) {
     _block_data = (BlockData*)_block_vspace->reserved_low_addr();
     _block_count = count;
@@ -496,14 +494,14 @@ bool ParallelCompactData::initialize_block_data()
 
 void ParallelCompactData::clear()
 {
-  memset(_region_data, 0, _region_vspace->committed_size());
-  memset(_block_data, 0, _block_vspace->committed_size());
+  memset(_region_data, 0, untype(_region_vspace->committed_size()));
+  memset(_block_data, 0, untype(_block_vspace->committed_size()));
 }
 
 void ParallelCompactData::clear_range(size_t beg_region, size_t end_region) {
   assert(beg_region <= _region_count, "beg_region out of range");
   assert(end_region <= _region_count, "end_region out of range");
-  assert(RegionSize % BlockSize == 0, "RegionSize not a multiple of BlockSize");
+  assert(is_aligned(RegionSize, BlockSize), "RegionSize not a multiple of BlockSize");
 
   const size_t region_cnt = end_region - beg_region;
   memset(_region_data + beg_region, 0, region_cnt * sizeof(RegionData));
@@ -527,12 +525,12 @@ HeapWord* ParallelCompactData::partial_obj_end(size_t region_idx) const
   return result;
 }
 
-void ParallelCompactData::add_obj(HeapWord* addr, size_t len)
+void ParallelCompactData::add_obj(HeapWord* addr, Words len)
 {
-  const size_t obj_ofs = pointer_delta(addr, _heap_start);
-  const size_t beg_region = obj_ofs >> Log2RegionSize;
+  const Words obj_ofs = pointer_delta(addr, _heap_start);
+  const size_t beg_region = untype(obj_ofs) >> Log2RegionSize;
   // end_region is inclusive
-  const size_t end_region = (obj_ofs + len - 1) >> Log2RegionSize;
+  const size_t end_region = untype(obj_ofs + len - Words(1)) >> Log2RegionSize;
 
   if (beg_region == end_region) {
     // All in one region.
@@ -541,7 +539,7 @@ void ParallelCompactData::add_obj(HeapWord* addr, size_t len)
   }
 
   // First region.
-  const size_t beg_ofs = region_offset(addr);
+  const Words beg_ofs = region_offset(addr);
   _region_data[beg_region].add_live_obj(RegionSize - beg_ofs);
 
   // Middle regions--completely spanned by this object.
@@ -551,8 +549,8 @@ void ParallelCompactData::add_obj(HeapWord* addr, size_t len)
   }
 
   // Last region.
-  const size_t end_ofs = region_offset(addr + len - 1);
-  _region_data[end_region].set_partial_obj_size(end_ofs + 1);
+  const Words end_ofs = region_offset(addr + len - 1);
+  _region_data[end_region].set_partial_obj_size(end_ofs + Words(0));
   _region_data[end_region].set_partial_obj_addr(addr);
 }
 
@@ -572,7 +570,7 @@ ParallelCompactData::summarize_dense_prefix(HeapWord* beg, HeapWord* end)
     _region_data[cur_region].set_data_location(addr);
 
     // Update live_obj_size so the region appears completely full.
-    size_t live_size = RegionSize - _region_data[cur_region].partial_obj_size();
+    Words live_size = RegionSize - _region_data[cur_region].partial_obj_size();
     _region_data[cur_region].set_live_obj_size(live_size);
 
     ++cur_region;
@@ -610,7 +608,7 @@ ParallelCompactData::summarize_split_space(size_t src_region,
 
   size_t split_region = src_region;
   HeapWord* split_destination = destination;
-  size_t partial_obj_size = _region_data[src_region].partial_obj_size();
+  Words partial_obj_size = _region_data[src_region].partial_obj_size();
 
   if (destination + partial_obj_size > target_end) {
     // The split point is just after the partial object (if any) in the
@@ -655,8 +653,8 @@ ParallelCompactData::summarize_split_space(size_t src_region,
   }
 
   // The split is recorded only if a partial object extends onto the region.
-  if (partial_obj_size != 0) {
-    _region_data[split_region].set_partial_obj_size(0);
+  if (partial_obj_size != Words(0)) {
+    _region_data[split_region].set_partial_obj_size(Words(0));
     split_info.record(split_region, partial_obj_size, split_destination);
   }
 
@@ -665,7 +663,7 @@ ParallelCompactData::summarize_split_space(size_t src_region,
   HeapWord* const source_next = region_to_addr(split_region) + partial_obj_size;
 
   if (log_develop_is_enabled(Trace, gc, compaction)) {
-    const char * split_type = partial_obj_size == 0 ? "easy" : "hard";
+    const char * split_type = partial_obj_size == Words(0) ? "easy" : "hard";
     log_develop_trace(gc, compaction)("%s split:  src=" PTR_FORMAT " src_c=" SIZE_FORMAT " pos=" SIZE_FORMAT,
                                       split_type, p2i(source_next), split_region, partial_obj_size);
     log_develop_trace(gc, compaction)("%s split:  dst=" PTR_FORMAT " dst_c=" SIZE_FORMAT " tn=" PTR_FORMAT,
@@ -673,7 +671,7 @@ ParallelCompactData::summarize_split_space(size_t src_region,
                                       addr_to_region_idx(split_destination),
                                       p2i(*target_next));
 
-    if (partial_obj_size != 0) {
+    if (partial_obj_size != Words(0)) {
       HeapWord* const po_beg = split_info.destination();
       HeapWord* const po_end = po_beg + split_info.partial_obj_size();
       log_develop_trace(gc, compaction)("%s split:  po_beg=" PTR_FORMAT " " SIZE_FORMAT " po_end=" PTR_FORMAT " " SIZE_FORMAT,
@@ -707,8 +705,8 @@ bool ParallelCompactData::summarize(SplitInfo& split_info,
     // The destination must be set even if the region has no data.
     _region_data[cur_region].set_destination(dest_addr);
 
-    size_t words = _region_data[cur_region].data_size();
-    if (words > 0) {
+    Words words = _region_data[cur_region].data_size();
+    if (words > Words(0)) {
       // If cur_region does not fit entirely into the target space, find a point
       // at which the source space can be 'split' so that part is copied to the
       // target space and the rest is copied elsewhere.
@@ -808,10 +806,10 @@ HeapWord* ParallelCompactData::calc_new_pointer(HeapWord* addr, ParCompactionMan
   }
 
   HeapWord* const search_start = block_align_down(addr);
-  const size_t block_offset = addr_to_block_ptr(addr)->offset();
+  const Words block_offset = in_Words(addr_to_block_ptr(addr)->offset());
 
   const ParMarkBitMap* bitmap = PSParallelCompact::mark_bitmap();
-  const size_t live = bitmap->live_words_in_range(cm, search_start, cast_to_oop(addr));
+  const Words live = bitmap->live_words_in_range(cm, search_start, cast_to_oop(addr));
   result += block_offset + live;
   DEBUG_ONLY(PSParallelCompact::check_new_location(addr, result));
   return result;
@@ -1052,7 +1050,7 @@ HeapWord*
 PSParallelCompact::compute_dense_prefix_via_density(const SpaceId id,
                                                     bool maximum_compaction)
 {
-  const size_t region_size = ParallelCompactData::RegionSize;
+  const Words region_size = ParallelCompactData::RegionSize;
   const ParallelCompactData& sd = summary_data();
 
   const MutableSpace* const space = _space_info[id].space();
@@ -1078,14 +1076,14 @@ PSParallelCompact::compute_dense_prefix_via_density(const SpaceId id,
   }
 
   HeapWord* const new_top = _space_info[id].new_top();
-  const size_t space_live = pointer_delta(new_top, space->bottom());
-  const size_t space_used = space->used_in_words();
-  const size_t space_capacity = space->capacity_in_words();
+  const Words space_live = pointer_delta(new_top, space->bottom());
+  const Words space_used = space->used_in_words();
+  const Words space_capacity = space->capacity_in_words();
 
-  const double cur_density = double(space_live) / space_capacity;
+  const double cur_density = double(space_live) / untype(space_capacity);
   const double deadwood_density =
     (1.0 - cur_density) * (1.0 - cur_density) * cur_density * cur_density;
-  const size_t deadwood_goal = size_t(space_capacity * deadwood_density);
+  const Words deadwood_goal = in_Words(untype(space_capacity) * deadwood_density);
 
   log_develop_debug(gc, compaction)(
       "cur_dens=%5.3f dw_dens=%5.3f dw_goal=" SIZE_FORMAT,
@@ -1102,7 +1100,7 @@ PSParallelCompact::compute_dense_prefix_via_density(const SpaceId id,
   const RegionData* const top_cp = sd.addr_to_region_ptr(space->top() - 1);
   while (cp < end_cp) {
     HeapWord* region_destination = cp->destination();
-    const size_t cur_deadwood = pointer_delta(dense_prefix, region_destination);
+    const Words cur_deadwood = pointer_delta(dense_prefix, region_destination);
 
     log_develop_trace(gc, compaction)(
         "c#=" SIZE_FORMAT_W(4) " dst=" PTR_FORMAT " "
@@ -1115,18 +1113,18 @@ PSParallelCompact::compute_dense_prefix_via_density(const SpaceId id,
       // This typically occurs after crossing a fairly sparse set of regions, so
       // iterate backwards over those sparse regions, looking for the region
       // that has the lowest density of live objects 'to the right.'
-      size_t space_to_left = sd.region(cp) * region_size;
-      size_t live_to_left = space_to_left - cur_deadwood;
-      size_t space_to_right = space_capacity - space_to_left;
-      size_t live_to_right = space_live - live_to_left;
-      double density_to_right = double(live_to_right) / space_to_right;
+      Words space_to_left = sd.region(cp) * region_size;
+      Words live_to_left = space_to_left - cur_deadwood;
+      Words space_to_right = space_capacity - space_to_left;
+      Words live_to_right = space_live - live_to_left;
+      double density_to_right = double(live_to_right) / untype(space_to_right);
       while (cp > full_cp) {
         --cp;
-        const size_t prev_region_live_to_right = live_to_right -
+        const Words prev_region_live_to_right = live_to_right -
           cp->data_size();
-        const size_t prev_region_space_to_right = space_to_right + region_size;
+        const Words prev_region_space_to_right = space_to_right + region_size;
         double prev_region_density_to_right =
-          double(prev_region_live_to_right) / prev_region_space_to_right;
+          double(prev_region_live_to_right) / untype(prev_region_space_to_right);
         if (density_to_right <= prev_region_density_to_right) {
           return dense_prefix;
         }
@@ -1163,12 +1161,12 @@ void PSParallelCompact::print_dense_prefix_stats(const char* const algorithm,
   const MutableSpace* const space = _space_info[id].space();
   HeapWord* const new_top = _space_info[id].new_top();
 
-  const size_t space_live = pointer_delta(new_top, space->bottom());
-  const size_t dead_to_left = pointer_delta(addr, cp->destination());
-  const size_t space_cap = space->capacity_in_words();
-  const double dead_to_left_pct = double(dead_to_left) / space_cap;
-  const size_t live_to_right = new_top - cp->destination();
-  const size_t dead_to_right = space->top() - addr - live_to_right;
+  const Words space_live = pointer_delta(new_top, space->bottom());
+  const Words dead_to_left = pointer_delta(addr, cp->destination());
+  const Words space_cap = space->capacity_in_words();
+  const double dead_to_left_pct = double(dead_to_left) / untype(space_cap);
+  const Words live_to_right = pointer_delta(new_top, cp->destination());
+  const Words dead_to_right = pointer_delta(space->top(), addr) - live_to_right;
 
   log_develop_debug(gc, compaction)(
       "%s=" PTR_FORMAT " dpc=" SIZE_FORMAT_W(5) " "
@@ -1180,7 +1178,7 @@ void PSParallelCompact::print_dense_prefix_stats(const char* const algorithm,
       space_live,
       dead_to_left, dead_to_left_pct,
       dead_to_right, live_to_right,
-      double(dead_to_right) / live_to_right);
+      double(dead_to_right) / untype(live_to_right));
 }
 #endif  // #ifndef PRODUCT
 
@@ -1242,7 +1240,7 @@ ParallelCompactData::RegionData*
 PSParallelCompact::first_dead_space_region(const RegionData* beg,
                                            const RegionData* end)
 {
-  const size_t region_size = ParallelCompactData::RegionSize;
+  const Words region_size = ParallelCompactData::RegionSize;
   ParallelCompactData& sd = summary_data();
   size_t left = sd.region(beg);
   size_t right = end > beg ? sd.region(end) - 1 : left;
@@ -1271,7 +1269,7 @@ PSParallelCompact::first_dead_space_region(const RegionData* beg,
 ParallelCompactData::RegionData*
 PSParallelCompact::dead_wood_limit_region(const RegionData* beg,
                                           const RegionData* end,
-                                          size_t dead_words)
+                                          Words dead_words)
 {
   ParallelCompactData& sd = summary_data();
   size_t left = sd.region(beg);
@@ -1287,7 +1285,7 @@ PSParallelCompact::dead_wood_limit_region(const RegionData* beg,
     assert(dest != nullptr, "sanity");
     assert(dest <= addr, "must move left");
 
-    const size_t dead_to_left = pointer_delta(addr, dest);
+    const Words dead_to_left = pointer_delta(addr, dest);
     if (middle > left && dead_to_left > dead_words) {
       right = middle - 1;
     } else if (middle < right && dead_to_left < dead_words) {
@@ -1319,13 +1317,13 @@ PSParallelCompact::reclaimed_ratio(const RegionData* const cp,
   assert(top >= sd.region_to_addr(cp), "sanity");
 
   HeapWord* const destination = cp->destination();
-  const size_t dense_prefix_live  = pointer_delta(destination, bottom);
-  const size_t compacted_region_live = pointer_delta(new_top, destination);
-  const size_t compacted_region_used = pointer_delta(top,
+  const Words dense_prefix_live  = pointer_delta(destination, bottom);
+  const Words compacted_region_live = pointer_delta(new_top, destination);
+  const Words compacted_region_used = pointer_delta(top,
                                                      sd.region_to_addr(cp));
-  const size_t reclaimable = compacted_region_used - compacted_region_live;
+  const Words reclaimable = compacted_region_used - compacted_region_live;
 
-  const double divisor = dense_prefix_live + 1.25 * compacted_region_live;
+  const double divisor = untype(dense_prefix_live) + 1.25 * untype(compacted_region_live);
   return double(reclaimable) / divisor;
 }
 
@@ -1343,7 +1341,7 @@ HeapWord*
 PSParallelCompact::compute_dense_prefix(const SpaceId id,
                                         bool maximum_compaction)
 {
-  const size_t region_size = ParallelCompactData::RegionSize;
+  const Words region_size = ParallelCompactData::RegionSize;
   const ParallelCompactData& sd = summary_data();
 
   const MutableSpace* const space = _space_info[id].space();
@@ -1378,15 +1376,15 @@ PSParallelCompact::compute_dense_prefix(const SpaceId id,
     return sd.region_to_addr(full_cp);
   }
 
-  const size_t space_live = pointer_delta(new_top, bottom);
-  const size_t space_used = space->used_in_words();
-  const size_t space_capacity = space->capacity_in_words();
+  const Words space_live = pointer_delta(new_top, bottom);
+  const Words space_used = space->used_in_words();
+  const Words space_capacity = space->capacity_in_words();
 
   const double density = double(space_live) / double(space_capacity);
   const size_t min_percent_free = MarkSweepDeadRatio;
   const double limiter = dead_wood_limiter(density, min_percent_free);
-  const size_t dead_wood_max = space_used - space_live;
-  const size_t dead_wood_limit = MIN2(size_t(space_capacity * limiter),
+  const Words dead_wood_max = space_used - space_live;
+  const Words dead_wood_limit = MIN2(in_Words(untype(space_capacity) * limiter),
                                       dead_wood_max);
 
   log_develop_debug(gc, compaction)(
@@ -1474,7 +1472,7 @@ void PSParallelCompact::fill_dense_prefix_end(SpaceId id)
     //                          +-------+
 
     // Initially assume case a, c or e will apply.
-    size_t obj_len = CollectedHeap::min_fill_size();
+    Words obj_len = CollectedHeap::min_fill_size();
     HeapWord* obj_beg = dense_prefix_end - obj_len;
 
 #ifdef  _LP64
@@ -1487,7 +1485,7 @@ void PSParallelCompact::fill_dense_prefix_end(SpaceId id)
                _mark_bitmap.is_obj_end(dense_prefix_bit - 4)) {
       // Case d above.
       obj_beg = dense_prefix_end - 3;
-      obj_len = 3;
+      obj_len = Words(3);
     }
 #endif  // #ifdef _LP64
 
@@ -1541,13 +1539,13 @@ PSParallelCompact::summarize_space(SpaceId id, bool maximum_compaction)
   }
 
   if (log_develop_is_enabled(Trace, gc, compaction)) {
-    const size_t region_size = ParallelCompactData::RegionSize;
+    const Words region_size = ParallelCompactData::RegionSize;
     HeapWord* const dense_prefix_end = _space_info[id].dense_prefix();
     const size_t dp_region = _summary_data.addr_to_region_idx(dense_prefix_end);
-    const size_t dp_words = pointer_delta(dense_prefix_end, space->bottom());
+    const Words dp_words = pointer_delta(dense_prefix_end, space->bottom());
     HeapWord* const new_top = _space_info[id].new_top();
     const HeapWord* nt_aligned_up = _summary_data.region_align_up(new_top);
-    const size_t cr_words = pointer_delta(nt_aligned_up, dense_prefix_end);
+    const Words cr_words = pointer_delta(nt_aligned_up, dense_prefix_end);
     log_develop_trace(gc, compaction)(
         "id=%d cap=" SIZE_FORMAT " dp=" PTR_FORMAT " "
         "dp_region=" SIZE_FORMAT " " "dp_count=" SIZE_FORMAT " "
@@ -1593,14 +1591,14 @@ void PSParallelCompact::summary_phase(bool maximum_compaction)
   NOT_PRODUCT(print_initial_summary_data(_summary_data, _space_info));
 
   // The amount of live data that will end up in old space (assuming it fits).
-  size_t old_space_total_live = 0;
+  Words old_space_total_live = Words(0);
   for (unsigned int id = old_space_id; id < last_space_id; ++id) {
     old_space_total_live += pointer_delta(_space_info[id].new_top(),
                                           _space_info[id].space()->bottom());
   }
 
   MutableSpace* const old_space = _space_info[old_space_id].space();
-  const size_t old_capacity = old_space->capacity_in_words();
+  const Words old_capacity = old_space->capacity_in_words();
   if (old_space_total_live > old_capacity) {
     // XXX - should also try to expand
     maximum_compaction = true;
@@ -1618,13 +1616,13 @@ void PSParallelCompact::summary_phase(bool maximum_compaction)
   HeapWord** new_top_addr = _space_info[dst_space_id].new_top_addr();
   for (unsigned int id = eden_space_id; id < last_space_id; ++id) {
     const MutableSpace* space = _space_info[id].space();
-    const size_t live = pointer_delta(_space_info[id].new_top(),
-                                      space->bottom());
-    const size_t available = pointer_delta(dst_space_end, *new_top_addr);
+    const Words live = pointer_delta(_space_info[id].new_top(),
+                                     space->bottom());
+    const Words available = pointer_delta(dst_space_end, *new_top_addr);
 
     NOT_PRODUCT(summary_phase_msg(dst_space_id, *new_top_addr, dst_space_end,
                                   SpaceId(id), space->bottom(), space->top());)
-    if (live > 0 && live <= available) {
+    if (live > Words(0) && live <= available) {
       // All the live data will fit.
       bool done = _summary_data.summarize(_space_info[id].split_info(),
                                           space->bottom(), space->top(),
@@ -1635,7 +1633,7 @@ void PSParallelCompact::summary_phase(bool maximum_compaction)
 
       // Reset the new_top value for the space.
       _space_info[id].set_new_top(space->bottom());
-    } else if (live > 0) {
+    } else if (live > Words(0)) {
       // Attempt to fit part of the source space into the target space.
       HeapWord* next_src_addr = nullptr;
       bool done = _summary_data.summarize(_space_info[id].split_info(),
@@ -1822,12 +1820,12 @@ bool PSParallelCompact::invoke_no_policy(bool maximum_heap_compaction) {
           young_gen->to_space()->capacity_in_bytes(),
           "Sizes of space in young gen are out-of-bounds");
 
-        size_t young_live = young_gen->used_in_bytes();
-        size_t eden_live = young_gen->eden_space()->used_in_bytes();
-        size_t old_live = old_gen->used_in_bytes();
-        size_t cur_eden = young_gen->eden_space()->capacity_in_bytes();
-        size_t max_old_gen_size = old_gen->max_gen_size();
-        size_t max_eden_size = young_gen->max_gen_size() -
+        Bytes young_live = young_gen->used_in_bytes();
+        Bytes eden_live = young_gen->eden_space()->used_in_bytes();
+        Bytes old_live = old_gen->used_in_bytes();
+        Bytes cur_eden = young_gen->eden_space()->capacity_in_bytes();
+        Bytes max_old_gen_size = old_gen->max_gen_size();
+        Bytes max_eden_size = young_gen->max_gen_size() -
           young_gen->from_space()->capacity_in_bytes() -
           young_gen->to_space()->capacity_in_bytes();
 
@@ -2573,7 +2571,7 @@ PSParallelCompact::update_and_deadwood_in_dense_prefix(ParCompactionManager* cm,
     // space.
     assert(beg_addr > space(space_id)->bottom(), "sanity");
     const RegionData* const cp = sd.region(beg_region);
-    if (cp->partial_obj_size() != 0) {
+    if (cp->partial_obj_size() != Words(0)) {
       beg_addr = sd.partial_obj_end(beg_region);
     } else if (dead_space_crosses_boundary(cp, mbm->addr_to_bit(beg_addr))) {
       beg_addr = mbm->find_obj_beg(beg_addr, end_addr);
@@ -2643,9 +2641,9 @@ void PSParallelCompact::update_deferred_object(ParCompactionManager* cm, HeapWor
 // an object, or account for those live words in some other way.  Callers must
 // also ensure that there are enough live words in the range [beg, end) to skip.
 HeapWord*
-PSParallelCompact::skip_live_words(HeapWord* beg, HeapWord* end, size_t count)
+PSParallelCompact::skip_live_words(HeapWord* beg, HeapWord* end, Words count)
 {
-  assert(count > 0, "sanity");
+  assert(count > Words(0), "sanity");
 
   ParMarkBitMap* m = mark_bitmap();
   idx_t bits_to_skip = m->words_to_bits(count);
@@ -2685,15 +2683,15 @@ HeapWord* PSParallelCompact::first_src_addr(HeapWord* const dest_addr,
 
   const ParallelCompactData& sd = summary_data();
   ParMarkBitMap* const bitmap = mark_bitmap();
-  const size_t RegionSize = ParallelCompactData::RegionSize;
+  const Words RegionSize = ParallelCompactData::RegionSize;
 
   assert(sd.is_region_aligned(dest_addr), "not aligned");
   const RegionData* const src_region_ptr = sd.region(src_region_idx);
-  const size_t partial_obj_size = src_region_ptr->partial_obj_size();
+  const Words partial_obj_size = src_region_ptr->partial_obj_size();
   HeapWord* const src_region_destination = src_region_ptr->destination();
 
   assert(dest_addr >= src_region_destination, "wrong src region");
-  assert(src_region_ptr->data_size() > 0, "src region cannot be empty");
+  assert(src_region_ptr->data_size() > Words(0), "src region cannot be empty");
 
   HeapWord* const src_region_beg = sd.region_to_addr(src_region_idx);
   HeapWord* const src_region_end = src_region_beg + RegionSize;
@@ -2701,7 +2699,7 @@ HeapWord* PSParallelCompact::first_src_addr(HeapWord* const dest_addr,
   HeapWord* addr = src_region_beg;
   if (dest_addr == src_region_destination) {
     // Return the first live word in the source region.
-    if (partial_obj_size == 0) {
+    if (partial_obj_size == Words(0)) {
       addr = bitmap->find_obj_beg(addr, src_region_end);
       assert(addr < src_region_end, "no objects start in src region");
     }
@@ -2709,7 +2707,7 @@ HeapWord* PSParallelCompact::first_src_addr(HeapWord* const dest_addr,
   }
 
   // Must skip some live data.
-  size_t words_to_skip = dest_addr - src_region_destination;
+  Words words_to_skip = pointer_delta(dest_addr, src_region_destination);
   assert(src_region_ptr->data_size() > words_to_skip, "wrong src region");
 
   if (partial_obj_size >= words_to_skip) {
@@ -2724,7 +2722,7 @@ HeapWord* PSParallelCompact::first_src_addr(HeapWord* const dest_addr,
   }
 
   // Skip over the partial object (if any).
-  if (partial_obj_size != 0) {
+  if (partial_obj_size != Words(0)) {
     words_to_skip -= partial_obj_size;
     addr += partial_obj_size;
   }
@@ -2760,7 +2758,7 @@ void PSParallelCompact::decrement_destination_counts(ParCompactionManager* cm,
     sd.addr_to_region_ptr(sd.region_align_up(new_top));
 
   for (RegionData* cur = beg; cur < end; ++cur) {
-    assert(cur->data_size() > 0, "region must have live data");
+    assert(cur->data_size() > Words(0), "region must have live data");
     cur->decrement_destination_count();
     if (cur < enqueue_end && cur->available() && cur->claim()) {
       if (cur->mark_normal()) {
@@ -2786,7 +2784,7 @@ size_t PSParallelCompact::next_src_region(MoveAndUpdateClosure& closure,
   typedef ParallelCompactData::RegionData RegionData;
 
   ParallelCompactData& sd = PSParallelCompact::summary_data();
-  const size_t region_size = ParallelCompactData::RegionSize;
+  const Words region_size = ParallelCompactData::RegionSize;
 
   size_t src_region_idx = 0;
 
@@ -2796,7 +2794,7 @@ size_t PSParallelCompact::next_src_region(MoveAndUpdateClosure& closure,
   HeapWord* const top_aligned_up = sd.region_align_up(src_space_top);
   const RegionData* const top_region_ptr =
     sd.addr_to_region_ptr(top_aligned_up);
-  while (src_region_ptr < top_region_ptr && src_region_ptr->data_size() == 0) {
+  while (src_region_ptr < top_region_ptr && src_region_ptr->data_size() == Words(0)) {
     ++src_region_ptr;
   }
 
@@ -2828,11 +2826,11 @@ size_t PSParallelCompact::next_src_region(MoveAndUpdateClosure& closure,
       const RegionData* const top_cp = sd.addr_to_region_ptr(top_aligned_up);
 
       for (const RegionData* src_cp = bottom_cp; src_cp < top_cp; ++src_cp) {
-        if (src_cp->live_obj_size() > 0) {
+        if (src_cp->live_obj_size() > Words(0)) {
           // Found it.
           assert(src_cp->destination() == destination,
                  "first live obj in the space must match the destination");
-          assert(src_cp->partial_obj_size() == 0,
+          assert(src_cp->partial_obj_size() == Words(0),
                  "a space cannot begin with a partial obj");
 
           src_space_id = SpaceId(space_id);
@@ -2841,7 +2839,7 @@ size_t PSParallelCompact::next_src_region(MoveAndUpdateClosure& closure,
           closure.set_source(sd.region_to_addr(src_region_idx));
           return src_region_idx;
         } else {
-          assert(src_cp->data_size() == 0, "sanity");
+          assert(src_cp->data_size() == Words(0), "sanity");
         }
       }
     }
@@ -3047,10 +3045,10 @@ void PSParallelCompact::fill_blocks(size_t region_idx)
   // current total is written to the block table element.
   const size_t Log2BlockSize = ParallelCompactData::Log2BlockSize;
   const size_t Log2RegionSize = ParallelCompactData::Log2RegionSize;
-  const size_t RegionSize = ParallelCompactData::RegionSize;
+  const Words RegionSize = ParallelCompactData::RegionSize;
 
   ParallelCompactData& sd = summary_data();
-  const size_t partial_obj_size = sd.region(region_idx)->partial_obj_size();
+  const Words partial_obj_size = sd.region(region_idx)->partial_obj_size();
   if (partial_obj_size >= RegionSize) {
     return; // No objects start in this region.
   }
@@ -3064,7 +3062,7 @@ void PSParallelCompact::fill_blocks(size_t region_idx)
   assert((size_t)1 << Log2BitsPerBlock ==
          bitmap->words_to_bits(ParallelCompactData::BlockSize), "sanity");
 
-  size_t beg_bit = bitmap->words_to_bits(region_idx << Log2RegionSize);
+  size_t beg_bit = bitmap->words_to_bits(in_Words(region_idx << Log2RegionSize));
   const size_t range_end = beg_bit + bitmap->words_to_bits(RegionSize);
   size_t live_bits = bitmap->words_to_bits(partial_obj_size);
   beg_bit = bitmap->find_obj_beg(beg_bit + live_bits, range_end);
@@ -3098,7 +3096,7 @@ ParMarkBitMap::IterationStatus MoveAndUpdateClosure::copy_until_full()
 
 void MoveAndUpdateClosure::copy_partial_obj()
 {
-  size_t words = words_remaining();
+  Words words = words_remaining();
 
   HeapWord* const range_end = MIN2(source() + words, bitmap()->region_end());
   HeapWord* const end_addr = bitmap()->find_obj_end(source(), range_end);
@@ -3122,7 +3120,7 @@ void MoveAndUpdateClosure::complete_region(ParCompactionManager *cm, HeapWord *d
 }
 
 ParMarkBitMapClosure::IterationStatus
-MoveAndUpdateClosure::do_addr(HeapWord* addr, size_t words) {
+MoveAndUpdateClosure::do_addr(HeapWord* addr, Words words) {
   assert(destination() != nullptr, "sanity");
   assert(bitmap()->obj_size(addr) == words, "bad size");
 
@@ -3182,7 +3180,7 @@ UpdateOnlyClosure::UpdateOnlyClosure(ParMarkBitMap* mbm,
 
 // Updates the references in the object to their new values.
 ParMarkBitMapClosure::IterationStatus
-UpdateOnlyClosure::do_addr(HeapWord* addr, size_t words) {
+UpdateOnlyClosure::do_addr(HeapWord* addr, Words words) {
   do_addr(addr);
   return ParMarkBitMap::incomplete;
 }
@@ -3196,11 +3194,11 @@ FillClosure::FillClosure(ParCompactionManager* cm, PSParallelCompact::SpaceId sp
 }
 
 ParMarkBitMapClosure::IterationStatus
-FillClosure::do_addr(HeapWord* addr, size_t size) {
+FillClosure::do_addr(HeapWord* addr, Words size) {
   CollectedHeap::fill_with_objects(addr, size);
   HeapWord* const end = addr + size;
   do {
-    size_t size = cast_to_oop(addr)->size();
+    Words size = cast_to_oop(addr)->size();
     _start_array->update_for_block(addr, addr + size);
     addr += size;
   } while (addr < end);

@@ -41,8 +41,8 @@ void ChunkManagerStats::add(const ChunkManagerStats& other) {
 }
 
 // Returns total word size of all chunks in this manager.
-size_t ChunkManagerStats::total_word_size() const {
-  size_t s = 0;
+Words ChunkManagerStats::total_word_size() const {
+  Words s = Words(0);
   for (chunklevel_t l = chunklevel::LOWEST_CHUNK_LEVEL; l <= chunklevel::HIGHEST_CHUNK_LEVEL; l++) {
     s += _num_chunks[l] * chunklevel::word_size_for_level(l);
   }
@@ -50,8 +50,8 @@ size_t ChunkManagerStats::total_word_size() const {
 }
 
 // Returns total committed word size of all chunks in this manager.
-size_t ChunkManagerStats::total_committed_word_size() const {
-  size_t s = 0;
+Words ChunkManagerStats::total_committed_word_size() const {
+  Words s = Words(0);
   for (chunklevel_t l = chunklevel::LOWEST_CHUNK_LEVEL; l <= chunklevel::HIGHEST_CHUNK_LEVEL; l++) {
     s += _committed_word_size[l];
   }
@@ -60,14 +60,14 @@ size_t ChunkManagerStats::total_committed_word_size() const {
 
 void ChunkManagerStats::print_on(outputStream* st, size_t scale) const {
   // Note: used as part of MetaspaceReport so formatting matters.
-  size_t total_size = 0;
-  size_t total_committed_size = 0;
+  Words total_size = Words(0);
+  Words total_committed_size = Words(0);
   for (chunklevel_t l = chunklevel::LOWEST_CHUNK_LEVEL; l <= chunklevel::HIGHEST_CHUNK_LEVEL; l++) {
     st->cr();
     chunklevel::print_chunk_size(st, l);
     st->print(": ");
     if (_num_chunks[l] > 0) {
-      const size_t word_size = _num_chunks[l] * chunklevel::word_size_for_level(l);
+      const Words word_size = _num_chunks[l] * chunklevel::word_size_for_level(l);
 
       st->print("%4d, capacity=", _num_chunks[l]);
       print_scaled_words(st, word_size, scale);
@@ -188,7 +188,7 @@ void ArenaStats::print_on(outputStream* st, size_t scale,  bool detailed) const 
 #ifdef ASSERT
 
 void ArenaStats::verify() const {
-  size_t total_used = 0;
+  Words total_used = Words(0);
   for (chunklevel_t l = chunklevel::LOWEST_CHUNK_LEVEL; l <= chunklevel::HIGHEST_CHUNK_LEVEL; l++) {
     _stats[l].verify();
     total_used += _stats[l]._used_words;

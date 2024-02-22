@@ -30,7 +30,7 @@
 
 #include "nmt/mallocTracker.inline.hpp"
 
-inline bool MemTracker::check_exceeds_limit(size_t s, MEMFLAGS f) {
+inline bool MemTracker::check_exceeds_limit(Bytes s, MEMFLAGS f) {
   if (!enabled()) {
     return false;
   }

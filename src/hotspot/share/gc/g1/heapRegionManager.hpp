@@ -225,7 +225,7 @@ public:
     return _free_list.length(node_index);
   }
 
-  size_t total_free_bytes() const {
+  Bytes total_free_bytes() const {
     return num_free_regions() * HeapRegion::GrainBytes;
   }
 

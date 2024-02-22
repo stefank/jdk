@@ -2184,7 +2184,7 @@ static jobject read_field_value(Handle obj, long displacement, jchar type_char, 
 
   BasicType basic_type = JVMCIENV->typeCharToBasicType(type_char, JVMCI_CHECK_NULL);
   int basic_type_elemsize = type2aelembytes(basic_type);
-  if (displacement < 0 || ((size_t) displacement + basic_type_elemsize > HeapWordSize * obj->size())) {
+  if (displacement < 0 || ((size_t) displacement + basic_type_elemsize > to_bytes(obj->size()))) {
     // Reading outside of the object bounds
     JVMCI_THROW_MSG_NULL(IllegalArgumentException, "reading outside object bounds");
   }
@@ -2442,7 +2442,7 @@ C2V_END
 
 C2V_VMENTRY_0(jint, arrayBaseOffset, (JNIEnv* env, jobject, jchar type_char))
   BasicType type = JVMCIENV->typeCharToBasicType(type_char, JVMCI_CHECK_0);
-  return arrayOopDesc::header_size(type) * HeapWordSize;
+  return checked_cast<jint>(to_bytes(arrayOopDesc::header_size(type)));
 C2V_END
 
 C2V_VMENTRY_0(jint, arrayIndexScale, (JNIEnv* env, jobject, jchar type_char))

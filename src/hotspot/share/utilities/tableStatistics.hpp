@@ -61,7 +61,7 @@ protected:
 class TableStatistics : CHeapObj<mtStatistics> {
 
 public:
-  size_t _literal_bytes;
+  Bytes  _literal_bytes;
 
   size_t _number_of_buckets;
   size_t _number_of_entries;
@@ -71,19 +71,19 @@ public:
   float _variance_of_bucket_size;
   float _stddev_of_bucket_size;
 
-  size_t _bucket_bytes;
-  size_t _entry_bytes;
-  size_t _total_footprint;
+  Bytes _bucket_bytes;
+  Bytes _entry_bytes;
+  Bytes _total_footprint;
 
-  size_t _bucket_size;
-  size_t _entry_size;
+  Bytes _bucket_size;
+  Bytes _entry_size;
 
   float _add_rate;
   float _remove_rate;
 
   TableStatistics();
-  TableStatistics(NumberSeq summary, size_t literal_bytes, size_t bucket_bytes, size_t node_bytes);
-  TableStatistics(TableRateStatistics& rate_stats, NumberSeq summary, size_t literal_bytes, size_t bucket_bytes, size_t node_bytes);
+  TableStatistics(NumberSeq summary, Bytes literal_bytes, Bytes bucket_bytes, Bytes node_bytes);
+  TableStatistics(TableRateStatistics& rate_stats, NumberSeq summary, Bytes literal_bytes, Bytes bucket_bytes, Bytes node_bytes);
   ~TableStatistics();
 
   void print(outputStream* st, const char *table_name);

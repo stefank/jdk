@@ -38,7 +38,7 @@ class PSVirtualSpace : public CHeapObj<mtGC> {
 
   // The space is committed/uncommitted in chunks of size _alignment.  The
   // ReservedSpace passed to initialize() must be aligned to this value.
-  const size_t _alignment;
+  const Bytes _alignment;
 
   // Reserved area
   char* _reserved_low_addr;
@@ -53,7 +53,7 @@ class PSVirtualSpace : public CHeapObj<mtGC> {
   bool _special;
 
  public:
-  PSVirtualSpace(ReservedSpace rs, size_t alignment);
+  PSVirtualSpace(ReservedSpace rs, Bytes alignment);
 
   ~PSVirtualSpace();
 
@@ -69,7 +69,7 @@ class PSVirtualSpace : public CHeapObj<mtGC> {
   }
 
   // Accessors (all sizes are bytes).
-  size_t alignment()          const { return _alignment; }
+  Bytes alignment()           const { return _alignment; }
   char* reserved_low_addr()   const { return _reserved_low_addr; }
   char* reserved_high_addr()  const { return _reserved_high_addr; }
   char* committed_low_addr()  const { return _committed_low_addr; }
@@ -77,16 +77,16 @@ class PSVirtualSpace : public CHeapObj<mtGC> {
   bool  special()             const { return _special; }
 
   // Return size in bytes
-  inline size_t committed_size()   const;
-  inline size_t reserved_size()    const;
-  inline size_t uncommitted_size() const;
+  inline Bytes committed_size()   const;
+  inline Bytes reserved_size()    const;
+  inline Bytes uncommitted_size() const;
 
   // Operations.
   inline  void   set_reserved(char* low_addr, char* high_addr, bool special);
   inline  void   set_reserved(ReservedSpace rs);
   inline  void   set_committed(char* low_addr, char* high_addr);
-  virtual bool   expand_by(size_t bytes);
-  virtual bool   shrink_by(size_t bytes);
+  virtual bool   expand_by(Bytes bytes);
+  virtual bool   shrink_by(Bytes bytes);
   void           release();
 
 #ifndef PRODUCT
@@ -122,15 +122,15 @@ class PSVirtualSpace : public CHeapObj<mtGC> {
 // PSVirtualSpace inlines.
 //
 
-inline size_t PSVirtualSpace::committed_size() const {
-  return pointer_delta(committed_high_addr(), committed_low_addr(), sizeof(char));
+inline Bytes PSVirtualSpace::committed_size() const {
+  return in_Bytes(pointer_delta(committed_high_addr(), committed_low_addr(), sizeof(char)));
 }
 
-inline size_t PSVirtualSpace::reserved_size() const {
-  return pointer_delta(reserved_high_addr(), reserved_low_addr(), sizeof(char));
+inline Bytes PSVirtualSpace::reserved_size() const {
+  return in_Bytes(pointer_delta(reserved_high_addr(), reserved_low_addr(), sizeof(char)));
 }
 
-inline size_t PSVirtualSpace::uncommitted_size() const {
+inline Bytes PSVirtualSpace::uncommitted_size() const {
   return reserved_size() - committed_size();
 }
 

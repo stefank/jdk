@@ -48,17 +48,17 @@ struct ChunkManagerStats {
   int _num_chunks[chunklevel::NUM_CHUNK_LEVELS];
 
   // Size, in words, of the sum of all committed areas in this chunk manager, per level.
-  size_t _committed_word_size[chunklevel::NUM_CHUNK_LEVELS];
+  Words _committed_word_size[chunklevel::NUM_CHUNK_LEVELS];
 
   ChunkManagerStats() : _num_chunks(), _committed_word_size() {}
 
   void add(const ChunkManagerStats& other);
 
   // Returns total word size of all chunks in this manager.
-  size_t total_word_size() const;
+  Words total_word_size() const;
 
   // Returns total committed word size of all chunks in this manager.
-  size_t total_committed_word_size() const;
+  Words total_committed_word_size() const;
 
   void print_on(outputStream* st, size_t scale) const;
 
@@ -78,27 +78,27 @@ struct InUseChunkStats {
 
   // Capacity (total sum of all chunk sizes) in words.
   // May contain committed and uncommitted space.
-  size_t _word_size;
+  Words _word_size;
 
   // Total committed area, in words.
-  size_t _committed_words;
+  Words _committed_words;
 
   // Total used area, in words.
-  size_t _used_words;
+  Words _used_words;
 
   // Total free committed area, in words.
-  size_t _free_words;
+  Words _free_words;
 
   // Total waste committed area, in words.
-  size_t _waste_words;
+  Words _waste_words;
 
   InUseChunkStats() :
     _num(0),
-    _word_size(0),
-    _committed_words(0),
-    _used_words(0),
-    _free_words(0),
-    _waste_words(0)
+    _word_size(Words(0)),
+    _committed_words(Words(0)),
+    _used_words(Words(0)),
+    _free_words(Words(0)),
+    _waste_words(Words(0))
   {}
 
   void add(const InUseChunkStats& other) {
@@ -123,12 +123,12 @@ struct  ArenaStats {
   // chunk statistics by chunk level
   InUseChunkStats _stats[chunklevel::NUM_CHUNK_LEVELS];
   uintx _free_blocks_num;
-  size_t _free_blocks_word_size;
+  Words _free_blocks_word_size;
 
   ArenaStats() :
     _stats(),
     _free_blocks_num(0),
-    _free_blocks_word_size(0)
+    _free_blocks_word_size(Words(0))
   {}
 
   void add(const ArenaStats& other);

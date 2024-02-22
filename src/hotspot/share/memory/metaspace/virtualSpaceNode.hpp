@@ -101,11 +101,11 @@ class VirtualSpaceNode : public CHeapObj<mtClass> {
   MetaWord* const _base;
 
   // Size, in words, of the whole node
-  const size_t _word_size;
+  const Words _word_size;
 
   // Size, in words, of the range of this node which has been handed out in
   // the form of root chunks.
-  size_t _used_words;
+  Words _used_words;
 
   // The bitmap describing the commit state of the region:
   // Each bit covers a region of 64K (see constants::commit_granule_size).
@@ -119,8 +119,8 @@ class VirtualSpaceNode : public CHeapObj<mtClass> {
 
   // Points to outside size counters which we are to increase/decrease when we commit/uncommit
   // space from this node.
-  SizeCounter* const _total_reserved_words_counter;
-  SizeCounter* const _total_committed_words_counter;
+  WordsCounter* const _total_reserved_words_counter;
+  WordsCounter* const _total_committed_words_counter;
 
   /// committing, uncommitting ///
 
@@ -144,23 +144,23 @@ class VirtualSpaceNode : public CHeapObj<mtClass> {
   // - mark the range as committed in the commit mask
   //
   // Returns true if success, false if it did hit a commit limit.
-  bool commit_range(MetaWord* p, size_t word_size);
+  bool commit_range(MetaWord* p, Words word_size);
 
   //// creation ////
 
   // Create a new empty node spanning the given given reserved space.
   VirtualSpaceNode(ReservedSpace rs, bool owns_rs, CommitLimiter* limiter,
-                   SizeCounter* reserve_counter, SizeCounter* commit_counter);
+                   WordsCounter* reserve_counter, WordsCounter* commit_counter);
 
 public:
 
   // Create a node of a given size (it will create its own space).
-  static VirtualSpaceNode* create_node(size_t word_size, CommitLimiter* limiter, SizeCounter* reserve_words_counter,
-                                       SizeCounter* commit_words_counter);
+  static VirtualSpaceNode* create_node(Words word_size, CommitLimiter* limiter, WordsCounter* reserve_words_counter,
+                                       WordsCounter* commit_words_counter);
 
   // Create a node over an existing space
-  static VirtualSpaceNode* create_node(ReservedSpace rs, CommitLimiter* limiter, SizeCounter* reserve_words_counter,
-                                       SizeCounter* commit_words_counter);
+  static VirtualSpaceNode* create_node(ReservedSpace rs, CommitLimiter* limiter, WordsCounter* reserve_words_counter,
+                                       WordsCounter* commit_words_counter);
 
   ~VirtualSpaceNode();
 
@@ -168,7 +168,7 @@ public:
   MetaWord* base() const        { return _base; }
 
   // Reserved size of the whole node.
-  size_t word_size() const      { return _word_size; }
+  Words word_size() const      { return _word_size; }
 
   //// Chunk allocation, splitting, merging /////
 
@@ -219,14 +219,14 @@ public:
   //  - This is the space handed out to the ChunkManager, so it is "used" from the viewpoint of this node,
   //    but not necessarily used for Metadata.
   //  - This may or may not be committed memory.
-  size_t used_words() const             { return _used_words; }
+  Words used_words() const             { return _used_words; }
 
   // Returns size, in words, of how much space is left in this node alone.
-  size_t free_words() const             { return _word_size - _used_words; }
+  Words free_words() const             { return _word_size - _used_words; }
 
   // Returns size, in words, of committed space in this node alone.
   // Note: iterates over commit mask and hence may be a tad expensive on large nodes.
-  size_t committed_words() const;
+  Words committed_words() const;
 
   //// Committing/uncommitting memory /////
 
@@ -244,12 +244,12 @@ public:
   // - mark the range as committed in the commit mask
   //
   // Returns true if success, false if it did hit a commit limit.
-  bool ensure_range_is_committed(MetaWord* p, size_t word_size);
+  bool ensure_range_is_committed(MetaWord* p, Words word_size);
 
   // Given an address range (which has to be aligned to commit granule size):
   //  - uncommit it
   //  - mark it as uncommitted in the commit mask
-  void uncommit_range(MetaWord* p, size_t word_size);
+  void uncommit_range(MetaWord* p, Words word_size);
 
   //// List stuff ////
   VirtualSpaceNode* next() const        { return _next; }

@@ -39,7 +39,7 @@ class SpaceCounters: public CHeapObj<mtGC> {
  private:
   PerfVariable*      _capacity;
   PerfVariable*      _used;
-  volatile size_t    _last_used_in_bytes;
+  volatile Bytes    _last_used_in_bytes;
 
   // Constant PerfData types don't need to retain a reference.
   // However, it's a good idea to document them here.
@@ -52,13 +52,13 @@ class SpaceCounters: public CHeapObj<mtGC> {
 
  public:
 
-  SpaceCounters(const char* name, int ordinal, size_t max_size,
+  SpaceCounters(const char* name, int ordinal, Bytes max_size,
                 MutableSpace* m, GenerationCounters* gc);
 
   ~SpaceCounters();
 
   inline void update_capacity() {
-    _capacity->set_value(_object_space->capacity_in_bytes());
+    _capacity->set_value(untype(_object_space->capacity_in_bytes()));
   }
 
   void update_used();

@@ -67,7 +67,7 @@ inline void PSPromotionManager::claim_or_forward_depth(T* p) {
 }
 
 inline void PSPromotionManager::promotion_trace_event(oop new_obj, oop old_obj,
-                                                      size_t obj_size,
+                                                      Words obj_size,
                                                       uint age, bool tenured,
                                                       const PSPromotionLAB* lab) {
   // Skip if memory allocation failed
@@ -77,15 +77,15 @@ inline void PSPromotionManager::promotion_trace_event(oop new_obj, oop old_obj,
     if (lab != nullptr) {
       // Promotion of object through newly allocated PLAB
       if (gc_tracer->should_report_promotion_in_new_plab_event()) {
-        size_t obj_bytes = obj_size * HeapWordSize;
-        size_t lab_size = lab->capacity();
+        Bytes obj_bytes = to_Bytes(obj_size);
+        Bytes lab_size = lab->capacity();
         gc_tracer->report_promotion_in_new_plab_event(old_obj->klass(), obj_bytes,
                                                       age, tenured, lab_size);
       }
     } else {
       // Promotion of object directly to heap
       if (gc_tracer->should_report_promotion_outside_plab_event()) {
-        size_t obj_bytes = obj_size * HeapWordSize;
+        Bytes obj_bytes = to_Bytes(obj_size);
         gc_tracer->report_promotion_outside_plab_event(old_obj->klass(), obj_bytes,
                                                        age, tenured);
       }
@@ -169,7 +169,7 @@ inline oop PSPromotionManager::copy_unmarked_to_survivor_space(oop o,
 
   oop new_obj = nullptr;
   bool new_obj_is_tenured = false;
-  size_t new_obj_size = o->size();
+  Words new_obj_size = o->size();
 
   // Find the objects age, MT safe.
   uint age = (test_mark.has_displaced_mark_helper() /* o->has_displaced_mark() */) ?
@@ -181,7 +181,7 @@ inline oop PSPromotionManager::copy_unmarked_to_survivor_space(oop o,
       new_obj = cast_to_oop(_young_lab.allocate(new_obj_size));
       if (new_obj == nullptr && !_young_gen_is_full) {
         // Do we allocate directly, or flush and refill?
-        if (new_obj_size > (YoungPLABSize / 2)) {
+        if (new_obj_size > (in_Words(YoungPLABSize) / 2)) {
           // Allocate this object directly
           new_obj = cast_to_oop(young_space()->cas_allocate(new_obj_size));
           promotion_trace_event(new_obj, o, new_obj_size, age, false, nullptr);
@@ -189,9 +189,9 @@ inline oop PSPromotionManager::copy_unmarked_to_survivor_space(oop o,
           // Flush and fill
           _young_lab.flush();
 
-          HeapWord* lab_base = young_space()->cas_allocate(YoungPLABSize);
+          HeapWord* lab_base = young_space()->cas_allocate(in_Words(YoungPLABSize));
           if (lab_base != nullptr) {
-            _young_lab.initialize(MemRegion(lab_base, YoungPLABSize));
+            _young_lab.initialize(MemRegion(lab_base, in_Words(YoungPLABSize)));
             // Try the young lab allocation again.
             new_obj = cast_to_oop(_young_lab.allocate(new_obj_size));
             promotion_trace_event(new_obj, o, new_obj_size, age, false, &_young_lab);
@@ -217,7 +217,7 @@ inline oop PSPromotionManager::copy_unmarked_to_survivor_space(oop o,
     if (new_obj == nullptr) {
       if (!_old_gen_is_full) {
         // Do we allocate directly, or flush and refill?
-        if (new_obj_size > (OldPLABSize / 2)) {
+        if (new_obj_size > (in_Words(OldPLABSize) / 2)) {
           // Allocate this object directly
           new_obj = cast_to_oop(old_gen()->allocate(new_obj_size));
           promotion_trace_event(new_obj, o, new_obj_size, age, true, nullptr);
@@ -225,9 +225,9 @@ inline oop PSPromotionManager::copy_unmarked_to_survivor_space(oop o,
           // Flush and fill
           _old_lab.flush();
 
-          HeapWord* lab_base = old_gen()->allocate(OldPLABSize);
+          HeapWord* lab_base = old_gen()->allocate(in_Words(OldPLABSize));
           if(lab_base != nullptr) {
-            _old_lab.initialize(MemRegion(lab_base, OldPLABSize));
+            _old_lab.initialize(MemRegion(lab_base, in_Words(OldPLABSize)));
             // Try the old lab allocation again.
             new_obj = cast_to_oop(_old_lab.allocate(new_obj_size));
             promotion_trace_event(new_obj, o, new_obj_size, age, true, &_old_lab);
@@ -276,7 +276,7 @@ inline oop PSPromotionManager::copy_unmarked_to_survivor_space(oop o,
     // already have. Hopefully, only a few objects are larger than
     // _min_array_size_for_chunking, and most of them will be arrays.
     // So, the is->objArray() test would be very infrequent.
-    if (new_obj_size > _min_array_size_for_chunking &&
+    if (new_obj_size > in_Words(_min_array_size_for_chunking) &&
         new_obj->is_objArray() &&
         PSChunkLargeArrays) {
       // we'll chunk it

@@ -61,7 +61,7 @@ inline oop Klass::java_mirror_no_keepalive() const {
 }
 
 inline klassVtable Klass::vtable() const {
-  return klassVtable(const_cast<Klass*>(this), start_of_vtable(), vtable_length() / vtableEntry::size());
+  return klassVtable(const_cast<Klass*>(this), start_of_vtable(), vtable_length() / untype(vtableEntry::size()));
 }
 
 inline oop Klass::class_loader() const {
@@ -73,7 +73,7 @@ inline vtableEntry* Klass::start_of_vtable() const {
 }
 
 inline BytesInt Klass::vtable_start_offset() {
-  return in_BytesInt(InstanceKlass::header_size() * wordSize);
+  return in_BytesInt(checked_cast<int>(to_bytes(InstanceKlass::header_size())));
 }
 
 #endif // SHARE_OOPS_KLASS_INLINE_HPP

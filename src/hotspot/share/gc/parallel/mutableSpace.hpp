@@ -55,21 +55,21 @@ class MutableSpace: public CHeapObj<mtGC> {
   MutableSpaceMangler* _mangler;
   // The last region which page had been setup to be interleaved.
   MemRegion _last_setup_region;
-  size_t _alignment;
+  Bytes _alignment;
   HeapWord* _bottom;
   HeapWord* volatile _top;
   HeapWord* _end;
 
   MutableSpaceMangler* mangler() { return _mangler; }
 
-  void numa_setup_pages(MemRegion mr, size_t page_size, bool clear_space);
+  void numa_setup_pages(MemRegion mr, Bytes page_size, bool clear_space);
 
   void set_last_setup_region(MemRegion mr) { _last_setup_region = mr;   }
   MemRegion last_setup_region() const      { return _last_setup_region; }
 
  public:
   virtual ~MutableSpace();
-  MutableSpace(size_t page_size);
+  MutableSpace(Bytes page_size);
 
   // Accessors
   HeapWord* bottom() const                 { return _bottom; }
@@ -83,12 +83,12 @@ class MutableSpace: public CHeapObj<mtGC> {
   HeapWord* volatile* top_addr()           { return &_top; }
   HeapWord** end_addr()                    { return &_end; }
 
-  size_t alignment()                       { return _alignment; }
+  Bytes alignment()                        { return _alignment; }
 
   MemRegion region() const { return MemRegion(bottom(), end()); }
 
-  size_t capacity_in_bytes() const { return capacity_in_words() * HeapWordSize; }
-  size_t capacity_in_words() const { return pointer_delta(end(), bottom()); }
+  Bytes capacity_in_bytes() const { return to_Bytes(capacity_in_words()); }
+  Words capacity_in_words() const { return pointer_delta(end(), bottom()); }
 
   // Returns a subregion containing all objects in this space.
   MemRegion used_region() { return MemRegion(bottom(), top()); }
@@ -122,30 +122,30 @@ class MutableSpace: public CHeapObj<mtGC> {
   virtual void mangle_region(MemRegion mr) PRODUCT_RETURN;
 
   // Boolean queries.
-  bool is_empty() const              { return used_in_words() == 0; }
-  bool not_empty() const             { return used_in_words() > 0; }
+  bool is_empty() const              { return used_in_words() == (Words)0; }
+  bool not_empty() const             { return used_in_words() > (Words)0; }
   bool contains(const void* p) const { return _bottom <= p && p < _end; }
 
   // Size computations.  Sizes are in bytes.
-  size_t used_in_bytes() const                { return used_in_words() * HeapWordSize; }
-  size_t free_in_bytes() const                { return free_in_words() * HeapWordSize; }
+  Bytes used_in_bytes() const                { return to_Bytes(used_in_words()); }
+  Bytes free_in_bytes() const                { return to_Bytes(free_in_words()); }
 
   // Size computations.  Sizes are in heapwords.
-  virtual size_t used_in_words() const                    { return pointer_delta(top(), bottom()); }
-  virtual size_t free_in_words() const                    { return pointer_delta(end(),    top()); }
-  virtual size_t tlab_capacity(Thread* thr) const         { return capacity_in_bytes();            }
-  virtual size_t tlab_used(Thread* thr) const             { return used_in_bytes();                }
-  virtual size_t unsafe_max_tlab_alloc(Thread* thr) const { return free_in_bytes();                }
+  virtual Words used_in_words() const                    { return pointer_delta(top(), bottom()); }
+  virtual Words free_in_words() const                    { return pointer_delta(end(),    top()); }
+  virtual Bytes tlab_capacity(Thread* thr) const         { return capacity_in_bytes();            }
+  virtual Bytes tlab_used(Thread* thr) const             { return used_in_bytes();                }
+  virtual Bytes unsafe_max_tlab_alloc(Thread* thr) const { return free_in_bytes();                }
 
   // Allocation (return null if full)
-  virtual HeapWord* cas_allocate(size_t word_size);
+  virtual HeapWord* cas_allocate(Words word_size);
   // Optional deallocation. Used in NUMA-allocator.
-  bool cas_deallocate(HeapWord *obj, size_t size);
+  bool cas_deallocate(HeapWord *obj, Words size);
   // Return true if this space needs to be expanded in order to satisfy an
   // allocation request of the indicated size.  Concurrent allocations and
   // resizes may change the result of a later call.  Used by oldgen allocator.
   // precondition: holding PSOldGenExpand_lock
-  bool needs_expand(size_t word_size) const;
+  bool needs_expand(Words word_size) const;
 
   // Iteration.
   void oop_iterate(OopIterateClosure* cl);

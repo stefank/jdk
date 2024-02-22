@@ -28,6 +28,7 @@
 #include "memory/allocation.hpp"
 #include "utilities/debug.hpp"
 #include "utilities/globalDefinitions.hpp"
+#include "utilities/sizes.hpp"
 
 // A very simple data structure representing a contiguous region
 // region of address space.
@@ -44,11 +45,11 @@ class MemRegion {
   friend class VMStructs;
 private:
   HeapWord* _start;
-  size_t    _word_size;
+  Words     _word_size;
 
 public:
-  MemRegion() : _start(nullptr), _word_size(0) {};
-  MemRegion(HeapWord* start, size_t word_size) :
+  MemRegion() : _start(nullptr), _word_size(in_Words(0)) {};
+  MemRegion(HeapWord* start, Words word_size) :
     _start(start), _word_size(word_size) {};
   MemRegion(HeapWord* start, HeapWord* end) :
     _start(start), _word_size(pointer_delta(end, start)) {
@@ -63,12 +64,12 @@ public:
   MemRegion minus(const MemRegion mr2) const;
 
   HeapWord* start() const { return _start; }
-  HeapWord* end() const   { return _start + _word_size; }
-  HeapWord* last() const  { return _start + _word_size - 1; }
+  HeapWord* end() const   { return _start + untype(_word_size); }
+  HeapWord* last() const  { return _start + untype(_word_size) - 1; }
 
   void set_start(HeapWord* start) { _start = start; }
   void set_end(HeapWord* end)     { _word_size = pointer_delta(end, _start); }
-  void set_word_size(size_t word_size) {
+  void set_word_size(Words word_size) {
     _word_size = word_size;
   }
 
@@ -84,10 +85,10 @@ public:
             (start() == mr2.start() && end() == mr2.end()));
   }
 
-  size_t byte_size() const { return _word_size * sizeof(HeapWord); }
-  size_t word_size() const { return _word_size; }
+  Bytes byte_size() const { return to_Bytes(_word_size); }
+  Words word_size() const { return _word_size; }
 
-  bool is_empty() const { return word_size() == 0; }
+  bool is_empty() const { return word_size() == in_Words(0); }
 
   // Creates and initializes an array of MemRegions of the given length.
   static MemRegion* create_array(size_t length, MEMFLAGS flags);

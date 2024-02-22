@@ -41,13 +41,13 @@ class MallocSite : public AllocationSite {
   MallocSite(const NativeCallStack& stack, MEMFLAGS flags) :
     AllocationSite(stack, flags) {}
 
-  void allocate(size_t size)      { _c.allocate(size);   }
-  void deallocate(size_t size)    { _c.deallocate(size); }
+  void allocate(Bytes size)      { _c.allocate(size);   }
+  void deallocate(Bytes size)    { _c.deallocate(size); }
 
   // Memory allocated from this code path
-  size_t size()  const { return _c.size(); }
+  Bytes size()  const { return _c.size(); }
   // Peak memory ever allocated from this code path
-  size_t peak_size()  const { return _c.peak_size(); }
+  Bytes peak_size()  const { return _c.peak_size(); }
   // The number of calls were made
   size_t count() const { return _c.count(); }
 
@@ -83,10 +83,10 @@ class MallocSiteHashtableEntry : public CHeapObj<mtNMT> {
   inline MallocSite* data()             { return &_malloc_site; }
 
   // Allocation/deallocation on this allocation site
-  inline void allocate(size_t size)   { _malloc_site.allocate(size);   }
-  inline void deallocate(size_t size) { _malloc_site.deallocate(size); }
+  inline void allocate(Bytes size)   { _malloc_site.allocate(size);   }
+  inline void deallocate(Bytes   size) { _malloc_site.deallocate(size); }
   // Memory counters
-  inline size_t size() const  { return _malloc_site.size();  }
+  inline Bytes size() const  { return _malloc_site.size();  }
   inline size_t count() const { return _malloc_site.count(); }
 };
 
@@ -146,7 +146,7 @@ class MallocSiteTable : AllStatic {
   // Return false only occurs under rare scenarios:
   //  1. out of memory
   //  2. overflow hash bucket
-  static inline bool allocation_at(const NativeCallStack& stack, size_t size,
+  static inline bool allocation_at(const NativeCallStack& stack, Bytes size,
       uint32_t* marker, MEMFLAGS flags) {
     MallocSite* site = lookup_or_add(stack, marker, flags);
     if (site != nullptr) site->allocate(size);
@@ -155,7 +155,7 @@ class MallocSiteTable : AllStatic {
 
   // Record memory deallocation. marker indicates where the allocation
   // information was recorded.
-  static inline bool deallocation_at(size_t size, uint32_t marker) {
+  static inline bool deallocation_at(Bytes size, uint32_t marker) {
     MallocSite* site = malloc_site(marker);
     if (site != nullptr) {
       site->deallocate(size);

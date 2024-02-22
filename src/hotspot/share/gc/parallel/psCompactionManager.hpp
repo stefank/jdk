@@ -89,7 +89,7 @@ class ParCompactionManager : public CHeapObj<mtGC> {
 
   HeapWord* _last_query_beg;
   oop _last_query_obj;
-  size_t _last_query_ret;
+  Words _last_query_ret;
 
   StringDedup::Requests _string_dedup_requests;
 
@@ -130,7 +130,7 @@ class ParCompactionManager : public CHeapObj<mtGC> {
   void reset_bitmap_query_cache() {
     _last_query_beg = nullptr;
     _last_query_obj = nullptr;
-    _last_query_ret = 0;
+    _last_query_ret = Words(0);
   }
 
   void flush_string_dedup_requests() {
@@ -140,11 +140,11 @@ class ParCompactionManager : public CHeapObj<mtGC> {
   // Bitmap query support, cache last query and result
   HeapWord* last_query_begin() { return _last_query_beg; }
   oop last_query_object() { return _last_query_obj; }
-  size_t last_query_return() { return _last_query_ret; }
+  Words last_query_return() { return _last_query_ret; }
 
   void set_last_query_begin(HeapWord *new_beg) { _last_query_beg = new_beg; }
   void set_last_query_object(oop new_obj) { _last_query_obj = new_obj; }
-  void set_last_query_return(size_t new_ret) { _last_query_ret = new_ret; }
+  void set_last_query_return(Words new_ret) { _last_query_ret = new_ret; }
 
   static void reset_all_bitmap_query_caches();
 

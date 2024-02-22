@@ -1024,7 +1024,7 @@ void CompileBroker::possibly_add_compiler_threads(JavaThread* THREAD) {
 
   julong free_memory = os::free_memory();
   // If SegmentedCodeCache is off, both values refer to the single heap (with type CodeBlobType::All).
-  size_t available_cc_np  = CodeCache::unallocated_capacity(CodeBlobType::MethodNonProfiled),
+  Bytes  available_cc_np  = CodeCache::unallocated_capacity(CodeBlobType::MethodNonProfiled),
          available_cc_p   = CodeCache::unallocated_capacity(CodeBlobType::MethodProfiled);
 
   // Only do attempt to start additional threads if the lock is free.
@@ -2774,7 +2774,7 @@ void CompileBroker::print_info(outputStream *out) {
 //       That's a tradeoff which keeps together important blocks of output.
 //       At the same time, continuous tty_lock hold time is kept in check,
 //       preventing concurrently printing threads from stalling a long time.
-void CompileBroker::print_heapinfo(outputStream* out, const char* function, size_t granularity) {
+void CompileBroker::print_heapinfo(outputStream* out, const char* function, Bytes granularity) {
   TimeStamp ts_total;
   TimeStamp ts_global;
   TimeStamp ts;

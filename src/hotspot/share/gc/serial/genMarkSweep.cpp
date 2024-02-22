@@ -68,12 +68,12 @@
 #endif
 
 class DeadSpacer : StackObj {
-  size_t _allowed_deadspace_words;
+  Words _allowed_deadspace_words;
   bool _active;
   ContiguousSpace* _space;
 
 public:
-  DeadSpacer(ContiguousSpace* space) : _allowed_deadspace_words(0), _space(space) {
+  DeadSpacer(ContiguousSpace* space) : _allowed_deadspace_words(Words(0)), _space(space) {
     size_t ratio = _space->allowed_dead_ratio();
     _active = ratio > 0;
 
@@ -83,7 +83,7 @@ public:
       // Occasionally, we want to ensure a full compaction, which is determined
       // by the MarkSweepAlwaysCompactCount parameter.
       if ((MarkSweep::total_invocations() % MarkSweepAlwaysCompactCount) != 0) {
-        _allowed_deadspace_words = (space->capacity() * ratio / 100) / HeapWordSize;
+        _allowed_deadspace_words = to_Words(space->capacity() * ratio / 100);
       } else {
         _active = false;
       }
@@ -95,7 +95,7 @@ public:
       return false;
     }
 
-    size_t dead_length = pointer_delta(dead_end, dead_start);
+    Words dead_length = pointer_delta(dead_end, dead_start);
     if (_allowed_deadspace_words >= dead_length) {
       _allowed_deadspace_words -= dead_length;
       CollectedHeap::fill_with_object(dead_start, dead_length);
@@ -158,7 +158,7 @@ class Compacter {
     _spaces[index]._first_dead = first_dead;
   }
 
-  HeapWord* alloc(size_t words) {
+  HeapWord* alloc(Words words) {
     while (true) {
       if (words <= pointer_delta(_spaces[_index]._space->end(),
                                  _spaces[_index]._compaction_top)) {
@@ -218,7 +218,7 @@ class Compacter {
     return end;
   };
 
-  static size_t relocate(HeapWord* addr) {
+  static Words relocate(HeapWord* addr) {
     // Prefetch source and destination
     prefetch_read_scan(addr);
 
@@ -228,7 +228,7 @@ class Compacter {
     assert(addr != new_addr, "inv");
     prefetch_write_copy(new_addr);
 
-    size_t obj_size = obj->size();
+    Words obj_size = obj->size();
     Copy::aligned_conjoint_words(addr, new_addr, obj_size);
     new_obj->init_mark();
 
@@ -264,7 +264,7 @@ public:
 
       while (cur_addr < top) {
         oop obj = cast_to_oop(cur_addr);
-        size_t obj_size = obj->size();
+        Words obj_size = obj->size();
         if (obj->is_gc_marked()) {
           HeapWord* new_addr = alloc(obj_size);
           forward_obj(obj, new_addr);
@@ -302,7 +302,7 @@ public:
       while (cur_addr < top) {
         prefetch_write_scan(cur_addr);
         if (cur_addr < first_dead || cast_to_oop(cur_addr)->is_gc_marked()) {
-          size_t size = MarkSweep::adjust_pointers(cast_to_oop(cur_addr));
+          Words size = MarkSweep::adjust_pointers(cast_to_oop(cur_addr));
           cur_addr += size;
         } else {
           assert(*(HeapWord**)cur_addr > cur_addr, "forward progress");
@@ -499,7 +499,7 @@ void GenMarkSweep::invoke_at_safepoint(bool clear_all_softrefs) {
 
   MarkSweep::_string_dedup_requests->flush();
 
-  bool is_young_gen_empty = (gch->young_gen()->used() == 0);
+  bool is_young_gen_empty = (gch->young_gen()->used() == Bytes(0));
   gch->rem_set()->maintain_old_to_young_invariant(gch->old_gen(), is_young_gen_empty);
 
   gch->prune_scavengable_nmethods();
@@ -516,12 +516,12 @@ void GenMarkSweep::invoke_at_safepoint(bool clear_all_softrefs) {
 
 void GenMarkSweep::allocate_stacks() {
   void* scratch = nullptr;
-  size_t num_words;
+  Words num_words;
   DefNewGeneration* young_gen = (DefNewGeneration*)SerialHeap::heap()->young_gen();
   young_gen->contribute_scratch(scratch, num_words);
 
   if (scratch != nullptr) {
-    _preserved_count_max = num_words * HeapWordSize / sizeof(PreservedMark);
+    _preserved_count_max = to_bytes(num_words) / sizeof(PreservedMark);
   } else {
     _preserved_count_max = 0;
   }

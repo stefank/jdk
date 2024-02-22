@@ -348,6 +348,7 @@ OopStorage::Block* OopStorage::Block::new_block(const OopStorage* owner) {
     return nullptr;
   }
   void* block_mem = align_up(memory, block_alignment);
+  assert(block_mem >= memory, PTR_FORMAT " vs " PTR_FORMAT, p2i(block_mem), p2i(memory));
   assert(sizeof(Block) + pointer_delta(block_mem, memory, 1) <= size_needed,
          "allocated insufficient space for aligned block");
   return ::new (block_mem) Block(owner, memory);

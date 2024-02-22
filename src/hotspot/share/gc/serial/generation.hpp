@@ -77,33 +77,31 @@ class Generation: public CHeapObj<mtGC> {
   GCStats* _gc_stats;
 
   // Initialize the generation.
-  Generation(ReservedSpace rs, size_t initial_byte_size);
+  Generation(ReservedSpace rs, Bytes initial_byte_size);
 
  public:
-  enum SomePublicConstants {
     // Generations are GenGrain-aligned and have size that are multiples of
     // GenGrain.
     // Note: on ARM we add 1 bit for card_table_base to be properly aligned
     // (we expect its low byte to be zero - see implementation of post_barrier)
-    LogOfGenGrain = 16 ARM32_ONLY(+1),
-    GenGrain = 1 << LogOfGenGrain
-  };
+  static constexpr size_t LogOfGenGrain = 16 ARM32_ONLY(+1);
+  static constexpr Bytes  GenGrain = Bytes(1 << LogOfGenGrain);
 
-  virtual size_t capacity() const = 0;  // The maximum number of object bytes the
+  virtual Bytes capacity() const = 0;  // The maximum number of object bytes the
                                         // generation can currently hold.
-  virtual size_t used() const = 0;      // The number of used bytes in the gen.
-  virtual size_t free() const = 0;      // The number of free bytes in the gen.
+  virtual Bytes used() const = 0;      // The number of used bytes in the gen.
+  virtual Bytes free() const = 0;      // The number of free bytes in the gen.
 
   // Support for java.lang.Runtime.maxMemory(); see CollectedHeap.
   // Returns the total number of bytes  available in a generation
   // for the allocation of objects.
-  virtual size_t max_capacity() const;
+  virtual Bytes max_capacity() const;
 
   // The largest number of contiguous free bytes in the generation,
   // including expansion  (Assumes called at a safepoint.)
-  virtual size_t contiguous_available() const = 0;
+  virtual Bytes contiguous_available() const = 0;
   // The largest number of contiguous free bytes in this or any higher generation.
-  virtual size_t max_contiguous_available() const;
+  virtual Bytes max_contiguous_available() const;
 
   MemRegion reserved() const { return _reserved; }
 
@@ -117,21 +115,21 @@ class Generation: public CHeapObj<mtGC> {
   // wish to exclude very large objects, for example, since, if allocated
   // often, they would greatly increase the frequency of young-gen
   // collection.
-  virtual bool should_allocate(size_t word_size, bool is_tlab) {
+  virtual bool should_allocate(Words word_size, bool is_tlab) {
     bool result = false;
-    size_t overflow_limit = (size_t)1 << (BitsPerSize_t - LogHeapWordSize);
+    Words overflow_limit = in_Words((size_t)1 << (BitsPerSize_t - LogHeapWordSize));
     if (!is_tlab || supports_tlab_allocation()) {
-      result = (word_size > 0) && (word_size < overflow_limit);
+      result = (word_size > Words(0)) && (word_size < overflow_limit);
     }
     return result;
   }
 
   // Allocate and returns a block of the requested size, or returns "null".
   // Assumes the caller has done any necessary locking.
-  virtual HeapWord* allocate(size_t word_size, bool is_tlab) = 0;
+  virtual HeapWord* allocate(Words word_size, bool is_tlab) = 0;
 
   // Like "allocate", but performs any necessary locking internally.
-  virtual HeapWord* par_allocate(size_t word_size, bool is_tlab) = 0;
+  virtual HeapWord* par_allocate(Words word_size, bool is_tlab) = 0;
 
   // Thread-local allocation buffers
   virtual bool supports_tlab_allocation() const { return false; }
@@ -147,7 +145,7 @@ class Generation: public CHeapObj<mtGC> {
   // Thus, older generations which collect younger generations should
   // test this flag and collect if it is set.
   virtual bool should_collect(bool   full,
-                              size_t word_size,
+                              Words word_size,
                               bool   is_tlab) {
     return (full || should_allocate(word_size, is_tlab));
   }
@@ -156,17 +154,17 @@ class Generation: public CHeapObj<mtGC> {
   // If full is true attempt a full garbage collection of this generation.
   // Otherwise, attempting to (at least) free enough space to support an
   // allocation of the given "word_size".
-  virtual void collect(bool   full,
-                       bool   clear_all_soft_refs,
-                       size_t word_size,
-                       bool   is_tlab) = 0;
+  virtual void collect(bool  full,
+                       bool  clear_all_soft_refs,
+                       Words word_size,
+                       bool  is_tlab) = 0;
 
   // Perform a heap collection, attempting to create (at least) enough
   // space to support an allocation of the given "word_size".  If
   // successful, perform the allocation and return the resulting
   // "oop" (initializing the allocated block). If the allocation is
   // still unsuccessful, return "null".
-  virtual HeapWord* expand_and_allocate(size_t word_size, bool is_tlab) = 0;
+  virtual HeapWord* expand_and_allocate(Words word_size, bool is_tlab) = 0;
 
   // Save the high water marks for the used space in a generation.
   virtual void record_spaces_top() {}

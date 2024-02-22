@@ -82,7 +82,7 @@ class ConcurrentHashTable : public CHeapObj<F> {
 
     // Creates a node.
     static Node* create_node(void* context, const VALUE& value, Node* next = nullptr) {
-      return new (CONFIG::allocate_node(context, sizeof(Node), value)) Node(value, next);
+      return new (CONFIG::allocate_node(context, in_Bytes(sizeof(Node)), value)) Node(value, next);
     }
     // Destroys a node.
     static void destroy_node(void* context, Node* node) {
@@ -208,8 +208,8 @@ class ConcurrentHashTable : public CHeapObj<F> {
     Bucket* get_buckets() { return _buckets; }
     Bucket* get_bucket(size_t idx) { return &_buckets[idx]; }
 
-    size_t get_mem_size() {
-      return sizeof(*this) + _size * sizeof(Bucket);
+    Bytes get_mem_size() {
+      return in_Bytes(sizeof(*this) + _size * sizeof(Bucket));
     }
   };
 
@@ -415,10 +415,10 @@ class ConcurrentHashTable : public CHeapObj<F> {
 
   ~ConcurrentHashTable();
 
-  size_t get_mem_size(Thread* thread);
+  Bytes get_mem_size(Thread* thread);
 
   size_t get_size_log2(Thread* thread);
-  static size_t get_node_size() { return sizeof(Node); }
+  static Bytes get_node_size() { return in_Bytes(sizeof(Node)); }
   bool is_max_size_reached() { return _size_limit_reached; }
 
   // This means no paused bucket resize operation is going to resume

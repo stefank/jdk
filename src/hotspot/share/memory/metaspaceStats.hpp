@@ -39,15 +39,15 @@
 // (Note: just for NMT these objects need to be mutable)
 
 class MetaspaceStats {
-  size_t _reserved;
-  size_t _committed;
-  size_t _used;
+  Bytes _reserved;
+  Bytes _committed;
+  Bytes _used;
 public:
-  MetaspaceStats() : _reserved(0), _committed(0), _used(0) {}
-  MetaspaceStats(size_t r, size_t c, size_t u) : _reserved(r), _committed(c), _used(u) {}
-  size_t used() const       { return _used; }
-  size_t committed() const  { return _committed; }
-  size_t reserved() const   { return _reserved; }
+  MetaspaceStats() : _reserved(Bytes(0)), _committed(Bytes(0)), _used(Bytes(0)) {}
+  MetaspaceStats(Bytes r, Bytes c, Bytes u) : _reserved(r), _committed(c), _used(u) {}
+  Bytes used() const       { return _used; }
+  Bytes committed() const  { return _committed; }
+  Bytes reserved() const   { return _reserved; }
 };
 
 // Class holds combined statistics for both non-class and class space.
@@ -65,12 +65,12 @@ public:
 
   const MetaspaceStats& class_space_stats() const { return _cstats; }
   const MetaspaceStats& non_class_space_stats() const { return _ncstats; }
-  size_t class_used() const       { return _cstats.used(); }
-  size_t class_committed() const  { return _cstats.committed(); }
-  size_t class_reserved() const   { return _cstats.reserved(); }
-  size_t non_class_used() const       { return _ncstats.used(); }
-  size_t non_class_committed() const  { return _ncstats.committed(); }
-  size_t non_class_reserved() const   { return _ncstats.reserved(); }
+  Bytes class_used() const       { return _cstats.used(); }
+  Bytes class_committed() const  { return _cstats.committed(); }
+  Bytes class_reserved() const   { return _cstats.reserved(); }
+  Bytes non_class_used() const       { return _ncstats.used(); }
+  Bytes non_class_committed() const  { return _ncstats.committed(); }
+  Bytes non_class_reserved() const   { return _ncstats.reserved(); }
 };
 
 #endif // SHARE_MEMORY_METASPACESTATS_HPP

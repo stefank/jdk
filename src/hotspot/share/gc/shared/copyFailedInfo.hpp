@@ -30,16 +30,16 @@
 #include "utilities/globalDefinitions.hpp"
 
 class CopyFailedInfo : public CHeapObj<mtGC> {
-  size_t    _first_size;
-  size_t    _smallest_size;
-  size_t    _total_size;
+  Words    _first_size;
+  Words    _smallest_size;
+  Words    _total_size;
   uint      _count;
 
  public:
-  CopyFailedInfo() : _first_size(0), _smallest_size(0), _total_size(0), _count(0) {}
+  CopyFailedInfo() : _first_size(Words(0)), _smallest_size(Words(0)), _total_size(Words(0)), _count(0) {}
 
-  virtual void register_copy_failure(size_t size) {
-    if (_first_size == 0) {
+  virtual void register_copy_failure(Words size) {
+    if (_first_size == in_Words(0)) {
       _first_size = size;
       _smallest_size = size;
     } else if (size < _smallest_size) {
@@ -50,16 +50,16 @@ class CopyFailedInfo : public CHeapObj<mtGC> {
   }
 
   virtual void reset() {
-    _first_size = 0;
-    _smallest_size = 0;
-    _total_size = 0;
+    _first_size = Words(0);
+    _smallest_size = Words(0);
+    _total_size = Words(0);
     _count = 0;
   }
 
   bool has_failed() const { return _count != 0; }
-  size_t first_size() const { return _first_size; }
-  size_t smallest_size() const { return _smallest_size; }
-  size_t total_size() const { return _total_size; }
+  Words first_size() const { return _first_size; }
+  Words smallest_size() const { return _smallest_size; }
+  Words total_size() const { return _total_size; }
   uint failed_count() const { return _count; }
 };
 
@@ -69,7 +69,7 @@ class PromotionFailedInfo : public CopyFailedInfo {
  public:
   PromotionFailedInfo() : CopyFailedInfo(), _thread_trace_id(0) {}
 
-  void register_copy_failure(size_t size) {
+  void register_copy_failure(Words size) {
     CopyFailedInfo::register_copy_failure(size);
     _thread_trace_id = JFR_JVM_THREAD_ID(Thread::current());
   }

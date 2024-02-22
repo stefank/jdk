@@ -73,13 +73,13 @@ CompactHashtableWriter::~CompactHashtableWriter() {
   FREE_C_HEAP_ARRAY(GrowableArray<Entry>*, _buckets);
 }
 
-size_t CompactHashtableWriter::estimate_size(int num_entries) {
+Bytes CompactHashtableWriter::estimate_size(int num_entries) {
   int num_buckets = calculate_num_buckets(num_entries);
-  size_t bucket_bytes = ArchiveBuilder::ro_array_bytesize<u4>(num_buckets + 1);
+  Bytes bucket_bytes = ArchiveBuilder::ro_array_bytesize<u4>(num_buckets + 1);
 
   // In worst case, we have no VALUE_ONLY_BUCKET_TYPE, so each entry takes 2 slots
   int entries_space = 2 * num_entries;
-  size_t entry_bytes = ArchiveBuilder::ro_array_bytesize<u4>(entries_space);
+  Bytes entry_bytes = ArchiveBuilder::ro_array_bytesize<u4>(entries_space);
 
   return bucket_bytes
        + entry_bytes
@@ -114,10 +114,10 @@ void CompactHashtableWriter::allocate_table() {
   _compact_entries = ArchiveBuilder::new_ro_array<u4>(entries_space);
 
   _stats->bucket_count    = _num_buckets;
-  _stats->bucket_bytes    = align_up(_compact_buckets->size() * BytesPerWord,
+  _stats->bucket_bytes    = align_up(to_Bytes(_compact_buckets->size()),
                                      SharedSpaceObjectAlignment);
   _stats->hashentry_count = _num_entries_written;
-  _stats->hashentry_bytes = align_up(_compact_entries->size() * BytesPerWord,
+  _stats->hashentry_bytes = align_up(to_Bytes(_compact_entries->size()),
                                      SharedSpaceObjectAlignment);
 }
 
@@ -164,7 +164,7 @@ void CompactHashtableWriter::dump(SimpleCompactHashtable *cht, const char* table
   allocate_table();
   dump_table(&summary);
 
-  int table_bytes = _stats->bucket_bytes + _stats->hashentry_bytes;
+  Bytes table_bytes = _stats->bucket_bytes + _stats->hashentry_bytes;
   address base_address = address(SharedBaseAddress);
   cht->init(base_address,  _num_entries_written, _num_buckets,
             _compact_buckets->data(), _compact_entries->data());
@@ -178,7 +178,7 @@ void CompactHashtableWriter::dump(SimpleCompactHashtable *cht, const char* table
     msg.info("Shared %s table stats -------- base: " PTR_FORMAT,
                          table_name, (intptr_t)base_address);
     msg.info("Number of entries       : %9d", _num_entries_written);
-    msg.info("Total bytes used        : %9d", table_bytes);
+    msg.info("Total bytes used        : %9zu", table_bytes);
     msg.info("Average bytes per entry : %9.3f", avg_cost);
     msg.info("Average bucket size     : %9.3f", summary.avg());
     msg.info("Variance of bucket size : %9.3f", summary.variance());
@@ -203,9 +203,9 @@ void SimpleCompactHashtable::init(address base_address, u4 entry_count, u4 bucke
   _entries = entries;
 }
 
-size_t SimpleCompactHashtable::calculate_header_size() {
+Bytes SimpleCompactHashtable::calculate_header_size() {
   // We have 5 fields. Each takes up sizeof(intptr_t). See WriteClosure::do_u4
-  size_t bytes = sizeof(intptr_t) * 5;
+  Bytes bytes = in_Bytes(sizeof(intptr_t) * 5);
   return bytes;
 }
 

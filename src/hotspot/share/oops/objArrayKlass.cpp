@@ -49,7 +49,7 @@ ObjArrayKlass* ObjArrayKlass::allocate(ClassLoaderData* loader_data, int n, Klas
   assert(ObjArrayKlass::header_size() <= InstanceKlass::header_size(),
       "array klasses must be same size as InstanceKlass");
 
-  int size = ArrayKlass::static_size(ObjArrayKlass::header_size());
+  Words size = ArrayKlass::static_size(ObjArrayKlass::header_size());
 
   return new (loader_data, size, THREAD) ObjArrayKlass(n, k, name);
 }
@@ -155,14 +155,14 @@ ObjArrayKlass::ObjArrayKlass(int n, Klass* element_klass, Symbol* name) : ArrayK
   assert(is_objArray_klass(), "sanity");
 }
 
-size_t ObjArrayKlass::oop_size(oop obj) const {
+Words ObjArrayKlass::oop_size(oop obj) const {
   assert(obj->is_objArray(), "must be object array");
   return objArrayOop(obj)->object_size();
 }
 
 objArrayOop ObjArrayKlass::allocate(int length, TRAPS) {
   check_array_allocation_length(length, arrayOopDesc::max_array_length(T_OBJECT), CHECK_NULL);
-  size_t size = objArrayOopDesc::object_size(length);
+  Words size = objArrayOopDesc::object_size(length);
   return (objArrayOop)Universe::heap()->array_allocate(this, size, length,
                                                        /* do_zero */ true, THREAD);
 }

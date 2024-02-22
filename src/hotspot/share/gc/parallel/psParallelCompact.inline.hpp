@@ -55,7 +55,7 @@ inline bool PSParallelCompact::dead_space_crosses_boundary(const RegionData* reg
   // Dead space crosses the boundary if (1) a partial object does not extend
   // onto the region, (2) an object does not start at the beginning of the
   // region, and (3) an object does not end at the end of the prior region.
-  return region->partial_obj_size() == 0 &&
+  return region->partial_obj_size() == Words(0) &&
     !_mark_bitmap.is_obj_beg(bit) &&
     !_mark_bitmap.is_obj_end(bit - 1);
 }
@@ -98,7 +98,7 @@ inline void PSParallelCompact::check_new_location(HeapWord* old_addr, HeapWord* 
 #endif // ASSERT
 
 inline bool PSParallelCompact::mark_obj(oop obj) {
-  const size_t obj_size = obj->size();
+  const Words obj_size = obj->size();
   if (mark_bitmap()->mark_obj(obj, obj_size)) {
     _summary_data.add_obj(obj, obj_size);
     ContinuationGCSupport::transform_stack_chunk(obj);

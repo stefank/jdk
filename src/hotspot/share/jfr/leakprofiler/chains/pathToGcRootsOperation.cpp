@@ -57,15 +57,15 @@ PathToGcRootsOperation::PathToGcRootsOperation(ObjectSampler* sampler, EdgeStore
  * Initial memory reservation: 5% of the heap OR at least 32 Mb
  * Commit ratio: 1 : 10 (subject to allocation granularties)
  */
-static size_t edge_queue_memory_reservation() {
-  const size_t memory_reservation_bytes = MAX2(MaxHeapSize / 20, 32*M);
-  assert(memory_reservation_bytes >= (size_t)32*M, "invariant");
+static Bytes edge_queue_memory_reservation() {
+  const Bytes memory_reservation_bytes = in_Bytes(MAX2(MaxHeapSize / 20, 32*M));
+  assert(memory_reservation_bytes >= in_Bytes(32*M), "invariant");
   return memory_reservation_bytes;
 }
 
-static size_t edge_queue_memory_commit_size(size_t memory_reservation_bytes) {
-  const size_t memory_commit_block_size_bytes = memory_reservation_bytes / 10;
-  assert(memory_commit_block_size_bytes >= (size_t)3*M, "invariant");
+static Bytes edge_queue_memory_commit_size(Bytes memory_reservation_bytes) {
+  const Bytes memory_commit_block_size_bytes = memory_reservation_bytes / 10;
+  assert(memory_commit_block_size_bytes >= in_Bytes(3*M), "invariant");
   return memory_commit_block_size_bytes;
 }
 
@@ -87,7 +87,7 @@ void PathToGcRootsOperation::doit() {
   JFRBitSet mark_bits;
 
   // The edge queue is dimensioned as a fraction of the heap size
-  const size_t edge_queue_reservation_size = edge_queue_memory_reservation();
+  const Bytes edge_queue_reservation_size = edge_queue_memory_reservation();
   EdgeQueue edge_queue(edge_queue_reservation_size, edge_queue_memory_commit_size(edge_queue_reservation_size));
 
   // The initialize() routines will attempt to reserve and allocate backing storage memory.

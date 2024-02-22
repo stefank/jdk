@@ -36,7 +36,7 @@ enum class MallocLimitMode {
 };
 
 struct malloclimit {
-  size_t sz;            // Limit size
+  Bytes sz;             // Limit size
   MallocLimitMode mode; // Behavior flags
 };
 
@@ -49,8 +49,8 @@ public:
   void reset();
   bool parse_malloclimit_option(const char* optionstring, const char** err);
 
-  void set_global_limit(size_t s, MallocLimitMode flag);
-  void set_category_limit(MEMFLAGS f, size_t s, MallocLimitMode flag);
+  void set_global_limit(Bytes s, MallocLimitMode flag);
+  void set_category_limit(MEMFLAGS f, Bytes s, MallocLimitMode flag);
 
   const malloclimit* global_limit() const             { return &_glob; }
   const malloclimit* category_limit(MEMFLAGS f) const { return &_cat[(int)f]; }

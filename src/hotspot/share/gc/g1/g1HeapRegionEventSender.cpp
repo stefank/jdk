@@ -37,7 +37,7 @@ public:
     evt.set_index(r->hrm_index());
     evt.set_type(r->get_trace_type());
     evt.set_start((uintptr_t)r->bottom());
-    evt.set_used(r->used());
+    evt.set_used(untype(r->used()));
     evt.commit();
     return false;
   }

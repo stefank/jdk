@@ -45,10 +45,10 @@
 
 MallocMemorySnapshot MallocMemorySummary::_snapshot;
 
-void MemoryCounter::update_peak(size_t size, size_t cnt) {
-  size_t peak_sz = peak_size();
+void MemoryCounter::update_peak(Bytes size, size_t cnt) {
+  Bytes peak_sz = peak_size();
   while (peak_sz < size) {
-    size_t old_sz = Atomic::cmpxchg(&_peak_size, peak_sz, size, memory_order_relaxed);
+    Bytes old_sz = in_Bytes(Atomic::cmpxchg((volatile size_t*)&_peak_size, untype(peak_sz), untype(size), memory_order_relaxed));
     if (old_sz == peak_sz) {
       // I won
       _peak_count = cnt;
@@ -65,7 +65,7 @@ void MallocMemorySnapshot::copy_to(MallocMemorySnapshot* s) {
   // buffer in make_adjustment().
   ThreadCritical tc;
   s->_all_mallocs = _all_mallocs;
-  size_t total_size = 0;
+  Bytes total_size = Bytes(0);
   size_t total_count = 0;
   for (int index = 0; index < mt_number_of_types; index ++) {
     s->_malloc[index] = _malloc[index];
@@ -77,8 +77,8 @@ void MallocMemorySnapshot::copy_to(MallocMemorySnapshot* s) {
 }
 
 // Total malloc'd memory used by arenas
-size_t MallocMemorySnapshot::total_arena() const {
-  size_t amount = 0;
+Bytes MallocMemorySnapshot::total_arena() const {
+  Bytes amount = Bytes(0);
   for (int index = 0; index < mt_number_of_types; index ++) {
     amount += _malloc[index].arena_size();
   }
@@ -88,7 +88,7 @@ size_t MallocMemorySnapshot::total_arena() const {
 // Make adjustment by subtracting chunks used by arenas
 // from total chunks to get total free chunk size
 void MallocMemorySnapshot::make_adjustment() {
-  size_t arena_size = total_arena();
+  Bytes arena_size = total_arena();
   int chunk_idx = NMTUtil::flag_to_index(mtChunk);
   _malloc[chunk_idx].record_free(arena_size);
   _all_mallocs.deallocate(arena_size);
@@ -99,7 +99,7 @@ void MallocMemorySummary::initialize() {
   MallocLimitHandler::initialize(MallocLimit);
 }
 
-bool MallocMemorySummary::total_limit_reached(size_t s, size_t so_far, const malloclimit* limit) {
+bool MallocMemorySummary::total_limit_reached(Bytes s, Bytes so_far, const malloclimit* limit) {
 
   // Ignore the limit break during error reporting to prevent secondary errors.
   if (VMError::is_error_reported()) {
@@ -120,7 +120,7 @@ bool MallocMemorySummary::total_limit_reached(size_t s, size_t so_far, const mal
   return true;
 }
 
-bool MallocMemorySummary::category_limit_reached(MEMFLAGS f, size_t s, size_t so_far, const malloclimit* limit) {
+bool MallocMemorySummary::category_limit_reached(MEMFLAGS f, Bytes s, Bytes so_far, const malloclimit* limit) {
 
   // Ignore the limit break during error reporting to prevent secondary errors.
   if (VMError::is_error_reported()) {
@@ -153,7 +153,7 @@ bool MallocTracker::initialize(NMT_TrackingLevel level) {
 }
 
 // Record a malloc memory allocation
-void* MallocTracker::record_malloc(void* malloc_base, size_t size, MEMFLAGS flags,
+void* MallocTracker::record_malloc(void* malloc_base, Bytes size, MEMFLAGS flags,
   const NativeCallStack& stack)
 {
   assert(MemTracker::enabled(), "precondition");

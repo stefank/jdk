@@ -305,10 +305,10 @@ static inline void copy_table(address* from, address* to, int size) {
   // Copy non-overlapping tables.
   if (SafepointSynchronize::is_at_safepoint()) {
     // Nothing is using the table at a safepoint so skip atomic word copy.
-    Copy::disjoint_words((HeapWord*)from, (HeapWord*)to, (size_t)size);
+    Copy::disjoint_words((HeapWord*)from, (HeapWord*)to, in_Words(size));
   } else {
     // Use atomic word copy when not at a safepoint for safety.
-    Copy::disjoint_words_atomic((HeapWord*)from, (HeapWord*)to, (size_t)size);
+    Copy::disjoint_words_atomic((HeapWord*)from, (HeapWord*)to, in_Words(size));
   }
 }
 

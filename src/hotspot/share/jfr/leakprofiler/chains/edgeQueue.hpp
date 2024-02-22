@@ -34,12 +34,12 @@ class JfrVirtualMemory;
 class EdgeQueue : public CHeapObj<mtTracing> {
  private:
   JfrVirtualMemory* _vmm;
-  const size_t _reservation_size_bytes;
-  const size_t _commit_block_size_bytes;
+  const Bytes _reservation_size_bytes;
+  const Bytes _commit_block_size_bytes;
   mutable size_t _top_index;
   mutable size_t _bottom_index;
  public:
-  EdgeQueue(size_t reservation_size_bytes, size_t commit_block_size_bytes);
+  EdgeQueue(Bytes reservation_size_bytes, Bytes commit_block_size_bytes);
   ~EdgeQueue();
 
   bool initialize();
@@ -55,7 +55,7 @@ class EdgeQueue : public CHeapObj<mtTracing> {
 
   size_t reserved_size() const;
   size_t live_set() const;
-  size_t sizeof_edge() const; // with alignments
+  Bytes sizeof_edge() const; // with alignments
 };
 
 #endif // SHARE_JFR_LEAKPROFILER_CHAINS_EDGEQUEUE_HPP

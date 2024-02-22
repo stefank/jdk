@@ -66,7 +66,7 @@ private:
   // When we set up a new active region we save its used bytes in this
   // field so that, when we retire it, we can calculate how much space
   // we allocated in it.
-  size_t _used_bytes_before;
+  Bytes _used_bytes_before;
 
   // Useful for debugging and tracing.
   const char* _name;
@@ -86,12 +86,12 @@ private:
   // allocation. The force parameter will be passed on to
   // G1CollectedHeap::allocate_new_alloc_region() and tells it to try
   // to allocate a new region even if the max has been reached.
-  HeapWord* new_alloc_region_and_allocate(size_t word_size, bool force);
+  HeapWord* new_alloc_region_and_allocate(Words word_size, bool force);
 
   // Perform an allocation out of a new allocation region, retiring the current one.
-  inline HeapWord* attempt_allocation_using_new_region(size_t min_word_size,
-                                                       size_t desired_word_size,
-                                                       size_t* actual_word_size);
+  inline HeapWord* attempt_allocation_using_new_region(Words min_word_size,
+                                                       Words desired_word_size,
+                                                       Words* actual_word_size);
 protected:
   // The memory node index this allocation region belongs to.
   uint _node_index;
@@ -101,40 +101,40 @@ protected:
 
   // Perform a non-MT-safe allocation out of the given region.
   inline HeapWord* allocate(HeapRegion* alloc_region,
-                            size_t word_size);
+                            Words word_size);
 
   // Perform a MT-safe allocation out of the given region.
   inline HeapWord* par_allocate(HeapRegion* alloc_region,
-                                size_t word_size);
+                                Words word_size);
   // Perform a MT-safe allocation out of the given region, with the given
   // minimum and desired size. Returns the actual size allocated (between
   // minimum and desired size) in actual_word_size if the allocation has been
   // successful.
   inline HeapWord* par_allocate(HeapRegion* alloc_region,
-                                size_t min_word_size,
-                                size_t desired_word_size,
-                                size_t* actual_word_size);
+                                Words min_word_size,
+                                Words desired_word_size,
+                                Words* actual_word_size);
 
   // Ensure that the region passed as a parameter has been filled up
   // so that no one else can allocate out of it any more.
   // Returns the number of bytes that have been wasted by filled up
   // the space.
-  size_t fill_up_remaining_space(HeapRegion* alloc_region);
+  Bytes fill_up_remaining_space(HeapRegion* alloc_region);
 
   // Retire the active allocating region. If fill_up is true then make
   // sure that the region is full before we retire it so that no one
   // else can allocate out of it.
   // Returns the number of bytes that have been filled up during retire.
-  virtual size_t retire(bool fill_up);
+  virtual Bytes retire(bool fill_up);
 
-  size_t retire_internal(HeapRegion* alloc_region, bool fill_up);
+  Bytes retire_internal(HeapRegion* alloc_region, bool fill_up);
 
   // For convenience as subclasses use it.
   static G1CollectedHeap* _g1h;
 
-  virtual HeapRegion* allocate_new_region(size_t word_size, bool force) = 0;
+  virtual HeapRegion* allocate_new_region(Words word_size, bool force) = 0;
   virtual void retire_region(HeapRegion* alloc_region,
-                             size_t allocated_bytes) = 0;
+                             Bytes allocated_bytes) = 0;
 
   G1AllocRegion(const char* name, bool bot_updates, uint node_index);
 
@@ -157,26 +157,26 @@ public:
   // successful.
   // Should be called without holding a lock. It will try to allocate lock-free
   // out of the active region, or return null if it was unable to.
-  inline HeapWord* attempt_allocation(size_t min_word_size,
-                                      size_t desired_word_size,
-                                      size_t* actual_word_size);
+  inline HeapWord* attempt_allocation(Words min_word_size,
+                                      Words desired_word_size,
+                                      Words* actual_word_size);
 
-  inline HeapWord* attempt_allocation_locked(size_t word_size);
+  inline HeapWord* attempt_allocation_locked(Words word_size);
   // Second-level allocation: Should be called while holding a
   // lock. We require that the caller takes the appropriate lock
   // before calling this so that it is easier to make it conform
   // to the locking protocol. The min and desired word size allow
   // specifying a minimum and maximum size of the allocation. The
   // actual size of allocation is returned in actual_word_size.
-  inline HeapWord* attempt_allocation_locked(size_t min_word_size,
-                                             size_t desired_word_size,
-                                             size_t* actual_word_size);
+  inline HeapWord* attempt_allocation_locked(Words min_word_size,
+                                             Words desired_word_size,
+                                             Words* actual_word_size);
 
   // Should be called to allocate a new region even if the max of this
   // type of regions has been reached. Should only be called if other
   // allocation attempts have failed and we are not holding a valid
   // active region.
-  inline HeapWord* attempt_allocation_force(size_t word_size);
+  inline HeapWord* attempt_allocation_force(Words word_size);
 
   // Should be called before we start using this object.
   virtual void init();
@@ -192,9 +192,9 @@ public:
   virtual HeapRegion* release();
 
   void trace(const char* str,
-             size_t min_word_size = 0,
-             size_t desired_word_size = 0,
-             size_t actual_word_size = 0,
+             Words min_word_size = Words(0),
+             Words desired_word_size = Words(0),
+             Words actual_word_size = Words(0),
              HeapWord* result = nullptr) PRODUCT_RETURN;
 };
 
@@ -202,7 +202,7 @@ class MutatorAllocRegion : public G1AllocRegion {
 private:
   // Keeps track of the total waste generated during the current
   // mutator phase.
-  size_t _wasted_bytes;
+  Bytes _wasted_bytes;
 
   // Retained allocation region. Used to lower the waste generated
   // during mutation by having two active regions if the free space
@@ -213,18 +213,18 @@ private:
   // in it and the free size in the currently retained region, if any.
   bool should_retain(HeapRegion* region);
 protected:
-  virtual HeapRegion* allocate_new_region(size_t word_size, bool force);
-  virtual void retire_region(HeapRegion* alloc_region, size_t allocated_bytes);
-  virtual size_t retire(bool fill_up);
+  virtual HeapRegion* allocate_new_region(Words word_size, bool force);
+  virtual void retire_region(HeapRegion* alloc_region, Bytes allocated_bytes);
+  virtual Bytes retire(bool fill_up);
 public:
   MutatorAllocRegion(uint node_index)
     : G1AllocRegion("Mutator Alloc Region", false /* bot_updates */, node_index),
-      _wasted_bytes(0),
+      _wasted_bytes(Bytes(0)),
       _retained_alloc_region(nullptr) { }
 
   // Returns the combined used memory in the current alloc region and
   // the retained alloc region.
-  size_t used_in_alloc_regions();
+  Bytes used_in_alloc_regions();
 
   // Perform an allocation out of the retained allocation region, with the given
   // minimum and desired size. Returns the actual size allocated (between
@@ -232,9 +232,9 @@ public:
   // successful.
   // Should be called without holding a lock. It will try to allocate lock-free
   // out of the retained region, or return null if it was unable to.
-  inline HeapWord* attempt_retained_allocation(size_t min_word_size,
-                                               size_t desired_word_size,
-                                               size_t* actual_word_size);
+  inline HeapWord* attempt_retained_allocation(Words min_word_size,
+                                               Words desired_word_size,
+                                               Words* actual_word_size);
 
   // This specialization of release() makes sure that the retained alloc
   // region is retired and set to null.
@@ -249,10 +249,10 @@ protected:
   G1EvacStats* _stats;
   G1HeapRegionAttr::region_type_t _purpose;
 
-  virtual HeapRegion* allocate_new_region(size_t word_size, bool force);
-  virtual void retire_region(HeapRegion* alloc_region, size_t allocated_bytes);
+  virtual HeapRegion* allocate_new_region(Words word_size, bool force);
+  virtual void retire_region(HeapRegion* alloc_region, Bytes allocated_bytes);
 
-  virtual size_t retire(bool fill_up);
+  virtual Bytes retire(bool fill_up);
 
   G1GCAllocRegion(const char* name, bool bot_updates, G1EvacStats* stats,
                   G1HeapRegionAttr::region_type_t purpose, uint node_index = G1NUMA::AnyNodeIndex)

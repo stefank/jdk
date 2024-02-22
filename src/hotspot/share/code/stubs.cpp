@@ -98,7 +98,7 @@ StubQueue::~StubQueue() {
 
 void StubQueue::deallocate_unused_tail() {
   CodeBlob* blob = CodeCache::find_blob((void*)_stub_buffer);
-  CodeCache::free_unused_tail(blob, used_space());
+  CodeCache::free_unused_tail(blob, in_Bytes(used_space()));
   // Update the limits to the new, trimmed CodeBlob size
   address aligned_start = align_up(blob->content_begin(), stub_alignment());
   address aligned_end = align_down(blob->content_end(), stub_alignment());

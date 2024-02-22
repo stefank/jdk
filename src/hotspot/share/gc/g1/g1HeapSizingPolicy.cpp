@@ -69,7 +69,7 @@ static void log_expansion(double short_term_pause_time_ratio,
                           double threshold,
                           double pause_time_ratio,
                           bool fully_expanded,
-                          size_t resize_bytes) {
+                          Bytes resize_bytes) {
 
   log_debug(gc, ergo, heap)("Heap expansion: "
                             "short term pause time ratio %1.2f%% long term pause time ratio %1.2f%% "
@@ -83,7 +83,7 @@ static void log_expansion(double short_term_pause_time_ratio,
                             resize_bytes);
 }
 
-size_t G1HeapSizingPolicy::young_collection_expansion_amount() {
+Bytes G1HeapSizingPolicy::young_collection_expansion_amount() {
   assert(GCTimeRatio > 0, "must be");
 
   double long_term_pause_time_ratio = _analytics->long_term_pause_time_ratio();
@@ -91,11 +91,11 @@ size_t G1HeapSizingPolicy::young_collection_expansion_amount() {
   const double pause_time_threshold = 1.0 / (1.0 + GCTimeRatio);
   double threshold = scale_with_heap(pause_time_threshold);
 
-  size_t expand_bytes = 0;
+  Bytes expand_bytes = Bytes(0);
 
   if (_g1h->capacity() == _g1h->max_capacity()) {
     log_expansion(short_term_pause_time_ratio, long_term_pause_time_ratio,
-                  threshold, pause_time_threshold, true, 0);
+                  threshold, pause_time_threshold, true, Bytes(0));
     clear_ratio_check_data();
     return expand_bytes;
   }
@@ -123,11 +123,11 @@ size_t G1HeapSizingPolicy::young_collection_expansion_amount() {
   bool filled_history_buffer = _pauses_since_start == _num_prev_pauses_for_heuristics;
   if ((_ratio_over_threshold_count == MinOverThresholdForGrowth) ||
       (filled_history_buffer && (long_term_pause_time_ratio > threshold))) {
-    size_t min_expand_bytes = HeapRegion::GrainBytes;
-    size_t reserved_bytes = _g1h->max_capacity();
-    size_t committed_bytes = _g1h->capacity();
-    size_t uncommitted_bytes = reserved_bytes - committed_bytes;
-    size_t expand_bytes_via_pct =
+    Bytes min_expand_bytes = HeapRegion::GrainBytes;
+    Bytes reserved_bytes = _g1h->max_capacity();
+    Bytes committed_bytes = _g1h->capacity();
+    Bytes uncommitted_bytes = reserved_bytes - committed_bytes;
+    Bytes expand_bytes_via_pct =
       uncommitted_bytes * G1ExpandByPercentOfAvailable / 100;
     double scale_factor = 1.0;
 
@@ -145,8 +145,8 @@ size_t G1HeapSizingPolicy::young_collection_expansion_amount() {
     // times the base size. The scaling will be linear in the range from
     // StartScaleUpAt to (StartScaleUpAt + ScaleUpRange). In other words,
     // ScaleUpRange sets the rate of scaling up.
-    if (committed_bytes < InitialHeapSize / 4) {
-      expand_bytes = (InitialHeapSize - committed_bytes) / 2;
+    if (committed_bytes < in_Bytes(InitialHeapSize) / 4) {
+      expand_bytes = (in_Bytes(InitialHeapSize) - committed_bytes) / 2;
     } else {
       double const MinScaleDownFactor = 0.2;
       double const MaxScaleUpFactor = 2;
@@ -171,7 +171,7 @@ size_t G1HeapSizingPolicy::young_collection_expansion_amount() {
       }
     }
 
-    expand_bytes = static_cast<size_t>(expand_bytes * scale_factor);
+    expand_bytes = in_Bytes(static_cast<size_t>(expand_bytes * scale_factor));
 
     // Ensure the expansion size is at least the minimum growth amount
     // and at most the remaining uncommitted byte size.
@@ -197,7 +197,7 @@ size_t G1HeapSizingPolicy::young_collection_expansion_amount() {
   return expand_bytes;
 }
 
-static size_t target_heap_capacity(size_t used_bytes, uintx free_ratio) {
+static Bytes target_heap_capacity(Bytes used_bytes, uintx free_ratio) {
   const double desired_free_percentage = (double) free_ratio / 100.0;
   const double desired_used_percentage = 1.0 - desired_free_percentage;
 
@@ -210,14 +210,14 @@ static size_t target_heap_capacity(size_t used_bytes, uintx free_ratio) {
   double desired_capacity_upper_bound = (double) MaxHeapSize;
   desired_capacity_d = MIN2(desired_capacity_d, desired_capacity_upper_bound);
   // We can now safely turn it into size_t's.
-  return (size_t) desired_capacity_d;
+  return in_Bytes((size_t) desired_capacity_d);
 }
 
-size_t G1HeapSizingPolicy::full_collection_resize_amount(bool& expand) {
+Bytes G1HeapSizingPolicy::full_collection_resize_amount(bool& expand) {
   // Capacity, free and used after the GC counted as full regions to
   // include the waste in the following calculations.
-  const size_t capacity_after_gc = _g1h->capacity();
-  const size_t used_after_gc = capacity_after_gc -
+  const Bytes capacity_after_gc = _g1h->capacity();
+  const Bytes used_after_gc = capacity_after_gc -
                                _g1h->unused_committed_regions_in_bytes() -
                                // Discount space used by current Eden to establish a
                                // situation during Remark similar to at the end of full
@@ -226,8 +226,8 @@ size_t G1HeapSizingPolicy::full_collection_resize_amount(bool& expand) {
                                // results.
                                _g1h->eden_regions_count() * HeapRegion::GrainBytes;
 
-  size_t minimum_desired_capacity = target_heap_capacity(used_after_gc, MinHeapFreeRatio);
-  size_t maximum_desired_capacity = target_heap_capacity(used_after_gc, MaxHeapFreeRatio);
+  Bytes minimum_desired_capacity = target_heap_capacity(used_after_gc, MinHeapFreeRatio);
+  Bytes maximum_desired_capacity = target_heap_capacity(used_after_gc, MaxHeapFreeRatio);
 
   // This assert only makes sense here, before we adjust them
   // with respect to the min and max heap size.
@@ -239,15 +239,15 @@ size_t G1HeapSizingPolicy::full_collection_resize_amount(bool& expand) {
   // Should not be greater than the heap max size. No need to adjust
   // it with respect to the heap min size as it's a lower bound (i.e.,
   // we'll try to make the capacity larger than it, not smaller).
-  minimum_desired_capacity = MIN2(minimum_desired_capacity, MaxHeapSize);
+  minimum_desired_capacity = MIN2(minimum_desired_capacity, in_Bytes(MaxHeapSize));
   // Should not be less than the heap min size. No need to adjust it
   // with respect to the heap max size as it's an upper bound (i.e.,
   // we'll try to make the capacity smaller than it, not greater).
-  maximum_desired_capacity =  MAX2(maximum_desired_capacity, MinHeapSize);
+  maximum_desired_capacity =  MAX2(maximum_desired_capacity, in_Bytes(MinHeapSize));
 
   // Don't expand unless it's significant; prefer expansion to shrinking.
   if (capacity_after_gc < minimum_desired_capacity) {
-    size_t expand_bytes = minimum_desired_capacity - capacity_after_gc;
+    Bytes expand_bytes = minimum_desired_capacity - capacity_after_gc;
 
     log_debug(gc, ergo, heap)("Attempt heap expansion (capacity lower than min desired capacity). "
                               "Capacity: " SIZE_FORMAT "B occupancy: " SIZE_FORMAT "B live: " SIZE_FORMAT "B "
@@ -259,7 +259,7 @@ size_t G1HeapSizingPolicy::full_collection_resize_amount(bool& expand) {
     // No expansion, now see if we want to shrink
   } else if (capacity_after_gc > maximum_desired_capacity) {
     // Capacity too large, compute shrinking size
-    size_t shrink_bytes = capacity_after_gc - maximum_desired_capacity;
+    Bytes shrink_bytes = capacity_after_gc - maximum_desired_capacity;
 
     log_debug(gc, ergo, heap)("Attempt heap shrinking (capacity higher than max desired capacity). "
                               "Capacity: " SIZE_FORMAT "B occupancy: " SIZE_FORMAT "B live: " SIZE_FORMAT "B "
@@ -271,5 +271,5 @@ size_t G1HeapSizingPolicy::full_collection_resize_amount(bool& expand) {
   }
 
   expand = true; // Does not matter.
-  return 0;
+  return Bytes(0);
 }

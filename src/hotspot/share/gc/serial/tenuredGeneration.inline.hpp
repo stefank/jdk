@@ -29,15 +29,15 @@
 
 #include "gc/shared/space.inline.hpp"
 
-inline size_t TenuredGeneration::capacity() const {
+inline Bytes TenuredGeneration::capacity() const {
   return space()->capacity();
 }
 
-inline size_t TenuredGeneration::used() const {
+inline Bytes TenuredGeneration::used() const {
   return space()->used();
 }
 
-inline size_t TenuredGeneration::free() const {
+inline Bytes TenuredGeneration::free() const {
   return space()->free();
 }
 
@@ -45,14 +45,14 @@ inline bool TenuredGeneration::is_in(const void* p) const {
   return space()->is_in(p);
 }
 
-HeapWord* TenuredGeneration::allocate(size_t word_size,
-                                                 bool is_tlab) {
+HeapWord* TenuredGeneration::allocate(Words word_size,
+                                      bool is_tlab) {
   assert(!is_tlab, "TenuredGeneration does not support TLAB allocation");
   return _the_space->allocate(word_size);
 }
 
-HeapWord* TenuredGeneration::par_allocate(size_t word_size,
-                                                     bool is_tlab) {
+HeapWord* TenuredGeneration::par_allocate(Words word_size,
+                                          bool is_tlab) {
   assert(!is_tlab, "TenuredGeneration does not support TLAB allocation");
   return _the_space->par_allocate(word_size);
 }

@@ -27,9 +27,9 @@
 #include "memory/allocation.inline.hpp"
 #include "memory/resourceArea.hpp"
 
-CSpaceCounters::CSpaceCounters(const char* name, int ordinal, size_t max_size,
+CSpaceCounters::CSpaceCounters(const char* name, int ordinal, Bytes max_size,
                                ContiguousSpace* s, GenerationCounters* gc)
-  : _last_used_in_bytes(0), _space(s)
+  : _last_used_in_bytes(Bytes(0)), _space(s)
 {
   if (UsePerfData) {
     EXCEPTION_MARK;
@@ -53,7 +53,7 @@ CSpaceCounters::CSpaceCounters(const char* name, int ordinal, size_t max_size,
     cname = PerfDataManager::counter_name(_name_space, "capacity");
     _capacity = PerfDataManager::create_variable(SUN_GC, cname,
                                                  PerfData::U_Bytes,
-                                                 _space->capacity(),
+                                                 untype(_space->capacity()),
                                                  CHECK);
 
     cname = PerfDataManager::counter_name(_name_space, "used");
@@ -63,7 +63,7 @@ CSpaceCounters::CSpaceCounters(const char* name, int ordinal, size_t max_size,
 
     cname = PerfDataManager::counter_name(_name_space, "initCapacity");
     PerfDataManager::create_constant(SUN_GC, cname, PerfData::U_Bytes,
-                                     _space->capacity(), CHECK);
+                                     untype(_space->capacity()), CHECK);
   }
 }
 
@@ -72,13 +72,13 @@ CSpaceCounters::~CSpaceCounters() {
 }
 
 void CSpaceCounters::update_capacity() {
-  _capacity->set_value(_space->capacity());
+  _capacity->set_value(untype(_space->capacity()));
 }
 
 void CSpaceCounters::update_used() {
-  size_t new_used = _space->used();
+  Bytes new_used = _space->used();
   Atomic::store(&_last_used_in_bytes, new_used);
-  _used->set_value(new_used);
+  _used->set_value(untype(new_used));
 }
 
 void CSpaceCounters::update_all() {
@@ -93,9 +93,9 @@ jlong CSpaceCounters::UsedHelper::take_sample(){
   // sampling in that case, using the last recorded value.
   assert(!Heap_lock->owned_by_self(), "precondition");
   if (Heap_lock->try_lock()) {
-    size_t new_used = _counters->_space->used();
+    Bytes new_used = _counters->_space->used();
     Atomic::store(&_counters->_last_used_in_bytes, new_used);
     Heap_lock->unlock();
   }
-  return Atomic::load(&_counters->_last_used_in_bytes);
+  return untype(Atomic::load(&_counters->_last_used_in_bytes));
 }

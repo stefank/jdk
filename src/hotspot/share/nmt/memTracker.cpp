@@ -95,7 +95,7 @@ void MemTracker::initialize() {
   }
 }
 
-void Tracker::record(address addr, size_t size) {
+void Tracker::record(address addr, Bytes size) {
   if (MemTracker::tracking_level() < NMT_summary) return;
   switch(_type) {
     case uncommit:

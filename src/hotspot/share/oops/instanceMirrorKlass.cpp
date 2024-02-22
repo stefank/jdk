@@ -44,24 +44,24 @@ InstanceMirrorKlass::InstanceMirrorKlass() {
   assert(CDSConfig::is_dumping_static_archive() || UseSharedSpaces, "only for CDS");
 }
 
-size_t InstanceMirrorKlass::instance_size(Klass* k) {
+Words InstanceMirrorKlass::instance_size(Klass* k) {
   if (k != nullptr && k->is_instance_klass()) {
-    return align_object_size(size_helper() + InstanceKlass::cast(k)->static_field_size());
+    return align_object_size(size_helper() + in_Words(InstanceKlass::cast(k)->static_field_size())  );
   }
   return size_helper();
 }
 
 instanceOop InstanceMirrorKlass::allocate_instance(Klass* k, TRAPS) {
   // Query before forming handle.
-  size_t size = instance_size(k);
-  assert(size > 0, "total object size must be non-zero: " SIZE_FORMAT, size);
+  Words size = instance_size(k);
+  assert(size > Words(0), "total object size must be non-zero: " SIZE_FORMAT, size);
 
   // Since mirrors can be variable sized because of the static fields, store
   // the size in the mirror itself.
   return (instanceOop)Universe::heap()->class_allocate(this, size, THREAD);
 }
 
-size_t InstanceMirrorKlass::oop_size(oop obj) const {
+Words InstanceMirrorKlass::oop_size(oop obj) const {
   return java_lang_Class::oop_size(obj);
 }
 

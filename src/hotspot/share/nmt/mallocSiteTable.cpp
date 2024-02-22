@@ -213,7 +213,7 @@ void MallocSiteTable::print_tuning_statistics(outputStream* st) {
     while (head != nullptr) {
       total_entries ++;
       this_chain_length ++;
-      if (head->size() == 0) {
+      if (head->size() == Bytes(0)) {
         empty_entries ++;
       }
       const int callstack_depth = head->peek()->call_stack()->frames();

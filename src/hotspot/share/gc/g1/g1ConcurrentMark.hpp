@@ -547,14 +547,14 @@ class G1ConcurrentMark : public CHeapObj<mtGC> {
 public:
   // To be called when an object is marked the first time, e.g. after a successful
   // mark_in_bitmap call. Updates various statistics data.
-  void add_to_liveness(uint worker_id, oop const obj, size_t size);
+  void add_to_liveness(uint worker_id, oop const obj, Words size);
   // Did the last marking find a live object between bottom and TAMS?
-  bool contains_live_object(uint region) const { return _region_mark_stats[region]._live_words != 0; }
+  bool contains_live_object(uint region) const { return _region_mark_stats[region]._live_words != Words(0); }
   // Live bytes in the given region as determined by concurrent marking, i.e. the amount of
   // live bytes between bottom and TAMS.
-  size_t live_bytes(uint region) const { return _region_mark_stats[region]._live_words * HeapWordSize; }
+  Bytes live_bytes(uint region) const { return to_Bytes(_region_mark_stats[region]._live_words); }
   // Set live bytes for concurrent marking.
-  void set_live_bytes(uint region, size_t live_bytes) { _region_mark_stats[region]._live_words = live_bytes / HeapWordSize; }
+  void set_live_bytes(uint region, Bytes live_bytes) { _region_mark_stats[region]._live_words = to_Words(live_bytes); }
 
   // Sets the internal top_at_region_start for the given region to current top of the region.
   inline void update_top_at_rebuild_start(HeapRegion* r);
@@ -710,14 +710,12 @@ private:
 // A class representing a marking task.
 class G1CMTask : public TerminatorTerminator {
 private:
-  enum PrivateConstants {
-    // The regular clock call is called once the scanned words reaches
-    // this limit
-    words_scanned_period          = 12*1024,
-    // The regular clock call is called once the number of visited
-    // references reaches this limit
-    refs_reached_period           = 1024,
-  };
+  // The regular clock call is called once the scanned words reaches
+  // this limit
+  static constexpr Words words_scanned_period = in_Words(12*1024);
+  // The regular clock call is called once the number of visited
+  // references reaches this limit
+  static constexpr size_t refs_reached_period  = 1024;
 
   G1CMObjArrayProcessor       _objArray_processor;
 
@@ -748,15 +746,15 @@ private:
   HeapWord*                   _region_limit;
 
   // Number of words this task has scanned
-  size_t                      _words_scanned;
+  Words                       _words_scanned;
   // When _words_scanned reaches this limit, the regular clock is
   // called. Notice that this might be decreased under certain
   // circumstances (i.e. when we believe that we did an expensive
   // operation).
-  size_t                      _words_scanned_limit;
+  Words                       _words_scanned_limit;
   // Initial value of _words_scanned_limit (i.e. what it was
   // before it was decreased).
-  size_t                      _real_words_scanned_limit;
+  Words                       _real_words_scanned_limit;
 
   // Number of references this task has visited
   size_t                      _refs_reached;
@@ -826,7 +824,7 @@ private:
 public:
   // Apply the closure on the given area of the objArray. Return the number of words
   // scanned.
-  inline size_t scan_objArray(objArrayOop obj, MemRegion mr);
+  inline Words scan_objArray(objArrayOop obj, MemRegion mr);
   // Resets the task; should be called right at the beginning of a marking phase.
   void reset(G1CMBitMap* mark_bitmap);
   // Clears all the fields that correspond to a claimed region.
@@ -918,7 +916,7 @@ public:
            G1CMTaskQueue* task_queue,
            G1RegionMarkStats* mark_stats);
 
-  inline void update_liveness(oop const obj, size_t const obj_size);
+  inline void update_liveness(oop const obj, Words const obj_size);
 
   // Clear (without flushing) the mark cache entry for the given region.
   void clear_mark_stats_cache(uint region_idx);
@@ -934,18 +932,18 @@ public:
 // after we sort the old regions at the end of the cleanup operation.
 class G1PrintRegionLivenessInfoClosure : public HeapRegionClosure {
   // Accumulators for these values.
-  size_t _total_used_bytes;
-  size_t _total_capacity_bytes;
-  size_t _total_live_bytes;
+  Bytes _total_used_bytes;
+  Bytes _total_capacity_bytes;
+  Bytes _total_live_bytes;
 
   // Accumulator for the remembered set size
-  size_t _total_remset_bytes;
+  Bytes _total_remset_bytes;
 
   // Accumulator for code roots memory size
-  size_t _total_code_roots_bytes;
+  Bytes _total_code_roots_bytes;
 
-  static double bytes_to_mb(size_t val) {
-    return (double) val / (double) M;
+  static double bytes_to_mb(Bytes val) {
+    return (double) untype(val) / (double) M;
   }
 
 public:

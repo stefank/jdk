@@ -107,8 +107,8 @@ G1FullGCPrepareTask::G1CalculatePointersClosure::G1CalculatePointersClosure(G1Fu
 G1FullGCPrepareTask::G1PrepareCompactLiveClosure::G1PrepareCompactLiveClosure(G1FullGCCompactionPoint* cp) :
     _cp(cp) { }
 
-size_t G1FullGCPrepareTask::G1PrepareCompactLiveClosure::apply(oop object) {
-  size_t size = object->size();
+Words G1FullGCPrepareTask::G1PrepareCompactLiveClosure::apply(oop object) {
+  Words size = object->size();
   _cp->forward(object, size);
   return size;
 }

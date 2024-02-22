@@ -317,7 +317,7 @@ class ResourceHashtableBase : public STORAGE {
   template<typename Function>
   TableStatistics statistics_calculate(Function size_function) const {
     NumberSeq summary;
-    size_t literal_bytes = 0;
+    Bytes literal_bytes = Bytes(0);
     Node* const* bucket = table();
     const unsigned sz = table_size();
     while (bucket < bucket_at(sz)) {
@@ -331,7 +331,7 @@ class ResourceHashtableBase : public STORAGE {
       summary.add((double)count);
       ++bucket;
     }
-    return TableStatistics(summary, literal_bytes, sizeof(Node*), sizeof(Node));
+    return TableStatistics(summary, literal_bytes, in_Bytes(sizeof(Node*)), in_Bytes(sizeof(Node)));
   }
 
   // This method calculates the "shallow" size. If you want the recursive size, use statistics_calculate.

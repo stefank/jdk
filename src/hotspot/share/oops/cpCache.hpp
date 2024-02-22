@@ -197,7 +197,7 @@ class ConstantPoolCache: public MetaspaceObj {
 #endif
 
  public:
-  static int size() { return align_metadata_size(sizeof(ConstantPoolCache) / wordSize); }
+  static Words size() { return align_metadata_size(in_Words(sizeof(ConstantPoolCache) / wordSize)); }
 
  private:
 

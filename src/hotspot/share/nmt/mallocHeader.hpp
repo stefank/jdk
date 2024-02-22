@@ -90,7 +90,7 @@ class outputStream;
 class MallocHeader {
   NONCOPYABLE(MallocHeader);
   NOT_LP64(uint32_t _alt_canary);
-  const size_t _size;
+  const Bytes _size;
   const uint32_t _mst_marker;
   const MEMFLAGS _flags;
   const uint8_t _unused;
@@ -104,7 +104,7 @@ class MallocHeader {
   NOT_LP64(static const uint32_t _header_alt_canary_dead_mark = 0xD88DD88D;)
 
   // We discount sizes larger than these
-  static const size_t max_reasonable_malloc_size = LP64_ONLY(256 * G) NOT_LP64(3500 * M);
+  static const Bytes max_reasonable_malloc_size = in_Bytes(LP64_ONLY(256 * G) NOT_LP64(3500 * M));
 
   void print_block_on_error(outputStream* st, address bad_address) const;
 
@@ -120,14 +120,14 @@ class MallocHeader {
 public:
   // Contains all of the necessary data to to deaccount block with NMT.
   struct FreeInfo {
-    const size_t size;
+    const Bytes size;
     const MEMFLAGS flags;
     const uint32_t mst_marker;
   };
 
-  inline MallocHeader(size_t size, MEMFLAGS flags, uint32_t mst_marker);
+  inline MallocHeader(Bytes size, MEMFLAGS flags, uint32_t mst_marker);
 
-  inline size_t   size()  const { return _size; }
+  inline Bytes    size()  const { return _size; }
   inline MEMFLAGS flags() const { return _flags; }
   inline uint32_t mst_marker() const { return _mst_marker; }
   bool get_stack(NativeCallStack& stack) const;

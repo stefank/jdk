@@ -65,7 +65,7 @@ class InstanceMirrorKlass: public InstanceKlass {
   }
 
   // Returns the size of the instance including the extra static fields.
-  virtual size_t oop_size(oop obj) const;
+  virtual Words oop_size(oop obj) const;
 
   // Static field offset is an offset into the Heap, should be converted by
   // based on UseCompressedOop for traversal
@@ -76,7 +76,7 @@ class InstanceMirrorKlass: public InstanceKlass {
   static void init_offset_of_static_fields() {
     // Cache the offset of the static fields in the Class instance
     assert(_offset_of_static_fields == 0, "once");
-    _offset_of_static_fields = InstanceMirrorKlass::cast(vmClasses::Class_klass())->size_helper() << LogHeapWordSize;
+    _offset_of_static_fields = checked_cast<int>(to_Bytes(InstanceMirrorKlass::cast(vmClasses::Class_klass())->size_helper()));
   }
 
   static int offset_of_static_fields() {
@@ -86,7 +86,7 @@ class InstanceMirrorKlass: public InstanceKlass {
   int compute_static_oop_field_count(oop obj);
 
   // Given a Klass return the size of the instance
-  size_t instance_size(Klass* k);
+  Words instance_size(Klass* k);
 
   // allocation
   instanceOop allocate_instance(Klass* k, TRAPS);

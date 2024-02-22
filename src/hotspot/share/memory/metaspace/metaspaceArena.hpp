@@ -95,7 +95,7 @@ class MetaspaceArena : public CHeapObj<mtClass> {
   const Metachunk* current_chunk() const  { return _chunks.first(); }
 
   // Reference to an outside counter to keep track of used space.
-  SizeAtomicCounter* const _total_used_words_counter;
+  WordsAtomicCounter* const _total_used_words_counter;
 
   // A name for purely debugging/logging purposes.
   const char* const _name;
@@ -126,14 +126,14 @@ class MetaspaceArena : public CHeapObj<mtClass> {
 
   // free block list
   FreeBlocks* fbl() const                       { return _fbl; }
-  void add_allocation_to_fbl(MetaWord* p, size_t word_size);
+  void add_allocation_to_fbl(MetaWord* p, Words word_size);
 
   // Given a chunk, add its remaining free committed space to the free block list.
   void salvage_chunk(Metachunk* c);
 
   // Allocate a new chunk from the underlying chunk manager able to hold at least
   // requested word size.
-  Metachunk* allocate_new_chunk(size_t requested_word_size);
+  Metachunk* allocate_new_chunk(Words requested_word_size);
 
   // Returns the level of the next chunk to be added, acc to growth policy.
   chunklevel_t next_chunk_level() const;
@@ -142,19 +142,19 @@ class MetaspaceArena : public CHeapObj<mtClass> {
   //  requested_word_size additional words.
   //
   // On success, true is returned, false otherwise.
-  bool attempt_enlarge_current_chunk(size_t requested_word_size);
+  bool attempt_enlarge_current_chunk(Words requested_word_size);
 
   // Returns true if the area indicated by pointer and size have actually been allocated
   // from this arena.
-  DEBUG_ONLY(bool is_valid_area(MetaWord* p, size_t word_size) const;)
+  DEBUG_ONLY(bool is_valid_area(MetaWord* p, Words word_size) const;)
 
   // Allocate from the arena proper, once dictionary allocations and fencing are sorted out.
-  MetaWord* allocate_inner(size_t word_size);
+  MetaWord* allocate_inner(Words word_size);
 
 public:
 
   MetaspaceArena(ChunkManager* chunk_manager, const ArenaGrowthPolicy* growth_policy,
-                 SizeAtomicCounter* total_used_words_counter,
+                 WordsAtomicCounter* total_used_words_counter,
                  const char* name);
 
   ~MetaspaceArena();
@@ -165,18 +165,18 @@ public:
   // 3) Attempt to enlarge the current chunk in place if it is too small.
   // 4) Attempt to get a new chunk and allocate from that chunk.
   // At any point, if we hit a commit limit, we return null.
-  MetaWord* allocate(size_t word_size);
+  MetaWord* allocate(Words word_size);
 
   // Prematurely returns a metaspace allocation to the _block_freelists because it is not
   // needed anymore.
-  void deallocate(MetaWord* p, size_t word_size);
+  void deallocate(MetaWord* p, Words word_size);
 
   // Update statistics. This walks all in-use chunks.
   void add_to_statistics(ArenaStats* out) const;
 
   // Convenience method to get the most important usage statistics.
   // For deeper analysis use add_to_statistics().
-  void usage_numbers(size_t* p_used_words, size_t* p_committed_words, size_t* p_capacity_words) const;
+  void usage_numbers(Words* p_used_words, Words* p_committed_words, Words* p_capacity_words) const;
 
   DEBUG_ONLY(void verify() const;)
   DEBUG_ONLY(void verify_allocation_guards() const;)

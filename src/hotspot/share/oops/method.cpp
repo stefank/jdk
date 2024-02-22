@@ -95,7 +95,7 @@ Method* Method::allocate(ClassLoaderData* loader_data,
                                           sizes,
                                           method_type,
                                           CHECK_NULL);
-  int size = Method::size(access_flags.is_native());
+  Words size = Method::size(access_flags.is_native());
   return new (loader_data, size, MetaspaceObj::MethodType, THREAD) Method(cm, access_flags, name);
 }
 
@@ -373,10 +373,10 @@ address Method::bcp_from(address bcp) const {
   }
 }
 
-int Method::size(bool is_native) {
+Words Method::size(bool is_native) {
   // If native, then include pointers for native_function and signature_handler
-  int extra_bytes = (is_native) ? 2*sizeof(address*) : 0;
-  int extra_words = align_up(extra_bytes, BytesPerWord) / BytesPerWord;
+  Bytes extra_bytes = in_Bytes((is_native) ? 2*sizeof(address*) : 0);
+  Words extra_words = to_Words(align_up(extra_bytes, BytesPerWord));
   return align_metadata_size(header_size() + extra_words);
 }
 
@@ -1568,7 +1568,7 @@ methodHandle Method::clone_with_new_data(const methodHandle& m, u_char* new_code
 
   // Create a shallow copy of Method part, but be careful to preserve the new ConstMethod*
   ConstMethod* newcm = newm->constMethod();
-  int new_const_method_size = newm->constMethod()->size();
+  Words new_const_method_size = newm->constMethod()->size();
 
   // This works because the source and target are both Methods. Some compilers
   // (e.g., clang) complain that the target vtable pointer will be stomped,
@@ -2345,7 +2345,7 @@ void Method::print_on(outputStream* st) const {
   st->print_cr(" - max stack:         %d",   max_stack());
   st->print_cr(" - max locals:        %d",   max_locals());
   st->print_cr(" - size of params:    %d",   size_of_parameters());
-  st->print_cr(" - method size:       %d",   method_size());
+  st->print_cr(" - method size:       %zu",   method_size());
   if (intrinsic_id() != vmIntrinsics::_none)
     st->print_cr(" - intrinsic id:      %d %s", vmIntrinsics::as_int(intrinsic_id()), vmIntrinsics::name_at(intrinsic_id()));
   if (highest_comp_level() != CompLevel_none)

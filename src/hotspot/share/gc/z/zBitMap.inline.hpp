@@ -44,7 +44,7 @@ inline ZBitMap::ZBitMap(idx_t size_in_bits)
 
 inline ZBitMap::ZBitMap(const ZBitMap& other)
   : CHeapBitMap(other.size(), mtGC, false /* clear */) {
-  memcpy(map(), other.map(), size_in_bytes());
+  memcpy(map(), other.map(), untype(size_in_bytes()));
 }
 
 inline BitMap::bm_word_t ZBitMap::bit_mask_pair(idx_t bit) {

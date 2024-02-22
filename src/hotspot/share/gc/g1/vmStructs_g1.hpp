@@ -34,7 +34,7 @@
                         volatile_nonstatic_field,                             \
                         static_field)                                         \
                                                                               \
-  static_field(HeapRegion, GrainBytes,        size_t)                         \
+  static_field(HeapRegion, GrainBytes,        Bytes)                          \
   static_field(HeapRegion, LogOfHRGrainBytes, uint)                           \
                                                                               \
   nonstatic_field(HeapRegion, _type,           HeapRegionType)                \
@@ -54,18 +54,18 @@
                                                                               \
   nonstatic_field(HeapRegionManager, _regions,          G1HeapRegionTable)    \
                                                                               \
-  volatile_nonstatic_field(G1CollectedHeap, _summary_bytes_used, size_t)      \
+  volatile_nonstatic_field(G1CollectedHeap, _summary_bytes_used, Bytes)       \
   nonstatic_field(G1CollectedHeap, _hrm,                HeapRegionManager)    \
   nonstatic_field(G1CollectedHeap, _monitoring_support, G1MonitoringSupport*) \
   nonstatic_field(G1CollectedHeap, _old_set,            HeapRegionSetBase)    \
   nonstatic_field(G1CollectedHeap, _humongous_set,      HeapRegionSetBase)    \
                                                                               \
-  nonstatic_field(G1MonitoringSupport, _eden_space_committed,     size_t)     \
-  nonstatic_field(G1MonitoringSupport, _eden_space_used,          size_t)     \
-  nonstatic_field(G1MonitoringSupport, _survivor_space_committed, size_t)     \
-  nonstatic_field(G1MonitoringSupport, _survivor_space_used,      size_t)     \
-  nonstatic_field(G1MonitoringSupport, _old_gen_committed,        size_t)     \
-  nonstatic_field(G1MonitoringSupport, _old_gen_used,             size_t)     \
+  nonstatic_field(G1MonitoringSupport, _eden_space_committed,     Bytes)      \
+  nonstatic_field(G1MonitoringSupport, _eden_space_used,          Bytes)      \
+  nonstatic_field(G1MonitoringSupport, _survivor_space_committed, Bytes)      \
+  nonstatic_field(G1MonitoringSupport, _survivor_space_used,      Bytes)      \
+  nonstatic_field(G1MonitoringSupport, _old_gen_committed,        Bytes)      \
+  nonstatic_field(G1MonitoringSupport, _old_gen_used,             Bytes)      \
                                                                               \
   nonstatic_field(HeapRegionSetBase,   _length,         uint)                 \
                                                                               \

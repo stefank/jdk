@@ -148,15 +148,15 @@ DEFINE_TEST(test_corruption_on_realloc_shrinking, COMMON_NMT_HEAP_CORRUPTION_MES
 TEST_VM(NMT, test_realloc) {
   // We test both directions (growing and shrinking) and a small range for each to cover all
   // size alignment variants. Should not matter, but this should be cheap.
-  for (size_t s1 = 0xF0; s1 < 0x110; s1 ++) {
-    for (size_t s2 = 0x100; s2 > 0xF0; s2 --) {
-      address p1 = (address) os::malloc(s1, mtTest);
+  for (Bytes s1 = 0xF0_b; s1 < 0x110_b; s1 ++) {
+    for (Bytes s2 = 0x100_b; s2 > 0xF0_b; s2 --) {
+      address p1 = (address) os::malloc(untype(s1), mtTest);
       ASSERT_NOT_NULL(p1);
-      GtestUtils::mark_range(p1, s1);       // mark payload range...
-      address p2 = (address) os::realloc(p1, s2, mtTest);
+      GtestUtils::mark_range(p1, untype(s1));       // mark payload range...
+      address p2 = (address) os::realloc(p1, untype(s2), mtTest);
       ASSERT_NOT_NULL(p2);
       ASSERT_RANGE_IS_MARKED(p2, MIN2(s1, s2))        // ... and check that it survived the resize
-         << s1 << "->" << s2 << std::endl;
+         << untype(s1) << "->" << untype(s2) << std::endl;
       os::free(p2);                         // <- if NMT headers/footers got corrupted this asserts
     }
   }

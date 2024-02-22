@@ -314,11 +314,11 @@ bool G1ConcurrentRefine::adjust_threads_periodically() {
     // this iteration of the thread, do some refinement work, and retry the
     // adjustment later.
     if (Heap_lock->try_lock()) {
-      size_t used_bytes = _policy->estimate_used_young_bytes_locked();
+      Bytes used_bytes = _policy->estimate_used_young_bytes_locked();
       Heap_lock->unlock();
       adjust_young_list_target_length();
-      size_t young_bytes = _policy->young_list_target_length() * HeapRegion::GrainBytes;
-      size_t available_bytes = young_bytes - MIN2(young_bytes, used_bytes);
+      Bytes young_bytes = _policy->young_list_target_length() * HeapRegion::GrainBytes;
+      Bytes available_bytes = young_bytes - MIN2(young_bytes, used_bytes);
       adjust_threads_wanted(available_bytes);
       _needs_adjust = false;
       _last_adjust = Ticks::now();
@@ -333,7 +333,7 @@ bool G1ConcurrentRefine::is_in_last_adjustment_period() const {
   return _threads_needed.predicted_time_until_next_gc_ms() <= adjust_threads_period_ms();
 }
 
-void G1ConcurrentRefine::adjust_threads_wanted(size_t available_bytes) {
+void G1ConcurrentRefine::adjust_threads_wanted(Bytes available_bytes) {
   assert_current_thread_is_primary_refinement_thread();
   size_t num_cards = _dcqs.num_cards();
   size_t mutator_threshold = SIZE_MAX;

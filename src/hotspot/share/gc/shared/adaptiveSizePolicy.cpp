@@ -39,9 +39,9 @@ elapsedTimer AdaptiveSizePolicy::_major_timer;
 // For example a gc_cost_ratio of 4 translates into a
 // throughput goal of .80
 
-AdaptiveSizePolicy::AdaptiveSizePolicy(size_t init_eden_size,
-                                       size_t init_promo_size,
-                                       size_t init_survivor_size,
+AdaptiveSizePolicy::AdaptiveSizePolicy(Bytes init_eden_size,
+                                       Bytes init_promo_size,
+                                       Bytes init_survivor_size,
                                        double gc_pause_goal_sec,
                                        uint gc_cost_ratio) :
     _throughput_goal(1.0 - double(1.0 / (1.0 + (double) gc_cost_ratio))),
@@ -155,34 +155,34 @@ void AdaptiveSizePolicy::minor_collection_end(GCCause::Cause gc_cause) {
   _minor_timer.start();
 }
 
-size_t AdaptiveSizePolicy::eden_increment(size_t cur_eden, uint percent_change) {
-  size_t eden_heap_delta;
-  eden_heap_delta = cur_eden / 100 * percent_change;
+Bytes AdaptiveSizePolicy::eden_increment(Bytes cur_eden, uint percent_change) {
+  Bytes eden_heap_delta;
+  eden_heap_delta = in_Bytes(untype(cur_eden) / 100 * percent_change);
   return eden_heap_delta;
 }
 
-size_t AdaptiveSizePolicy::eden_increment(size_t cur_eden) {
+Bytes AdaptiveSizePolicy::eden_increment(Bytes cur_eden) {
   return eden_increment(cur_eden, YoungGenerationSizeIncrement);
 }
 
-size_t AdaptiveSizePolicy::eden_decrement(size_t cur_eden) {
-  size_t eden_heap_delta = eden_increment(cur_eden) /
+Bytes AdaptiveSizePolicy::eden_decrement(Bytes cur_eden) {
+  Bytes eden_heap_delta = eden_increment(cur_eden) /
     AdaptiveSizeDecrementScaleFactor;
   return eden_heap_delta;
 }
 
-size_t AdaptiveSizePolicy::promo_increment(size_t cur_promo, uint percent_change) {
-  size_t promo_heap_delta;
-  promo_heap_delta = cur_promo / 100 * percent_change;
+Bytes AdaptiveSizePolicy::promo_increment(Bytes cur_promo, uint percent_change) {
+  Bytes promo_heap_delta;
+  promo_heap_delta = in_Bytes(untype(cur_promo) / 100 * percent_change);
   return promo_heap_delta;
 }
 
-size_t AdaptiveSizePolicy::promo_increment(size_t cur_promo) {
+Bytes AdaptiveSizePolicy::promo_increment(Bytes cur_promo) {
   return promo_increment(cur_promo, TenuredGenerationSizeIncrement);
 }
 
-size_t AdaptiveSizePolicy::promo_decrement(size_t cur_promo) {
-  size_t promo_heap_delta = promo_increment(cur_promo);
+Bytes AdaptiveSizePolicy::promo_decrement(Bytes cur_promo) {
+  Bytes promo_heap_delta = promo_increment(cur_promo);
   promo_heap_delta = promo_heap_delta / AdaptiveSizeDecrementScaleFactor;
   return promo_heap_delta;
 }
@@ -281,18 +281,18 @@ class AdaptiveSizePolicyTimeOverheadTester: public GCOverheadTester {
 };
 
 class AdaptiveSizePolicySpaceOverheadTester: public GCOverheadTester {
-  size_t _eden_live;
-  size_t _max_old_gen_size;
-  size_t _max_eden_size;
-  size_t _promo_size;
+  Bytes _eden_live;
+  Bytes _max_old_gen_size;
+  Bytes _max_eden_size;
+  Bytes _promo_size;
   double _avg_eden_live;
   double _avg_old_live;
 
  public:
-  AdaptiveSizePolicySpaceOverheadTester(size_t eden_live,
-                                        size_t max_old_gen_size,
-                                        size_t max_eden_size,
-                                        size_t promo_size,
+  AdaptiveSizePolicySpaceOverheadTester(Bytes eden_live,
+                                        Bytes max_old_gen_size,
+                                        Bytes max_eden_size,
+                                        Bytes promo_size,
                                         double avg_eden_live,
                                         double avg_old_live) :
     _eden_live(eden_live),
@@ -319,18 +319,18 @@ class AdaptiveSizePolicySpaceOverheadTester: public GCOverheadTester {
     // space has suddenly jumped up).  If the current is much
     // higher than the average, use the average since it represents
     // the longer term behavior.
-    const size_t live_in_eden =
-      MIN2(_eden_live, (size_t)_avg_eden_live);
-    const size_t free_in_eden = _max_eden_size > live_in_eden ?
-      _max_eden_size - live_in_eden : 0;
-    const size_t free_in_old_gen = (size_t)(_max_old_gen_size - _avg_old_live);
-    const size_t total_free_limit = free_in_old_gen + free_in_eden;
-    const size_t total_mem = _max_old_gen_size + _max_eden_size;
+    const Bytes live_in_eden =
+      MIN2(_eden_live, in_Bytes(_avg_eden_live));
+    const Bytes free_in_eden = _max_eden_size > live_in_eden ?
+      _max_eden_size - live_in_eden : Bytes(0);
+    const Bytes free_in_old_gen = _max_old_gen_size - in_Bytes(_avg_old_live);
+    const Bytes total_free_limit = free_in_old_gen + free_in_eden;
+    const Bytes total_mem = _max_old_gen_size + _max_eden_size;
     const double free_limit_ratio = GCHeapFreeLimit / 100.0;
-    const double mem_free_limit = total_mem * free_limit_ratio;
-    const double mem_free_old_limit = _max_old_gen_size * free_limit_ratio;
-    const double mem_free_eden_limit = _max_eden_size * free_limit_ratio;
-    size_t promo_limit = (size_t)(_max_old_gen_size - _avg_old_live);
+    const double mem_free_limit = untype(total_mem) * free_limit_ratio;
+    const double mem_free_old_limit = untype(_max_old_gen_size) * free_limit_ratio;
+    const double mem_free_eden_limit = untype(_max_eden_size) * free_limit_ratio;
+    Bytes promo_limit = _max_old_gen_size - in_Bytes(_avg_old_live);
     // But don't force a promo size below the current promo size. Otherwise,
     // the promo size will shrink for no good reason.
     promo_limit = MAX2(promo_limit, _promo_size);
@@ -347,15 +347,15 @@ class AdaptiveSizePolicySpaceOverheadTester: public GCOverheadTester {
           _max_old_gen_size, _max_eden_size,
           (size_t)mem_free_limit);
 
-    return free_in_old_gen < (size_t)mem_free_old_limit &&
-           free_in_eden < (size_t)mem_free_eden_limit;
+    return free_in_old_gen < in_Bytes((size_t)mem_free_old_limit) &&
+           free_in_eden < in_Bytes((size_t)mem_free_eden_limit);
   }
 };
 
 void AdaptiveSizePolicy::check_gc_overhead_limit(
-                                          size_t eden_live,
-                                          size_t max_old_gen_size,
-                                          size_t max_eden_size,
+                                          Bytes eden_live,
+                                          Bytes max_old_gen_size,
+                                          Bytes max_eden_size,
                                           bool   is_full_gc,
                                           GCCause::Cause gc_cause,
                                           SoftRefPolicy* soft_ref_policy) {

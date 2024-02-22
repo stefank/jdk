@@ -45,8 +45,8 @@ bool G1MonotonicArenaFreeMemoryTask::deadline_exceeded(jlong deadline) {
   return os::elapsed_counter() >= deadline;
 }
 
-static size_t keep_size(size_t free, size_t used, double percent) {
-  size_t to_keep = used * percent;
+static Bytes keep_size(Bytes free, Bytes used, double percent) {
+  Bytes to_keep = in_Bytes(untype(used) * percent);
   return MIN2(free, to_keep);
 }
 
@@ -60,7 +60,7 @@ bool G1MonotonicArenaFreeMemoryTask::calculate_return_infos(jlong deadline) {
 
   _return_info = new G1ReturnMemoryProcessorSet(used.num_pools());
   for (uint i = 0; i < used.num_pools(); i++) {
-    size_t return_to_vm_size = keep_size(free._num_mem_sizes[i],
+    Bytes return_to_vm_size = keep_size(free._num_mem_sizes[i],
                                          used._num_mem_sizes[i],
                                          G1RemSetFreeMemoryKeepExcessRatio);
     log_trace(gc, task)("Monotonic Arena Free Memory: Type %s: Free: %zu (%zu) "

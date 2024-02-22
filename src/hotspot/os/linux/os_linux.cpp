@@ -2821,7 +2821,7 @@ void os::jvm_path(char *buf, jint buflen) {
 //  samples for JITted code. Here we create private executable mapping over the code cache
 //  and then we can use standard (well, almost, as mapping can change) way to provide
 //  info for the reporting script by storing timestamp and location of symbol
-void linux_wrap_code(char* base, size_t size) {
+void linux_wrap_code(char* base, Bytes size) {
   static volatile jint cnt = 0;
 
   static_assert(sizeof(off_t) == 8, "Expected Large File Support in this file");
@@ -2840,7 +2840,7 @@ void linux_wrap_code(char* base, size_t size) {
   int fd = ::open(buf, O_CREAT | O_RDWR, S_IRWXU);
 
   if (fd != -1) {
-    off_t rv = ::lseek(fd, size-2, SEEK_SET);
+    off_t rv = ::lseek(fd, untype(size)-2, SEEK_SET);
     if (rv != (off_t)-1) {
       if (::write(fd, "", 1) == 1) {
         mmap(base, size,

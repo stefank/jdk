@@ -42,12 +42,12 @@
 #include "utilities/align.hpp"
 #include "utilities/globalDefinitions.hpp"
 
-inline HeapWord* HeapRegion::allocate_impl(size_t min_word_size,
-                                           size_t desired_word_size,
-                                           size_t* actual_size) {
+inline HeapWord* HeapRegion::allocate_impl(Words min_word_size,
+                                           Words desired_word_size,
+                                           Words* actual_size) {
   HeapWord* obj = top();
-  size_t available = pointer_delta(end(), obj);
-  size_t want_to_allocate = MIN2(available, desired_word_size);
+  Words available = pointer_delta(end(), obj);
+  Words want_to_allocate = MIN2(available, desired_word_size);
   if (want_to_allocate >= min_word_size) {
     HeapWord* new_top = obj + want_to_allocate;
     set_top(new_top);
@@ -59,13 +59,13 @@ inline HeapWord* HeapRegion::allocate_impl(size_t min_word_size,
   }
 }
 
-inline HeapWord* HeapRegion::par_allocate_impl(size_t min_word_size,
-                                               size_t desired_word_size,
-                                               size_t* actual_size) {
+inline HeapWord* HeapRegion::par_allocate_impl(Words min_word_size,
+                                               Words desired_word_size,
+                                               Words* actual_size) {
   do {
     HeapWord* obj = top();
-    size_t available = pointer_delta(end(), obj);
-    size_t want_to_allocate = MIN2(available, desired_word_size);
+    Words available = pointer_delta(end(), obj);
+    Words want_to_allocate = MIN2(available, desired_word_size);
     if (want_to_allocate >= min_word_size) {
       HeapWord* new_top = obj + want_to_allocate;
       HeapWord* result = Atomic::cmpxchg(&_top, obj, new_top);
@@ -153,11 +153,11 @@ inline bool HeapRegion::is_collection_set_candidate() const {
  return G1CollectedHeap::heap()->is_collection_set_candidate(this);
 }
 
-inline size_t HeapRegion::block_size(const HeapWord* p) const {
+inline Words HeapRegion::block_size(const HeapWord* p) const {
   return block_size(p, parsable_bottom());
 }
 
-inline size_t HeapRegion::block_size(const HeapWord* p, HeapWord* const pb) const {
+inline Words HeapRegion::block_size(const HeapWord* p, HeapWord* const pb) const {
   assert(p < top(), "precondition");
 
   if (!block_is_obj(p, pb)) {
@@ -186,7 +186,7 @@ inline void HeapRegion::reset_compacted_after_full_gc(HeapWord* new_top) {
 inline void HeapRegion::reset_skip_compacting_after_full_gc() {
   assert(!is_free(), "must be");
 
-  _garbage_bytes = 0;
+  _garbage_bytes = Bytes(0);
 
   reset_top_at_mark_start();
 
@@ -224,20 +224,20 @@ inline void HeapRegion::apply_to_marked_objects(G1CMBitMap* bitmap, ApplyToMarke
   assert(next_addr == limit, "Should stop the scan at the limit.");
 }
 
-inline HeapWord* HeapRegion::par_allocate(size_t min_word_size,
-                                          size_t desired_word_size,
-                                          size_t* actual_word_size) {
+inline HeapWord* HeapRegion::par_allocate(Words min_word_size,
+                                          Words desired_word_size,
+                                          Words* actual_word_size) {
   return par_allocate_impl(min_word_size, desired_word_size, actual_word_size);
 }
 
-inline HeapWord* HeapRegion::allocate(size_t word_size) {
-  size_t temp;
+inline HeapWord* HeapRegion::allocate(Words word_size) {
+  Words temp;
   return allocate(word_size, word_size, &temp);
 }
 
-inline HeapWord* HeapRegion::allocate(size_t min_word_size,
-                                      size_t desired_word_size,
-                                      size_t* actual_word_size) {
+inline HeapWord* HeapRegion::allocate(Words min_word_size,
+                                      Words desired_word_size,
+                                      Words* actual_word_size) {
   return allocate_impl(min_word_size, desired_word_size, actual_word_size);
 }
 
@@ -247,13 +247,13 @@ inline void HeapRegion::update_bot() {
   HeapWord* prev_addr;
   while (next_addr < top()) {
     prev_addr = next_addr;
-    next_addr  = prev_addr + cast_to_oop(prev_addr)->size();
+    next_addr  = prev_addr + untype(cast_to_oop(prev_addr)->size());
     update_bot_for_block(prev_addr, next_addr);
   }
   assert(next_addr == top(), "Should stop the scan at the limit.");
 }
 
-inline void HeapRegion::update_bot_for_obj(HeapWord* obj_start, size_t obj_size) {
+inline void HeapRegion::update_bot_for_obj(HeapWord* obj_start, Words obj_size) {
   assert(is_old(), "should only do BOT updates for old regions");
 
   HeapWord* obj_end = obj_start + obj_size;
@@ -294,7 +294,7 @@ inline void HeapRegion::note_start_of_marking() {
   }
 }
 
-inline void HeapRegion::note_end_of_marking(size_t marked_bytes) {
+inline void HeapRegion::note_end_of_marking(Bytes marked_bytes) {
   assert_at_safepoint();
 
   if (top_at_mark_start() != bottom()) {
@@ -313,7 +313,7 @@ inline void HeapRegion::note_end_of_scrubbing() {
 inline void HeapRegion::init_top_at_mark_start() {
   reset_top_at_mark_start();
   _parsable_bottom = bottom();
-  _garbage_bytes = 0;
+  _garbage_bytes = Bytes(0);
 }
 
 inline void HeapRegion::reset_top_at_mark_start() {
@@ -369,7 +369,7 @@ HeapWord* HeapRegion::do_oops_on_memregion_in_humongous(MemRegion mr,
     // If obj is not an objArray and mr contains the start of the
     // obj, then this could be an imprecise mark, and we need to
     // process the entire object.
-    size_t size = obj->oop_iterate_size(cl);
+    Words size = obj->oop_iterate_size(cl);
     // We have scanned to the end of the object, but since there can be no objects
     // after this humongous object in the region, we can return the end of the
     // region if it is greater.
@@ -397,7 +397,7 @@ inline HeapWord* HeapRegion::oops_on_memregion_iterate_in_unparsable(MemRegion m
     oop obj = cast_to_oop(cur);
     assert(oopDesc::is_oop(obj, true), "Not an oop at " PTR_FORMAT, p2i(cur));
 
-    cur += obj->size();
+    cur += untype(obj->size());
     bool is_precise;
 
     if (!obj->is_objArray() || (cast_from_oop<HeapWord*>(obj) >= start && cur <= end)) {
@@ -467,7 +467,7 @@ inline HeapWord* HeapRegion::oops_on_memregion_iterate(MemRegion mr, Closure* cl
 
     bool is_precise = false;
 
-    cur += obj->size();
+    cur += untype(obj->size());
     // Process live object's references.
 
     // Non-objArrays are usually marked imprecise at the object
@@ -548,7 +548,7 @@ inline void HeapRegion::uninstall_surv_rate_group() {
   }
 }
 
-inline void HeapRegion::record_surv_words_in_group(size_t words_survived) {
+inline void HeapRegion::record_surv_words_in_group(Words words_survived) {
   uint age = age_in_surv_rate_group();
   _surv_rate_group->record_surviving_words(age, words_survived);
 }

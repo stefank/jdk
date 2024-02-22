@@ -44,9 +44,9 @@ void PSPromotionLAB::initialize(MemRegion lab) {
   set_top(bottom);
 
   // We can be initialized to a zero size!
-  if (free() > 0) {
+  if (free() > Bytes(0)) {
     if (ZapUnusedHeapArea) {
-      debug_only(Copy::fill_to_words(top(), free()/HeapWordSize, badHeapWord));
+      debug_only(Copy::fill_to_words(top(), to_Words(free()), badHeapWord));
     }
 
     // NOTE! We need to allow space for a filler object.
@@ -85,7 +85,7 @@ void PSPromotionLAB::flush() {
   _state = flushed;
 }
 
-void PSPromotionLAB::unallocate_object(HeapWord* obj, size_t obj_size) {
+void PSPromotionLAB::unallocate_object(HeapWord* obj, Words obj_size) {
   assert(ParallelScavengeHeap::heap()->is_in(obj), "Object outside heap");
 
   // If the object is inside this LAB, we just bump-down the `top` pointer.

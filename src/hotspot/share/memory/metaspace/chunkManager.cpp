@@ -87,7 +87,7 @@ void ChunkManager::split_chunk_and_add_splinters(Metachunk* c, chunklevel_t targ
   UL2(debug, "splitting chunk " METACHUNK_FORMAT " to " CHKLVL_FORMAT ".",
       METACHUNK_FORMAT_ARGS(c), target_level);
 
-  DEBUG_ONLY(size_t committed_words_before = c->committed_words();)
+  DEBUG_ONLY(Words committed_words_before = c->committed_words();)
 
   c->vsnode()->split(target_level, c, &_chunks);
 
@@ -108,7 +108,7 @@ void ChunkManager::split_chunk_and_add_splinters(Metachunk* c, chunklevel_t targ
   InternalStats::inc_num_chunk_splits();
 }
 
-Metachunk* ChunkManager::get_chunk(chunklevel_t preferred_level, chunklevel_t max_level, size_t min_committed_words) {
+Metachunk* ChunkManager::get_chunk(chunklevel_t preferred_level, chunklevel_t max_level, Words min_committed_words) {
   assert(preferred_level <= max_level, "Sanity");
   assert(chunklevel::level_fitting_word_size(min_committed_words) >= max_level, "Sanity");
 
@@ -134,7 +134,7 @@ Metachunk* ChunkManager::get_chunk(chunklevel_t preferred_level, chunklevel_t ma
 //   is non-expandable but needs expanding - aka out of compressed class space).
 // - Or, if the necessary space cannot be committed because we hit a commit limit.
 //   This may be either the GC threshold or MaxMetaspaceSize.
-Metachunk* ChunkManager::get_chunk_locked(chunklevel_t preferred_level, chunklevel_t max_level, size_t min_committed_words) {
+Metachunk* ChunkManager::get_chunk_locked(chunklevel_t preferred_level, chunklevel_t max_level, Words min_committed_words) {
   assert_lock_strong(Metaspace_lock);
   SOMETIMES(verify_locked();)
   DEBUG_ONLY(chunklevel::check_valid_level(max_level);)
@@ -169,11 +169,11 @@ Metachunk* ChunkManager::get_chunk_locked(chunklevel_t preferred_level, chunklev
   // if we did not get anything yet, there are no free chunks committed enough. Repeat search but look for uncommitted chunks too:
   // 4) Search best or smaller chunks, can be uncommitted:
   if (c == nullptr) {
-    c = _chunks.search_chunk_ascending(preferred_level, max_level, 0);
+    c = _chunks.search_chunk_ascending(preferred_level, max_level, Words(0));
   }
   // 5) Search a larger uncommitted chunk:
   if (c == nullptr) {
-    c = _chunks.search_chunk_descending(preferred_level, 0);
+    c = _chunks.search_chunk_descending(preferred_level, Words(0));
   }
 
   if (c != nullptr) {
@@ -209,7 +209,7 @@ Metachunk* ChunkManager::get_chunk_locked(chunklevel_t preferred_level, chunklev
     // Attempt to commit the chunk. That may fail if we hit a commit limit. In
     //  that case put the chunk back to the freelist (re-merging it with its neighbors if we
     //  did split it) and return null.
-    const size_t to_commit = min_committed_words;
+    const Words to_commit = min_committed_words;
     if (c->committed_words() < to_commit) {
       if (c->ensure_committed_locked(to_commit) == false) {
         UL2(info, "failed to commit " SIZE_FORMAT " words on chunk " METACHUNK_FORMAT ".",
@@ -296,7 +296,7 @@ void ChunkManager::return_chunk_locked(Metachunk* c) {
 // On success, true is returned, false otherwise.
 bool ChunkManager::attempt_enlarge_chunk(Metachunk* c) {
   bool enlarged;
-  size_t old_word_size;
+  Words old_word_size;
 
   {
     MutexLocker fcl(Metaspace_lock, Mutex::_no_safepoint_check_flag);
@@ -311,7 +311,7 @@ bool ChunkManager::attempt_enlarge_chunk(Metachunk* c) {
   return enlarged;
 }
 
-static void print_word_size_delta(outputStream* st, size_t word_size_1, size_t word_size_2) {
+static void print_word_size_delta(outputStream* st, Words word_size_1, Words word_size_2) {
   if (word_size_1 == word_size_2) {
     print_scaled_words(st, word_size_1);
     st->print (" (no change)");
@@ -335,8 +335,8 @@ void ChunkManager::purge() {
   MutexLocker fcl(Metaspace_lock, Mutex::_no_safepoint_check_flag);
   UL(info, ": reclaiming memory...");
 
-  const size_t reserved_before = _vslist->reserved_words();
-  const size_t committed_before = _vslist->committed_words();
+  const Words reserved_before = _vslist->reserved_words();
+  const Words committed_before = _vslist->committed_words();
 
   // We return unused memory to the Operating System: we iterate over all
   //  free chunks and uncommit the backing memory of those large enough to
@@ -354,8 +354,8 @@ void ChunkManager::purge() {
     }
   }
 
-  const size_t reserved_after = _vslist->reserved_words();
-  const size_t committed_after = _vslist->committed_words();
+  const Words reserved_after = _vslist->reserved_words();
+  const Words committed_after = _vslist->committed_words();
 
   // Print a nice report.
   if (reserved_after == reserved_before && committed_after == committed_before) {
@@ -388,12 +388,12 @@ ChunkManager* ChunkManager::chunkmanager_nonclass() {
 }
 
 // Calculates the total number of committed words over all chunks. Walks chunks.
-size_t ChunkManager::calc_committed_word_size() const {
+Words ChunkManager::calc_committed_word_size() const {
   MutexLocker fcl(Metaspace_lock, Mutex::_no_safepoint_check_flag);
   return calc_committed_word_size_locked();
 }
 
-size_t ChunkManager::calc_committed_word_size_locked() const {
+Words ChunkManager::calc_committed_word_size_locked() const {
   assert_lock_strong(Metaspace_lock);
   return _chunks.calc_committed_word_size();
 }

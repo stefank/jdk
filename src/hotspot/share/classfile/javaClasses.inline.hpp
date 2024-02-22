@@ -303,11 +303,11 @@ inline bool java_lang_Class::is_primitive(oop java_class) {
   return is_primitive;
 }
 
-inline size_t java_lang_Class::oop_size(oop java_class) {
+inline Words java_lang_Class::oop_size(oop java_class) {
   assert(_oop_size_offset != 0, "must be set");
   int size = java_class->int_field(_oop_size_offset);
   assert(size > 0, "Oop size must be greater than zero, not %d", size);
-  return size;
+  return in_Words(size);
 }
 
 inline bool java_lang_invoke_DirectMethodHandle::is_instance(oop obj) {

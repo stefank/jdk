@@ -68,7 +68,7 @@ private:
   Segment* volatile _first;       // The (start of the) list of all segments.
   Segment* _last;                 // The last segment of the list of all segments.
   volatile uint _num_segments;    // Number of assigned segments to this allocator.
-  volatile size_t _mem_size;      // Memory used by all segments.
+  volatile Bytes _mem_size;       // Memory used by all segments.
 
   SegmentFreeList* _segment_free_list;  // The global free segment list to preferentially
                                         // get new segments from.
@@ -125,14 +125,14 @@ class G1MonotonicArena::Segment {
   char* _bottom;  // Actual data.
   // Do not add class member variables beyond this point
 
-  static size_t header_size() { return align_up(sizeof(Segment), DEFAULT_PADDING_SIZE); }
+  static Bytes header_size() { return in_Bytes(align_up(sizeof(Segment), DEFAULT_PADDING_SIZE)); }
 
-  static size_t payload_size(uint slot_size, uint num_slots) {
+  static Bytes payload_size(uint slot_size, uint num_slots) {
     // The cast (size_t) is required to guard against overflow wrap around.
-    return (size_t)slot_size * num_slots;
+    return in_Bytes(slot_size) * num_slots;
   }
 
-  size_t payload_size() const { return payload_size(_slot_size, _num_slots); }
+  Bytes payload_size() const { return payload_size(_slot_size, _num_slots); }
 
   NONCOPYABLE(Segment);
 
@@ -156,12 +156,12 @@ public:
     _next_allocate = 0;
     assert(next != this, " loop condition");
     set_next(next);
-    memset((void*)_bottom, 0, payload_size());
+    memset((void*)_bottom, 0, untype(payload_size()));
   }
 
   uint slot_size() const { return _slot_size; }
 
-  size_t mem_size() const { return header_size() + payload_size(); }
+  Bytes mem_size() const { return header_size() + payload_size(); }
 
   uint length() const {
     // _next_allocate might grow larger than _num_slots in multi-thread environments
@@ -169,7 +169,7 @@ public:
     return MIN2(_next_allocate, _num_slots);
   }
 
-  static size_t size_in_bytes(uint slot_size, uint num_slots) {
+  static Bytes size_in_bytes(uint slot_size, uint num_slots) {
     return header_size() + payload_size(slot_size, num_slots);
   }
 
@@ -198,16 +198,16 @@ class G1MonotonicArena::SegmentFreeList {
   SegmentStack _list;
 
   volatile size_t _num_segments;
-  volatile size_t _mem_size;
+  volatile Bytes _mem_size;
 
 public:
-  SegmentFreeList() : _list(), _num_segments(0), _mem_size(0) { }
+  SegmentFreeList() : _list(), _num_segments(0), _mem_size(Bytes(0)) { }
   ~SegmentFreeList() { free_all(); }
 
-  void bulk_add(Segment& first, Segment& last, size_t num, size_t mem_size);
+  void bulk_add(Segment& first, Segment& last, size_t num, Bytes mem_size);
 
   Segment* get();
-  Segment* get_all(size_t& num_segments, size_t& mem_size);
+  Segment* get_all(size_t& num_segments, Bytes& mem_size);
 
   // Give back all memory to the OS.
   void free_all();
@@ -215,7 +215,7 @@ public:
   void print_on(outputStream* out, const char* prefix = "");
 
   size_t num_segments() const { return Atomic::load(&_num_segments); }
-  size_t mem_size() const { return Atomic::load(&_mem_size); }
+  Bytes mem_size() const { return Atomic::load(&_mem_size); }
 };
 
 // Configuration for G1MonotonicArena, e.g slot size, slot number of next Segment.

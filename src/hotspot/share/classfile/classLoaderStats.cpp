@@ -84,10 +84,10 @@ void ClassLoaderStatsClosure::do_cld(ClassLoaderData* cld) {
 
   ClassLoaderMetaspace* ms = cld->metaspace_or_null();
   if (ms != nullptr) {
-    size_t used_words, capacity_words;
-    ms->usage_numbers(&used_words, nullptr, &capacity_words);
-    size_t used_bytes = used_words * BytesPerWord;
-    size_t capacity_bytes = capacity_words * BytesPerWord;
+    Words used_words, capacity_words;
+    ms->usage_numbers(&used_words, (Words*)nullptr, &capacity_words);
+    Bytes used_bytes = to_Bytes(used_words);
+    Bytes capacity_bytes = to_Bytes(capacity_words);
     if(cld->has_class_mirror_holder()) {
       cls->_hidden_chunk_sz += capacity_bytes;
       cls->_hidden_block_sz += used_bytes;

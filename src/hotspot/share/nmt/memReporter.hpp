@@ -51,8 +51,8 @@ class MemReporterBase : public StackObj {
 
   // Helper functions
   // Calculate total reserved and committed amount
-  static size_t reserved_total(const MallocMemory* malloc, const VirtualMemory* vm);
-  static size_t committed_total(const MallocMemory* malloc, const VirtualMemory* vm);
+  static Bytes reserved_total(const MallocMemory* malloc, const VirtualMemory* vm);
+  static Bytes committed_total(const MallocMemory* malloc, const VirtualMemory* vm);
 
  protected:
   inline outputStream* output() const {
@@ -66,7 +66,7 @@ class MemReporterBase : public StackObj {
     return NMTUtil::scale_name(_scale);
   }
   // Convert memory amount in bytes to current reporting scale
-  inline size_t amount_in_current_scale(size_t amount) const {
+  inline size_t amount_in_current_scale(Bytes amount) const {
     return NMTUtil::amount_in_scale(amount, _scale);
   }
 
@@ -107,15 +107,15 @@ class MemReporterBase : public StackObj {
   }
 
   // Print summary total, malloc and virtual memory
-  void print_total(size_t reserved, size_t committed, size_t peak = 0) const;
+  void print_total(Bytes reserved, Bytes committed, Bytes peak = Bytes(0)) const;
   void print_malloc(const MemoryCounter* c, MEMFLAGS flag = mtNone) const;
-  void print_virtual_memory(size_t reserved, size_t committed, size_t peak) const;
+  void print_virtual_memory(Bytes reserved, Bytes committed, Bytes peak) const;
 
   void print_malloc_line(const MemoryCounter* c) const;
-  void print_virtual_memory_line(size_t reserved, size_t committed, size_t peak) const;
+  void print_virtual_memory_line(Bytes reserved, Bytes committed, Bytes peak) const;
   void print_arena_line(const MemoryCounter* c) const;
 
-  void print_virtual_memory_region(const char* type, address base, size_t size) const;
+  void print_virtual_memory_region(const char* type, address base, Bytes size) const;
 };
 
 /*
@@ -211,12 +211,12 @@ class MemSummaryDiffReporter : public MemReporterBase {
     const MetaspaceCombinedStats& current_ms) const;
 
  protected:
-  void print_malloc_diff(size_t current_amount, size_t current_count,
-    size_t early_amount, size_t early_count, MEMFLAGS flags) const;
-  void print_virtual_memory_diff(size_t current_reserved, size_t current_committed,
-    size_t early_reserved, size_t early_committed) const;
-  void print_arena_diff(size_t current_amount, size_t current_count,
-    size_t early_amount, size_t early_count) const;
+  void print_malloc_diff(Bytes current_amount, size_t current_count,
+      Bytes early_amount, size_t early_count, MEMFLAGS flags) const;
+  void print_virtual_memory_diff(Bytes current_reserved, Bytes current_committed,
+      Bytes early_reserved, Bytes early_committed) const;
+  void print_arena_diff(Bytes current_amount, size_t current_count,
+      Bytes early_amount, size_t early_count) const;
 
   void print_metaspace_diff(const MetaspaceCombinedStats& current_ms,
                             const MetaspaceCombinedStats& early_ms) const;
@@ -259,10 +259,10 @@ class MemDetailDiffReporter : public MemSummaryDiffReporter {
   void diff_virtual_memory_site(const VirtualMemoryAllocationSite* early,
                                 const VirtualMemoryAllocationSite* current)  const;
 
-  void diff_malloc_site(const NativeCallStack* stack, size_t current_size,
-    size_t currrent_count, size_t early_size, size_t early_count, MEMFLAGS flags) const;
-  void diff_virtual_memory_site(const NativeCallStack* stack, size_t current_reserved,
-    size_t current_committed, size_t early_reserved, size_t early_committed, MEMFLAGS flag) const;
+  void diff_malloc_site(const NativeCallStack* stack, Bytes current_size,
+    size_t currrent_count, Bytes early_size, size_t early_count, MEMFLAGS flags) const;
+  void diff_virtual_memory_site(const NativeCallStack* stack, Bytes current_reserved,
+      Bytes current_committed, Bytes early_reserved, Bytes early_committed, MEMFLAGS flag) const;
 };
 
 #endif // SHARE_NMT_MEMREPORTER_HPP

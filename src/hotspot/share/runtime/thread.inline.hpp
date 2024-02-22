@@ -45,14 +45,14 @@ inline jlong Thread::cooked_allocated_bytes() {
     if (top <= start) {
       return allocated_bytes;
     }
-    const size_t used_bytes = pointer_delta(top, start, 1);
+    const Bytes used_bytes = (Bytes)pointer_delta(top, start, 1);
     if (used_bytes <= ThreadLocalAllocBuffer::max_size_in_bytes()) {
       // Comparing used_bytes with the maximum allowed size will ensure
       // that we don't add the used bytes from a semi-initialized TLAB
       // ending up with incorrect values. There is still a race between
       // incrementing _allocated_bytes and clearing the TLAB, that might
       // cause double counting in rare cases.
-      return allocated_bytes + used_bytes;
+      return allocated_bytes + untype(used_bytes);
     }
   }
   return allocated_bytes;

@@ -173,11 +173,11 @@ private:
   // statistics
   constexpr static int ALLOC_STAT_SLOTS = 16;
   static size_t _alloc_count[ALLOC_STAT_SLOTS];
-  static size_t _alloc_size[ALLOC_STAT_SLOTS];
+  static Words _alloc_size[ALLOC_STAT_SLOTS];
   static size_t _total_obj_count;
-  static size_t _total_obj_size; // in HeapWords
+  static Words _total_obj_size; // in HeapWords
 
-  static void count_allocation(size_t size);
+  static void count_allocation(Words size);
   static void print_stats();
 public:
   static unsigned oop_hash(oop const& p);
@@ -190,14 +190,14 @@ public:
     oop _orig_referrer;
 
     // The location of this object inside ArchiveHeapWriter::_buffer
-    size_t _buffer_offset;
+    Bytes _buffer_offset;
   public:
     CachedOopInfo(oop orig_referrer)
       : _orig_referrer(orig_referrer),
-        _buffer_offset(0) {}
+        _buffer_offset(Bytes(0)) {}
     oop orig_referrer()             const { return _orig_referrer;   }
-    void set_buffer_offset(size_t offset) { _buffer_offset = offset; }
-    size_t buffer_offset()          const { return _buffer_offset;   }
+    void set_buffer_offset(Bytes offset) { _buffer_offset = offset; }
+    Bytes buffer_offset()          const { return _buffer_offset;   }
   };
 
 private:

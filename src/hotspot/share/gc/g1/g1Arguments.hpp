@@ -42,11 +42,11 @@ class G1Arguments : public GCArguments {
   virtual void initialize_heap_flags_and_sizes();
 
   virtual void initialize();
-  virtual size_t conservative_max_heap_alignment();
+  virtual Bytes conservative_max_heap_alignment();
   virtual CollectedHeap* create_heap();
 
 public:
-  static size_t heap_reserved_size_bytes();
+  static Bytes heap_reserved_size_bytes();
 };
 
 #endif // SHARE_GC_G1_G1ARGUMENTS_HPP

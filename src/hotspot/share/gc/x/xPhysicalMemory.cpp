@@ -279,14 +279,14 @@ void XPhysicalMemoryManager::try_enable_uncommit(size_t min_capacity, size_t max
 void XPhysicalMemoryManager::nmt_commit(uintptr_t offset, size_t size) const {
   // From an NMT point of view we treat the first heap view (marked0) as committed
   const uintptr_t addr = XAddress::marked0(offset);
-  MemTracker::record_virtual_memory_commit((void*)addr, size, CALLER_PC);
+  MemTracker::record_virtual_memory_commit((void*)addr, in_Bytes(size), CALLER_PC);
 }
 
 void XPhysicalMemoryManager::nmt_uncommit(uintptr_t offset, size_t size) const {
   if (MemTracker::enabled()) {
     const uintptr_t addr = XAddress::marked0(offset);
     Tracker tracker(Tracker::uncommit);
-    tracker.record((address)addr, size);
+    tracker.record((address)addr, in_Bytes(size));
   }
 }
 

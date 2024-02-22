@@ -46,6 +46,7 @@
 #include "sanitizers/address.hpp"
 #include "sanitizers/leak.hpp"
 #include "utilities/align.hpp"
+#include "utilities/bitMap.inline.hpp"
 #include "utilities/debug.hpp"
 #include "utilities/globalDefinitions.hpp"
 #include "utilities/ostream.hpp"
@@ -61,7 +62,7 @@ static void check_pointer_is_aligned_to_commit_granule(const MetaWord* p) {
          "Pointer not aligned to commit granule size: " PTR_FORMAT ".",
          p2i(p));
 }
-static void check_word_size_is_aligned_to_commit_granule(size_t word_size) {
+static void check_word_size_is_aligned_to_commit_granule(Words word_size) {
   assert(is_aligned(word_size, Settings::commit_granule_words()),
          "Not aligned to commit granule size: " SIZE_FORMAT ".", word_size);
 }
@@ -80,23 +81,23 @@ static void check_word_size_is_aligned_to_commit_granule(size_t word_size) {
 // - mark the range as committed in the commit mask
 //
 // Returns true if success, false if it did hit a commit limit.
-bool VirtualSpaceNode::commit_range(MetaWord* p, size_t word_size) {
+bool VirtualSpaceNode::commit_range(MetaWord* p, Words word_size) {
   DEBUG_ONLY(check_pointer_is_aligned_to_commit_granule(p);)
   DEBUG_ONLY(check_word_size_is_aligned_to_commit_granule(word_size);)
   assert_lock_strong(Metaspace_lock);
 
   // First calculate how large the committed regions in this range are
-  const size_t committed_words_in_range = _commit_mask.get_committed_size_in_range(p, word_size);
+  const Words committed_words_in_range = _commit_mask.get_committed_size_in_range(p, word_size);
   DEBUG_ONLY(check_word_size_is_aligned_to_commit_granule(committed_words_in_range);)
 
   // By how much words we would increase commit charge
   //  were we to commit the given address range completely.
-  const size_t commit_increase_words = word_size - committed_words_in_range;
+  const Words commit_increase_words = word_size - committed_words_in_range;
 
   UL2(debug, "committing range " PTR_FORMAT ".." PTR_FORMAT "(" SIZE_FORMAT " words)",
       p2i(p), p2i(p + word_size), word_size);
 
-  if (commit_increase_words == 0) {
+  if (commit_increase_words == Words(0)) {
     UL(debug, "... already fully committed.");
     return true; // Already fully committed, nothing to do.
   }
@@ -108,8 +109,8 @@ bool VirtualSpaceNode::commit_range(MetaWord* p, size_t word_size) {
   }
 
   // Commit...
-  if (os::commit_memory((char*)p, word_size * BytesPerWord, false) == false) {
-    vm_exit_out_of_memory(word_size * BytesPerWord, OOM_MMAP_ERROR, "Failed to commit metaspace.");
+  if (os::commit_memory((char*)p, to_bytes(word_size), false) == false) {
+    vm_exit_out_of_memory(to_bytes(word_size), OOM_MMAP_ERROR, "Failed to commit metaspace.");
   }
 
   if (AlwaysPreTouch) {
@@ -158,36 +159,36 @@ bool VirtualSpaceNode::commit_range(MetaWord* p, size_t word_size) {
 //    Make sure you never call this on an address range containing live data. !!
 //
 // Returns true if success, false if it did hit a commit limit.
-bool VirtualSpaceNode::ensure_range_is_committed(MetaWord* p, size_t word_size) {
+bool VirtualSpaceNode::ensure_range_is_committed(MetaWord* p, Words word_size) {
   assert_lock_strong(Metaspace_lock);
-  assert(p != nullptr && word_size > 0, "Sanity");
+  assert(p != nullptr && word_size > Words(0), "Sanity");
   MetaWord* p_start = align_down(p, Settings::commit_granule_bytes());
   MetaWord* p_end = align_up(p + word_size, Settings::commit_granule_bytes());
-  return commit_range(p_start, p_end - p_start);
+  return commit_range(p_start, pointer_delta(p_end, p_start));
 }
 
 // Given an address range (which has to be aligned to commit granule size):
 //  - uncommit it
 //  - mark it as uncommitted in the commit mask
-void VirtualSpaceNode::uncommit_range(MetaWord* p, size_t word_size) {
+void VirtualSpaceNode::uncommit_range(MetaWord* p, Words word_size) {
   DEBUG_ONLY(check_pointer_is_aligned_to_commit_granule(p);)
   DEBUG_ONLY(check_word_size_is_aligned_to_commit_granule(word_size);)
   assert_lock_strong(Metaspace_lock);
 
   // First calculate how large the committed regions in this range are
-  const size_t committed_words_in_range = _commit_mask.get_committed_size_in_range(p, word_size);
+  const Words committed_words_in_range = _commit_mask.get_committed_size_in_range(p, word_size);
   DEBUG_ONLY(check_word_size_is_aligned_to_commit_granule(committed_words_in_range);)
 
   UL2(debug, "uncommitting range " PTR_FORMAT ".." PTR_FORMAT "(" SIZE_FORMAT " words)",
       p2i(p), p2i(p + word_size), word_size);
 
-  if (committed_words_in_range == 0) {
+  if (committed_words_in_range == Words(0)) {
     UL(debug, "... already fully uncommitted.");
     return; // Already fully uncommitted, nothing to do.
   }
 
   // Uncommit...
-  if (os::uncommit_memory((char*)p, word_size * BytesPerWord) == false) {
+  if (os::uncommit_memory((char*)p, to_bytes(word_size)) == false) {
     // Note: this can actually happen, since uncommit may increase the number of mappings.
     fatal("Failed to uncommit metaspace.");
   }
@@ -216,15 +217,15 @@ void VirtualSpaceNode::uncommit_range(MetaWord* p, size_t word_size) {
 //// creation, destruction ////
 
 VirtualSpaceNode::VirtualSpaceNode(ReservedSpace rs, bool owns_rs, CommitLimiter* limiter,
-                                   SizeCounter* reserve_counter, SizeCounter* commit_counter) :
+                                   WordsCounter* reserve_counter, WordsCounter* commit_counter) :
   _next(nullptr),
   _rs(rs),
   _owns_rs(owns_rs),
   _base((MetaWord*)rs.base()),
-  _word_size(rs.size() / BytesPerWord),
-  _used_words(0),
-  _commit_mask((MetaWord*)rs.base(), rs.size() / BytesPerWord),
-  _root_chunk_area_lut((MetaWord*)rs.base(), rs.size() / BytesPerWord),
+  _word_size(to_Words(rs.size())),
+  _used_words(Words()),
+  _commit_mask((MetaWord*)rs.base(), to_Words(rs.size())),
+  _root_chunk_area_lut((MetaWord*)rs.base(), to_Words(rs.size())),
   _commit_limiter(limiter),
   _total_reserved_words_counter(reserve_counter),
   _total_committed_words_counter(commit_counter)
@@ -247,16 +248,16 @@ VirtualSpaceNode::VirtualSpaceNode(ReservedSpace rs, bool owns_rs, CommitLimiter
 }
 
 // Create a node of a given size (it will create its own space).
-VirtualSpaceNode* VirtualSpaceNode::create_node(size_t word_size,
-                                                CommitLimiter* limiter, SizeCounter* reserve_words_counter,
-                                                SizeCounter* commit_words_counter)
+VirtualSpaceNode* VirtualSpaceNode::create_node(Words word_size,
+                                                CommitLimiter* limiter, WordsCounter* reserve_words_counter,
+                                                WordsCounter* commit_words_counter)
 {
   DEBUG_ONLY(assert_is_aligned(word_size, chunklevel::MAX_CHUNK_WORD_SIZE);)
-  ReservedSpace rs(word_size * BytesPerWord,
-                   Settings::virtual_space_node_reserve_alignment_words() * BytesPerWord,
-                   os::vm_page_size());
+  ReservedSpace rs(to_Bytes(word_size),
+                   to_Bytes(Settings::virtual_space_node_reserve_alignment_words()),
+                   in_Bytes(os::vm_page_size()));
   if (!rs.is_reserved()) {
-    vm_exit_out_of_memory(word_size * BytesPerWord, OOM_MMAP_ERROR, "Failed to reserve memory for metaspace");
+    vm_exit_out_of_memory(to_bytes(word_size), OOM_MMAP_ERROR, "Failed to reserve memory for metaspace");
   }
   MemTracker::record_virtual_memory_type(rs.base(), mtMetaspace);
   assert_is_aligned(rs.base(), chunklevel::MAX_CHUNK_BYTE_SIZE);
@@ -266,7 +267,7 @@ VirtualSpaceNode* VirtualSpaceNode::create_node(size_t word_size,
 
 // Create a node over an existing space
 VirtualSpaceNode* VirtualSpaceNode::create_node(ReservedSpace rs, CommitLimiter* limiter,
-                                                SizeCounter* reserve_words_counter, SizeCounter* commit_words_counter)
+                                                WordsCounter* reserve_words_counter, WordsCounter* commit_words_counter)
 {
   InternalStats::inc_num_vsnodes_births();
   return new VirtualSpaceNode(rs, false, limiter, reserve_words_counter, commit_words_counter);
@@ -289,7 +290,7 @@ VirtualSpaceNode::~VirtualSpaceNode() {
   }
 
   // Update counters in vslist
-  size_t committed = committed_words();
+  Words committed = committed_words();
   _total_committed_words_counter->decrement_by(committed);
   _total_reserved_words_counter->decrement_by(_word_size);
 
@@ -405,7 +406,7 @@ void VirtualSpaceNode::print_on(outputStream* st) const {
 
 // Returns size, in words, of committed space in this node alone.
 // Note: iterates over commit mask and hence may be a tad expensive on large nodes.
-size_t VirtualSpaceNode::committed_words() const {
+Words VirtualSpaceNode::committed_words() const {
   return _commit_mask.get_committed_size();
 }
 
@@ -422,7 +423,7 @@ void VirtualSpaceNode::verify_locked() const {
   assert_lock_strong(Metaspace_lock);
   assert(base() != nullptr, "Invalid base");
   assert(base() == (MetaWord*)_rs.base() &&
-         word_size() == _rs.size() / BytesPerWord,
+         word_size() == to_Words(_rs.size()),
          "Sanity");
   assert_is_aligned(base(), chunklevel::MAX_CHUNK_BYTE_SIZE);
   assert(used_words() <= word_size(), "Sanity");

@@ -159,4 +159,9 @@ extern void gtest_exit_from_child_vm(int num);
                                                                     \
   void test_ ## category ## _ ## name ## _()
 
+// FIXME: Temporary placement
+#include "utilities/sizes.hpp"
+constexpr Bytes operator ""_b(unsigned long long value) { return in_Bytes(value); }
+constexpr Words operator ""_w(unsigned long long value) { return in_Words(value); }
+
 #endif // UNITTEST_HPP

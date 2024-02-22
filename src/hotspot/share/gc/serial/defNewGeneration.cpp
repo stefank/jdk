@@ -239,9 +239,9 @@ public:
 };
 
 DefNewGeneration::DefNewGeneration(ReservedSpace rs,
-                                   size_t initial_size,
-                                   size_t min_size,
-                                   size_t max_size,
+                                   Bytes initial_size,
+                                   Bytes min_size,
+                                   Bytes max_size,
                                    const char* policy)
   : Generation(rs, initial_size),
     _preserved_marks_set(false /* in_c_heap */),
@@ -262,9 +262,9 @@ DefNewGeneration::DefNewGeneration(ReservedSpace rs,
   // Compute the maximum eden and survivor space sizes. These sizes
   // are computed assuming the entire reserved space is committed.
   // These values are exported as performance counters.
-  uintx size = _virtual_space.reserved_size();
+  Bytes size = _virtual_space.reserved_size();
   _max_survivor_size = compute_survivor_size(size, SpaceAlignment);
-  _max_eden_size = size - (2*_max_survivor_size);
+  _max_eden_size = size - Bytes(2*_max_survivor_size);
 
   // allocate the performance counters
 
@@ -280,11 +280,11 @@ DefNewGeneration::DefNewGeneration(ReservedSpace rs,
   _to_counters = new CSpaceCounters("s1", 2, _max_survivor_size, _to_space,
                                     _gen_counters);
 
-  compute_space_boundaries(0, SpaceDecorator::Clear, SpaceDecorator::Mangle);
+  compute_space_boundaries(Bytes(0), SpaceDecorator::Clear, SpaceDecorator::Mangle);
   update_counters();
   _old_gen = nullptr;
   _tenuring_threshold = MaxTenuringThreshold;
-  _pretenure_size_threshold_words = PretenureSizeThreshold >> LogHeapWordSize;
+  _pretenure_size_threshold_words = to_Words(in_Bytes(PretenureSizeThreshold));
 
   _ref_processor = nullptr;
 
@@ -293,7 +293,7 @@ DefNewGeneration::DefNewGeneration(ReservedSpace rs,
   _gc_tracer = new DefNewTracer();
 }
 
-void DefNewGeneration::compute_space_boundaries(uintx minimum_eden_size,
+void DefNewGeneration::compute_space_boundaries(Bytes minimum_eden_size,
                                                 bool clear_space,
                                                 bool mangle_space) {
   // If the spaces are being cleared (only done at heap initialization
@@ -304,28 +304,28 @@ void DefNewGeneration::compute_space_boundaries(uintx minimum_eden_size,
     "Initialization of the survivor spaces assumes these are empty");
 
   // Compute sizes
-  uintx size = _virtual_space.committed_size();
-  uintx survivor_size = compute_survivor_size(size, SpaceAlignment);
-  uintx eden_size = size - (2*survivor_size);
+  Bytes size = _virtual_space.committed_size();
+  Bytes survivor_size = compute_survivor_size(size, SpaceAlignment);
+  Bytes eden_size = size - (2*survivor_size);
   if (eden_size > max_eden_size()) {
     // Need to reduce eden_size to satisfy the max constraint. The delta needs
     // to be 2*SpaceAlignment aligned so that both survivors are properly
     // aligned.
-    uintx eden_delta = align_up(eden_size - max_eden_size(), 2*SpaceAlignment);
+    Bytes eden_delta = align_up(eden_size - max_eden_size(), 2*SpaceAlignment);
     eden_size     -= eden_delta;
     survivor_size += eden_delta/2;
   }
-  assert(eden_size > 0 && survivor_size <= eden_size, "just checking");
+  assert(eden_size > Bytes(0) && survivor_size <= eden_size, "just checking");
 
   if (eden_size < minimum_eden_size) {
     // May happen due to 64Kb rounding, if so adjust eden size back up
     minimum_eden_size = align_up(minimum_eden_size, SpaceAlignment);
-    uintx maximum_survivor_size = (size - minimum_eden_size) / 2;
-    uintx unaligned_survivor_size =
+    Bytes maximum_survivor_size = (size - minimum_eden_size) / 2;
+    Bytes unaligned_survivor_size =
       align_down(maximum_survivor_size, SpaceAlignment);
     survivor_size = MAX2(unaligned_survivor_size, SpaceAlignment);
     eden_size = size - (2*survivor_size);
-    assert(eden_size > 0 && survivor_size <= eden_size, "just checking");
+    assert(eden_size > Bytes(0) && survivor_size <= eden_size, "just checking");
     assert(eden_size >= minimum_eden_size, "just checking");
   }
 
@@ -335,9 +335,9 @@ void DefNewGeneration::compute_space_boundaries(uintx minimum_eden_size,
   char *to_end     = to_start   + survivor_size;
 
   assert(to_end == _virtual_space.high(), "just checking");
-  assert(is_aligned(eden_start, SpaceAlignment), "checking alignment");
-  assert(is_aligned(from_start, SpaceAlignment), "checking alignment");
-  assert(is_aligned(to_start, SpaceAlignment),   "checking alignment");
+  assert(is_aligned(eden_start, untype(SpaceAlignment)), "checking alignment");
+  assert(is_aligned(from_start, untype(SpaceAlignment)), "checking alignment");
+  assert(is_aligned(to_start, untype(SpaceAlignment)),   "checking alignment");
 
   MemRegion edenMR((HeapWord*)eden_start, (HeapWord*)from_start);
   MemRegion fromMR((HeapWord*)from_start, (HeapWord*)to_start);
@@ -346,7 +346,7 @@ void DefNewGeneration::compute_space_boundaries(uintx minimum_eden_size,
   // A minimum eden size implies that there is a part of eden that
   // is being used and that affects the initialization of any
   // newly formed eden.
-  bool live_in_eden = minimum_eden_size > 0;
+  bool live_in_eden = minimum_eden_size > Bytes(0);
 
   // If not clearing the spaces, do some checking to verify that
   // the space are already mangled.
@@ -402,7 +402,7 @@ void DefNewGeneration::swap_spaces() {
   }
 }
 
-bool DefNewGeneration::expand(size_t bytes) {
+bool DefNewGeneration::expand(Bytes bytes) {
   HeapWord* prev_high = (HeapWord*) _virtual_space.high();
   bool success = _virtual_space.expand_by(bytes);
   if (success && ZapUnusedHeapArea) {
@@ -429,29 +429,31 @@ bool DefNewGeneration::expand(size_t bytes) {
   return success;
 }
 
-size_t DefNewGeneration::calculate_thread_increase_size(int threads_count) const {
-    size_t thread_increase_size = 0;
-    // Check an overflow at 'threads_count * NewSizeThreadIncrease'.
-    if (threads_count > 0 && NewSizeThreadIncrease <= max_uintx / threads_count) {
-      thread_increase_size = threads_count * NewSizeThreadIncrease;
-    }
-    return thread_increase_size;
+Bytes DefNewGeneration::calculate_thread_increase_size(int threads_count) const {
+  Bytes thread_increase_size = Bytes(0);
+  // Check an overflow at 'threads_count * NewSizeThreadIncrease'.
+  if (threads_count > 0 && NewSizeThreadIncrease <= max_uintx / threads_count) {
+    thread_increase_size = Bytes(threads_count * NewSizeThreadIncrease);
+  }
+  return thread_increase_size;
 }
 
-size_t DefNewGeneration::adjust_for_thread_increase(size_t new_size_candidate,
-                                                    size_t new_size_before,
-                                                    size_t alignment,
-                                                    size_t thread_increase_size) const {
-  size_t desired_new_size = new_size_before;
+Bytes DefNewGeneration::adjust_for_thread_increase(Bytes new_size_candidate,
+                                                   Bytes new_size_before,
+                                                   Bytes alignment,
+                                                   Bytes thread_increase_size) const {
+  Bytes desired_new_size = new_size_before;
 
-  if (NewSizeThreadIncrease > 0 && thread_increase_size > 0) {
+  if (NewSizeThreadIncrease > 0 && thread_increase_size > Bytes(0)) {
 
     // 1. Check an overflow at 'new_size_candidate + thread_increase_size'.
-    if (new_size_candidate <= max_uintx - thread_increase_size) {
+    if (new_size_candidate <= Bytes(max_uintx) - thread_increase_size) {
       new_size_candidate += thread_increase_size;
 
       // 2. Check an overflow at 'align_up'.
-      size_t aligned_max = ((max_uintx - alignment) & ~(alignment-1));
+      // FIXME: next to last aligned max?
+      //size_t aligned_max = ((max_uintx - alignment) & ~(alignment-1));
+      Bytes aligned_max = align_down(Bytes(max_uintx) - alignment, alignment);
       if (new_size_candidate <= aligned_max) {
         desired_new_size = align_up(new_size_candidate, alignment);
       }
@@ -472,24 +474,24 @@ void DefNewGeneration::compute_new_size() {
 
   SerialHeap* gch = SerialHeap::heap();
 
-  size_t old_size = gch->old_gen()->capacity();
-  size_t new_size_before = _virtual_space.committed_size();
-  size_t min_new_size = NewSize;
-  size_t max_new_size = reserved().byte_size();
+  Bytes old_size = Bytes(gch->old_gen()->capacity());
+  Bytes new_size_before = Bytes(_virtual_space.committed_size());
+  Bytes min_new_size = Bytes(NewSize);
+  Bytes max_new_size = reserved().byte_size();
   assert(min_new_size <= new_size_before &&
          new_size_before <= max_new_size,
          "just checking");
   // All space sizes must be multiples of Generation::GenGrain.
-  size_t alignment = Generation::GenGrain;
+  Bytes alignment = Generation::GenGrain;
 
   int threads_count = Threads::number_of_non_daemon_threads();
-  size_t thread_increase_size = calculate_thread_increase_size(threads_count);
+  Bytes thread_increase_size = calculate_thread_increase_size(threads_count);
 
-  size_t new_size_candidate = old_size / NewRatio;
+  Bytes new_size_candidate = old_size / NewRatio;
   // Compute desired new generation size based on NewRatio and NewSizeThreadIncrease
   // and reverts to previous value if any overflow happens
-  size_t desired_new_size = adjust_for_thread_increase(new_size_candidate, new_size_before,
-                                                       alignment, thread_increase_size);
+  Bytes desired_new_size = adjust_for_thread_increase(new_size_candidate, new_size_before,
+                                                      alignment, thread_increase_size);
 
   // Adjust new generation size
   desired_new_size = clamp(desired_new_size, min_new_size, max_new_size);
@@ -497,8 +499,8 @@ void DefNewGeneration::compute_new_size() {
 
   bool changed = false;
   if (desired_new_size > new_size_before) {
-    size_t change = desired_new_size - new_size_before;
-    assert(change % alignment == 0, "just checking");
+    Bytes change = desired_new_size - new_size_before;
+    assert(is_aligned(change, alignment), "just checking");
     if (expand(change)) {
        changed = true;
     }
@@ -509,8 +511,8 @@ void DefNewGeneration::compute_new_size() {
   }
   if (desired_new_size < new_size_before && eden()->is_empty()) {
     // bail out of shrinking if objects in eden
-    size_t change = new_size_before - desired_new_size;
-    assert(change % alignment == 0, "just checking");
+    Bytes change = new_size_before - desired_new_size;
+    assert(is_aligned(change, alignment), "just checking");
     _virtual_space.shrink_by(change);
     changed = true;
   }
@@ -542,25 +544,25 @@ void DefNewGeneration::ref_processor_init() {
   _ref_processor = new ReferenceProcessor(&_span_based_discoverer);    // a vanilla reference processor
 }
 
-size_t DefNewGeneration::capacity() const {
+Bytes DefNewGeneration::capacity() const {
   return eden()->capacity()
        + from()->capacity();  // to() is only used during scavenge
 }
 
 
-size_t DefNewGeneration::used() const {
+Bytes DefNewGeneration::used() const {
   return eden()->used()
        + from()->used();      // to() is only used during scavenge
 }
 
 
-size_t DefNewGeneration::free() const {
+Bytes DefNewGeneration::free() const {
   return eden()->free()
        + from()->free();      // to() is only used during scavenge
 }
 
-size_t DefNewGeneration::max_capacity() const {
-  const size_t reserved_bytes = reserved().byte_size();
+Bytes DefNewGeneration::max_capacity() const {
+  const Bytes reserved_bytes = reserved().byte_size();
   return reserved_bytes - compute_survivor_size(reserved_bytes, SpaceAlignment);
 }
 
@@ -570,15 +572,15 @@ bool DefNewGeneration::is_in(const void* p) const {
       || to()  ->is_in(p);
 }
 
-size_t DefNewGeneration::unsafe_max_alloc_nogc() const {
+Bytes DefNewGeneration::unsafe_max_alloc_nogc() const {
   return eden()->free();
 }
 
-size_t DefNewGeneration::capacity_before_gc() const {
+Bytes DefNewGeneration::capacity_before_gc() const {
   return eden()->capacity();
 }
 
-size_t DefNewGeneration::contiguous_available() const {
+Bytes DefNewGeneration::contiguous_available() const {
   return eden()->free();
 }
 
@@ -601,7 +603,7 @@ HeapWord* DefNewGeneration::block_start(const void* p) const {
 
 // The last collection bailed out, we are running out of heap space,
 // so we try to allocate the from-space, too.
-HeapWord* DefNewGeneration::allocate_from_space(size_t size) {
+HeapWord* DefNewGeneration::allocate_from_space(Words size) {
   bool should_try_alloc = should_allocate_from_space() || GCLocker::is_active_and_needs_gc();
 
   // If the Heap_lock is not locked by this thread, this will be called
@@ -626,32 +628,32 @@ HeapWord* DefNewGeneration::allocate_from_space(size_t size) {
   return result;
 }
 
-HeapWord* DefNewGeneration::expand_and_allocate(size_t size, bool is_tlab) {
+HeapWord* DefNewGeneration::expand_and_allocate(Words size, bool is_tlab) {
   // We don't attempt to expand the young generation (but perhaps we should.)
   return allocate(size, is_tlab);
 }
 
 void DefNewGeneration::adjust_desired_tenuring_threshold() {
   // Set the desired survivor size to half the real survivor space
-  size_t const survivor_capacity = to()->capacity() / HeapWordSize;
-  size_t const desired_survivor_size = (size_t)((((double)survivor_capacity) * TargetSurvivorRatio) / 100);
+  Words const survivor_capacity = to_Words(to()->capacity());
+  Words const desired_survivor_size = in_Words((((double)survivor_capacity) * TargetSurvivorRatio) / 100);
 
   _tenuring_threshold = age_table()->compute_tenuring_threshold(desired_survivor_size);
 
   if (UsePerfData) {
     GCPolicyCounters* gc_counters = SerialHeap::heap()->counters();
     gc_counters->tenuring_threshold()->set_value(_tenuring_threshold);
-    gc_counters->desired_survivor_size()->set_value(desired_survivor_size * oopSize);
+    gc_counters->desired_survivor_size()->set_value(to_bytes(desired_survivor_size));
   }
 
   age_table()->print_age_table(_tenuring_threshold);
 }
 
-void DefNewGeneration::collect(bool   full,
-                               bool   clear_all_soft_refs,
-                               size_t size,
-                               bool   is_tlab) {
-  assert(full || size > 0, "otherwise we don't want to collect");
+void DefNewGeneration::collect(bool  full,
+                               bool  clear_all_soft_refs,
+                               Words size,
+                               bool  is_tlab) {
+  assert(full || size > Words(0), "otherwise we don't want to collect");
 
   SerialHeap* heap = SerialHeap::heap();
 
@@ -846,7 +848,7 @@ void DefNewGeneration::handle_promotion_failure(oop old) {
 oop DefNewGeneration::copy_to_survivor_space(oop old) {
   assert(is_in_reserved(old) && !old->is_forwarded(),
          "shouldn't be scavenging this oop");
-  size_t s = old->size();
+  Words s = old->size();
   oop obj = nullptr;
 
   // Try allocating obj in to-space (unless too old)
@@ -913,15 +915,15 @@ bool DefNewGeneration::no_allocs_since_save_marks() {
   return to()->saved_mark_at_top();
 }
 
-void DefNewGeneration::contribute_scratch(void*& scratch, size_t& num_words) {
+void DefNewGeneration::contribute_scratch(void*& scratch, Words& num_words) {
   if (_promotion_failed) {
     return;
   }
 
-  const size_t MinFreeScratchWords = 100;
+  const Words MinFreeScratchWords = Words(100);
 
   ContiguousSpace* to_space = to();
-  const size_t free_words = pointer_delta(to_space->end(), to_space->top());
+  const Words free_words = pointer_delta(to_space->end(), to_space->top());
   if (free_words >= MinFreeScratchWords) {
     scratch = to_space->top();
     num_words = free_words;
@@ -1039,7 +1041,7 @@ const char* DefNewGeneration::name() const {
   return "def new generation";
 }
 
-HeapWord* DefNewGeneration::allocate(size_t word_size, bool is_tlab) {
+HeapWord* DefNewGeneration::allocate(Words word_size, bool is_tlab) {
   // This is the slow-path allocation for the DefNewGeneration.
   // Most allocations are fast-path in compiled code.
   // We try to allocate from the eden.  If that works, we are happy.
@@ -1056,19 +1058,19 @@ HeapWord* DefNewGeneration::allocate(size_t word_size, bool is_tlab) {
   return result;
 }
 
-HeapWord* DefNewGeneration::par_allocate(size_t word_size,
+HeapWord* DefNewGeneration::par_allocate(Words word_size,
                                          bool is_tlab) {
   return eden()->par_allocate(word_size);
 }
 
-size_t DefNewGeneration::tlab_capacity() const {
+Bytes DefNewGeneration::tlab_capacity() const {
   return eden()->capacity();
 }
 
-size_t DefNewGeneration::tlab_used() const {
+Bytes DefNewGeneration::tlab_used() const {
   return eden()->used();
 }
 
-size_t DefNewGeneration::unsafe_max_tlab_alloc() const {
+Bytes DefNewGeneration::unsafe_max_tlab_alloc() const {
   return unsafe_max_alloc_nogc();
 }

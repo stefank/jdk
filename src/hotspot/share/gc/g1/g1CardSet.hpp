@@ -370,10 +370,10 @@ public:
   static void print_coarsen_stats(outputStream* out);
 
   // Returns size of the actual remembered set containers in bytes.
-  size_t mem_size() const;
-  size_t unused_mem_size() const;
+  Bytes mem_size() const;
+  Bytes unused_mem_size() const;
   // Returns the size of static data in bytes.
-  static size_t static_mem_size();
+  static Bytes static_mem_size();
 
   // Clear the entire contents of this remembered set.
   void clear();

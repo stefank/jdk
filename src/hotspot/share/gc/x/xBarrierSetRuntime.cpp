@@ -56,7 +56,7 @@ JRT_LEAF(void, XBarrierSetRuntime::load_barrier_on_oop_array(oop* p, size_t leng
 JRT_END
 
 JRT_LEAF(void, XBarrierSetRuntime::clone(oopDesc* src, oopDesc* dst, size_t size))
-  HeapAccess<>::clone(src, dst, size);
+  HeapAccess<>::clone(src, dst, in_Words(size));
 JRT_END
 
 address XBarrierSetRuntime::load_barrier_on_oop_field_preloaded_addr(DecoratorSet decorators) {

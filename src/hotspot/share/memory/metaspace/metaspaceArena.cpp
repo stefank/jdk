@@ -58,7 +58,7 @@ chunklevel_t MetaspaceArena::next_chunk_level() const {
 
 // Given a chunk, add its remaining free committed space to the free block list.
 void MetaspaceArena::salvage_chunk(Metachunk* c) {
-  size_t remaining_words = c->free_below_committed_words();
+  Words remaining_words = c->free_below_committed_words();
   if (remaining_words >= FreeBlocks::MinWordSize) {
 
     UL2(trace, "salvaging chunk " METACHUNK_FULL_FORMAT ".", METACHUNK_FULL_FORMAT_ARGS(c));
@@ -70,7 +70,7 @@ void MetaspaceArena::salvage_chunk(Metachunk* c) {
     add_allocation_to_fbl(ptr, remaining_words);
 
     // After this operation: the chunk should have no free committed space left.
-    assert(c->free_below_committed_words() == 0,
+    assert(c->free_below_committed_words() == Words(0),
            "Salvaging chunk failed (chunk " METACHUNK_FULL_FORMAT ").",
            METACHUNK_FULL_FORMAT_ARGS(c));
   }
@@ -78,7 +78,7 @@ void MetaspaceArena::salvage_chunk(Metachunk* c) {
 
 // Allocate a new chunk from the underlying chunk manager able to hold at least
 // requested word size.
-Metachunk* MetaspaceArena::allocate_new_chunk(size_t requested_word_size) {
+Metachunk* MetaspaceArena::allocate_new_chunk(Words requested_word_size) {
   // Should this ever happen, we need to increase the maximum possible chunk size.
   guarantee(requested_word_size <= chunklevel::MAX_CHUNK_WORD_SIZE,
             "Requested size too large (" SIZE_FORMAT ") - max allowed size per allocation is " SIZE_FORMAT ".",
@@ -97,10 +97,10 @@ Metachunk* MetaspaceArena::allocate_new_chunk(size_t requested_word_size) {
   return c;
 }
 
-void MetaspaceArena::add_allocation_to_fbl(MetaWord* p, size_t word_size) {
+void MetaspaceArena::add_allocation_to_fbl(MetaWord* p, Words word_size) {
   assert(p != nullptr, "p is null");
   assert_is_aligned_metaspace_pointer(p);
-  assert(word_size > 0, "zero sized");
+  assert(word_size > Words(0), "zero sized");
 
   if (_fbl == nullptr) {
     _fbl = new FreeBlocks(); // Create only on demand
@@ -109,7 +109,7 @@ void MetaspaceArena::add_allocation_to_fbl(MetaWord* p, size_t word_size) {
 }
 
 MetaspaceArena::MetaspaceArena(ChunkManager* chunk_manager, const ArenaGrowthPolicy* growth_policy,
-                               SizeAtomicCounter* total_used_words_counter,
+                               WordsAtomicCounter* total_used_words_counter,
                                const char* name) :
   _chunk_manager(chunk_manager),
   _growth_policy(growth_policy),
@@ -166,7 +166,7 @@ MetaspaceArena::~MetaspaceArena() {
 //  requested_word_size additional words.
 //
 // On success, true is returned, false otherwise.
-bool MetaspaceArena::attempt_enlarge_current_chunk(size_t requested_word_size) {
+bool MetaspaceArena::attempt_enlarge_current_chunk(Words requested_word_size) {
   Metachunk* c = current_chunk();
   assert(c->free_words() < requested_word_size, "Sanity");
 
@@ -215,11 +215,11 @@ bool MetaspaceArena::attempt_enlarge_current_chunk(size_t requested_word_size) {
 // 3) Attempt to enlarge the current chunk in place if it is too small.
 // 4) Attempt to get a new chunk and allocate from that chunk.
 // At any point, if we hit a commit limit, we return null.
-MetaWord* MetaspaceArena::allocate(size_t requested_word_size) {
+MetaWord* MetaspaceArena::allocate(Words requested_word_size) {
   UL2(trace, "requested " SIZE_FORMAT " words.", requested_word_size);
 
   MetaWord* p = nullptr;
-  const size_t aligned_word_size = get_raw_word_size_for_requested_word_size(requested_word_size);
+  const Words aligned_word_size = get_raw_word_size_for_requested_word_size(requested_word_size);
 
   // Before bothering the arena proper, attempt to re-use a block from the free blocks list
   if (_fbl != nullptr && !_fbl->is_empty()) {
@@ -243,7 +243,7 @@ MetaWord* MetaspaceArena::allocate(size_t requested_word_size) {
   // Fence allocation
   if (p != nullptr && Settings::use_allocation_guard()) {
     STATIC_ASSERT(is_aligned(sizeof(Fence), BytesPerWord));
-    MetaWord* guard = allocate_inner(sizeof(Fence) / BytesPerWord);
+    MetaWord* guard = allocate_inner(in_Words(sizeof(Fence) / BytesPerWord));
     if (guard != nullptr) {
       // Ignore allocation errors for the fence to keep coding simple. If this
       // happens (e.g. because right at this time we hit the Metaspace GC threshold)
@@ -260,7 +260,7 @@ MetaWord* MetaspaceArena::allocate(size_t requested_word_size) {
 }
 
 // Allocate from the arena proper, once dictionary allocations and fencing are sorted out.
-MetaWord* MetaspaceArena::allocate_inner(size_t word_size) {
+MetaWord* MetaspaceArena::allocate_inner(Words word_size) {
   assert_is_aligned(word_size, metaspace::AllocationAlignmentWordSize);
 
   MetaWord* p = nullptr;
@@ -351,7 +351,7 @@ MetaWord* MetaspaceArena::allocate_inner(size_t word_size) {
 
 // Prematurely returns a metaspace allocation to the _block_freelists
 // because it is not needed anymore (requires CLD lock to be active).
-void MetaspaceArena::deallocate(MetaWord* p, size_t word_size) {
+void MetaspaceArena::deallocate(MetaWord* p, Words word_size) {
   // At this point a current chunk must exist since we only deallocate if we did allocate before.
   assert(current_chunk() != nullptr, "stray deallocation?");
   assert(is_valid_area(p, word_size),
@@ -366,7 +366,7 @@ void MetaspaceArena::deallocate(MetaWord* p, size_t word_size) {
   // Therefore the pointer must be aligned correctly, and size can be alignment-adjusted (the latter
   // only matters on 32-bit):
   assert_is_aligned_metaspace_pointer(p);
-  size_t raw_word_size = get_raw_word_size_for_requested_word_size(word_size);
+  Words raw_word_size = get_raw_word_size_for_requested_word_size(word_size);
 
   add_allocation_to_fbl(p, raw_word_size);
 
@@ -399,8 +399,8 @@ void MetaspaceArena::add_to_statistics(ArenaStats* out) const {
 
 // Convenience method to get the most important usage statistics.
 // For deeper analysis use add_to_statistics().
-void MetaspaceArena::usage_numbers(size_t* p_used_words, size_t* p_committed_words, size_t* p_capacity_words) const {
-  size_t used = 0, comm = 0, cap = 0;
+void MetaspaceArena::usage_numbers(Words* p_used_words, Words* p_committed_words, Words* p_capacity_words) const {
+  Words used = Words(0), comm = Words(0), cap = Words(0);
   for (const Metachunk* c = _chunks.first(); c != nullptr; c = c->next()) {
     used += c->used_words();
     comm += c->committed_words();
@@ -441,8 +441,8 @@ void MetaspaceArena::verify_allocation_guards() const {
 
 // Returns true if the area indicated by pointer and size have actually been allocated
 // from this arena.
-bool MetaspaceArena::is_valid_area(MetaWord* p, size_t word_size) const {
-  assert(p != nullptr && word_size > 0, "Sanity");
+bool MetaspaceArena::is_valid_area(MetaWord* p, Words word_size) const {
+  assert(p != nullptr && word_size > Words(0), "Sanity");
   bool found = false;
   for (const Metachunk* c = _chunks.first(); c != nullptr && !found; c = c->next()) {
     assert(c->is_valid_committed_pointer(p) ==

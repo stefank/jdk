@@ -758,8 +758,8 @@ public:
 void G1ConcurrentMark::clear_bitmap(WorkerThreads* workers, bool may_yield) {
   assert(may_yield || SafepointSynchronize::is_at_safepoint(), "Non-yielding bitmap clear only allowed at safepoint.");
 
-  size_t const num_bytes_to_clear = (HeapRegion::GrainBytes * _g1h->num_regions()) / G1CMBitMap::heap_map_factor();
-  size_t const num_chunks = align_up(num_bytes_to_clear, G1ClearBitMapTask::chunk_size()) / G1ClearBitMapTask::chunk_size();
+  Bytes const num_bytes_to_clear = (HeapRegion::GrainBytes * _g1h->num_regions()) / G1CMBitMap::heap_map_factor();
+  size_t const num_chunks = align_up(untype(num_bytes_to_clear), G1ClearBitMapTask::chunk_size()) / G1ClearBitMapTask::chunk_size();
 
   uint const num_workers = (uint)MIN2(num_chunks, (size_t)workers->active_workers());
 
@@ -1019,7 +1019,7 @@ void G1ConcurrentMark::scan_root_region(const MemRegion* region, uint worker_id)
   while (curr < end) {
     Prefetch::read(curr, interval);
     oop obj = cast_to_oop(curr);
-    size_t size = obj->oop_iterate_size(&cl);
+    Words size = obj->oop_iterate_size(&cl);
     assert(size == obj->size(), "sanity");
     curr += size;
   }
@@ -1191,7 +1191,7 @@ class G1UpdateRemSetTrackingBeforeRebuildTask : public WorkerTask {
         bool const is_live = _cm->contains_live_object(hr->humongous_start_region()->hrm_index());
         selected_for_rebuild = tracking_policy->update_humongous_before_rebuild(hr, is_live);
       } else {
-        size_t const live_bytes = _cm->live_bytes(hr->hrm_index());
+        Bytes const live_bytes = _cm->live_bytes(hr->hrm_index());
         selected_for_rebuild = tracking_policy->update_before_rebuild(hr, live_bytes);
       }
       if (selected_for_rebuild) {
@@ -1202,14 +1202,14 @@ class G1UpdateRemSetTrackingBeforeRebuildTask : public WorkerTask {
 
     // Distribute the given marked bytes across the humongous object starting
     // with hr and note end of marking for these regions.
-    void distribute_marked_bytes(HeapRegion* hr, size_t marked_bytes) {
+    void distribute_marked_bytes(HeapRegion* hr, Bytes marked_bytes) {
       // Dead humongous objects (marked_bytes == 0) may have already been unloaded.
-      assert(marked_bytes == 0 || cast_to_oop(hr->bottom())->size() * HeapWordSize == marked_bytes,
+      assert(marked_bytes == Bytes(0) || to_Bytes(cast_to_oop(hr->bottom())->size()) == marked_bytes,
              "Marked bytes should either be 0 or the same as humongous object (%zu) but is %zu",
-             cast_to_oop(hr->bottom())->size() * HeapWordSize, marked_bytes);
+             to_Bytes(cast_to_oop(hr->bottom())->size()), marked_bytes);
 
       auto distribute_bytes = [&] (HeapRegion* r) {
-        size_t const bytes_to_add = MIN2(HeapRegion::GrainBytes, marked_bytes);
+        Bytes const bytes_to_add = MIN2(HeapRegion::GrainBytes, marked_bytes);
 
         log_trace(gc, marking)("Adding %zu bytes to humongous region %u (%s)",
                                bytes_to_add, r->hrm_index(), r->get_type_str());
@@ -1221,12 +1221,12 @@ class G1UpdateRemSetTrackingBeforeRebuildTask : public WorkerTask {
 
     void update_marked_bytes(HeapRegion* hr) {
       uint const region_idx = hr->hrm_index();
-      size_t const marked_bytes = _cm->live_bytes(region_idx);
+      Bytes const marked_bytes = _cm->live_bytes(region_idx);
       // The marking attributes the object's size completely to the humongous starts
       // region. We need to distribute this value across the entire set of regions a
       // humongous object spans.
       if (hr->is_humongous()) {
-        assert(hr->is_starts_humongous() || marked_bytes == 0,
+        assert(hr->is_starts_humongous() || marked_bytes == Bytes(0),
                "Should not have live bytes %zu in continues humongous region %u (%s)",
                marked_bytes, region_idx, hr->get_type_str());
         if (hr->is_starts_humongous()) {
@@ -1238,7 +1238,7 @@ class G1UpdateRemSetTrackingBeforeRebuildTask : public WorkerTask {
       }
     }
 
-    void add_marked_bytes_and_note_end(HeapRegion* hr, size_t marked_bytes) {
+    void add_marked_bytes_and_note_end(HeapRegion* hr, Bytes marked_bytes) {
       hr->note_end_of_marking(marked_bytes);
       _cl->do_heap_region(hr);
     }
@@ -1418,7 +1418,7 @@ void G1ConcurrentMark::remark() {
 class G1ReclaimEmptyRegionsTask : public WorkerTask {
   class G1ReclaimEmptyRegionsClosure : public HeapRegionClosure {
     G1CollectedHeap* _g1h;
-    size_t _freed_bytes;
+    Bytes _freed_bytes;
     FreeRegionList* _local_cleanup_list;
     uint _old_regions_removed;
     uint _humongous_regions_removed;
@@ -1427,17 +1427,17 @@ class G1ReclaimEmptyRegionsTask : public WorkerTask {
     G1ReclaimEmptyRegionsClosure(G1CollectedHeap* g1h,
                                  FreeRegionList* local_cleanup_list) :
       _g1h(g1h),
-      _freed_bytes(0),
+      _freed_bytes(Bytes(0)),
       _local_cleanup_list(local_cleanup_list),
       _old_regions_removed(0),
       _humongous_regions_removed(0) { }
 
-    size_t freed_bytes() { return _freed_bytes; }
+    Bytes freed_bytes() { return _freed_bytes; }
     uint old_regions_removed() { return _old_regions_removed; }
     uint humongous_regions_removed() { return _humongous_regions_removed; }
 
     bool do_heap_region(HeapRegion *hr) {
-      bool can_reclaim = hr->used() > 0 && hr->live_bytes() == 0 &&
+      bool can_reclaim = hr->used() > Bytes(0) && hr->live_bytes() == Bytes(0) &&
                          !hr->is_young() && !hr->has_pinned_objects();
 
       if (can_reclaim) {
@@ -2626,7 +2626,7 @@ void G1CMTask::do_marking_step(double time_target_ms,
 
   // set up the variables that are used in the work-based scheme to
   // call the regular clock method
-  _words_scanned = 0;
+  _words_scanned = Words(0);
   _refs_reached  = 0;
   recalculate_limits();
 
@@ -2930,9 +2930,9 @@ G1CMTask::G1CMTask(uint worker_id,
   _curr_region(nullptr),
   _finger(nullptr),
   _region_limit(nullptr),
-  _words_scanned(0),
-  _words_scanned_limit(0),
-  _real_words_scanned_limit(0),
+  _words_scanned(Words(0)),
+  _words_scanned_limit(Words(0)),
+  _real_words_scanned_limit(Words(0)),
   _refs_reached(0),
   _refs_reached_limit(0),
   _real_refs_reached_limit(0),
@@ -2985,11 +2985,11 @@ G1CMTask::G1CMTask(uint worker_id,
 #define G1PPRL_SUM_MB_PERC_FORMAT(tag) G1PPRL_SUM_MB_FORMAT(tag) " / %1.2f %%"
 
 G1PrintRegionLivenessInfoClosure::G1PrintRegionLivenessInfoClosure(const char* phase_name) :
-  _total_used_bytes(0),
-  _total_capacity_bytes(0),
-  _total_live_bytes(0),
-  _total_remset_bytes(0),
-  _total_code_roots_bytes(0)
+  _total_used_bytes(Bytes(0)),
+  _total_capacity_bytes(Bytes(0)),
+  _total_live_bytes(Bytes(0)),
+  _total_remset_bytes(Bytes(0)),
+  _total_code_roots_bytes(Bytes(0))
 {
   if (!log_is_enabled(Trace, gc, liveness)) {
     return;
@@ -3041,12 +3041,12 @@ bool G1PrintRegionLivenessInfoClosure::do_heap_region(HeapRegion* r) {
   const char* type       = r->get_type_str();
   HeapWord* bottom       = r->bottom();
   HeapWord* end          = r->end();
-  size_t capacity_bytes  = r->capacity();
-  size_t used_bytes      = r->used();
-  size_t live_bytes      = r->live_bytes();
+  Bytes capacity_bytes   = r->capacity();
+  Bytes used_bytes       = r->used();
+  Bytes live_bytes       = r->live_bytes();
   double gc_eff          = r->calc_gc_efficiency();
-  size_t remset_bytes    = r->rem_set()->mem_size();
-  size_t code_roots_bytes = r->rem_set()->code_roots_mem_size();
+  Bytes remset_bytes     = r->rem_set()->mem_size();
+  Bytes code_roots_bytes = r->rem_set()->code_roots_mem_size();
   const char* remset_type = r->rem_set()->get_short_state_str();
   FormatBuffer<16> gc_efficiency("");
 

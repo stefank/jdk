@@ -86,10 +86,9 @@
   nonstatic_field(BarrierSet::FakeRtti,        _concrete_tag,                                 BarrierSet::Name)                      \
                                                                                                                                      \
   nonstatic_field(CardTable,                   _whole_heap,                                   const MemRegion)                       \
-  nonstatic_field(CardTable,                   _page_size,                                    const size_t)                          \
-  nonstatic_field(CardTable,                   _byte_map_size,                                const size_t)                          \
+  nonstatic_field(CardTable,                   _page_size,                                    const Bytes)                           \
+  nonstatic_field(CardTable,                   _byte_map_size,                                const Bytes)                           \
   nonstatic_field(CardTable,                   _byte_map,                                     CardTable::CardValue*)                 \
-  nonstatic_field(CardTable,                   _guard_region,                                 MemRegion)                             \
   nonstatic_field(CardTable,                   _byte_map_base,                                CardTable::CardValue*)                 \
   nonstatic_field(CardTableBarrierSet,         _defer_initial_card_mark,                      bool)                                  \
   nonstatic_field(CardTableBarrierSet,         _card_table,                                   CardTable*)                            \
@@ -102,7 +101,7 @@
   nonstatic_field(ContiguousSpace,             _saved_mark_word,                              HeapWord*)                             \
                                                                                                                                      \
   nonstatic_field(MemRegion,                   _start,                                        HeapWord*)                             \
-  nonstatic_field(MemRegion,                   _word_size,                                    size_t)                                \
+  nonstatic_field(MemRegion,                   _word_size,                                    Words)                                 \
                                                                                                                                      \
   nonstatic_field(Space,                       _bottom,                                       HeapWord*)                             \
   nonstatic_field(Space,                       _end,                                          HeapWord*)

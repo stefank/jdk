@@ -41,23 +41,23 @@ GCAdaptivePolicyCounters::GCAdaptivePolicyCounters(const char* name,
 
     const char* cname = PerfDataManager::counter_name(name_space(), "edenSize");
     _eden_size_counter = PerfDataManager::create_variable(SUN_GC, cname,
-      PerfData::U_Bytes, _size_policy->calculated_eden_size_in_bytes(), CHECK);
+      PerfData::U_Bytes, untype(_size_policy->calculated_eden_size_in_bytes()), CHECK);
 
     cname = PerfDataManager::counter_name(name_space(), "promoSize");
     _promo_size_counter = PerfDataManager::create_variable(SUN_GC, cname,
-      PerfData::U_Bytes, size_policy()->calculated_promo_size_in_bytes(),
+      PerfData::U_Bytes, untype(size_policy()->calculated_promo_size_in_bytes()),
       CHECK);
 
     cname = PerfDataManager::counter_name(name_space(), "youngCapacity");
-    size_t young_capacity_in_bytes =
+    Bytes young_capacity_in_bytes =
       _size_policy->calculated_eden_size_in_bytes() +
       _size_policy->calculated_survivor_size_in_bytes();
     _young_capacity_counter = PerfDataManager::create_variable(SUN_GC, cname,
-      PerfData::U_Bytes, young_capacity_in_bytes, CHECK);
+      PerfData::U_Bytes, untype(young_capacity_in_bytes), CHECK);
 
     cname = PerfDataManager::counter_name(name_space(), "avgSurvivedAvg");
     _avg_survived_avg_counter = PerfDataManager::create_variable(SUN_GC, cname,
-      PerfData::U_Bytes, size_policy()->calculated_survivor_size_in_bytes(),
+      PerfData::U_Bytes, untype(size_policy()->calculated_survivor_size_in_bytes()),
         CHECK);
 
     cname = PerfDataManager::counter_name(name_space(), "avgSurvivedDev");
@@ -67,7 +67,7 @@ GCAdaptivePolicyCounters::GCAdaptivePolicyCounters(const char* name,
     cname = PerfDataManager::counter_name(name_space(), "avgSurvivedPaddedAvg");
     _avg_survived_padded_avg_counter =
       PerfDataManager::create_variable(SUN_GC, cname, PerfData::U_Bytes,
-        size_policy()->calculated_survivor_size_in_bytes(), CHECK);
+        untype(size_policy()->calculated_survivor_size_in_bytes()), CHECK);
 
     cname = PerfDataManager::counter_name(name_space(), "avgMinorPauseTime");
     _avg_minor_pause_counter = PerfDataManager::create_variable(SUN_GC, cname,

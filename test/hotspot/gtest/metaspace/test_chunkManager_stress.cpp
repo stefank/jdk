@@ -53,7 +53,7 @@ class ChunkManagerRandomChunkAllocTest {
   static int max_num_live_chunks(ChunkLevelRange r, float commit_factor) {
     // Assuming we allocate only the largest type of chunk, committed to the fullest commit factor,
     // how many chunks can we accomodate before hitting max_footprint_words?
-    const size_t largest_chunk_size = word_size_for_level(r.lowest());
+    const Words largest_chunk_size = word_size_for_level(r.lowest());
     int max_chunks = (int)((max_footprint_words * commit_factor) / (float) largest_chunk_size);
     // .. but cap at (min) 50 and (max) 1000
     max_chunks = MIN2(1000, max_chunks);
@@ -63,11 +63,11 @@ class ChunkManagerRandomChunkAllocTest {
 
   // Return true if, after an allocation error happened, a reserve error seems possible.
   bool could_be_reserve_error() {
-    return _context.reserve_limit() < max_uintx;
+    return _context.reserve_limit() < in_Words(max_uintx);
   }
 
   // Return true if, after an allocation error happened, a commit error seems likely.
-  bool could_be_commit_error(size_t additional_word_size) {
+  bool could_be_commit_error(Words additional_word_size) {
 
     // could it be commit limit hit?
 
@@ -85,7 +85,7 @@ class ChunkManagerRandomChunkAllocTest {
     // Here, I check (b) and trust it to be correct. We also call vslist::verify().
     DEBUG_ONLY(_context.verify();)
 
-    const size_t commit_add = align_up(additional_word_size, Settings::commit_granule_words());
+    const Words commit_add = align_up(additional_word_size, Settings::commit_granule_words());
     if (_context.commit_limit() <= (commit_add + _context.vslist().committed_words())) {
       return true;
     }
@@ -95,12 +95,12 @@ class ChunkManagerRandomChunkAllocTest {
   }
 
   // Given a chunk level and a factor, return a random commit size.
-  static size_t random_committed_words(chunklevel_t lvl, float commit_factor) {
+  static Words random_committed_words(chunklevel_t lvl, float commit_factor) {
     const size_t sz = (size_t)((float)word_size_for_level(lvl) * commit_factor);
     if (sz < 2) {
-      return 0;
+      return Words(0);
     }
-    return MIN2(SizeRange(sz).random_value(), sz);
+    return in_Words(MIN2(SizeRange(sz).random_value(), sz));
   }
 
   //// Chunk allocation ////
@@ -114,7 +114,7 @@ class ChunkManagerRandomChunkAllocTest {
     const ChunkLevelRange r = _chunklevel_range.random_subrange();
     const chunklevel_t pref_level = r.lowest();
     const chunklevel_t max_level = r.highest();
-    const size_t min_committed = random_committed_words(max_level, _commit_factor);
+    const Words min_committed = random_committed_words(max_level, _commit_factor);
 
     Metachunk* c = nullptr;
     _context.alloc_chunk(&c, r.lowest(), r.highest(), min_committed);
@@ -231,7 +231,7 @@ public:
   {}
 
   // A test with no reserve limit but commit limit
-  ChunkManagerRandomChunkAllocTest(size_t commit_limit,
+  ChunkManagerRandomChunkAllocTest(Words commit_limit,
                                    ChunkLevelRange r, float commit_factor) :
     _context(commit_limit),
     _chunks(max_num_live_chunks(r, commit_factor)),
@@ -273,7 +273,7 @@ DEFINE_TEST(test_nolimit_6, ChunkLevelRanges::all_chunks(), 1.0f)
 
 #define DEFINE_TEST_2(name, range, commit_factor) \
 TEST_VM(metaspace, chunkmanager_random_alloc_##name) { \
-  const size_t commit_limit = 256 * K; \
+  const Words commit_limit = in_Words(256 * K); \
   ChunkManagerRandomChunkAllocTest test(commit_limit, range, commit_factor); \
   test.do_tests(); \
 }

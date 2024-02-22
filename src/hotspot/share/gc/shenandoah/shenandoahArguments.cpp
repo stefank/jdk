@@ -179,12 +179,12 @@ void ShenandoahArguments::initialize() {
   }
 }
 
-size_t ShenandoahArguments::conservative_max_heap_alignment() {
+Bytes ShenandoahArguments::conservative_max_heap_alignment() {
   size_t align = ShenandoahMaxRegionSize;
   if (UseLargePages) {
     align = MAX2(align, os::large_page_size());
   }
-  return align;
+  return in_Bytes(align);
 }
 
 void ShenandoahArguments::initialize_alignments() {

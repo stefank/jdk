@@ -32,8 +32,8 @@
 #include "runtime/globals_extension.hpp"
 #include "utilities/macros.hpp"
 
-size_t HeapAlignment = 0;
-size_t SpaceAlignment = 0;
+Bytes HeapAlignment = Bytes(0);
+Bytes SpaceAlignment = Bytes(0);
 
 void GCArguments::initialize() {
   if (FullGCALot && FLAG_IS_DEFAULT(MarkSweepAlwaysCompactCount)) {
@@ -66,19 +66,19 @@ void GCArguments::initialize_heap_sizes() {
   initialize_size_info();
 }
 
-size_t GCArguments::compute_heap_alignment() {
+Bytes GCArguments::compute_heap_alignment() {
   // The card marking array and the offset arrays for old generations are
   // committed in os pages as well. Make sure they are entirely full (to
   // avoid partial page problems), e.g. if 512 bytes heap corresponds to 1
   // byte entry and the os page size is 4096, the maximum heap size should
   // be 512*4096 = 2MB aligned.
 
-  size_t alignment = CardTable::ct_max_alignment_constraint();
+  Bytes alignment = CardTable::ct_max_alignment_constraint();
 
   if (UseLargePages) {
       // In presence of large pages we have to make sure that our
       // alignment is large page aware.
-      alignment = lcm(os::large_page_size(), alignment);
+      alignment = in_Bytes(lcm(os::large_page_size(), untype(alignment)));
   }
 
   return alignment;
@@ -87,17 +87,17 @@ size_t GCArguments::compute_heap_alignment() {
 #ifdef ASSERT
 void GCArguments::assert_flags() {
   assert(InitialHeapSize <= MaxHeapSize, "Ergonomics decided on incompatible initial and maximum heap sizes");
-  assert(InitialHeapSize % HeapAlignment == 0, "InitialHeapSize alignment");
-  assert(MaxHeapSize % HeapAlignment == 0, "MaxHeapSize alignment");
+  assert(is_aligned(InitialHeapSize, HeapAlignment), "InitialHeapSize alignment");
+  assert(is_aligned(MaxHeapSize, HeapAlignment), "MaxHeapSize alignment");
 }
 
 void GCArguments::assert_size_info() {
   assert(MaxHeapSize >= MinHeapSize, "Ergonomics decided on incompatible minimum and maximum heap sizes");
   assert(InitialHeapSize >= MinHeapSize, "Ergonomics decided on incompatible initial and minimum heap sizes");
   assert(MaxHeapSize >= InitialHeapSize, "Ergonomics decided on incompatible initial and maximum heap sizes");
-  assert(MinHeapSize % HeapAlignment == 0, "MinHeapSize alignment");
-  assert(InitialHeapSize % HeapAlignment == 0, "InitialHeapSize alignment");
-  assert(MaxHeapSize % HeapAlignment == 0, "MaxHeapSize alignment");
+  assert(is_aligned(MinHeapSize, HeapAlignment), "MinHeapSize alignment");
+  assert(is_aligned(InitialHeapSize, HeapAlignment), "InitialHeapSize alignment");
+  assert(is_aligned(MaxHeapSize, HeapAlignment), "MaxHeapSize alignment");
 }
 #endif // ASSERT
 
@@ -109,12 +109,12 @@ void GCArguments::initialize_size_info() {
 }
 
 void GCArguments::initialize_heap_flags_and_sizes() {
-  assert(SpaceAlignment != 0, "Space alignment not set up properly");
-  assert(HeapAlignment != 0, "Heap alignment not set up properly");
+  assert(SpaceAlignment != Bytes(0), "Space alignment not set up properly");
+  assert(HeapAlignment != Bytes(0), "Heap alignment not set up properly");
   assert(HeapAlignment >= SpaceAlignment,
          "HeapAlignment: " SIZE_FORMAT " less than SpaceAlignment: " SIZE_FORMAT,
          HeapAlignment, SpaceAlignment);
-  assert(HeapAlignment % SpaceAlignment == 0,
+  assert(is_aligned(HeapAlignment, SpaceAlignment),
          "HeapAlignment: " SIZE_FORMAT " not aligned by SpaceAlignment: " SIZE_FORMAT,
          HeapAlignment, SpaceAlignment);
 
@@ -145,14 +145,14 @@ void GCArguments::initialize_heap_flags_and_sizes() {
 
   // User inputs from -Xmx and -Xms must be aligned
   // Write back to flags if the values changed
-  if (!is_aligned(MinHeapSize, HeapAlignment)) {
-    FLAG_SET_ERGO(MinHeapSize, align_up(MinHeapSize, HeapAlignment));
+  if (!is_aligned(MinHeapSize, untype(HeapAlignment))) {
+    FLAG_SET_ERGO(MinHeapSize, align_up(MinHeapSize, untype(HeapAlignment)));
   }
-  if (!is_aligned(InitialHeapSize, HeapAlignment)) {
-    FLAG_SET_ERGO(InitialHeapSize, align_up(InitialHeapSize, HeapAlignment));
+  if (!is_aligned(InitialHeapSize, untype(HeapAlignment))) {
+    FLAG_SET_ERGO(InitialHeapSize, align_up(InitialHeapSize, untype(HeapAlignment)));
   }
-  if (!is_aligned(MaxHeapSize, HeapAlignment)) {
-    FLAG_SET_ERGO(MaxHeapSize, align_up(MaxHeapSize, HeapAlignment));
+  if (!is_aligned(MaxHeapSize, untype(HeapAlignment))) {
+    FLAG_SET_ERGO(MaxHeapSize, align_up(MaxHeapSize, untype(HeapAlignment)));
   }
 
   if (!FLAG_IS_DEFAULT(InitialHeapSize) && InitialHeapSize > MaxHeapSize) {
@@ -168,7 +168,7 @@ void GCArguments::initialize_heap_flags_and_sizes() {
     FLAG_SET_ERGO(SoftMaxHeapSize, MaxHeapSize);
   }
 
-  FLAG_SET_ERGO(MinHeapDeltaBytes, align_up(MinHeapDeltaBytes, SpaceAlignment));
+  FLAG_SET_ERGO(MinHeapDeltaBytes, align_up(MinHeapDeltaBytes, untype(SpaceAlignment)));
 
   DEBUG_ONLY(assert_flags();)
 }

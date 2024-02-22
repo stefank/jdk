@@ -69,10 +69,10 @@ class ClassLoadingService : public AllStatic {
       NOT_MANAGEMENT_RETURN;
   // All unloaded classes are non-shared
   static void notify_class_unloaded(InstanceKlass* k) NOT_MANAGEMENT_RETURN;
-  static void add_class_method_size(int size) {
+  static void add_class_method_size(Bytes size) {
 #if INCLUDE_MANAGEMENT
     if (UsePerfData) {
-      _class_methods_size->inc(size);
+      _class_methods_size->inc(untype(size));
     }
 #endif // INCLUDE_MANAGEMENT
   }

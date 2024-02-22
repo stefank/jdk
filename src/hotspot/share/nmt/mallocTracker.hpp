@@ -44,57 +44,57 @@ struct malloclimit;
 class MemoryCounter {
  private:
   volatile size_t   _count;
-  volatile size_t   _size;
+  volatile Bytes   _size;
 
   // Peak size and count. Note: Peak count is the count at the point
   // peak size was reached, not the absolute highest peak count.
   volatile size_t _peak_count;
-  volatile size_t _peak_size;
-  void update_peak(size_t size, size_t cnt);
+  volatile Bytes _peak_size;
+  void update_peak(Bytes size, size_t cnt);
 
  public:
-  MemoryCounter() : _count(0), _size(0), _peak_count(0), _peak_size(0) {}
+  MemoryCounter() : _count(0), _size(Bytes(0)), _peak_count(0), _peak_size(Bytes(0)) {}
 
-  inline void set_size_and_count(size_t size, size_t count) {
+  inline void set_size_and_count(Bytes size, size_t count) {
     _size = size;
     _count = count;
     update_peak(size, count);
   }
 
-  inline void allocate(size_t sz) {
+  inline void allocate(Bytes sz) {
     size_t cnt = Atomic::add(&_count, size_t(1), memory_order_relaxed);
-    if (sz > 0) {
-      size_t sum = Atomic::add(&_size, sz, memory_order_relaxed);
+    if (sz > Bytes(0)) {
+      Bytes sum = in_Bytes(Atomic::add((volatile size_t*)&_size, untype(sz), memory_order_relaxed));
       update_peak(sum, cnt);
     }
   }
 
-  inline void deallocate(size_t sz) {
+  inline void deallocate(Bytes sz) {
     assert(count() > 0, "Nothing allocated yet");
     assert(size() >= sz, "deallocation > allocated");
     Atomic::dec(&_count, memory_order_relaxed);
-    if (sz > 0) {
-      Atomic::sub(&_size, sz, memory_order_relaxed);
+    if (sz > Bytes(0)) {
+      Atomic::sub((volatile size_t*)&_size, untype(sz), memory_order_relaxed);
     }
   }
 
   inline void resize(ssize_t sz) {
     if (sz != 0) {
-      assert(sz >= 0 || size() >= size_t(-sz), "Must be");
-      size_t sum = Atomic::add(&_size, size_t(sz), memory_order_relaxed);
+      assert(sz >= 0 || size() >= in_Bytes(size_t(-sz)), "Must be");
+      Bytes sum = in_Bytes(Atomic::add((volatile size_t*)&_size, size_t(sz), memory_order_relaxed));
       update_peak(sum, _count);
     }
   }
 
   inline size_t count() const { return Atomic::load(&_count); }
-  inline size_t size()  const { return Atomic::load(&_size);  }
+  inline Bytes size()   const { return in_Bytes(Atomic::load((volatile size_t*)&_size));  }
 
   inline size_t peak_count() const {
     return Atomic::load(&_peak_count);
   }
 
-  inline size_t peak_size() const {
-    return Atomic::load(&_peak_size);
+  inline Bytes peak_size() const {
+    return in_Bytes(Atomic::load((volatile size_t*)&_peak_size));
   }
 };
 
@@ -111,31 +111,31 @@ class MallocMemory {
  public:
   MallocMemory() { }
 
-  inline void record_malloc(size_t sz) {
+  inline void record_malloc(Bytes sz) {
     _malloc.allocate(sz);
   }
 
-  inline void record_free(size_t sz) {
+  inline void record_free(Bytes sz) {
     _malloc.deallocate(sz);
   }
 
   inline void record_new_arena() {
-    _arena.allocate(0);
+    _arena.allocate(Bytes(0));
   }
 
   inline void record_arena_free() {
-    _arena.deallocate(0);
+    _arena.deallocate(Bytes(0));
   }
 
   inline void record_arena_size_change(ssize_t sz) {
     _arena.resize(sz);
   }
 
-  inline size_t malloc_size()  const { return _malloc.size(); }
-  inline size_t malloc_peak_size()  const { return _malloc.peak_size(); }
+  inline Bytes malloc_size()  const { return _malloc.size(); }
+  inline Bytes malloc_peak_size()  const { return _malloc.peak_size(); }
   inline size_t malloc_count() const { return _malloc.count();}
-  inline size_t arena_size()   const { return _arena.size();  }
-  inline size_t arena_peak_size()  const { return _arena.peak_size(); }
+  inline Bytes arena_size()   const { return _arena.size();  }
+  inline Bytes arena_peak_size()  const { return _arena.peak_size(); }
   inline size_t arena_count()  const { return _arena.count(); }
 
   const MemoryCounter* malloc_counter() const { return &_malloc; }
@@ -165,8 +165,8 @@ class MallocMemorySnapshot {
     return &_malloc[index];
   }
 
-  inline size_t malloc_overhead() const {
-    return _all_mallocs.count() * sizeof(MallocHeader);
+  inline Bytes malloc_overhead() const {
+    return _all_mallocs.count() * in_Bytes(sizeof(MallocHeader));
   }
 
   // Total malloc invocation count
@@ -175,12 +175,12 @@ class MallocMemorySnapshot {
   }
 
   // Total malloc'd memory amount
-  size_t total() const {
+  Bytes total() const {
     return _all_mallocs.size() + malloc_overhead() + total_arena();
   }
 
   // Total malloc'd memory used by arenas
-  size_t total_arena() const;
+  Bytes total_arena() const;
 
   void copy_to(MallocMemorySnapshot* s);
 
@@ -200,21 +200,21 @@ class MallocMemorySummary : AllStatic {
 
   // Called when a total limit break was detected.
   // Will return true if the limit was handled, false if it was ignored.
-  static bool total_limit_reached(size_t s, size_t so_far, const malloclimit* limit);
+  static bool total_limit_reached(Bytes s, Bytes so_far, const malloclimit* limit);
 
   // Called when a total limit break was detected.
   // Will return true if the limit was handled, false if it was ignored.
-  static bool category_limit_reached(MEMFLAGS f, size_t s, size_t so_far, const malloclimit* limit);
+  static bool category_limit_reached(MEMFLAGS f, Bytes s, Bytes so_far, const malloclimit* limit);
 
  public:
    static void initialize();
 
-   static inline void record_malloc(size_t size, MEMFLAGS flag) {
+   static inline void record_malloc(Bytes size, MEMFLAGS flag) {
      as_snapshot()->by_type(flag)->record_malloc(size);
      as_snapshot()->_all_mallocs.allocate(size);
    }
 
-   static inline void record_free(size_t size, MEMFLAGS flag) {
+   static inline void record_free(Bytes size, MEMFLAGS flag) {
      as_snapshot()->by_type(flag)->record_free(size);
      as_snapshot()->_all_mallocs.deallocate(size);
    }
@@ -237,7 +237,7 @@ class MallocMemorySummary : AllStatic {
    }
 
    // The memory used by malloc tracking headers
-   static inline size_t tracking_overhead() {
+   static inline Bytes tracking_overhead() {
      return as_snapshot()->malloc_overhead();
    }
 
@@ -247,7 +247,7 @@ class MallocMemorySummary : AllStatic {
 
   // MallocLimit: returns true if allocating s bytes on f would trigger
   // either global or the category limit
-  static inline bool check_exceeds_limit(size_t s, MEMFLAGS f);
+  static inline bool check_exceeds_limit(Bytes s, MEMFLAGS f);
 
 };
 
@@ -270,7 +270,7 @@ class MallocTracker : AllStatic {
   //
 
   // Record  malloc on specified memory block
-  static void* record_malloc(void* malloc_base, size_t size, MEMFLAGS flags,
+  static void* record_malloc(void* malloc_base, Bytes size, MEMFLAGS flags,
     const NativeCallStack& stack);
 
   // Given a block returned by os::malloc() or os::realloc():
@@ -293,7 +293,7 @@ class MallocTracker : AllStatic {
 
   // MallocLimt: Given an allocation size s, check if mallocing this much
   // under category f would hit either the global limit or the limit for category f.
-  static inline bool check_exceeds_limit(size_t s, MEMFLAGS f);
+  static inline bool check_exceeds_limit(Bytes s, MEMFLAGS f);
 
   // Given a pointer, look for the containing malloc block.
   // Print the block. Note that since there is very low risk of memory looking

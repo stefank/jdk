@@ -91,8 +91,8 @@ public:
   void verify() const;
 #endif
 
-  size_t calc_committed_word_size() const;
-  size_t calc_word_size() const;
+  Words calc_committed_word_size() const;
+  Words calc_word_size() const;
 
   void print_on(outputStream* st) const;
 

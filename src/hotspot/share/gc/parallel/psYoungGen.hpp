@@ -45,8 +45,8 @@ class PSYoungGen : public CHeapObj<mtGC> {
   MutableSpace* _to_space;
 
   // Sizing information, in bytes, set in constructor
-  const size_t _min_gen_size;
-  const size_t _max_gen_size;
+  const Bytes _min_gen_size;
+  const Bytes _max_gen_size;
 
   // Performance counters
   PSGenerationCounters* _gen_counters;
@@ -58,34 +58,34 @@ class PSYoungGen : public CHeapObj<mtGC> {
   void compute_initial_space_boundaries();
 
   // Space boundary helper
-  void set_space_boundaries(size_t eden_size, size_t survivor_size);
+  void set_space_boundaries(Bytes eden_size, Bytes survivor_size);
 
-  bool resize_generation(size_t eden_size, size_t survivor_size);
-  void resize_spaces(size_t eden_size, size_t survivor_size);
+  bool resize_generation(Bytes eden_size, Bytes survivor_size);
+  void resize_spaces(Bytes eden_size, Bytes survivor_size);
 
   // Adjust the spaces to be consistent with the virtual space.
   void post_resize();
 
   // Given a desired shrinkage in the size of the young generation,
   // return the actual size available for shrinkage.
-  size_t limit_gen_shrink(size_t desired_change);
+  Bytes limit_gen_shrink(Bytes desired_change);
   // returns the number of bytes available from the current size
   // down to the minimum generation size.
-  size_t available_to_min_gen();
+  Bytes available_to_min_gen();
   // Return the number of bytes available for shrinkage considering
   // the location the live data in the generation.
-  size_t available_to_live();
+  Bytes available_to_live();
 
-  void initialize(ReservedSpace rs, size_t inital_size, size_t alignment);
+  void initialize(ReservedSpace rs, Bytes inital_size, Bytes alignment);
   void initialize_work();
-  void initialize_virtual_space(ReservedSpace rs, size_t initial_size, size_t alignment);
+  void initialize_virtual_space(ReservedSpace rs, Bytes initial_size, Bytes alignment);
 
  public:
   // Initialize the generation.
   PSYoungGen(ReservedSpace rs,
-             size_t initial_byte_size,
-             size_t minimum_byte_size,
-             size_t maximum_byte_size);
+             Bytes initial_byte_size,
+             Bytes minimum_byte_size,
+             Bytes maximum_byte_size);
 
   MemRegion reserved() const { return _reserved; }
 
@@ -109,26 +109,26 @@ class PSYoungGen : public CHeapObj<mtGC> {
   // NOTE:  "eden_size" and "survivor_size" are suggestions only. Current
   //        heap layout (particularly, live objects in from space) might
   //        not allow us to use these values.
-  void resize(size_t eden_size, size_t survivor_size);
+  void resize(Bytes eden_size, Bytes survivor_size);
 
   // Size info
-  size_t capacity_in_bytes() const;
-  size_t used_in_bytes() const;
-  size_t free_in_bytes() const;
+  Bytes capacity_in_bytes() const;
+  Bytes used_in_bytes() const;
+  Bytes free_in_bytes() const;
 
-  size_t capacity_in_words() const;
-  size_t used_in_words() const;
-  size_t free_in_words() const;
+  Words capacity_in_words() const;
+  Words used_in_words() const;
+  Words free_in_words() const;
 
-  size_t min_gen_size() const { return _min_gen_size; }
-  size_t max_gen_size() const { return _max_gen_size; }
+  Bytes min_gen_size() const { return _min_gen_size; }
+  Bytes max_gen_size() const { return _max_gen_size; }
 
   bool is_maximal_no_gc() const {
     return true;  // Never expands except at a GC
   }
 
   // Allocation
-  HeapWord* allocate(size_t word_size) {
+  HeapWord* allocate(Words word_size) {
     HeapWord* result = eden_space()->cas_allocate(word_size);
     return result;
   }

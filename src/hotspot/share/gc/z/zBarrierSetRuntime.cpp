@@ -64,7 +64,7 @@ JRT_LEAF(void, ZBarrierSetRuntime::store_barrier_on_native_oop_field_without_hea
 JRT_END
 
 JRT_LEAF(void, ZBarrierSetRuntime::clone(oopDesc* src, oopDesc* dst, size_t size))
-  HeapAccess<>::clone(src, dst, size);
+  HeapAccess<>::clone(src, dst, in_Words(size));
 JRT_END
 
 address ZBarrierSetRuntime::load_barrier_on_oop_field_preloaded_addr(DecoratorSet decorators) {

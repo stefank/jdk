@@ -53,10 +53,10 @@ class G1PageBasedVirtualSpace {
 
   // The size of the tail in bytes of the handled space that needs to be committed
   // using small pages.
-  size_t _tail_size;
+  Bytes _tail_size;
 
   // The preferred page size used for commit/uncommit in bytes.
-  size_t _page_size;
+  Bytes _page_size;
 
   // Bitmap used for verification of commit/uncommit operations.
   CHeapBitMap _committed;
@@ -89,7 +89,7 @@ class G1PageBasedVirtualSpace {
   // Is the given page index the first after last page?
   bool is_after_last_page(size_t index) const;
   // Is the last page only partially covered by this space?
-  bool is_last_page_partial() const { return !is_aligned(_high_boundary, _page_size); }
+  bool is_last_page_partial() const { return !is_aligned(_high_boundary, untype(_page_size)); }
   // Returns the end address of the given page bounded by the reserved space.
   char* bounded_end_addr(size_t end_page) const;
 
@@ -98,7 +98,7 @@ class G1PageBasedVirtualSpace {
   // Returns true if the entire area is not backed by committed memory.
   bool is_area_uncommitted(size_t start_page, size_t size_in_pages) const;
 
-  void initialize_with_page_size(ReservedSpace rs, size_t used_size, size_t page_size);
+  void initialize_with_page_size(ReservedSpace rs, Bytes used_size, Bytes page_size);
  public:
 
   // Commit the given area of pages starting at start being size_in_pages large.
@@ -113,22 +113,22 @@ class G1PageBasedVirtualSpace {
   // Initialize the given reserved space with the given base address and the size
   // actually used.
   // Prefer to commit in page_size chunks.
-  G1PageBasedVirtualSpace(ReservedSpace rs, size_t used_size, size_t page_size);
+  G1PageBasedVirtualSpace(ReservedSpace rs, Bytes used_size, Bytes page_size);
 
   // Destruction
   ~G1PageBasedVirtualSpace();
 
   // Amount of reserved memory.
-  size_t reserved_size() const;
+  Bytes reserved_size() const;
   // Memory used in this virtual space.
-  size_t committed_size() const;
+  Bytes committed_size() const;
   // Memory left to use/expand in this virtual space.
-  size_t uncommitted_size() const;
+  Bytes uncommitted_size() const;
 
   bool contains(const void* p) const;
 
   MemRegion reserved() {
-    MemRegion x((HeapWord*)_low_boundary, reserved_size() / HeapWordSize);
+    MemRegion x((HeapWord*)_low_boundary, to_Words(reserved_size()));
     return x;
   }
 
@@ -136,7 +136,7 @@ class G1PageBasedVirtualSpace {
 
   // Returns the address of the given page index.
   char*  page_start(size_t index) const;
-  size_t page_size() const;
+  Bytes page_size() const;
 
   // Debugging
   void print_on(outputStream* out) PRODUCT_RETURN;

@@ -278,7 +278,7 @@ void* Arena::grow(size_t x, AllocFailType alloc_failmode) {
   // (Note: all chunk sizes have to be 64-bit aligned)
   size_t len = MAX2(ARENA_ALIGN(x), (size_t) Chunk::size);
 
-  if (MemTracker::check_exceeds_limit(x, _flags)) {
+  if (MemTracker::check_exceeds_limit(in_Bytes(x), _flags)) {
     return nullptr;
   }
 

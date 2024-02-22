@@ -27,16 +27,16 @@
 #include "logging/log.hpp"
 
 G1OldGenAllocationTracker::G1OldGenAllocationTracker() :
-  _last_period_old_gen_bytes(0),
-  _last_period_old_gen_growth(0),
-  _humongous_bytes_after_last_gc(0),
-  _allocated_bytes_since_last_gc(0),
-  _allocated_humongous_bytes_since_last_gc(0) {
+  _last_period_old_gen_bytes(Bytes(0)),
+  _last_period_old_gen_growth(Bytes(0)),
+  _humongous_bytes_after_last_gc(Bytes(0)),
+  _allocated_bytes_since_last_gc(Bytes(0)),
+  _allocated_humongous_bytes_since_last_gc(Bytes(0)) {
 }
 
-void G1OldGenAllocationTracker::reset_after_gc(size_t humongous_bytes_after_gc) {
+void G1OldGenAllocationTracker::reset_after_gc(Bytes humongous_bytes_after_gc) {
   // Calculate actual increase in old, taking eager reclaim into consideration.
-  size_t last_period_humongous_increase = 0;
+  Bytes last_period_humongous_increase = Bytes(0);
   if (humongous_bytes_after_gc > _humongous_bytes_after_last_gc) {
     last_period_humongous_increase = humongous_bytes_after_gc - _humongous_bytes_after_last_gc;
     assert(last_period_humongous_increase <= _allocated_humongous_bytes_since_last_gc,
@@ -57,6 +57,6 @@ void G1OldGenAllocationTracker::reset_after_gc(size_t humongous_bytes_after_gc) 
                               _last_period_old_gen_growth);
 
   // Reset for next mutator period.
-  _allocated_bytes_since_last_gc = 0;
-  _allocated_humongous_bytes_since_last_gc = 0;
+  _allocated_bytes_since_last_gc = Bytes(0);
+  _allocated_humongous_bytes_since_last_gc = Bytes(0);
 }

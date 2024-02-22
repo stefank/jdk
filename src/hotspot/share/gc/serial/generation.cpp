@@ -39,7 +39,7 @@
 #include "utilities/copy.hpp"
 #include "utilities/events.hpp"
 
-Generation::Generation(ReservedSpace rs, size_t initial_size) :
+Generation::Generation(ReservedSpace rs, Bytes initial_size) :
   _gc_manager(nullptr) {
   if (!_virtual_space.initialize(rs, initial_size)) {
     vm_exit_during_initialization("Could not reserve enough space for "
@@ -55,7 +55,7 @@ Generation::Generation(ReservedSpace rs, size_t initial_size) :
           (HeapWord*)_virtual_space.high_boundary());
 }
 
-size_t Generation::max_capacity() const {
+Bytes Generation::max_capacity() const {
   return reserved().byte_size();
 }
 
@@ -82,10 +82,10 @@ void Generation::print_summary_info_on(outputStream* st) {
                sr->invocations > 0 ? time / sr->invocations : 0.0);
 }
 
-size_t Generation::max_contiguous_available() const {
+Bytes Generation::max_contiguous_available() const {
   // The largest number of contiguous free words in this or any higher generation.
-  size_t avail = contiguous_available();
-  size_t old_avail = 0;
+  Bytes avail = contiguous_available();
+  Bytes old_avail = Bytes(0);
   if (SerialHeap::heap()->is_young_gen(this)) {
     old_avail = SerialHeap::heap()->old_gen()->contiguous_available();
   }

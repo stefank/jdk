@@ -240,9 +240,9 @@ static struct CodeHeapStat CodeHeapStatArray[maxHeaps];
 // static struct StatElement *StatArray      = nullptr;
 static StatElement* StatArray             = nullptr;
 static int          log2_seg_size         = 0;
-static size_t       seg_size              = 0;
+static Bytes        seg_size              = Bytes(0);
 static size_t       alloc_granules        = 0;
-static size_t       granule_size          = 0;
+static Bytes        granule_size          = Bytes(0);
 static bool         segment_granules      = false;
 static unsigned int nBlocks_t1            = 0;  // counting "in_use" nmethods only.
 static unsigned int nBlocks_t2            = 0;  // counting "in_use" nmethods only.
@@ -303,7 +303,7 @@ void CodeHeapState::get_HeapStatGlobals(outputStream* out, const char* heapName)
   if (ix < maxHeaps) {
     StatArray             = CodeHeapStatArray[ix].StatArray;
     seg_size              = CodeHeapStatArray[ix].segment_size;
-    log2_seg_size         = seg_size == 0 ? 0 : exact_log2(seg_size);
+    log2_seg_size         = seg_size == Bytes(0) ? 0 : exact_log2(untype(seg_size));
     alloc_granules        = CodeHeapStatArray[ix].alloc_granules;
     granule_size          = CodeHeapStatArray[ix].granule_size;
     segment_granules      = CodeHeapStatArray[ix].segment_granules;
@@ -319,10 +319,10 @@ void CodeHeapState::get_HeapStatGlobals(outputStream* out, const char* heapName)
     SizeDistributionArray = CodeHeapStatArray[ix].SizeDistributionArray;
   } else {
     StatArray             = nullptr;
-    seg_size              = 0;
+    seg_size              = Bytes(0);
     log2_seg_size         = 0;
     alloc_granules        = 0;
-    granule_size          = 0;
+    granule_size          = Bytes(0);
     segment_granules      = false;
     nBlocks_t1            = 0;
     nBlocks_t2            = 0;
@@ -359,7 +359,7 @@ void CodeHeapState::set_HeapStatGlobals(outputStream* out, const char* heapName)
 }
 
 //---<  get a new statistics array  >---
-void CodeHeapState::prepare_StatArray(outputStream* out, size_t nElem, size_t granularity, const char* heapName) {
+void CodeHeapState::prepare_StatArray(outputStream* out, size_t nElem, Bytes granularity, const char* heapName) {
   if (StatArray == nullptr) {
     StatArray      = new StatElement[nElem];
     //---<  reset some counts  >---
@@ -372,7 +372,7 @@ void CodeHeapState::prepare_StatArray(outputStream* out, size_t nElem, size_t gr
     out->print_cr("Statistics could not be collected for %s, probably out of memory.", heapName);
     out->print_cr("Current granularity is " SIZE_FORMAT " bytes. Try a coarser granularity.", granularity);
     alloc_granules = 0;
-    granule_size   = 0;
+    granule_size   = Bytes(0);
   } else {
     //---<  initialize statistics array  >---
     memset((void*)StatArray, 0, nElem*sizeof(StatElement));
@@ -456,7 +456,7 @@ void CodeHeapState::discard_StatArray(outputStream* out) {
     delete StatArray;
     StatArray        = nullptr;
     alloc_granules   = 0;
-    granule_size     = 0;
+    granule_size     = Bytes(0);
   }
 }
 
@@ -510,7 +510,7 @@ void CodeHeapState::discard(outputStream* out, CodeHeap* heap) {
   }
 }
 
-void CodeHeapState::aggregate(outputStream* out, CodeHeap* heap, size_t granularity) {
+void CodeHeapState::aggregate(outputStream* out, CodeHeap* heap, Bytes granularity) {
   unsigned int nBlocks_free    = 0;
   unsigned int nBlocks_used    = 0;
   unsigned int nBlocks_zomb    = 0;
@@ -557,12 +557,12 @@ void CodeHeapState::aggregate(outputStream* out, CodeHeap* heap, size_t granular
   // all heap information is "constant" and can be safely extracted/calculated before we
   // enter the while() loop. Actually, the loop will only be iterated once.
   char*  low_bound     = heap->low_boundary();
-  size_t size          = heap->capacity();
-  size_t res_size      = heap->max_capacity();
+  Bytes size           = heap->capacity();
+  Bytes res_size       = heap->max_capacity();
   seg_size             = heap->segment_size();
-  log2_seg_size        = seg_size == 0 ? 0 : exact_log2(seg_size);  // This is a global static value.
+  log2_seg_size        = seg_size == Bytes(0) ? 0 : exact_log2(untype(seg_size));  // This is a global static value.
 
-  if (seg_size == 0) {
+  if (seg_size == Bytes(0)) {
     printBox(ast, '-', "Heap not fully initialized yet, segment size is zero for segment ", heapName);
     BUFFEREDSTREAM_FLUSH("")
     return;
@@ -592,7 +592,7 @@ void CodeHeapState::aggregate(outputStream* out, CodeHeap* heap, size_t granular
   //   Finally, we adjust the granularity such that each granule covers at most 64k-1 segments.
   //   This is necessary to prevent an unsigned short overflow while accumulating space information.
   //
-  assert(granularity > 0, "granularity should be positive.");
+  assert(granularity > Bytes(0), "granularity should be positive.");
 
   if (granularity > size) {
     granularity = size;
@@ -600,19 +600,19 @@ void CodeHeapState::aggregate(outputStream* out, CodeHeap* heap, size_t granular
   if (size/granularity < min_granules) {
     granularity = size/min_granules;                                   // at least min_granules granules
   }
-  granularity = granularity & (~(seg_size - 1));                       // must be multiple of seg_size
+  granularity = align_down(granularity, seg_size);                     // must be multiple of seg_size
   if (granularity < seg_size) {
     granularity = seg_size;                                            // must be at least seg_size
   }
   if (size/granularity > max_granules) {
     granularity = size/max_granules;                                   // at most max_granules granules
   }
-  granularity = granularity & (~(seg_size - 1));                       // must be multiple of seg_size
-  if (granularity>>log2_seg_size >= (1L<<sizeof(unsigned short)*8)) {
-    granularity = ((1L<<(sizeof(unsigned short)*8))-1)<<log2_seg_size; // Limit: (64k-1) * seg_size
+  granularity = align_down(granularity, seg_size);                     // must be multiple of seg_size
+  if (untype(granularity)>>log2_seg_size >= (1L<<sizeof(unsigned short)*8)) {
+    granularity = in_Bytes(((1L<<(sizeof(unsigned short)*8))-1)<<log2_seg_size); // Limit: (64k-1) * seg_size
   }
   segment_granules = granularity == seg_size;
-  size_t granules  = (size + (granularity-1))/granularity;
+  size_t granules  = (size + (granularity-Bytes(1)))/granularity;
 
   printBox(ast, '=', "C O D E   H E A P   A N A L Y S I S   (used blocks) for segment ", heapName);
   ast->print_cr("   The aggregate step takes an aggregated snapshot of the CodeHeap.\n"
@@ -677,8 +677,8 @@ void CodeHeapState::aggregate(outputStream* out, CodeHeap* heap, size_t granular
     for (HeapBlock *h = heap->first_block(); h != nullptr && !insane; h = heap->next_block(h)) {
       unsigned int hb_len     = (unsigned int)h->length();  // despite being size_t, length can never overflow an unsigned int.
       size_t       hb_bytelen = ((size_t)hb_len)<<log2_seg_size;
-      unsigned int ix_beg     = (unsigned int)(((char*)h-low_bound)/granule_size);
-      unsigned int ix_end     = (unsigned int)(((char*)h-low_bound+(hb_bytelen-1))/granule_size);
+      unsigned int ix_beg     = (unsigned int)(((char*)h-low_bound)/untype(granule_size));
+      unsigned int ix_end     = (unsigned int)(((char*)h-low_bound+(hb_bytelen-1))/untype(granule_size));
       int compile_id = 0;
       CompLevel    comp_lvl   = CompLevel_none;
       compType     cType      = noComp;
@@ -957,8 +957,8 @@ void CodeHeapState::aggregate(outputStream* out, CodeHeap* heap, size_t granular
               break;
           }
         } else {
-          unsigned int beg_space = (unsigned int)(granule_size - ((char*)h - low_bound - ix_beg*granule_size));
-          unsigned int end_space = (unsigned int)(hb_bytelen - beg_space - (ix_end-ix_beg-1)*granule_size);
+          unsigned int beg_space = checked_cast<unsigned int>(granule_size - (pointer_delta_bytes((char*)h, low_bound) - ix_beg*granule_size));
+          unsigned int end_space = checked_cast<unsigned int>(hb_bytelen - beg_space - (ix_end-ix_beg-1)*untype(granule_size));
           beg_space = beg_space>>log2_seg_size;  // store in units of _segment_size
           end_space = end_space>>log2_seg_size;  // store in units of _segment_size
           StatArray[ix_beg].type = cbType;
@@ -1007,11 +1007,11 @@ void CodeHeapState::aggregate(outputStream* out, CodeHeap* heap, size_t granular
               case nMethod_inuse:
                 if (comp_lvl < CompLevel_full_optimization) {
                   StatArray[ix].t1_count++;
-                  StatArray[ix].t1_space += (unsigned short)(granule_size>>log2_seg_size);
+                  StatArray[ix].t1_space += (unsigned short)(untype(granule_size)>>log2_seg_size);
                   StatArray[ix].t1_age    = StatArray[ix].t1_age < compile_id ? compile_id : StatArray[ix].t1_age;
                 } else {
                   StatArray[ix].t2_count++;
-                  StatArray[ix].t2_space += (unsigned short)(granule_size>>log2_seg_size);
+                  StatArray[ix].t2_space += (unsigned short)(untype(granule_size)>>log2_seg_size);
                   StatArray[ix].t2_age    = StatArray[ix].t2_age < compile_id ? compile_id : StatArray[ix].t2_age;
                 }
                 StatArray[ix].level     = comp_lvl;
@@ -1019,7 +1019,7 @@ void CodeHeapState::aggregate(outputStream* out, CodeHeap* heap, size_t granular
                 break;
               default:
                 StatArray[ix].stub_count++;
-                StatArray[ix].stub_space += (unsigned short)(granule_size>>log2_seg_size);
+                StatArray[ix].stub_space += (unsigned short)(untype(granule_size)>>log2_seg_size);
                 break;
             }
           }
@@ -1033,19 +1033,19 @@ void CodeHeapState::aggregate(outputStream* out, CodeHeap* heap, size_t granular
       // interspersed with print data from other threads. We take this risk intentionally.
       // Getting stalled waiting for tty_lock while holding the CodeCache_lock is not desirable.
       printBox(ast, '-', "Global CodeHeap statistics for segment ", heapName);
-      ast->print_cr("freeSpace        = " SIZE_FORMAT_W(8) "k, nBlocks_free     = %6d, %10.3f%% of capacity, %10.3f%% of max_capacity", freeSpace/(size_t)K,     nBlocks_free,     (100.0*freeSpace)/size,     (100.0*freeSpace)/res_size);
-      ast->print_cr("usedSpace        = " SIZE_FORMAT_W(8) "k, nBlocks_used     = %6d, %10.3f%% of capacity, %10.3f%% of max_capacity", usedSpace/(size_t)K,     nBlocks_used,     (100.0*usedSpace)/size,     (100.0*usedSpace)/res_size);
-      ast->print_cr("  Tier1 Space    = " SIZE_FORMAT_W(8) "k, nBlocks_t1       = %6d, %10.3f%% of capacity, %10.3f%% of max_capacity", t1Space/(size_t)K,       nBlocks_t1,       (100.0*t1Space)/size,       (100.0*t1Space)/res_size);
-      ast->print_cr("  Tier2 Space    = " SIZE_FORMAT_W(8) "k, nBlocks_t2       = %6d, %10.3f%% of capacity, %10.3f%% of max_capacity", t2Space/(size_t)K,       nBlocks_t2,       (100.0*t2Space)/size,       (100.0*t2Space)/res_size);
-      ast->print_cr("  Alive Space    = " SIZE_FORMAT_W(8) "k, nBlocks_alive    = %6d, %10.3f%% of capacity, %10.3f%% of max_capacity", aliveSpace/(size_t)K,    nBlocks_alive,    (100.0*aliveSpace)/size,    (100.0*aliveSpace)/res_size);
-      ast->print_cr("    disconnected = " SIZE_FORMAT_W(8) "k, nBlocks_disconn  = %6d, %10.3f%% of capacity, %10.3f%% of max_capacity", disconnSpace/(size_t)K,  nBlocks_disconn,  (100.0*disconnSpace)/size,  (100.0*disconnSpace)/res_size);
-      ast->print_cr("    not entrant  = " SIZE_FORMAT_W(8) "k, nBlocks_notentr  = %6d, %10.3f%% of capacity, %10.3f%% of max_capacity", notentrSpace/(size_t)K,  nBlocks_notentr,  (100.0*notentrSpace)/size,  (100.0*notentrSpace)/res_size);
-      ast->print_cr("  stubSpace      = " SIZE_FORMAT_W(8) "k, nBlocks_stub     = %6d, %10.3f%% of capacity, %10.3f%% of max_capacity", stubSpace/(size_t)K,     nBlocks_stub,     (100.0*stubSpace)/size,     (100.0*stubSpace)/res_size);
+      ast->print_cr("freeSpace        = " SIZE_FORMAT_W(8) "k, nBlocks_free     = %6d, %10.3f%% of capacity, %10.3f%% of max_capacity", freeSpace/(size_t)K,     nBlocks_free,     (100.0*freeSpace)/untype(size),     (100.0*freeSpace)/untype(res_size));
+      ast->print_cr("usedSpace        = " SIZE_FORMAT_W(8) "k, nBlocks_used     = %6d, %10.3f%% of capacity, %10.3f%% of max_capacity", usedSpace/(size_t)K,     nBlocks_used,     (100.0*usedSpace)/untype(size),     (100.0*usedSpace)/untype(res_size));
+      ast->print_cr("  Tier1 Space    = " SIZE_FORMAT_W(8) "k, nBlocks_t1       = %6d, %10.3f%% of capacity, %10.3f%% of max_capacity", t1Space/(size_t)K,       nBlocks_t1,       (100.0*t1Space)/untype(size),       (100.0*t1Space)/untype(res_size));
+      ast->print_cr("  Tier2 Space    = " SIZE_FORMAT_W(8) "k, nBlocks_t2       = %6d, %10.3f%% of capacity, %10.3f%% of max_capacity", t2Space/(size_t)K,       nBlocks_t2,       (100.0*t2Space)/untype(size),       (100.0*t2Space)/untype(res_size));
+      ast->print_cr("  Alive Space    = " SIZE_FORMAT_W(8) "k, nBlocks_alive    = %6d, %10.3f%% of capacity, %10.3f%% of max_capacity", aliveSpace/(size_t)K,    nBlocks_alive,    (100.0*aliveSpace)/untype(size),    (100.0*aliveSpace)/untype(res_size));
+      ast->print_cr("    disconnected = " SIZE_FORMAT_W(8) "k, nBlocks_disconn  = %6d, %10.3f%% of capacity, %10.3f%% of max_capacity", disconnSpace/(size_t)K,  nBlocks_disconn,  (100.0*disconnSpace)/untype(size),  (100.0*disconnSpace)/untype(res_size));
+      ast->print_cr("    not entrant  = " SIZE_FORMAT_W(8) "k, nBlocks_notentr  = %6d, %10.3f%% of capacity, %10.3f%% of max_capacity", notentrSpace/(size_t)K,  nBlocks_notentr,  (100.0*notentrSpace)/untype(size),  (100.0*notentrSpace)/untype(res_size));
+      ast->print_cr("  stubSpace      = " SIZE_FORMAT_W(8) "k, nBlocks_stub     = %6d, %10.3f%% of capacity, %10.3f%% of max_capacity", stubSpace/(size_t)K,     nBlocks_stub,     (100.0*stubSpace)/untype(size),     (100.0*stubSpace)/untype(res_size));
       ast->print_cr("ZombieBlocks     = %8d. These are HeapBlocks which could not be identified as CodeBlobs.", nBlocks_zomb);
       ast->cr();
-      ast->print_cr("Segment start          = " INTPTR_FORMAT ", used space      = " SIZE_FORMAT_W(8)"k", p2i(low_bound), size/K);
-      ast->print_cr("Segment end (used)     = " INTPTR_FORMAT ", remaining space = " SIZE_FORMAT_W(8)"k", p2i(low_bound) + size, (res_size - size)/K);
-      ast->print_cr("Segment end (reserved) = " INTPTR_FORMAT ", reserved space  = " SIZE_FORMAT_W(8)"k", p2i(low_bound) + res_size, res_size/K);
+      ast->print_cr("Segment start          = " INTPTR_FORMAT ", used space      = " SIZE_FORMAT_W(8)"k", p2i(low_bound), untype(size)/K);
+      ast->print_cr("Segment end (used)     = " INTPTR_FORMAT ", remaining space = " SIZE_FORMAT_W(8)"k", p2i(low_bound +  size), (res_size - size)/K);
+      ast->print_cr("Segment end (reserved) = " INTPTR_FORMAT ", reserved space  = " SIZE_FORMAT_W(8)"k", p2i(low_bound + res_size), res_size/K);
       ast->cr();
       ast->print_cr("latest allocated compilation id = %d", latest_compilation_id);
       ast->print_cr("highest observed compilation id = %d", highest_compilation_id);
@@ -1055,7 +1055,7 @@ void CodeHeapState::aggregate(outputStream* out, CodeHeap* heap, size_t granular
       // This loop is intentionally printing directly to "out".
       // It should not print anything, anyway.
       out->print("Verifying collected data...");
-      size_t granule_segs = granule_size>>log2_seg_size;
+      size_t granule_segs = untype(granule_size)>>log2_seg_size;
       for (unsigned int ix = 0; ix < granules; ix++) {
         if (StatArray[ix].t1_count   > granule_segs) {
           out->print_cr("t1_count[%d]   = %d", ix, StatArray[ix].t1_count);
@@ -2069,8 +2069,8 @@ void CodeHeapState::print_names(outputStream* out, CodeHeap* heap) {
   bool         have_locks          = holding_required_locks();
 
   //---<  print at least 128K per block (i.e. between headers)  >---
-  if (granules_per_line*granule_size < 128*K) {
-    granules_per_line = (unsigned int)((128*K)/granule_size);
+  if (granules_per_line*untype(granule_size) < 128*K) {
+    granules_per_line = (unsigned int)((128*K)/untype(granule_size));
   }
 
   printBox(ast, '=', "M E T H O D   N A M E S   for ", heapName);
@@ -2100,10 +2100,10 @@ void CodeHeapState::print_names(outputStream* out, CodeHeap* heap) {
     unsigned int nBlobs  = StatArray[ix].t1_count   + StatArray[ix].t2_count + StatArray[ix].tx_count +
                            StatArray[ix].stub_count;
     if (nBlobs > 0 ) {
-    for (unsigned int is = 0; is < granule_size; is+=(unsigned int)seg_size) {
+    for (unsigned int is = 0; is < untype(granule_size); is+=(unsigned int)seg_size) {
       // heap->find_start() is safe. Only works on _segmap.
       // Returns nullptr or void*. Returned CodeBlob may be uninitialized.
-      char*     this_seg  = low_bound + ix*granule_size + is;
+      char*     this_seg  = low_bound + ix*untype(granule_size) + is;
       CodeBlob* this_blob = (CodeBlob*)(heap->find_start(this_seg));
       bool   blob_is_safe = blob_access_is_safe(this_blob);
       // blob could have been flushed, freed, and merged.
@@ -2298,8 +2298,8 @@ void CodeHeapState::print_count_single(outputStream* out, unsigned short count) 
 }
 
 void CodeHeapState::print_space_single(outputStream* out, unsigned short space) {
-  size_t  space_in_bytes = ((unsigned int)space)<<log2_seg_size;
-  char    fraction       = (space == 0) ? ' ' : (space_in_bytes >= granule_size-1) ? '*' : char('0'+10*space_in_bytes/granule_size);
+  Bytes  space_in_bytes  = in_Bytes(((unsigned int)space)<<log2_seg_size);
+  char    fraction       = (space == 0) ? ' ' : (space_in_bytes >= granule_size - Bytes(1)) ? '*' : char('0'+10*space_in_bytes/granule_size);
   out->print("%c", fraction);
 }
 

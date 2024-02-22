@@ -76,7 +76,7 @@ public:
 
   // Reserve a range of memory that is to contain narrow Klass IDs. If "try_in_low_address_ranges"
   // is true, we will attempt to reserve memory suitable for zero-based encoding.
-  static ReservedSpace reserve_address_space_for_compressed_classes(size_t size, bool optimize_for_zero_base);
+  static ReservedSpace reserve_address_space_for_compressed_classes(Bytes size, bool optimize_for_zero_base);
 
   // Given a prereserved space, use that to set up the compressed class space list.
   static void initialize_class_space(ReservedSpace rs);
@@ -93,24 +93,24 @@ public:
   static void post_initialize();
 
   // Alignment, in bytes, of metaspace mappings
-  static size_t reserve_alignment()       { return reserve_alignment_words() * BytesPerWord; }
+  static Bytes reserve_alignment()       { return to_Bytes(reserve_alignment_words()); }
   // Alignment, in words, of metaspace mappings
-  static size_t reserve_alignment_words();
+  static Words reserve_alignment_words();
 
   // The granularity at which Metaspace is committed and uncommitted.
   // (Todo: Why does this have to be exposed?)
-  static size_t commit_alignment()        { return commit_alignment_words() * BytesPerWord; }
-  static size_t commit_alignment_words();
+  static Bytes commit_alignment()        { return to_Bytes(commit_alignment_words()); }
+  static Words commit_alignment_words();
 
   // The largest possible single allocation
-  static size_t max_allocation_word_size();
+  static Words max_allocation_word_size();
 
-  static MetaWord* allocate(ClassLoaderData* loader_data, size_t word_size,
+  static MetaWord* allocate(ClassLoaderData* loader_data, Words word_size,
                             MetaspaceObj::Type type, TRAPS);
 
   // Non-TRAPS version of allocate which can be called by a non-Java thread, that returns
   // null on failure.
-  static MetaWord* allocate(ClassLoaderData* loader_data, size_t word_size,
+  static MetaWord* allocate(ClassLoaderData* loader_data, Words word_size,
                             MetaspaceObj::Type type);
 
   static bool contains(const void* ptr);
@@ -119,7 +119,7 @@ public:
   // Free empty virtualspaces
   static void purge(bool classes_unloaded);
 
-  static void report_metadata_oome(ClassLoaderData* loader_data, size_t word_size,
+  static void report_metadata_oome(ClassLoaderData* loader_data, Words word_size,
                                    MetaspaceObj::Type type, MetadataType mdtype, TRAPS);
 
   static const char* metadata_type_name(Metaspace::MetadataType mdtype);

@@ -59,8 +59,8 @@ class MemoryPool : public CHeapObj<mtInternal> {
   // for external monitoring.
   const char*      _name;
   PoolType         _type;
-  size_t           _initial_size;
-  size_t           _max_size;
+  Bytes            _initial_size;
+  Bytes            _max_size;
   bool             _available_for_allocation; // Default is true
   MemoryManager*   _managers[max_num_managers];
   int              _num_managers;
@@ -81,8 +81,8 @@ class MemoryPool : public CHeapObj<mtInternal> {
  public:
   MemoryPool(const char* name,
              PoolType type,
-             size_t init_size,
-             size_t max_size,
+             Bytes init_size,
+             Bytes max_size,
              bool support_usage_threshold,
              bool support_gc_threshold);
 
@@ -91,10 +91,10 @@ class MemoryPool : public CHeapObj<mtInternal> {
   const char* name()                       { return _name; }
   bool        is_heap()                    { return _type == Heap; }
   bool        is_non_heap()                { return _type == NonHeap; }
-  size_t      initial_size()   const       { return _initial_size; }
+  Bytes       initial_size()   const       { return _initial_size; }
   int         num_memory_managers() const  { return _num_managers; }
   // max size could be changed
-  virtual size_t max_size()    const       { return _max_size; }
+  virtual Bytes max_size()    const       { return _max_size; }
 
   bool is_pool(instanceHandle pool) const;
 
@@ -134,14 +134,14 @@ class MemoryPool : public CHeapObj<mtInternal> {
 
   virtual instanceOop get_memory_pool_instance(TRAPS);
   virtual MemoryUsage get_memory_usage() = 0;
-  virtual size_t      used_in_bytes() = 0;
+  virtual Bytes       used_in_bytes() = 0;
   virtual bool        is_collected_pool()         { return false; }
   virtual MemoryUsage get_last_collection_usage() { return _after_gc_usage; }
 };
 
 class CollectedMemoryPool : public MemoryPool {
 public:
-  CollectedMemoryPool(const char* name, size_t init_size, size_t max_size, bool support_usage_threshold) :
+  CollectedMemoryPool(const char* name, Bytes init_size, Bytes max_size, bool support_usage_threshold) :
     MemoryPool(name, MemoryPool::Heap, init_size, max_size, support_usage_threshold, true) {};
   bool is_collected_pool()            { return true; }
 };
@@ -152,22 +152,22 @@ private:
 public:
   CodeHeapPool(CodeHeap* codeHeap, const char* name, bool support_usage_threshold);
   MemoryUsage get_memory_usage();
-  size_t used_in_bytes()            { return _codeHeap->allocated_capacity(); }
+  Bytes used_in_bytes()            { return _codeHeap->allocated_capacity(); }
 };
 
 class MetaspacePool : public MemoryPool {
-  size_t calculate_max_size() const;
+  Bytes calculate_max_size() const;
  public:
   MetaspacePool();
   MemoryUsage get_memory_usage();
-  size_t used_in_bytes();
+  Bytes used_in_bytes();
 };
 
 class CompressedKlassSpacePool : public MemoryPool {
  public:
   CompressedKlassSpacePool();
   MemoryUsage get_memory_usage();
-  size_t used_in_bytes();
+  Bytes used_in_bytes();
 };
 
 #endif // SHARE_SERVICES_MEMORYPOOL_HPP

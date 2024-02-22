@@ -34,7 +34,7 @@
 
 class MetadataAllocationRequest {
   ClassLoaderData* const        _loader_data;
-  const size_t                  _word_size;
+  const Words                   _word_size;
   const Metaspace::MetadataType _type;
   MetadataAllocationRequest*    _next;
   MetaWord*                     _result;
@@ -42,7 +42,7 @@ class MetadataAllocationRequest {
 
 public:
   MetadataAllocationRequest(ClassLoaderData* loader_data,
-                            size_t word_size,
+                            Words word_size,
                             Metaspace::MetadataType type)
     : _loader_data(loader_data),
       _word_size(word_size),
@@ -58,7 +58,7 @@ public:
   }
 
   ClassLoaderData*           loader_data() const   { return _loader_data; }
-  size_t                     word_size() const     { return _word_size; }
+  Words                      word_size() const     { return _word_size; }
   Metaspace::MetadataType    type() const          { return _type; }
   MetadataAllocationRequest* next() const          { return _next; }
   MetaWord*                  result() const        { return _result; }
@@ -211,7 +211,7 @@ void MetaspaceCriticalAllocation::process() {
   MetaspaceCritical_lock->notify_all();
 }
 
-MetaWord* MetaspaceCriticalAllocation::allocate(ClassLoaderData* loader_data, size_t word_size, Metaspace::MetadataType type) {
+MetaWord* MetaspaceCriticalAllocation::allocate(ClassLoaderData* loader_data, Words word_size, Metaspace::MetadataType type) {
   MetadataAllocationRequest request(loader_data, word_size, type);
 
   if (try_allocate_critical(&request)) {

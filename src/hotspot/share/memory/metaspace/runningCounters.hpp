@@ -34,40 +34,40 @@ namespace metaspace {
 // This class is a convenience interface for accessing global metaspace counters.
 class RunningCounters : public AllStatic {
 
-  static SizeAtomicCounter _used_class_counter;
-  static SizeAtomicCounter _used_nonclass_counter;
+  static WordsAtomicCounter _used_class_counter;
+  static WordsAtomicCounter _used_nonclass_counter;
 
 public:
 
   // ---- virtual memory -----
 
   // Return reserved size, in words, for Metaspace
-  static size_t reserved_words();
-  static size_t reserved_words_class();
-  static size_t reserved_words_nonclass();
+  static Words reserved_words();
+  static Words reserved_words_class();
+  static Words reserved_words_nonclass();
 
   // Return total committed size, in words, for Metaspace
-  static size_t committed_words();
-  static size_t committed_words_class();
-  static size_t committed_words_nonclass();
+  static Words committed_words();
+  static Words committed_words_class();
+  static Words committed_words_nonclass();
 
   // ---- used chunks -----
 
   // Returns size, in words, used for metadata.
-  static size_t used_words();
-  static size_t used_words_class();
-  static size_t used_words_nonclass();
+  static Words used_words();
+  static Words used_words_class();
+  static Words used_words_nonclass();
 
   // ---- free chunks -----
 
   // Returns size, in words, of all chunks in all freelists.
-  static size_t free_chunks_words();
-  static size_t free_chunks_words_class();
-  static size_t free_chunks_words_nonclass();
+  static Words free_chunks_words();
+  static Words free_chunks_words_class();
+  static Words free_chunks_words_nonclass();
 
   // Direct access to the counters.
-  static SizeAtomicCounter* used_nonclass_counter()     { return &_used_nonclass_counter; }
-  static SizeAtomicCounter* used_class_counter()        { return &_used_class_counter; }
+  static WordsAtomicCounter* used_nonclass_counter()     { return &_used_nonclass_counter; }
+  static WordsAtomicCounter* used_class_counter()        { return &_used_class_counter; }
 
 };
 

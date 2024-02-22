@@ -75,18 +75,18 @@ class FreeBlocks : public CHeapObj<mtMetaspace> {
 
   // Cutoff point: blocks larger than this size are kept in the
   // tree, blocks smaller than or equal to this size in the bin list.
-  const size_t MaxSmallBlocksWordSize = BinList32::MaxWordSize;
+  const Words MaxSmallBlocksWordSize = BinList32::MaxWordSize;
 
 public:
 
   // Smallest blocks we can keep in this structure.
-  const static size_t MinWordSize = BinList32::MinWordSize;
+  const static Words MinWordSize = BinList32::MinWordSize;
 
   // Add a block to the deallocation management.
-  void add_block(MetaWord* p, size_t word_size);
+  void add_block(MetaWord* p, Words word_size);
 
   // Retrieve a block of at least requested_word_size.
-  MetaWord* remove_block(size_t requested_word_size);
+  MetaWord* remove_block(Words requested_word_size);
 
 #ifdef ASSERT
   void verify() const {
@@ -101,7 +101,7 @@ public:
   }
 
   // Returns total size, in words, of all elements.
-  size_t total_size() const {
+  Words total_size() const {
     return _small_blocks.total_size() + _tree.total_size();
   }
 

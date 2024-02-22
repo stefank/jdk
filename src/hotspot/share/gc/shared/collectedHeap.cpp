@@ -62,10 +62,10 @@
 
 class ClassLoaderData;
 
-size_t CollectedHeap::_lab_alignment_reserve = SIZE_MAX;
+Words  CollectedHeap::_lab_alignment_reserve = Words(SIZE_MAX);
 Klass* CollectedHeap::_filler_object_klass = nullptr;
-size_t CollectedHeap::_filler_array_max_size = 0;
-size_t CollectedHeap::_stack_chunk_max_size = 0;
+Words CollectedHeap::_filler_array_max_size = Words(0);
+Words CollectedHeap::_stack_chunk_max_size = Words(0);
 
 class GCMessage : public FormatBuffer<1024> {
  public:
@@ -127,13 +127,13 @@ void ParallelObjectIterator::object_iterate(ObjectClosure* cl, uint worker_id) {
   _impl->object_iterate(cl, worker_id);
 }
 
-size_t CollectedHeap::unused() const {
+Bytes CollectedHeap::unused() const {
   MutexLocker ml(Heap_lock);
   return capacity() - used();
 }
 
 VirtualSpaceSummary CollectedHeap::create_heap_space_summary() {
-  size_t capacity_in_words = capacity() / HeapWordSize;
+  Words capacity_in_words = to_Words(capacity());
 
   return VirtualSpaceSummary(
     _reserved.start(), _reserved.start() + capacity_in_words, _reserved.end());
@@ -240,8 +240,8 @@ bool CollectedHeap::is_oop(oop object) const {
 
 
 CollectedHeap::CollectedHeap() :
-  _capacity_at_last_gc(0),
-  _used_at_last_gc(0),
+  _capacity_at_last_gc(Bytes(0)),
+  _used_at_last_gc(Bytes(0)),
   _soft_ref_policy(),
   _is_gc_active(false),
   _last_whole_heap_examined_time_ns(os::javaTimeNanos()),
@@ -255,13 +255,13 @@ CollectedHeap::CollectedHeap() :
   // the smallest object.  We can't allow that because the buffer must
   // look like it's full of objects when we retire it, so we make
   // sure we have enough space for a filler int array object.
-  size_t min_size = min_dummy_object_size();
-  _lab_alignment_reserve = min_size > (size_t)MinObjAlignment ? align_object_size(min_size) : 0;
+  Words min_size = min_dummy_object_size();
+  _lab_alignment_reserve = min_size > (Words)MinObjAlignment ? align_object_size(min_size) : Words(0);
 
   const size_t max_len = size_t(arrayOopDesc::max_array_length(T_INT));
   const size_t elements_per_word = HeapWordSize / sizeof(jint);
   _filler_array_max_size = align_object_size(filler_array_hdr_size() +
-                                             max_len / elements_per_word);
+                                             in_Words(max_len / elements_per_word));
 
   NOT_PRODUCT(_promotion_failure_alot_count = 0;)
   NOT_PRODUCT(_promotion_failure_alot_gc_number = 0;)
@@ -316,7 +316,7 @@ void CollectedHeap::collect_as_vm_thread(GCCause::Cause cause) {
 }
 
 MetaWord* CollectedHeap::satisfy_failed_metadata_allocation(ClassLoaderData* loader_data,
-                                                            size_t word_size,
+                                                            Words word_size,
                                                             Metaspace::MetadataType mdtype) {
   uint loop_count = 0;
   uint gc_count = 0;
@@ -390,7 +390,7 @@ MetaWord* CollectedHeap::satisfy_failed_metadata_allocation(ClassLoaderData* loa
 }
 
 MemoryUsage CollectedHeap::memory_usage() {
-  return MemoryUsage(InitialHeapSize, used(), capacity(), max_capacity());
+  return MemoryUsage(Bytes(InitialHeapSize), used(), capacity(), max_capacity());
 }
 
 void CollectedHeap::set_gc_cause(GCCause::Cause v) {
@@ -402,7 +402,7 @@ void CollectedHeap::set_gc_cause(GCCause::Cause v) {
   _gc_cause = v;
 }
 
-size_t CollectedHeap::max_tlab_size() const {
+Words CollectedHeap::max_tlab_size() const {
   // TLABs can't be bigger than we can fill with a int[Integer.MAX_VALUE].
   // This restriction could be removed by enabling filling with multiple arrays.
   // If we compute that the reasonable way as
@@ -411,33 +411,32 @@ size_t CollectedHeap::max_tlab_size() const {
   // We actually lose a little by dividing first,
   // but that just makes the TLAB  somewhat smaller than the biggest array,
   // which is fine, since we'll be able to fill that.
-  size_t max_int_size = typeArrayOopDesc::header_size(T_INT) +
-              sizeof(jint) *
-              ((juint) max_jint / (size_t) HeapWordSize);
+  Words max_int_size = typeArrayOopDesc::header_size(T_INT) +
+      Words(sizeof(jint) * ((juint) max_jint / (size_t) HeapWordSize));
   return align_down(max_int_size, MinObjAlignment);
 }
 
-size_t CollectedHeap::filler_array_hdr_size() {
+Words CollectedHeap::filler_array_hdr_size() {
   return align_object_offset(arrayOopDesc::header_size(T_INT)); // align to Long
 }
 
-size_t CollectedHeap::filler_array_min_size() {
+Words CollectedHeap::filler_array_min_size() {
   return align_object_size(filler_array_hdr_size()); // align to MinObjAlignment
 }
 
-void CollectedHeap::zap_filler_array_with(HeapWord* start, size_t words, juint value) {
+void CollectedHeap::zap_filler_array_with(HeapWord* start, Words words, juint value) {
   Copy::fill_to_words(start + filler_array_hdr_size(),
                       words - filler_array_hdr_size(), value);
 }
 
 #ifdef ASSERT
-void CollectedHeap::fill_args_check(HeapWord* start, size_t words)
+void CollectedHeap::fill_args_check(HeapWord* start, Words words)
 {
   assert(words >= min_fill_size(), "too small to fill");
   assert(is_object_aligned(words), "unaligned size");
 }
 
-void CollectedHeap::zap_filler_array(HeapWord* start, size_t words, bool zap)
+void CollectedHeap::zap_filler_array(HeapWord* start, Words words, bool zap)
 {
   if (ZapFillerObjects && zap) {
     zap_filler_array_with(start, words, 0XDEAFBABE);
@@ -446,13 +445,13 @@ void CollectedHeap::zap_filler_array(HeapWord* start, size_t words, bool zap)
 #endif // ASSERT
 
 void
-CollectedHeap::fill_with_array(HeapWord* start, size_t words, bool zap)
+CollectedHeap::fill_with_array(HeapWord* start, Words words, bool zap)
 {
   assert(words >= filler_array_min_size(), "too small for an array");
   assert(words <= filler_array_max_size(), "too big for a single object");
 
-  const size_t payload_size = words - filler_array_hdr_size();
-  const size_t len = payload_size * HeapWordSize / sizeof(jint);
+  const Words payload_size = words - filler_array_hdr_size();
+  const size_t len = to_bytes(payload_size) / sizeof(jint);
   assert((int)len >= 0, "size too large " SIZE_FORMAT " becomes %d", words, (int)len);
 
   ObjArrayAllocator allocator(Universe::fillerArrayKlassObj(), words, (int)len, /* do_zero */ false);
@@ -467,27 +466,27 @@ CollectedHeap::fill_with_array(HeapWord* start, size_t words, bool zap)
 }
 
 void
-CollectedHeap::fill_with_object_impl(HeapWord* start, size_t words, bool zap)
+CollectedHeap::fill_with_object_impl(HeapWord* start, Words words, bool zap)
 {
   assert(words <= filler_array_max_size(), "too big for a single object");
 
   if (words >= filler_array_min_size()) {
     fill_with_array(start, words, zap);
-  } else if (words > 0) {
+  } else if (words > Words(0)) {
     assert(words == min_fill_size(), "unaligned size");
     ObjAllocator allocator(CollectedHeap::filler_object_klass(), words);
     allocator.initialize(start);
   }
 }
 
-void CollectedHeap::fill_with_object(HeapWord* start, size_t words, bool zap)
+void CollectedHeap::fill_with_object(HeapWord* start, Words words, bool zap)
 {
   DEBUG_ONLY(fill_args_check(start, words);)
   HandleMark hm(Thread::current());  // Free handles before leaving.
   fill_with_object_impl(start, words, zap);
 }
 
-void CollectedHeap::fill_with_objects(HeapWord* start, size_t words, bool zap)
+void CollectedHeap::fill_with_objects(HeapWord* start, Words words, bool zap)
 {
   DEBUG_ONLY(fill_args_check(start, words);)
   HandleMark hm(Thread::current());  // Free handles before leaving.
@@ -495,10 +494,10 @@ void CollectedHeap::fill_with_objects(HeapWord* start, size_t words, bool zap)
   // Multiple objects may be required depending on the filler array maximum size. Fill
   // the range up to that with objects that are filler_array_max_size sized. The
   // remainder is filled with a single object.
-  const size_t min = min_fill_size();
-  const size_t max = filler_array_max_size();
+  const Words min = min_fill_size();
+  const Words max = filler_array_max_size();
   while (words > max) {
-    const size_t cur = (words - max) >= min ? max : max - min;
+    const Words cur = (words - max) >= min ? max : max - min;
     fill_with_array(start, cur, zap);
     start += cur;
     words -= cur;
@@ -511,9 +510,9 @@ void CollectedHeap::fill_with_dummy_object(HeapWord* start, HeapWord* end, bool 
   CollectedHeap::fill_with_object(start, end, zap);
 }
 
-HeapWord* CollectedHeap::allocate_new_tlab(size_t min_size,
-                                           size_t requested_size,
-                                           size_t* actual_size) {
+HeapWord* CollectedHeap::allocate_new_tlab(Words min_size,
+                                           Words requested_size,
+                                           Words* actual_size) {
   guarantee(false, "thread-local allocation buffers not supported");
   return nullptr;
 }
@@ -589,7 +588,7 @@ void CollectedHeap::post_full_gc_dump(GCTimer* timer) {
 void CollectedHeap::initialize_reserved_region(const ReservedHeapSpace& rs) {
   // It is important to do this in a way such that concurrent readers can't
   // temporarily think something is in the heap.  (Seen this happen in asserts.)
-  _reserved.set_word_size(0);
+  _reserved.set_word_size(Words(0));
   _reserved.set_start((HeapWord*)rs.base());
   _reserved.set_end((HeapWord*)rs.end());
 }

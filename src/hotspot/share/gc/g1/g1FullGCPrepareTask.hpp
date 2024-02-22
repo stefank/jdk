@@ -94,7 +94,7 @@ private:
 
   public:
     G1PrepareCompactLiveClosure(G1FullGCCompactionPoint* cp);
-    size_t apply(oop object);
+    Words apply(oop object);
   };
 };
 
@@ -109,7 +109,7 @@ public:
     _cp(hrcp),
     _dense_prefix_top(dense_prefix_top) { }
 
-  inline size_t apply(oop obj);
+  inline Words apply(oop obj);
 };
 
 #endif // SHARE_GC_G1_G1FULLGCPREPARETASK_HPP

@@ -96,7 +96,7 @@ namespace AccessInternal {
     typedef bool (*arraycopy_func_t)(arrayOop src_obj, size_t src_offset_in_bytes, T* src_raw,
                                      arrayOop dst_obj, size_t dst_offset_in_bytes, T* dst_raw,
                                      size_t length);
-    typedef void (*clone_func_t)(oop src, oop dst, size_t size);
+    typedef void (*clone_func_t)(oop src, oop dst, Words size);
   };
 
   template <DecoratorSet decorators>
@@ -336,7 +336,7 @@ public:
                             arrayOop dst_obj, size_t dst_offset_in_bytes, T* dst_raw,
                             size_t length);
 
-  static void clone(oop src, oop dst, size_t size);
+  static void clone(oop src, oop dst, Words size);
 };
 
 namespace AccessInternal {
@@ -525,9 +525,9 @@ namespace AccessInternal {
     typedef typename AccessFunction<decorators, T, BARRIER_CLONE>::type func_t;
     static func_t _clone_func;
 
-    static void clone_init(oop src, oop dst, size_t size);
+    static void clone_init(oop src, oop dst, Words size);
 
-    static inline void clone(oop src, oop dst, size_t size) {
+    static inline void clone(oop src, oop dst, Words size) {
       assert_access_thread_state();
       _clone_func(src, dst, size);
     }
@@ -877,7 +877,7 @@ namespace AccessInternal {
     template <DecoratorSet decorators>
     inline static typename EnableIf<
       HasDecorator<decorators, AS_RAW>::value>::type
-    clone(oop src, oop dst, size_t size) {
+    clone(oop src, oop dst, Words size) {
       typedef RawAccessBarrier<decorators & RAW_DECORATOR_MASK> Raw;
       Raw::clone(src, dst, size);
     }
@@ -885,7 +885,7 @@ namespace AccessInternal {
     template <DecoratorSet decorators>
     inline static typename EnableIf<
       !HasDecorator<decorators, AS_RAW>::value>::type
-    clone(oop src, oop dst, size_t size) {
+    clone(oop src, oop dst, Words size) {
       RuntimeDispatch<decorators, oop, BARRIER_CLONE>::clone(src, dst, size);
     }
   };
@@ -1175,7 +1175,7 @@ namespace AccessInternal {
   }
 
   template <DecoratorSet decorators>
-  inline void clone(oop src, oop dst, size_t size) {
+  inline void clone(oop src, oop dst, Words size) {
     const DecoratorSet expanded_decorators = DecoratorFixup<decorators>::value;
     PreRuntimeDispatch::clone<expanded_decorators>(src, dst, size);
   }

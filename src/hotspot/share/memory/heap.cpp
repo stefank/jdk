@@ -39,14 +39,14 @@ CodeHeap::CodeHeap(const char* name, const CodeBlobType code_blob_type)
   _name                         = name;
   _number_of_committed_segments = 0;
   _number_of_reserved_segments  = 0;
-  _segment_size                 = 0;
+  _segment_size                 = Bytes(0);
   _log2_segment_size            = 0;
   _next_segment                 = 0;
   _freelist                     = nullptr;
   _last_insert_point            = nullptr;
   _freelist_segments            = 0;
   _freelist_length              = 0;
-  _max_allocated_capacity       = 0;
+  _max_allocated_capacity       = Bytes(0);
   _blob_count                   = 0;
   _nmethod_count                = 0;
   _adapter_count                = 0;
@@ -162,19 +162,19 @@ void CodeHeap::mark_segmap_as_used(size_t beg, size_t end, bool is_FreeBlock_joi
   }
 }
 
-void CodeHeap::invalidate(size_t beg, size_t end, size_t hdr_size) {
+void CodeHeap::invalidate(size_t beg, size_t end, Bytes hdr_size) {
 #ifndef PRODUCT
   // Fill the given range with some bad value.
   // length is expected to be in segment_size units.
   // This prevents inadvertent execution of code leftover from previous use.
   char* p = low_boundary() + segments_to_size(beg) + hdr_size;
-  memset(p, badCodeHeapNewVal, segments_to_size(end-beg)-hdr_size);
+  memset(p, badCodeHeapNewVal, untype(segments_to_size(end-beg)-hdr_size));
 #endif
 }
 
 void CodeHeap::clear(size_t beg, size_t end) {
   mark_segmap_as_free(beg, end);
-  invalidate(beg, end, 0);
+  invalidate(beg, end, Bytes(0));
 }
 
 void CodeHeap::clear() {
@@ -183,37 +183,43 @@ void CodeHeap::clear() {
 }
 
 
-static size_t align_to_page_size(size_t size) {
-  const size_t alignment = os::vm_page_size();
+static Bytes align_to_page_size(Bytes size) {
+  const Bytes alignment = in_Bytes(os::vm_page_size());
   assert(is_power_of_2(alignment), "no kidding ???");
-  return (size + alignment - 1) & ~(alignment - 1);
+  assert(((untype(size) + untype(alignment) - 1) & ~(untype(alignment) - 1)) == untype(align_up(size, alignment)),
+      "Test size: " PTR_FORMAT " alignment: " PTR_FORMAT " - "  PTR_FORMAT " vs " PTR_FORMAT,
+      untype(size),
+      untype(alignment),
+      (((untype(size) + untype(alignment) - 1) & ~(untype(alignment) - 1))),
+      untype(align_up(size, alignment)));
+  return align_up(size, alignment);
 }
 
 
-void CodeHeap::on_code_mapping(char* base, size_t size) {
+void CodeHeap::on_code_mapping(char* base, Bytes size) {
 #ifdef LINUX
-  extern void linux_wrap_code(char* base, size_t size);
+  extern void linux_wrap_code(char* base, Bytes size);
   linux_wrap_code(base, size);
 #endif
 }
 
 
-bool CodeHeap::reserve(ReservedSpace rs, size_t committed_size, size_t segment_size) {
+bool CodeHeap::reserve(ReservedSpace rs, Bytes committed_size, Bytes segment_size) {
   assert(rs.size() >= committed_size, "reserved < committed");
-  assert(segment_size >= sizeof(FreeBlock), "segment size is too small");
+  assert(segment_size >= in_Bytes(sizeof(FreeBlock)), "segment size is too small");
   assert(is_power_of_2(segment_size), "segment_size must be a power of 2");
   assert_locked_or_safepoint(CodeCache_lock);
 
   _segment_size      = segment_size;
-  _log2_segment_size = exact_log2(segment_size);
+  _log2_segment_size = exact_log2(untype(segment_size));
 
   // Reserve and initialize space for _memory.
-  const size_t page_size = rs.page_size();
-  const size_t granularity = os::vm_allocation_granularity();
-  const size_t c_size = align_up(committed_size, page_size);
+  const Bytes page_size = rs.page_size();
+  const Bytes granularity = in_Bytes(os::vm_allocation_granularity());
+  const Bytes c_size = align_up(committed_size, page_size);
   assert(c_size <= rs.size(), "alignment made committed size to large");
 
-  os::trace_page_sizes(_name, c_size, rs.size(), rs.base(), rs.size(), page_size);
+  os::trace_page_sizes(_name, untype(c_size), untype(rs.size()), rs.base(), untype(rs.size()), untype(page_size));
   if (!_memory.initialize(rs, c_size)) {
     return false;
   }
@@ -222,9 +228,15 @@ bool CodeHeap::reserve(ReservedSpace rs, size_t committed_size, size_t segment_s
   _number_of_committed_segments = size_to_segments(_memory.committed_size());
   _number_of_reserved_segments  = size_to_segments(_memory.reserved_size());
   assert(_number_of_reserved_segments >= _number_of_committed_segments, "just checking");
-  const size_t reserved_segments_alignment = MAX2(os::vm_page_size(), granularity);
-  const size_t reserved_segments_size = align_up(_number_of_reserved_segments, reserved_segments_alignment);
-  const size_t committed_segments_size = align_to_page_size(_number_of_committed_segments);
+  const Bytes reserved_segments_alignment = MAX2(in_Bytes(os::vm_page_size()), granularity);
+
+  // TODO: Number-to-bytes assumption
+  const Bytes number_of_reserved_segments_as_bytes = in_Bytes(_number_of_reserved_segments);
+  const Bytes reserved_segments_size = align_up(number_of_reserved_segments_as_bytes, reserved_segments_alignment);
+
+  // TODO: Number-to-bytes assumption
+  const Bytes number_of_committed_segments_as_bytes = in_Bytes(_number_of_committed_segments);
+  const Bytes committed_segments_size = align_to_page_size(number_of_committed_segments_as_bytes);
 
   // reserve space for _segmap
   ReservedSpace seg_rs(reserved_segments_size);
@@ -234,8 +246,8 @@ bool CodeHeap::reserve(ReservedSpace rs, size_t committed_size, size_t segment_s
 
   MemTracker::record_virtual_memory_type((address)_segmap.low_boundary(), mtCode);
 
-  assert(_segmap.committed_size() >= (size_t) _number_of_committed_segments, "could not commit  enough space for segment map");
-  assert(_segmap.reserved_size()  >= (size_t) _number_of_reserved_segments , "could not reserve enough space for segment map");
+  assert(_segmap.committed_size() >= number_of_committed_segments_as_bytes, "could not commit  enough space for segment map");
+  assert(_segmap.reserved_size()  >= number_of_reserved_segments_as_bytes , "could not reserve enough space for segment map");
   assert(_segmap.reserved_size()  >= _segmap.committed_size()     , "just checking");
 
   // initialize remaining instance variables, heap memory and segmap
@@ -245,14 +257,14 @@ bool CodeHeap::reserve(ReservedSpace rs, size_t committed_size, size_t segment_s
 }
 
 
-bool CodeHeap::expand_by(size_t size) {
+bool CodeHeap::expand_by(Bytes size) {
   assert_locked_or_safepoint(CodeCache_lock);
 
   // expand _memory space
-  size_t dm = align_to_page_size(_memory.committed_size() + size) - _memory.committed_size();
-  if (dm > 0) {
+  Bytes dm = align_to_page_size(_memory.committed_size() + size) - _memory.committed_size();
+  if (dm > Bytes(0)) {
     // Use at least the available uncommitted space if 'size' is larger
-    if (_memory.uncommitted_size() != 0 && dm > _memory.uncommitted_size()) {
+    if (_memory.uncommitted_size() != Bytes(0) && dm > _memory.uncommitted_size()) {
       dm = _memory.uncommitted_size();
     }
     char* base = _memory.low() + _memory.committed_size();
@@ -263,11 +275,15 @@ bool CodeHeap::expand_by(size_t size) {
     assert(_number_of_reserved_segments == size_to_segments(_memory.reserved_size()), "number of reserved segments should not change");
     assert(_number_of_reserved_segments >= _number_of_committed_segments, "just checking");
     // expand _segmap space
-    size_t ds = align_to_page_size(_number_of_committed_segments) - _segmap.committed_size();
-    if ((ds > 0) && !_segmap.expand_by(ds)) {
+
+    // TODO: Number-to-bytes assumption
+    const Bytes number_of_committed_segments_as_bytes = in_Bytes(_number_of_committed_segments);
+
+    Bytes ds = align_to_page_size(number_of_committed_segments_as_bytes) - _segmap.committed_size();
+    if ((ds > Bytes(0)) && !_segmap.expand_by(ds)) {
       return false;
     }
-    assert(_segmap.committed_size() >= (size_t) _number_of_committed_segments, "just checking");
+    assert(_segmap.committed_size() >= number_of_committed_segments_as_bytes, "just checking");
     // initialize additional space (heap memory and segmap)
     clear(i, _number_of_committed_segments);
   }
@@ -275,9 +291,9 @@ bool CodeHeap::expand_by(size_t size) {
 }
 
 
-void* CodeHeap::allocate(size_t instance_size) {
+void* CodeHeap::allocate(Bytes instance_size) {
   size_t number_of_segments = size_to_segments(instance_size + header_size());
-  assert(segments_to_size(number_of_segments) >= sizeof(FreeBlock), "not enough room for FreeList");
+  assert(segments_to_size(number_of_segments) >= in_Bytes(sizeof(FreeBlock)), "not enough room for FreeList");
   assert_locked_or_safepoint(CodeCache_lock);
 
   // First check if we can satisfy request from freelist
@@ -341,7 +357,7 @@ HeapBlock* CodeHeap::split_block(HeapBlock *b, size_t split_at) {
   return newb;
 }
 
-void CodeHeap::deallocate_tail(void* p, size_t used_size) {
+void CodeHeap::deallocate_tail(void* p, Bytes used_size) {
   assert(p == find_start(p), "illegal deallocation");
   assert_locked_or_safepoint(CodeCache_lock);
 
@@ -527,11 +543,11 @@ HeapBlock* CodeHeap::next_block(HeapBlock *b) const {
 
 
 // Returns current capacity
-size_t CodeHeap::capacity() const {
+Bytes CodeHeap::capacity() const {
   return _memory.committed_size();
 }
 
-size_t CodeHeap::max_capacity() const {
+Bytes CodeHeap::max_capacity() const {
   return _memory.reserved_size();
 }
 
@@ -539,13 +555,13 @@ int CodeHeap::allocated_segments() const {
   return (int)_next_segment;
 }
 
-size_t CodeHeap::allocated_capacity() const {
+Bytes CodeHeap::allocated_capacity() const {
   // size of used heap - size on freelist
   return segments_to_size(_next_segment - _freelist_segments);
 }
 
 // Returns size of the unallocated heap block
-size_t CodeHeap::heap_unallocated_capacity() const {
+Bytes CodeHeap::heap_unallocated_capacity() const {
   // Total number of segments - number currently used
   return segments_to_size(_number_of_reserved_segments - _next_segment);
 }
@@ -586,7 +602,7 @@ bool CodeHeap::merge_right(FreeBlock* a) {
     // Block contents has already been invalidated by add_to_freelist.
     // What's left is the header of the following block which now is
     // in the middle of the merged block. Just zap one segment.
-    invalidate(follower, follower + 1, 0);
+    invalidate(follower, follower + 1, Bytes(0));
 
     _freelist_length--;
     return true;
@@ -608,7 +624,7 @@ void CodeHeap::add_to_freelist(HeapBlock* a) {
   // Mark as free and update free space count
   _freelist_segments += b->length();
   b->set_free();
-  invalidate(bseg, bseg + b->length(), sizeof(FreeBlock));
+  invalidate(bseg, bseg + b->length(), in_Bytes(sizeof(FreeBlock)));
 
   // First element in list?
   if (_freelist == nullptr) {

@@ -112,8 +112,8 @@ class NMTUtil : AllStatic {
   static size_t scale_from_name(const char* scale);
 
   // Translate memory size in specified scale
-  static size_t amount_in_scale(size_t amount, size_t scale) {
-    return (amount + scale / 2) / scale;
+  static size_t amount_in_scale(Bytes amount, size_t scale) {
+    return (untype(amount) + scale / 2) / scale;
   }
 
   // Parses the tracking level from a string. Returns NMT_unknown if

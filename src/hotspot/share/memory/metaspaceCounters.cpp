@@ -63,9 +63,9 @@ class MetaspacePerfCounters {
   }
 
   void update(const MetaspaceStats& stats) {
-    _capacity->set_value(stats.committed());
-    _max_capacity->set_value(stats.reserved());
-    _used->set_value(stats.used());
+    _capacity->set_value(untype(stats.committed()));
+    _max_capacity->set_value(untype(stats.reserved()));
+    _used->set_value(untype(stats.used()));
   }
 };
 

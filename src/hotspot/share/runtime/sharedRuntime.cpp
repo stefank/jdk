@@ -1052,13 +1052,13 @@ int SharedRuntime::dtrace_object_alloc(JavaThread* thread, oopDesc* o) {
   return dtrace_object_alloc(thread, o, o->size());
 }
 
-int SharedRuntime::dtrace_object_alloc(JavaThread* thread, oopDesc* o, size_t size) {
+int SharedRuntime::dtrace_object_alloc(JavaThread* thread, oopDesc* o, Words size) {
   assert(DTraceAllocProbes, "wrong call");
   Klass* klass = o->klass();
   Symbol* name = klass->name();
   HOTSPOT_OBJECT_ALLOC(
                    get_java_tid(thread),
-                   (char *) name->bytes(), name->utf8_length(), size * HeapWordSize);
+                   (char *) name->bytes(), name->utf8_length(), to_bytes(size));
   return 0;
 }
 
@@ -2333,7 +2333,7 @@ static AdapterHandlerEntry* lookup(int total_args_passed, BasicType* sig_bt) {
 #ifndef PRODUCT
 static void print_table_statistics() {
   auto size = [&] (AdapterFingerPrint* key, AdapterHandlerEntry* a) {
-    return sizeof(*key) + sizeof(*a);
+    return in_Bytes(sizeof(*key) + sizeof(*a));
   };
   TableStatistics ts = _adapter_handler_table->statistics_calculate(size);
   ts.print(tty, "AdapterHandlerTable");
@@ -2933,7 +2933,7 @@ JRT_LEAF(intptr_t*, SharedRuntime::OSR_migration_begin( JavaThread *current) )
   assert(sizeof(HeapWord)==sizeof(intptr_t), "fix this code");
   Copy::disjoint_words((HeapWord*)fr.interpreter_frame_local_at(max_locals-1),
                        (HeapWord*)&buf[0],
-                       max_locals);
+                       in_Words(max_locals));
 
   // Inflate locks.  Copy the displaced headers.  Be careful, there can be holes.
   int i = max_locals;

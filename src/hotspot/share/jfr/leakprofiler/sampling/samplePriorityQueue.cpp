@@ -31,7 +31,7 @@
 SamplePriorityQueue::SamplePriorityQueue(size_t size) :
   _allocated_size(size),
   _count(0),
-  _total(0) {
+  _total(Bytes(0)) {
   _items =  NEW_C_HEAP_ARRAY(ObjectSample*, size, mtTracing);
   memset(_items, 0, sizeof(ObjectSample*) * size);
 }
@@ -52,7 +52,7 @@ void SamplePriorityQueue::push(ObjectSample* item) {
   _total += item->span();
 }
 
-size_t SamplePriorityQueue::total() const {
+Bytes SamplePriorityQueue::total() const {
   return _total;
 }
 
@@ -129,8 +129,8 @@ void SamplePriorityQueue::moveUp(int i) {
 
 void SamplePriorityQueue::remove(ObjectSample* s) {
   assert(s != nullptr, "invariant");
-  const size_t realSpan = s->span();
-  s->set_span(0);
+  const Bytes realSpan = s->span();
+  s->set_span(Bytes(0));
   moveUp(s->index());
   s->set_span(realSpan);
   pop();

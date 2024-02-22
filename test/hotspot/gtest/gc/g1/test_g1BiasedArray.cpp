@@ -36,7 +36,7 @@ public:
 };
 
 TEST_VM(G1BiasedArray, simple) {
-  const size_t REGION_SIZE_IN_WORDS = 512;
+  const Words REGION_SIZE_IN_WORDS = Words(512);
   const size_t NUM_REGIONS = 20;
   // Any value that is non-zero
   HeapWord* fake_heap =
@@ -44,7 +44,7 @@ TEST_VM(G1BiasedArray, simple) {
 
   TestMappedArray array;
   MemRegion range(fake_heap, fake_heap + REGION_SIZE_IN_WORDS * NUM_REGIONS);
-  array.initialize(range, REGION_SIZE_IN_WORDS * HeapWordSize);
+  array.initialize(range, to_Bytes(REGION_SIZE_IN_WORDS));
   const int DEFAULT_VALUE = array.default_value();
 
   // Check address calculation (bounds)
@@ -71,7 +71,7 @@ TEST_VM(G1BiasedArray, simple) {
           fake_heap + REGION_SIZE_IN_WORDS * (NUM_REGIONS / 2);
   HeapWord* region_end_address =
           fake_heap + (REGION_SIZE_IN_WORDS * (NUM_REGIONS / 2) +
-          REGION_SIZE_IN_WORDS - 1);
+          REGION_SIZE_IN_WORDS - Words(1));
 
   // Set/get by address tests: invert some value; first retrieve one
   int actual_value = array.get_by_index(NUM_REGIONS / 2);

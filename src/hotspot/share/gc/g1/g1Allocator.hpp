@@ -78,15 +78,15 @@ private:
   inline OldGCAllocRegion* old_gc_alloc_region();
 
   // Allocation attempt during GC for a survivor object / PLAB.
-  HeapWord* survivor_attempt_allocation(size_t min_word_size,
-                                        size_t desired_word_size,
-                                        size_t* actual_word_size,
+  HeapWord* survivor_attempt_allocation(Words min_word_size,
+                                        Words desired_word_size,
+                                        Words* actual_word_size,
                                         uint node_index);
 
   // Allocation attempt during GC for an old object / PLAB.
-  HeapWord* old_attempt_allocation(size_t min_word_size,
-                                   size_t desired_word_size,
-                                   size_t* actual_word_size);
+  HeapWord* old_attempt_allocation(Words min_word_size,
+                                   Words desired_word_size,
+                                   Words* actual_word_size);
 
   // Node index of current thread.
   inline uint current_node_index() const;
@@ -113,31 +113,31 @@ public:
   // Allocate blocks of memory during mutator time.
 
   // Attempt allocation in the current alloc region.
-  inline HeapWord* attempt_allocation(size_t min_word_size,
-                                      size_t desired_word_size,
-                                      size_t* actual_word_size);
+  inline HeapWord* attempt_allocation(Words min_word_size,
+                                      Words desired_word_size,
+                                      Words* actual_word_size);
 
   // This is to be called when holding an appropriate lock. It first tries in the
   // current allocation region, and then attempts an allocation using a new region.
-  inline HeapWord* attempt_allocation_locked(size_t word_size);
+  inline HeapWord* attempt_allocation_locked(Words word_size);
 
-  inline HeapWord* attempt_allocation_force(size_t word_size);
+  inline HeapWord* attempt_allocation_force(Words word_size);
 
-  size_t unsafe_max_tlab_alloc();
-  size_t used_in_alloc_regions();
+  Bytes unsafe_max_tlab_alloc();
+  Bytes used_in_alloc_regions();
 
   // Allocate blocks of memory during garbage collection. Will ensure an
   // allocation region, either by picking one or expanding the
   // heap, and then allocate a block of the given size. The block
   // may not be a humongous - it must fit into a single heap region.
   HeapWord* par_allocate_during_gc(G1HeapRegionAttr dest,
-                                   size_t word_size,
+                                   Words word_size,
                                    uint node_index);
 
   HeapWord* par_allocate_during_gc(G1HeapRegionAttr dest,
-                                   size_t min_word_size,
-                                   size_t desired_word_size,
-                                   size_t* actual_word_size,
+                                   Words min_word_size,
+                                   Words desired_word_size,
+                                   Words* actual_word_size,
                                    uint node_index);
 };
 
@@ -157,26 +157,26 @@ private:
   struct PLABData {
     PLAB** _alloc_buffer;
 
-    size_t _direct_allocated;             // Number of words allocated directly (not counting PLAB allocation).
+    Words _direct_allocated;              // Number of words allocated directly (not counting PLAB allocation).
     size_t _num_plab_fills;               // Number of PLAB refills experienced so far.
     size_t _num_direct_allocations;       // Number of direct allocations experienced so far.
 
     size_t _plab_fill_counter;            // How many PLAB refills left until boosting.
-    size_t _cur_desired_plab_size;        // Current desired PLAB size incorporating eventual boosting.
+    Words _cur_desired_plab_size;         // Current desired PLAB size incorporating eventual boosting.
 
     uint _num_alloc_buffers;              // The number of PLABs for this destination.
 
     PLABData();
     ~PLABData();
 
-    void initialize(uint num_alloc_buffers, size_t desired_plab_size, size_t tolerated_refills);
+    void initialize(uint num_alloc_buffers, Words desired_plab_size, size_t tolerated_refills);
 
     // Should we actually boost the PLAB size?
     // The _plab_refill_counter reset value encodes the ResizePLAB flag value already, so no
     // need to check here.
     bool should_boost() const { return _plab_fill_counter == 0; }
 
-    void notify_plab_refill(size_t tolerated_refills, size_t next_plab_size);
+    void notify_plab_refill(size_t tolerated_refills, Words next_plab_size);
 
   } _dest_data[G1HeapRegionAttr::Num];
 
@@ -194,35 +194,35 @@ private:
   // active NUMA nodes.
   inline uint alloc_buffers_length(region_type_t dest) const;
 
-  bool may_throw_away_buffer(size_t const allocation_word_sz, size_t const buffer_size) const;
+  bool may_throw_away_buffer(Words const allocation_word_sz, Words const buffer_size) const;
 public:
   G1PLABAllocator(G1Allocator* allocator);
 
-  size_t waste() const;
-  size_t undo_waste() const;
-  size_t plab_size(G1HeapRegionAttr which) const;
+  Words waste() const;
+  Words undo_waste() const;
+  Words plab_size(G1HeapRegionAttr which) const;
 
   // Allocate word_sz words in dest, either directly into the regions or by
   // allocating a new PLAB. Returns the address of the allocated memory, null if
   // not successful. Plab_refill_failed indicates whether an attempt to refill the
   // PLAB failed or not.
   HeapWord* allocate_direct_or_new_plab(G1HeapRegionAttr dest,
-                                        size_t word_sz,
+                                        Words word_sz,
                                         bool* plab_refill_failed,
                                         uint node_index);
 
   // Allocate word_sz words in the PLAB of dest.  Returns the address of the
   // allocated memory, null if not successful.
   inline HeapWord* plab_allocate(G1HeapRegionAttr dest,
-                                 size_t word_sz,
+                                 Words word_sz,
                                  uint node_index);
 
   inline HeapWord* allocate(G1HeapRegionAttr dest,
-                            size_t word_sz,
+                            Words word_sz,
                             bool* refill_failed,
                             uint node_index);
 
-  void undo_allocation(G1HeapRegionAttr dest, HeapWord* obj, size_t word_sz, uint node_index);
+  void undo_allocation(G1HeapRegionAttr dest, HeapWord* obj, Words word_sz, uint node_index);
 };
 
 #endif // SHARE_GC_G1_G1ALLOCATOR_HPP

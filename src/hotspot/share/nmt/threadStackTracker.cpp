@@ -46,7 +46,7 @@ int ThreadStackTracker::compare_thread_stack_base(const SimpleThreadStackSite& s
   return primitive_compare(s1.base(), s2.base());
 }
 
-void ThreadStackTracker::new_thread_stack(void* base, size_t size, const NativeCallStack& stack) {
+void ThreadStackTracker::new_thread_stack(void* base, Bytes size, const NativeCallStack& stack) {
   assert(MemTracker::tracking_level() >= NMT_summary, "Must be");
   assert(base != nullptr, "Should have been filtered");
   ThreadCritical tc;
@@ -64,7 +64,7 @@ void ThreadStackTracker::new_thread_stack(void* base, size_t size, const NativeC
   _thread_count++;
 }
 
-void ThreadStackTracker::delete_thread_stack(void* base, size_t size) {
+void ThreadStackTracker::delete_thread_stack(void* base, Bytes size) {
   assert(MemTracker::tracking_level() >= NMT_summary, "Must be");
   assert(base != nullptr, "Should have been filtered");
   ThreadCritical tc;

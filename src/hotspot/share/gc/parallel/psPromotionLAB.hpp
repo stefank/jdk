@@ -72,20 +72,20 @@ class PSPromotionLAB : public CHeapObj<mtGC> {
 
   bool is_flushed()                  { return _state == flushed; }
 
-  void unallocate_object(HeapWord* obj, size_t obj_size);
+  void unallocate_object(HeapWord* obj, Words obj_size);
 
   // Returns a subregion containing all objects in this space.
   MemRegion used_region()            { return MemRegion(bottom(), top()); }
 
   // Boolean queries.
-  bool is_empty() const              { return used() == 0; }
-  bool not_empty() const             { return used() > 0; }
+  bool is_empty() const              { return used() == Bytes(0); }
+  bool not_empty() const             { return used() > Bytes(0); }
   bool contains(const void* p) const { return _bottom <= p && p < _end; }
 
   // Size computations.  Sizes are in bytes.
-  size_t capacity() const            { return byte_size(bottom(), end()); }
-  size_t used() const                { return byte_size(bottom(), top()); }
-  size_t free() const                { return byte_size(top(),    end()); }
+  Bytes capacity() const             { return byte_size(bottom(), end()); }
+  Bytes used() const                 { return byte_size(bottom(), top()); }
+  Bytes free() const                 { return byte_size(top(),    end()); }
 };
 
 class PSYoungPromotionLAB : public PSPromotionLAB {
@@ -93,7 +93,7 @@ class PSYoungPromotionLAB : public PSPromotionLAB {
   PSYoungPromotionLAB() { }
 
   // Not MT safe
-  inline HeapWord* allocate(size_t size);
+  inline HeapWord* allocate(Words size);
 
   debug_only(virtual bool lab_is_valid(MemRegion lab);)
 };
@@ -110,7 +110,7 @@ class PSOldPromotionLAB : public PSPromotionLAB {
   void flush();
 
   // Not MT safe
-  HeapWord* allocate(size_t size) {
+  HeapWord* allocate(Words size) {
     // Cannot test for this now that we're doing promotion failures
     // assert(_state != flushed, "Sanity");
     assert(_start_array != nullptr, "Sanity");

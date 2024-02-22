@@ -32,20 +32,20 @@
   TEST_VM(gc, oldFreeSpaceCalculation) {
 
     struct TestCase {
-        size_t live;
+        Bytes live;
         uintx ratio;
-        size_t expectedResult;
+        Bytes expectedResult;
     };
 
     TestCase test_cases[] = {
-                                {100, 20, 25},
-                                {100, 50, 100},
-                                {100, 60, 150},
-                                {100, 75, 300},
-                                {400, 20, 100},
-                                {400, 50, 400},
-                                {400, 60, 600},
-                                {400, 75, 1200},
+                                {100_b, 20, 25_b},
+                                {100_b, 50, 100_b},
+                                {100_b, 60, 150_b},
+                                {100_b, 75, 300_b},
+                                {400_b, 20, 100_b},
+                                {400_b, 50, 400_b},
+                                {400_b, 60, 600_b},
+                                {400_b, 75, 1200_b},
                             };
 
     size_t array_len = sizeof(test_cases) / sizeof(TestCase);
@@ -54,7 +54,7 @@
           test_cases[i].live, test_cases[i].ratio),
           test_cases[i].expectedResult)
           << " Calculation of free memory failed"
-          << " - Test case " << i << ": live = " << test_cases[i].live
+          << " - Test case " << i << ": live = " << untype(test_cases[i].live)
           << "; ratio = " << test_cases[i].ratio;
     }
   }

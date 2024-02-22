@@ -72,14 +72,14 @@ void* MetaspaceObj::_shared_metaspace_base = nullptr;
 void* MetaspaceObj::_shared_metaspace_top  = nullptr;
 
 void* MetaspaceObj::operator new(size_t size, ClassLoaderData* loader_data,
-                                 size_t word_size,
+                                 Words word_size,
                                  MetaspaceObj::Type type, TRAPS) throw() {
   // Klass has its own operator new
   return Metaspace::allocate(loader_data, word_size, type, THREAD);
 }
 
 void* MetaspaceObj::operator new(size_t size, ClassLoaderData* loader_data,
-                                 size_t word_size,
+                                 Words word_size,
                                  MetaspaceObj::Type type) throw() {
   assert(!Thread::current()->is_Java_thread(), "only allowed by non-Java thread");
   return Metaspace::allocate(loader_data, word_size, type);

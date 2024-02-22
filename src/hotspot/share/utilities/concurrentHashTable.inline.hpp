@@ -1040,11 +1040,11 @@ inline ConcurrentHashTable<CONFIG, F>::
 }
 
 template <typename CONFIG, MEMFLAGS F>
-inline size_t ConcurrentHashTable<CONFIG, F>::
+inline Bytes ConcurrentHashTable<CONFIG, F>::
   get_mem_size(Thread* thread)
 {
   ScopedCS cs(thread, this);
-  return sizeof(*this) + _table->get_mem_size();
+  return in_Bytes(sizeof(*this)) + _table->get_mem_size();
 }
 
 template <typename CONFIG, MEMFLAGS F>
@@ -1224,7 +1224,7 @@ inline TableStatistics ConcurrentHashTable<CONFIG, F>::
 {
   constexpr size_t batch_size = 128;
   NumberSeq summary;
-  size_t literal_bytes = 0;
+  Bytes literal_bytes = Bytes(0);
   InternalTable* table = get_table();
   size_t num_batches = table->_size / batch_size;
   for (size_t batch_start = 0; batch_start < _table->_size; batch_start += batch_size) {
@@ -1249,9 +1249,9 @@ inline TableStatistics ConcurrentHashTable<CONFIG, F>::
   }
 
   if (_stats_rate == nullptr) {
-    return TableStatistics(summary, literal_bytes, sizeof(Bucket), sizeof(Node));
+    return TableStatistics(summary, literal_bytes, in_Bytes(sizeof(Bucket)), in_Bytes(sizeof(Node)));
   } else {
-    return TableStatistics(*_stats_rate, summary, literal_bytes, sizeof(Bucket), sizeof(Node));
+    return TableStatistics(*_stats_rate, summary, literal_bytes, in_Bytes(sizeof(Bucket)), in_Bytes(sizeof(Node)));
   }
 }
 

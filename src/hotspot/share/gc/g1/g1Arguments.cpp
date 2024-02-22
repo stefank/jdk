@@ -40,9 +40,9 @@
 #include "runtime/globals_extension.hpp"
 #include "runtime/java.hpp"
 
-static size_t calculate_heap_alignment(size_t space_alignment) {
-  size_t card_table_alignment = CardTable::ct_max_alignment_constraint();
-  size_t page_size = UseLargePages ? os::large_page_size() : os::vm_page_size();
+static Bytes calculate_heap_alignment(Bytes space_alignment) {
+  Bytes card_table_alignment = CardTable::ct_max_alignment_constraint();
+  Bytes page_size = in_Bytes(UseLargePages ? os::large_page_size() : os::vm_page_size());
   return MAX3(card_table_alignment, space_alignment, page_size);
 }
 
@@ -55,7 +55,7 @@ void G1Arguments::initialize_alignments() {
   // There is a circular dependency here. We base the region size on the heap
   // size, but the heap size should be aligned with the region size. To get
   // around this we use the unaligned values for the heap.
-  HeapRegion::setup_heap_region_size(MaxHeapSize);
+  HeapRegion::setup_heap_region_size(in_Bytes(MaxHeapSize));
 
   SpaceAlignment = HeapRegion::GrainBytes;
   HeapAlignment = calculate_heap_alignment(SpaceAlignment);
@@ -70,7 +70,7 @@ void G1Arguments::initialize_alignments() {
   }
 }
 
-size_t G1Arguments::conservative_max_heap_alignment() {
+Bytes G1Arguments::conservative_max_heap_alignment() {
   return HeapRegion::max_region_size();
 }
 
@@ -133,7 +133,7 @@ void G1Arguments::initialize_card_set_configuration() {
   assert(HeapRegion::LogOfHRGrainBytes != 0, "not initialized");
   // Array of Cards card set container globals.
   const uint LOG_M = 20;
-  assert(log2i_exact(HeapRegionBounds::min_size()) == LOG_M, "inv");
+  assert(log2i_exact(untype(HeapRegionBounds::min_size())) == LOG_M, "inv");
   assert(HeapRegion::LogOfHRGrainBytes >= LOG_M, "from the above");
   uint region_size_log_mb = HeapRegion::LogOfHRGrainBytes - LOG_M;
 
@@ -255,6 +255,6 @@ CollectedHeap* G1Arguments::create_heap() {
   return new G1CollectedHeap();
 }
 
-size_t G1Arguments::heap_reserved_size_bytes() {
-  return MaxHeapSize;
+Bytes G1Arguments::heap_reserved_size_bytes() {
+  return in_Bytes(MaxHeapSize);
 }

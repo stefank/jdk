@@ -30,44 +30,44 @@
 
 ContiguousSpacePool::ContiguousSpacePool(ContiguousSpace* space,
                                          const char* name,
-                                         size_t max_size,
+                                         Bytes max_size,
                                          bool support_usage_threshold) :
   CollectedMemoryPool(name, space->capacity(), max_size,
                       support_usage_threshold), _space(space) {
 }
 
-size_t ContiguousSpacePool::used_in_bytes() {
+Bytes ContiguousSpacePool::used_in_bytes() {
   return space()->used();
 }
 
 MemoryUsage ContiguousSpacePool::get_memory_usage() {
-  size_t maxSize   = (available_for_allocation() ? max_size() : 0);
-  size_t used      = used_in_bytes();
-  size_t committed = _space->capacity();
+  Bytes maxSize   = (available_for_allocation() ? max_size() : Bytes(0));
+  Bytes used      = used_in_bytes();
+  Bytes committed = _space->capacity();
 
   return MemoryUsage(initial_size(), used, committed, maxSize);
 }
 
 SurvivorContiguousSpacePool::SurvivorContiguousSpacePool(DefNewGeneration* young_gen,
                                                          const char* name,
-                                                         size_t max_size,
+                                                         Bytes max_size,
                                                          bool support_usage_threshold) :
   CollectedMemoryPool(name, young_gen->from()->capacity(), max_size,
                       support_usage_threshold), _young_gen(young_gen) {
 }
 
-size_t SurvivorContiguousSpacePool::used_in_bytes() {
+Bytes SurvivorContiguousSpacePool::used_in_bytes() {
   return _young_gen->from()->used();
 }
 
-size_t SurvivorContiguousSpacePool::committed_in_bytes() {
+Bytes SurvivorContiguousSpacePool::committed_in_bytes() {
   return _young_gen->from()->capacity();
 }
 
 MemoryUsage SurvivorContiguousSpacePool::get_memory_usage() {
-  size_t maxSize = (available_for_allocation() ? max_size() : 0);
-  size_t used    = used_in_bytes();
-  size_t committed = committed_in_bytes();
+  Bytes maxSize = (available_for_allocation() ? max_size() : Bytes(0));
+  Bytes used    = used_in_bytes();
+  Bytes committed = committed_in_bytes();
 
   return MemoryUsage(initial_size(), used, committed, maxSize);
 }
@@ -79,14 +79,14 @@ TenuredGenerationPool::TenuredGenerationPool(TenuredGeneration* gen,
                       support_usage_threshold), _gen(gen) {
 }
 
-size_t TenuredGenerationPool::used_in_bytes() {
+Bytes TenuredGenerationPool::used_in_bytes() {
   return _gen->used();
 }
 
 MemoryUsage TenuredGenerationPool::get_memory_usage() {
-  size_t used      = used_in_bytes();
-  size_t committed = _gen->capacity();
-  size_t maxSize   = (available_for_allocation() ? max_size() : 0);
+  Bytes used      = used_in_bytes();
+  Bytes committed = _gen->capacity();
+  Bytes maxSize   = (available_for_allocation() ? max_size() : Bytes(0));
 
   return MemoryUsage(initial_size(), used, committed, maxSize);
 }

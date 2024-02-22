@@ -32,7 +32,7 @@
 #include "utilities/globalDefinitions.hpp"
 
 // Returns true if allocating s bytes on f would trigger either global or the category limit
-inline bool MallocMemorySummary::check_exceeds_limit(size_t s, MEMFLAGS f) {
+inline bool MallocMemorySummary::check_exceeds_limit(Bytes s, MEMFLAGS f) {
 
   // Note: checks are ordered to have as little impact as possible on the standard code path,
   // when MallocLimit is unset, resp. it is set but we have reached no limit yet.
@@ -43,17 +43,17 @@ inline bool MallocMemorySummary::check_exceeds_limit(size_t s, MEMFLAGS f) {
 
     // Global Limit ?
     const malloclimit* l = MallocLimitHandler::global_limit();
-    if (l->sz > 0) {
-      size_t so_far = as_snapshot()->total();
+    if (l->sz > Bytes(0)) {
+      Bytes so_far = as_snapshot()->total();
       if ((so_far + s) > l->sz) { // hit the limit
         return total_limit_reached(s, so_far, l);
       }
     } else {
       // Category Limit?
       l = MallocLimitHandler::category_limit(f);
-      if (l->sz > 0) {
+      if (l->sz > Bytes(0)) {
         const MallocMemory* mm = as_snapshot()->by_type(f);
-        size_t so_far = mm->malloc_size() + mm->arena_size();
+        Bytes so_far = mm->malloc_size() + mm->arena_size();
         if ((so_far + s) > l->sz) {
           return category_limit_reached(f, s, so_far, l);
         }
@@ -64,7 +64,7 @@ inline bool MallocMemorySummary::check_exceeds_limit(size_t s, MEMFLAGS f) {
   return false;
 }
 
-inline bool MallocTracker::check_exceeds_limit(size_t s, MEMFLAGS f) {
+inline bool MallocTracker::check_exceeds_limit(Bytes s, MEMFLAGS f) {
   return MallocMemorySummary::check_exceeds_limit(s, f);
 }
 

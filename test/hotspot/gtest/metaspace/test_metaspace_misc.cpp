@@ -41,12 +41,12 @@ TEST_VM(metaspace, misc_sizes)   {
   // Test test common sizes (seems primitive but breaks surprisingly often during development
   //  because of word vs byte confusion)
   // Adjust this test if numbers change.
-  ASSERT_TRUE(Settings::commit_granule_bytes() == 16 * K ||
-              Settings::commit_granule_bytes() == 64 * K);
+  ASSERT_TRUE(Settings::commit_granule_bytes() == 16_b * K ||
+              Settings::commit_granule_bytes() == 64_b * K);
   ASSERT_EQ(Settings::commit_granule_bytes(), Metaspace::commit_alignment());
   ASSERT_TRUE(is_aligned(Settings::virtual_space_node_default_word_size(),
               metaspace::chunklevel::MAX_CHUNK_WORD_SIZE));
-  ASSERT_EQ(Settings::virtual_space_node_default_word_size() * BytesPerWord, NOT_LP64(16) LP64_ONLY(64) * M);
+  ASSERT_EQ(to_Bytes(Settings::virtual_space_node_default_word_size()), in_Bytes(NOT_LP64(16) LP64_ONLY(64) * M));
   ASSERT_EQ(Settings::virtual_space_node_reserve_alignment_words(),
             Metaspace::reserve_alignment_words());
 
@@ -58,7 +58,7 @@ TEST_VM(metaspace, misc_max_alloc_size)   {
   for (int i = 0; i < 2; i ++) {
     const bool in_class_space = (i == 0);
     const Metaspace::MetadataType mdType = in_class_space ? Metaspace::ClassType : Metaspace::NonClassType;
-    const size_t sz = Metaspace::max_allocation_word_size();
+    const Words sz = Metaspace::max_allocation_word_size();
     ClassLoaderData* cld = ClassLoaderData::the_null_class_loader_data();
     MetaWord* p = cld->metaspace_non_null()->allocate(sz, mdType);
     if (p == nullptr) {
@@ -97,22 +97,22 @@ TEST_VM(metaspace, chunklevel_utils)   {
   EXPECT_EQ(word_size_for_level(ROOT_CHUNK_LEVEL), MAX_CHUNK_WORD_SIZE);
   EXPECT_EQ(word_size_for_level(HIGHEST_CHUNK_LEVEL), MIN_CHUNK_WORD_SIZE);
 
-  EXPECT_EQ(word_size_for_level(CHUNK_LEVEL_4K), (4 * K) / BytesPerWord);
-  EXPECT_EQ(word_size_for_level(CHUNK_LEVEL_64K), (64 * K) / BytesPerWord);
+  EXPECT_EQ(word_size_for_level(CHUNK_LEVEL_4K), to_Words(in_Bytes(4 * K)));
+  EXPECT_EQ(word_size_for_level(CHUNK_LEVEL_64K), to_Words(in_Bytes(64 * K)));
 
-  EXPECT_EQ(level_fitting_word_size(0), HIGHEST_CHUNK_LEVEL);
-  EXPECT_EQ(level_fitting_word_size(1), HIGHEST_CHUNK_LEVEL);
+  EXPECT_EQ(level_fitting_word_size(0_w), HIGHEST_CHUNK_LEVEL);
+  EXPECT_EQ(level_fitting_word_size(1_w), HIGHEST_CHUNK_LEVEL);
   EXPECT_EQ(level_fitting_word_size(MIN_CHUNK_WORD_SIZE), HIGHEST_CHUNK_LEVEL);
-  EXPECT_EQ(level_fitting_word_size(MIN_CHUNK_WORD_SIZE + 1), HIGHEST_CHUNK_LEVEL - 1);
+  EXPECT_EQ(level_fitting_word_size(MIN_CHUNK_WORD_SIZE + 1_w), HIGHEST_CHUNK_LEVEL - 1);
 
   EXPECT_EQ(level_fitting_word_size(MAX_CHUNK_WORD_SIZE), ROOT_CHUNK_LEVEL);
-  EXPECT_EQ(level_fitting_word_size(MAX_CHUNK_WORD_SIZE - 1), ROOT_CHUNK_LEVEL);
-  EXPECT_EQ(level_fitting_word_size((MAX_CHUNK_WORD_SIZE / 2) + 1), ROOT_CHUNK_LEVEL);
+  EXPECT_EQ(level_fitting_word_size(MAX_CHUNK_WORD_SIZE - 1_w), ROOT_CHUNK_LEVEL);
+  EXPECT_EQ(level_fitting_word_size((MAX_CHUNK_WORD_SIZE / 2) + 1_w ), ROOT_CHUNK_LEVEL);
   EXPECT_EQ(level_fitting_word_size(MAX_CHUNK_WORD_SIZE / 2), ROOT_CHUNK_LEVEL + 1);
 
-  EXPECT_EQ(level_fitting_word_size(8 * K), LP64_ONLY(CHUNK_LEVEL_64K) NOT_LP64(CHUNK_LEVEL_32K));
-  EXPECT_EQ(level_fitting_word_size(8 * K + 13), LP64_ONLY(CHUNK_LEVEL_64K) NOT_LP64(CHUNK_LEVEL_32K) - 1);
-  EXPECT_EQ(level_fitting_word_size(8 * K - 13), LP64_ONLY(CHUNK_LEVEL_64K) NOT_LP64(CHUNK_LEVEL_32K));
+  EXPECT_EQ(level_fitting_word_size(8_w * K), LP64_ONLY(CHUNK_LEVEL_64K) NOT_LP64(CHUNK_LEVEL_32K));
+  EXPECT_EQ(level_fitting_word_size(8_w * K + 13_w), LP64_ONLY(CHUNK_LEVEL_64K) NOT_LP64(CHUNK_LEVEL_32K) - 1);
+  EXPECT_EQ(level_fitting_word_size(8_w * K - 13_w), LP64_ONLY(CHUNK_LEVEL_64K) NOT_LP64(CHUNK_LEVEL_32K));
 
 }
 

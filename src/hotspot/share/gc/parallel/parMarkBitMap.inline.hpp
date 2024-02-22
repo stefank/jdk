@@ -31,7 +31,7 @@
 #include "utilities/bitMap.inline.hpp"
 
 inline ParMarkBitMap::ParMarkBitMap():
-  _region_start(nullptr), _region_size(0), _beg_bits(), _end_bits(), _virtual_space(nullptr), _reserved_byte_size(0)
+  _region_start(nullptr), _region_size(Words(0)), _beg_bits(), _end_bits(), _virtual_space(nullptr), _reserved_byte_size(Bytes(0))
 { }
 
 inline void ParMarkBitMap::clear_range(idx_t beg, idx_t end) {
@@ -39,7 +39,7 @@ inline void ParMarkBitMap::clear_range(idx_t beg, idx_t end) {
   _end_bits.clear_range(beg, end);
 }
 
-inline ParMarkBitMap::idx_t ParMarkBitMap::bits_required(size_t words) {
+inline ParMarkBitMap::idx_t ParMarkBitMap::bits_required(Words words) {
   // Need two bits (one begin bit, one end bit) for each unit of 'object
   // granularity' in the heap.
   return words_to_bits(words * 2);
@@ -57,7 +57,7 @@ inline HeapWord* ParMarkBitMap::region_end() const {
   return region_start() + region_size();
 }
 
-inline size_t ParMarkBitMap::region_size() const {
+inline Words ParMarkBitMap::region_size() const {
   return _region_size;
 }
 
@@ -97,34 +97,34 @@ inline bool ParMarkBitMap::is_unmarked(oop obj) const {
   return !is_marked(obj);
 }
 
-inline size_t ParMarkBitMap::bits_to_words(idx_t bits) {
-  return bits << obj_granularity_shift();
+inline Words ParMarkBitMap::bits_to_words(idx_t bits) {
+  return in_Words(bits << obj_granularity_shift());
 }
 
-inline ParMarkBitMap::idx_t ParMarkBitMap::words_to_bits(size_t words) {
-  return words >> obj_granularity_shift();
+inline ParMarkBitMap::idx_t ParMarkBitMap::words_to_bits(Words words) {
+  return untype(words) >> obj_granularity_shift();
 }
 
-inline size_t ParMarkBitMap::obj_size(idx_t beg_bit, idx_t end_bit) const {
+inline Words ParMarkBitMap::obj_size(idx_t beg_bit, idx_t end_bit) const {
   DEBUG_ONLY(verify_bit(beg_bit);)
   DEBUG_ONLY(verify_bit(end_bit);)
   return bits_to_words(end_bit - beg_bit + 1);
 }
 
-inline size_t ParMarkBitMap::obj_size(HeapWord* beg_addr, HeapWord* end_addr) const {
+inline Words ParMarkBitMap::obj_size(HeapWord* beg_addr, HeapWord* end_addr) const {
   DEBUG_ONLY(verify_addr(beg_addr);)
   DEBUG_ONLY(verify_addr(end_addr);)
   return pointer_delta(end_addr, beg_addr) + obj_granularity();
 }
 
-inline size_t ParMarkBitMap::obj_size(idx_t beg_bit) const {
+inline Words ParMarkBitMap::obj_size(idx_t beg_bit) const {
   const idx_t end_bit = _end_bits.find_first_set_bit(beg_bit, size());
   assert(is_marked(beg_bit), "obj not marked");
   assert(end_bit < size(), "end bit missing");
   return obj_size(beg_bit, end_bit);
 }
 
-inline size_t ParMarkBitMap::obj_size(HeapWord* addr) const {
+inline Words ParMarkBitMap::obj_size(HeapWord* addr) const {
   return obj_size(addr_to_bit(addr));
 }
 
@@ -144,7 +144,7 @@ inline ParMarkBitMap::IterationStatus ParMarkBitMap::iterate(ParMarkBitMapClosur
                  addr_to_bit(dead_range_end));
 }
 
-inline bool ParMarkBitMap::mark_obj(oop obj, size_t size) {
+inline bool ParMarkBitMap::mark_obj(oop obj, Words size) {
   return mark_obj(cast_from_oop<HeapWord*>(obj), size);
 }
 

@@ -30,16 +30,18 @@
 #include "metaspaceGtestRangeHelpers.hpp"
 #include "runtime/os.hpp"
 #include "utilities/align.hpp"
+#include "utilities/bitMap.inline.hpp"
 #include "utilities/debug.hpp"
 
 using metaspace::CommitMask;
 using metaspace::Settings;
 
 static int get_random(int limit) { return os::random() % limit; }
+static Words get_random_words(Words limit) { return in_Words(get_random((int)limit)); }
 
 class CommitMaskTest {
   const MetaWord* const _base;
-  const size_t _word_size;
+  const Words _word_size;
 
   CommitMask _mask;
 
@@ -51,11 +53,11 @@ class CommitMaskTest {
 
   // Return a random sub range within [_base.._base + word_size),
   // aligned to granule size
-  const MetaWord* calc_random_subrange(size_t* p_word_size) {
-    size_t l1 = get_random((int)_word_size);
-    size_t l2 = get_random((int)_word_size);
+  const MetaWord* calc_random_subrange(Words* p_word_size) {
+    Words l1 = get_random_words(_word_size);
+    Words l2 = get_random_words(_word_size);
     if (l1 > l2) {
-      size_t l = l1;
+      Words l = l1;
       l1 = l2;
       l2 = l;
     }
@@ -63,7 +65,7 @@ class CommitMaskTest {
     l2 = align_up(l2, Settings::commit_granule_words());
 
     const MetaWord* p = _base + l1;
-    const size_t len = l2 - l1;
+    const Words len = l2 - l1;
 
     assert(p >= _base && p + len <= _base + _word_size,
            "Sanity");
@@ -77,7 +79,7 @@ class CommitMaskTest {
     LOG("test1");
 
     // Commit everything
-    size_t prior_committed = _mask.mark_range_as_committed(_base, _word_size);
+    Words prior_committed = _mask.mark_range_as_committed(_base, _word_size);
     verify_mask();
     ASSERT_LE(prior_committed, _word_size); // We do not really know
 
@@ -96,15 +98,15 @@ class CommitMaskTest {
     }
 
     // Now make an uncommitted hole
-    size_t sr_word_size;
+    Words sr_word_size;
     const MetaWord* sr_base = calc_random_subrange(&sr_word_size);
     LOG("subrange " PTR_FORMAT "-" PTR_FORMAT ".",
         p2i(sr_base), p2i(sr_base + sr_word_size));
 
-    size_t prior_uncommitted =
+    Words prior_uncommitted =
         _mask.mark_range_as_uncommitted(sr_base, sr_word_size);
     verify_mask();
-    ASSERT_EQ(prior_uncommitted, (size_t)0);
+    ASSERT_EQ(prior_uncommitted, Words(0));
 
     // Again, for fun, should be a noop now.
     prior_uncommitted = _mask.mark_range_as_uncommitted(sr_base, sr_word_size);
@@ -112,7 +114,7 @@ class CommitMaskTest {
     ASSERT_EQ(prior_uncommitted, sr_word_size);
 
     ASSERT_EQ(_mask.get_committed_size_in_range(sr_base, sr_word_size),
-              (size_t)0);
+              Words(0));
     ASSERT_EQ(_mask.get_committed_size(),
               _word_size - sr_word_size);
     ASSERT_EQ(_mask.get_committed_size_in_range(_base, _word_size),
@@ -147,7 +149,7 @@ class CommitMaskTest {
     LOG("test2");
 
     // Uncommit everything
-    size_t prior_uncommitted = _mask.mark_range_as_uncommitted(_base, _word_size);
+    Words prior_uncommitted = _mask.mark_range_as_uncommitted(_base, _word_size);
     verify_mask();
     ASSERT_LE(prior_uncommitted, _word_size);
 
@@ -156,26 +158,24 @@ class CommitMaskTest {
     verify_mask();
     ASSERT_EQ(prior_uncommitted, _word_size);
 
-    ASSERT_EQ(_mask.get_committed_size(),
-        (size_t)0);
-    ASSERT_EQ(_mask.get_committed_size_in_range(_base, _word_size),
-        (size_t)0);
+    ASSERT_EQ(_mask.get_committed_size(), Words(0));
+    ASSERT_EQ(_mask.get_committed_size_in_range(_base, _word_size), Words(0));
 
     // Now make an committed region
-    size_t sr_word_size;
+    Words sr_word_size;
     const MetaWord* sr_base = calc_random_subrange(&sr_word_size);
     LOG("subrange " PTR_FORMAT "-" PTR_FORMAT ".",
         p2i(sr_base), p2i(sr_base + sr_word_size));
 
     ASSERT_EQ(_mask.get_committed_size_in_range(sr_base, sr_word_size),
-              (size_t)0);
+              Words(0));
     for (const MetaWord* p = _base; p < _base + _word_size; p++) {
       ASSERT_FALSE(_mask.is_committed_address(p));
     }
 
-    size_t prior_committed = _mask.mark_range_as_committed(sr_base, sr_word_size);
+    Words prior_committed = _mask.mark_range_as_committed(sr_base, sr_word_size);
     verify_mask();
-    ASSERT_EQ(prior_committed, (size_t)0);
+    ASSERT_EQ(prior_committed, Words(0));
 
     // Again, for fun, should be a noop now.
     prior_committed = _mask.mark_range_as_committed(sr_base, sr_word_size);
@@ -202,11 +202,11 @@ class CommitMaskTest {
     ASSERT_EQ(prior_uncommitted, _word_size - sr_word_size);
 
     EXPECT_EQ(_mask.get_committed_size_in_range(sr_base, sr_word_size),
-        (size_t)0);
+        Words(0));
     EXPECT_EQ(_mask.get_committed_size(),
-        (size_t)0);
+        Words(0));
     EXPECT_EQ(_mask.get_committed_size_in_range(_base, _word_size),
-        (size_t)0);
+        Words(0));
     for (const MetaWord* p = _base; p < _base + _word_size; p++) {
       ASSERT_FALSE(_mask.is_committed_address(p));
     }
@@ -223,7 +223,7 @@ class CommitMaskTest {
     for (int run = 0; run < 100; run++) {
 
       // A random range
-      SizeRange r = SizeRange(_word_size).random_aligned_subrange(Settings::commit_granule_words());
+      WordsRange r = WordsRange(_word_size).random_aligned_subrange(Settings::commit_granule_words());
 
       if (os::random() % 100 < 50) {
         _mask.mark_range_as_committed(_base + r.lowest(), r.size());
@@ -233,10 +233,10 @@ class CommitMaskTest {
         map.clear_range(r.lowest(), r.end());
       }
 
-      ASSERT_EQ(_mask.get_committed_size(), (size_t)map.get_num_set());
+      ASSERT_EQ(_mask.get_committed_size(), in_Words(map.get_num_set()));
 
       ASSERT_EQ(_mask.get_committed_size_in_range(_base + r.lowest(), r.size()),
-                (size_t)map.get_num_set(r.lowest(), r.end()));
+                in_Words(map.get_num_set(r.lowest(), r.end())));
 
     }
 
@@ -244,7 +244,7 @@ class CommitMaskTest {
 
 public:
 
-  CommitMaskTest(const MetaWord* base, size_t size) :
+  CommitMaskTest(const MetaWord* base, Words size) :
     _base(base),
     _word_size(size),
     _mask(base, size)
@@ -297,13 +297,13 @@ TEST_VM(metaspace, commit_mask_small) {
 TEST_VM(metaspace, commit_mask_range) {
 
   const MetaWord* const base = (const MetaWord*) 0x100000;
-  const size_t len = Settings::commit_granule_words() * 4;
+  const Words len = Settings::commit_granule_words() * 4;
   const MetaWord* const end = base + len;
   CommitMask mask(base, len);
 
   LOG("total range: " PTR_FORMAT "-" PTR_FORMAT "\n", p2i(base), p2i(end));
 
-  size_t l = mask.mark_range_as_committed(base, len);
+  Words l = mask.mark_range_as_committed(base, len);
   ASSERT_LE(l, len);
 
   for (const MetaWord* p = base; p <= end - Settings::commit_granule_words();
@@ -311,21 +311,21 @@ TEST_VM(metaspace, commit_mask_range) {
     for (const MetaWord* p2 = p + Settings::commit_granule_words();
          p2 <= end; p2 += Settings::commit_granule_words()) {
       LOG(PTR_FORMAT "-" PTR_FORMAT "\n", p2i(p), p2i(p2));
-      EXPECT_EQ(mask.get_committed_size_in_range(p, p2 - p),
-                (size_t)(p2 - p));
+      EXPECT_EQ(mask.get_committed_size_in_range(p, pointer_delta(p2, p)),
+                pointer_delta(p2, p));
     }
   }
 
   l = mask.mark_range_as_uncommitted(base, len);
-  ASSERT_EQ(l, (size_t)0);
+  ASSERT_EQ(l, Words(0));
 
   for (const MetaWord* p = base; p <= end - Settings::commit_granule_words();
        p += Settings::commit_granule_words()) {
     for (const MetaWord* p2 = p + Settings::commit_granule_words();
          p2 <= end; p2 += Settings::commit_granule_words()) {
       LOG(PTR_FORMAT "-" PTR_FORMAT "\n", p2i(p), p2i(p2));
-      EXPECT_EQ(mask.get_committed_size_in_range(p, p2 - p),
-                (size_t)(0));
+      EXPECT_EQ(mask.get_committed_size_in_range(p, pointer_delta(p2, p)),
+          Words(0));
     }
   }
 
@@ -339,7 +339,7 @@ TEST_VM(metaspace, commit_mask_random) {
     const MetaWord* const base =
         align_down( (const MetaWord*) ((uintptr_t) os::random() * os::random()),
                     Settings::commit_granule_bytes());
-    const size_t len = align_up( 1 + (os::random() % M),
+    const Words len = align_up(in_Words(1 + (os::random() % M)),
                     Settings::commit_granule_words());
 
     CommitMaskTest test(base, len);

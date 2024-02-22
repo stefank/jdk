@@ -448,7 +448,7 @@ void G1FullCollector::phase2d_prepare_humongous_compaction() {
       region_index++;
       continue;
     } else if (hr->is_starts_humongous()) {
-      size_t obj_size = cast_to_oop(hr->bottom())->size();
+      Words obj_size = cast_to_oop(hr->bottom())->size();
       uint num_regions = (uint)G1CollectedHeap::humongous_obj_size_in_regions(obj_size);
       // Even during last-ditch compaction we should not move pinned humongous objects.
       if (!hr->has_pinned_objects()) {

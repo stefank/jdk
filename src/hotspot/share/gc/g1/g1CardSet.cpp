@@ -47,7 +47,7 @@ public:
   using Value = G1CardSetHashTableValue;
 
   static uintx get_hash(Value const& value, bool* is_dead);
-  static void* allocate_node(void* context, size_t size, Value const& value);
+  static void* allocate_node(void* context, Bytes size, Value const& value);
   static void free_node(void* context, void* memory, Value const& value);
 };
 
@@ -355,9 +355,9 @@ public:
     _table.grow(Thread::current(), new_limit);
   }
 
-  size_t mem_size() {
-    return sizeof(*this) +
-      _table.get_mem_size(Thread::current()) - sizeof(_table);
+  Bytes mem_size() {
+    return in_Bytes(sizeof(*this)) +
+      _table.get_mem_size(Thread::current()) - in_Bytes(sizeof(_table));
   }
 
   size_t log_table_size() { return _table.get_size_log2(Thread::current()); }
@@ -368,7 +368,7 @@ uintx G1CardSetHashTableConfig::get_hash(Value const& value, bool* is_dead) {
   return G1CardSetHashTable::get_hash(value._region_idx);
 }
 
-void* G1CardSetHashTableConfig::allocate_node(void* context, size_t size, Value const& value) {
+void* G1CardSetHashTableConfig::allocate_node(void* context, Bytes size, Value const& value) {
   G1CardSetMemoryManager* mm = (G1CardSetMemoryManager*)context;
   return mm->allocate_node();
 }
@@ -406,7 +406,7 @@ void G1CardSet::initialize(MemRegion reserved) {
   _split_card_mask = ((size_t)1 << _split_card_shift) - 1;
 
   // Check if the card region/region within cards combination can cover the heap.
-  const uint HeapSizeBits = log2i_exact(round_up_power_of_2(reserved.byte_size()));
+  const uint HeapSizeBits = log2i_exact(round_up_power_of_2(untype(reserved.byte_size())));
   if (HeapSizeBits > (BitsInUint + _split_card_shift + G1CardTable::card_shift())) {
     FormatBuffer<> fmt("Can not represent all cards in the heap with card region/card within region. "
                        "Heap %zuB (%u bits) Card set only covers %u bits.",
@@ -1019,18 +1019,18 @@ void G1CardSet::print_coarsen_stats(outputStream* out) {
   _last_coarsen_stats.set(_coarsen_stats);
 }
 
-size_t G1CardSet::mem_size() const {
-  return sizeof(*this) +
+Bytes G1CardSet::mem_size() const {
+  return in_Bytes(sizeof(*this)) +
          _table->mem_size() +
          _mm->mem_size();
 }
 
-size_t G1CardSet::unused_mem_size() const {
+Bytes G1CardSet::unused_mem_size() const {
   return _mm->unused_mem_size();
 }
 
-size_t G1CardSet::static_mem_size() {
-  return sizeof(FullCardSet) + sizeof(_coarsen_stats);
+Bytes G1CardSet::static_mem_size() {
+  return in_Bytes(sizeof(FullCardSet) + sizeof(_coarsen_stats));
 }
 
 void G1CardSet::clear() {

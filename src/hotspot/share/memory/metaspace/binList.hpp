@@ -32,6 +32,7 @@
 #include "utilities/align.hpp"
 #include "utilities/debug.hpp"
 #include "utilities/globalDefinitions.hpp"
+#include "utilities/sizes.hpp"
 
 namespace metaspace {
 
@@ -88,10 +89,10 @@ class BinListImpl {
 public:
 
   // Minimal word size a block must have to be manageable by this structure.
-  const static size_t MinWordSize = 1;
+  const static Words MinWordSize = Words(1);
 
   // Maximal (incl) word size a block can have to be manageable by this structure.
-  const static size_t MaxWordSize = num_lists;
+  const static Words MaxWordSize = Words(num_lists);
 
 private:
 
@@ -100,16 +101,16 @@ private:
   MemRangeCounter _counter;
 
   // Given a word size, returns the index of the list holding blocks of that size
-  static int index_for_word_size(size_t word_size) {
+  static int index_for_word_size(Words word_size) {
     int index = (int)(word_size - MinWordSize);
     assert(index >= 0 && index < num_lists, "Invalid index %d", index);
     return index;
   }
 
   // Given an index of a list, return the word size that list serves
-  static size_t word_size_for_index(int index) {
+  static Words word_size_for_index(int index) {
     assert(index >= 0 && index < num_lists, "Invalid index %d", index);
-    return index + MinWordSize;
+    return in_Words(index + untype(MinWordSize));
   }
 
   // Search the range [index, _num_lists) for the smallest non-empty list. Returns -1 on fail.
@@ -124,14 +125,14 @@ private:
 
 #ifdef ASSERT
   static const uintptr_t canary = 0xFFEEFFEE;
-  static void write_canary(MetaWord* p, size_t word_size) {
-    if (word_size > 1) { // 1-word-sized blocks have no space for a canary
-      ((uintptr_t*)p)[word_size - 1] = canary;
+  static void write_canary(MetaWord* p, Words word_size) {
+    if (word_size > Words(1)) { // 1-word-sized blocks have no space for a canary
+      ((uintptr_t*)p)[untype(word_size - Words(1))] = canary;
     }
   }
-  static bool check_canary(const Block* b, size_t word_size) {
-    return word_size == 1 || // 1-word-sized blocks have no space for a canary
-           ((const uintptr_t*)b)[word_size - 1] == canary;
+  static bool check_canary(const Block* b, Words word_size) {
+    return word_size == Words(1) || // 1-word-sized blocks have no space for a canary
+           ((const uintptr_t*)b)[untype(word_size - Words(1))] == canary;
   }
 #endif
 
@@ -143,7 +144,7 @@ public:
     }
   }
 
-  void add_block(MetaWord* p, size_t word_size) {
+  void add_block(MetaWord* p, Words word_size) {
     assert(word_size >= MinWordSize &&
            word_size <= MaxWordSize, "bad block size");
     DEBUG_ONLY(write_canary(p, word_size);)
@@ -156,14 +157,14 @@ public:
 
   // Given a word_size, searches and returns a block of at least that size.
   // Block may be larger. Real block size is returned in *p_real_word_size.
-  MetaWord* remove_block(size_t word_size, size_t* p_real_word_size) {
+  MetaWord* remove_block(Words word_size, Words* p_real_word_size) {
     assert(word_size >= MinWordSize &&
            word_size <= MaxWordSize, "bad block size " SIZE_FORMAT ".", word_size);
     int index = index_for_word_size(word_size);
     index = index_for_next_non_empty_list(index);
     if (index != -1) {
       Block* b = _blocks[index];
-      const size_t real_word_size = word_size_for_index(index);
+      const Words real_word_size = word_size_for_index(index);
       assert(b != nullptr, "Sanity");
       assert(check_canary(b, real_word_size),
              "bad block in list[%d] (" BLOCK_FORMAT ")", index, BLOCK_FORMAT_ARGS(b, real_word_size));
@@ -172,7 +173,7 @@ public:
       *p_real_word_size = real_word_size;
       return (MetaWord*)b;
     } else {
-      *p_real_word_size = 0;
+      *p_real_word_size = Words(0);
       return nullptr;
     }
   }
@@ -181,7 +182,7 @@ public:
   unsigned count() const { return _counter.count(); }
 
   // Returns total size, in words, of all elements.
-  size_t total_size() const { return _counter.total_size(); }
+  Words total_size() const { return _counter.total_size(); }
 
   bool is_empty() const { return count() == 0; }
 
@@ -189,7 +190,7 @@ public:
   void verify() const {
     MemRangeCounter local_counter;
     for (int i = 0; i < num_lists; i++) {
-      const size_t s = word_size_for_index(i);
+      const Words s = word_size_for_index(i);
       int pos = 0;
       for (Block* b = _blocks[i]; b != nullptr; b = b->_next, pos++) {
         assert(check_canary(b, s), "");

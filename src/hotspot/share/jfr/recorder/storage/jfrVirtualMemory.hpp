@@ -36,11 +36,11 @@ class JfrVirtualMemory : public JfrCHeapObj {
   const u1* _reserved_high; // highest address of reservation
   u1* _top; // current allocation address
   const u1* _commit_point; // synch points for committing new memory
-  size_t _physical_commit_size_request_words; // aligned to os::vm_allocation_granularity()
-  size_t _aligned_datum_size_bytes; // datum alignment
+  Words _physical_commit_size_request_words; // aligned to os::vm_allocation_granularity()
+  Bytes _aligned_datum_size_bytes; // datum alignment
 
   bool commit_memory_block();
-  void* commit(size_t block_size_request_words);
+  void* commit(Words block_size_request_words);
   void* index_ptr(size_t index); // index to address map
 
  public:
@@ -48,11 +48,11 @@ class JfrVirtualMemory : public JfrCHeapObj {
   ~JfrVirtualMemory();
 
   // initialization will do the reservation and return it
-  void* initialize(size_t reservation_size_request_bytes, size_t block_size_request_bytes, size_t datum_size_bytes = 1);
+  void* initialize(Bytes reservation_size_request_bytes, Bytes block_size_request_bytes, Bytes datum_size_bytes = Bytes(1));
 
   void* new_datum(); // datum oriented allocation
   void* get(size_t index); // direct access retrieval
-  size_t aligned_datum_size_bytes() const;
+  Bytes aligned_datum_size_bytes() const;
 
   bool is_full() const; // limit of reservation committed and in use
   bool is_empty() const;

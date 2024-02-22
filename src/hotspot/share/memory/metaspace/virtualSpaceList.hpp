@@ -79,10 +79,10 @@ class VirtualSpaceList : public CHeapObj<mtClass> {
   // Statistics
 
   // Holds sum of reserved space, in words, over all list nodes.
-  SizeCounter _reserved_words_counter;
+  WordsCounter _reserved_words_counter;
 
   // Holds sum of committed space, in words, over all list nodes.
-  SizeCounter _committed_words_counter;
+  WordsCounter _committed_words_counter;
 
   // Create a new node and append it to the list. After
   // this function, _current_node shall point to a new empty node.
@@ -110,10 +110,10 @@ public:
   //// Statistics ////
 
   // Return sum of reserved words in all nodes.
-  size_t reserved_words() const     { return _reserved_words_counter.get(); }
+  Words reserved_words() const     { return _reserved_words_counter.get(); }
 
   // Return sum of committed words in all nodes.
-  size_t committed_words() const    { return _committed_words_counter.get(); }
+  Words committed_words() const    { return _committed_words_counter.get(); }
 
   // Return number of nodes in this list.
   int num_nodes() const             { return _nodes_counter.get(); }
@@ -137,7 +137,7 @@ public:
   // if we ever change the ccs to not use a degenerated-list-of-one-node this
   // will go away.
   MetaWord* base_of_first_node() const { return _first_node != nullptr ? _first_node->base() : nullptr; }
-  size_t word_size_of_first_node() const { return _first_node != nullptr ? _first_node->word_size() : 0; }
+  Words word_size_of_first_node() const { return _first_node != nullptr ? _first_node->word_size() : Words(0); }
 
 };
 

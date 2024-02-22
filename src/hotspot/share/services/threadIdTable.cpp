@@ -69,9 +69,9 @@ class ThreadIdTableConfig : public AllStatic {
       jlong tid = value->tid();
       return primitive_hash(tid);
     }
-    static void* allocate_node(void* context, size_t size, Value const& value) {
+    static void* allocate_node(void* context, Bytes size, Value const& value) {
       ThreadIdTable::item_added();
-      return AllocateHeap(size, mtInternal);
+      return AllocateHeap(untype(size), mtInternal);
     }
     static void free_node(void* context, void* memory, Value const& value) {
       delete value;

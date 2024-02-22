@@ -35,11 +35,11 @@ private:
   uint    _length;
   // Sum of used bytes from all retired eden regions.
   // I.e. updated when mutator regions are retired.
-  volatile size_t _used_bytes;
-  G1RegionsOnNodes  _regions_on_node;
+  volatile Bytes   _used_bytes;
+  G1RegionsOnNodes _regions_on_node;
 
 public:
-  G1EdenRegions() : _length(0), _used_bytes(0), _regions_on_node() { }
+  G1EdenRegions() : _length(0), _used_bytes(Bytes(0)), _regions_on_node() { }
 
   uint add(HeapRegion* hr) {
     assert(!hr->is_eden(), "should not already be set");
@@ -49,17 +49,17 @@ public:
 
   void clear() {
     _length = 0;
-    _used_bytes = 0;
+    _used_bytes = Bytes(0);
     _regions_on_node.clear();
   }
 
   uint length() const { return _length; }
   uint regions_on_node(uint node_index) const { return _regions_on_node.count(node_index); }
 
-  size_t used_bytes() const { return _used_bytes; }
+  Bytes used_bytes() const { return _used_bytes; }
 
-  void add_used_bytes(size_t used_bytes) {
-    _used_bytes += used_bytes;
+  void add_used_bytes(Bytes used_bytes) {
+    _used_bytes = _used_bytes + used_bytes;
   }
 };
 

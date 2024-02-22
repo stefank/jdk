@@ -40,11 +40,11 @@ class PSGenerationCounters: public GenerationCounters {
 
  public:
   PSGenerationCounters(const char* name, int ordinal, int spaces,
-                       size_t min_capacity, size_t max_capacity, PSVirtualSpace* v);
+                       Bytes min_capacity, Bytes max_capacity, PSVirtualSpace* v);
 
   void update_all() {
     assert(_virtual_space == nullptr, "Only one should be in use");
-    _current_size->set_value(_ps_virtual_space->committed_size());
+    _current_size->set_value(untype(_ps_virtual_space->committed_size()));
   }
 };
 

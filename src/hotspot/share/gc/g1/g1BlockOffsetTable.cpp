@@ -49,9 +49,9 @@ G1BlockOffsetTable::G1BlockOffsetTable(MemRegion heap, G1RegionToSpaceMapper* st
 
 #ifdef ASSERT
 void G1BlockOffsetTable::check_index(size_t index, const char* msg) const {
-  assert((index) < (_reserved.word_size() >> BOTConstants::log_card_size_in_words()),
+  assert((index) < (untype(_reserved.word_size()) >> BOTConstants::log_card_size_in_words()),
          "%s - index: " SIZE_FORMAT ", _vs.committed_size: " SIZE_FORMAT,
-         msg, (index), (_reserved.word_size() >> BOTConstants::log_card_size_in_words()));
+         msg, (index), (untype(_reserved.word_size()) >> BOTConstants::log_card_size_in_words()));
   assert(G1CollectedHeap::heap()->is_in(address_for_index_raw(index)),
          "Index " SIZE_FORMAT " corresponding to " PTR_FORMAT
          " (%u) is not in committed area.",
@@ -188,7 +188,7 @@ void G1BlockOffsetTablePart::update_for_block_work(HeapWord* blk_start,
          "phantom block");
   assert(blk_end > cur_card_boundary, "should be past cur_card_boundary");
   assert(blk_start <= cur_card_boundary, "blk_start should be at or before cur_card_boundary");
-  assert(pointer_delta(cur_card_boundary, blk_start) < BOTConstants::card_size_in_words(),
+  assert(pointer_delta(cur_card_boundary, blk_start) < in_Words(BOTConstants::card_size_in_words()),
          "offset should be < BOTConstants::card_size_in_words()");
   assert(G1CollectedHeap::heap()->is_in_reserved(blk_start),
          "reference must be into the heap");
@@ -256,7 +256,7 @@ void G1BlockOffsetTablePart::verify() const {
       HeapWord* obj_end = card_address - entry;
       while (obj_end < card_address) {
         HeapWord* obj = obj_end;
-        size_t obj_size = _hr->block_size(obj);
+        Words obj_size = _hr->block_size(obj);
         obj_end = obj + obj_size;
         guarantee(obj_end > obj && obj_end <= _hr->top(),
                   "Invalid object end. obj: " PTR_FORMAT " obj_size: " SIZE_FORMAT " obj_end: " PTR_FORMAT " top: " PTR_FORMAT,
@@ -297,9 +297,9 @@ void G1BlockOffsetTablePart::print_on(outputStream* out) {
 }
 #endif // !PRODUCT
 
-void G1BlockOffsetTablePart::set_for_starts_humongous(HeapWord* obj_top, size_t fill_size) {
+void G1BlockOffsetTablePart::set_for_starts_humongous(HeapWord* obj_top, Words fill_size) {
   update_for_block(_hr->bottom(), obj_top);
-  if (fill_size > 0) {
+  if (fill_size > Words(0)) {
     update_for_block(obj_top, fill_size);
   }
 }

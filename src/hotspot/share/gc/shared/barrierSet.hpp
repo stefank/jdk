@@ -310,7 +310,7 @@ public:
     }
 
     // Clone barrier support
-    static void clone_in_heap(oop src, oop dst, size_t size) {
+    static void clone_in_heap(oop src, oop dst, Words size) {
       Raw::clone(src, dst, size);
     }
   };

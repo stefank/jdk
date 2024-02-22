@@ -333,7 +333,8 @@ void FreeRegionList::verify_list() {
   HeapRegion* prev1 = nullptr;
   HeapRegion* prev0 = nullptr;
   uint count = 0;
-  size_t capacity = 0;
+
+  Bytes capacity = Bytes(0);
   uint last_index = 0;
 
   guarantee(_head == nullptr || _head->prev() == nullptr, "_head should not have a prev");

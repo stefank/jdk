@@ -274,7 +274,7 @@
   nonstatic_field(Klass,                       _vtable_len,                                   int)                                   \
   nonstatic_field(Klass,                       _class_loader_data,                            ClassLoaderData*)                      \
   nonstatic_field(vtableEntry,                 _method,                                       Method*)                               \
-  nonstatic_field(MethodData,                  _size,                                         int)                                   \
+  nonstatic_field(MethodData,                  _size,                                         Bytes)                                 \
   nonstatic_field(MethodData,                  _method,                                       Method*)                               \
   nonstatic_field(MethodData,                  _data_size,                                    int)                                   \
   nonstatic_field(MethodData,                  _data[0],                                      intptr_t)                              \
@@ -314,7 +314,7 @@
   volatile_nonstatic_field(ConstMethod,        _fingerprint,                                  uint64_t)                              \
   nonstatic_field(ConstMethod,                 _constants,                                    ConstantPool*)                         \
   nonstatic_field(ConstMethod,                 _stackmap_data,                                Array<u1>*)                            \
-  nonstatic_field(ConstMethod,                 _constMethod_size,                             int)                                   \
+  nonstatic_field(ConstMethod,                 _constMethod_size,                             Words)                                 \
   nonstatic_field(ConstMethod,                 _flags._flags,                                 u4)                                    \
   nonstatic_field(ConstMethod,                 _code_size,                                    u2)                                    \
   nonstatic_field(ConstMethod,                 _name_index,                                   u2)                                    \
@@ -394,9 +394,9 @@
   nonstatic_field(ThreadLocalAllocBuffer,      _top,                                          HeapWord*)                             \
   nonstatic_field(ThreadLocalAllocBuffer,      _end,                                          HeapWord*)                             \
   nonstatic_field(ThreadLocalAllocBuffer,      _pf_top,                                       HeapWord*)                             \
-  nonstatic_field(ThreadLocalAllocBuffer,      _desired_size,                                 size_t)                                \
-  nonstatic_field(ThreadLocalAllocBuffer,      _refill_waste_limit,                           size_t)                                \
-     static_field(ThreadLocalAllocBuffer,      _reserve_for_allocation_prefetch,              int)                                   \
+  nonstatic_field(ThreadLocalAllocBuffer,      _desired_size,                                 Words)                                 \
+  nonstatic_field(ThreadLocalAllocBuffer,      _refill_waste_limit,                           Words)                                 \
+     static_field(ThreadLocalAllocBuffer,      _reserve_for_allocation_prefetch,              Words)                                 \
      static_field(ThreadLocalAllocBuffer,      _target_refills,                               unsigned)                              \
   nonstatic_field(ThreadLocalAllocBuffer,      _number_of_refills,                            unsigned)                              \
   nonstatic_field(ThreadLocalAllocBuffer,      _refill_waste,                                 unsigned)                              \
@@ -991,7 +991,7 @@
   CDS_ONLY(nonstatic_field(FileMapHeader,      _cloned_vtables_offset,    size_t))                                                   \
   CDS_ONLY(nonstatic_field(FileMapHeader,      _mapped_base_address,      char*))                                                    \
   CDS_ONLY(nonstatic_field(CDSFileMapRegion,   _mapped_base,              char*))                                                    \
-  CDS_ONLY(nonstatic_field(CDSFileMapRegion,   _used,                     size_t))                                                   \
+  CDS_ONLY(nonstatic_field(CDSFileMapRegion,   _used,                     size_t))                                                    \
                                                                                                                                      \
   /******************/                                                                                                               \
   /* VMError fields */                                                                                                               \
@@ -1907,6 +1907,8 @@
   declare_integer_type(AccessFlags)  /* FIXME: wrong type (not integer) */\
   declare_toplevel_type(address)      /* FIXME: should this be an integer type? */\
   declare_integer_type(BasicType)   /* FIXME: wrong type (not integer) */ \
+  declare_toplevel_type(Bytes)                                            \
+  declare_toplevel_type(Words)                                            \
                                                                           \
   declare_integer_type(CompLevel)                                         \
   JVMTI_ONLY(declare_toplevel_type(BreakpointInfo))                       \

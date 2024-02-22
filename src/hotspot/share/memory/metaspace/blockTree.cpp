@@ -35,7 +35,7 @@
 namespace metaspace {
 
 // Needed to prevent linker errors on MacOS and AIX
-const size_t BlockTree::MinWordSize;
+const Words BlockTree::MinWordSize;
 
 #define NODE_FORMAT \
   "@" PTR_FORMAT \
@@ -80,8 +80,8 @@ const size_t BlockTree::MinWordSize;
 struct BlockTree::walkinfo {
   BlockTree::Node* n;
   int depth;
-  size_t lim1; // (
-  size_t lim2; // )
+  Words lim1; // (
+  Words lim2; // )
 };
 
 // Helper for verify()
@@ -108,8 +108,8 @@ void BlockTree::verify() const {
 
     walkinfo info;
     info.n = _root;
-    info.lim1 = 0;
-    info.lim2 = SIZE_MAX;
+    info.lim1 = Words(0);
+    info.lim2 = in_Words(SIZE_MAX);
     info.depth = 0;
 
     stack.push(info);
@@ -182,8 +182,8 @@ void BlockTree::verify() const {
   #undef assrt0n
 }
 
-void BlockTree::zap_range(MetaWord* p, size_t word_size) {
-  memset(p, 0xF3, word_size * sizeof(MetaWord));
+void BlockTree::zap_range(MetaWord* p, Words word_size) {
+  memset(p, 0xF3, untype(word_size) * sizeof(MetaWord));
 }
 
 void BlockTree::print_tree(outputStream* st) const {

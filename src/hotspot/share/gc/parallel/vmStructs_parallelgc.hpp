@@ -39,7 +39,7 @@
   /**********************/                                                                                                           \
   /* Parallel GC fields */                                                                                                           \
   /**********************/                                                                                                           \
-  nonstatic_field(PSVirtualSpace,              _alignment,                                    const size_t)                          \
+  nonstatic_field(PSVirtualSpace,              _alignment,                                    const Bytes)                          \
   nonstatic_field(PSVirtualSpace,              _reserved_low_addr,                            char*)                                 \
   nonstatic_field(PSVirtualSpace,              _reserved_high_addr,                           char*)                                 \
   nonstatic_field(PSVirtualSpace,              _committed_low_addr,                           char*)                                 \
@@ -54,13 +54,13 @@
   nonstatic_field(PSYoungGen,                  _eden_space,                                   MutableSpace*)                         \
   nonstatic_field(PSYoungGen,                  _from_space,                                   MutableSpace*)                         \
   nonstatic_field(PSYoungGen,                  _to_space,                                     MutableSpace*)                         \
-  nonstatic_field(PSYoungGen,                  _min_gen_size,                                 const size_t)                          \
-  nonstatic_field(PSYoungGen,                  _max_gen_size,                                 const size_t)                          \
+  nonstatic_field(PSYoungGen,                  _min_gen_size,                                 const Bytes)                          \
+  nonstatic_field(PSYoungGen,                  _max_gen_size,                                 const Bytes)                          \
                                                                                                                                      \
   nonstatic_field(PSOldGen,                    _virtual_space,                                PSVirtualSpace*)                       \
   nonstatic_field(PSOldGen,                    _object_space,                                 MutableSpace*)                         \
-  nonstatic_field(PSOldGen,                    _min_gen_size,                                 const size_t)                          \
-  nonstatic_field(PSOldGen,                    _max_gen_size,                                 const size_t)                          \
+  nonstatic_field(PSOldGen,                    _min_gen_size,                                 const Bytes)                          \
+  nonstatic_field(PSOldGen,                    _max_gen_size,                                 const Bytes)                          \
                                                                                                                                      \
                                                                                                                                      \
      static_field(ParallelScavengeHeap,        _young_gen,                                    PSYoungGen*)                           \

@@ -900,7 +900,7 @@ public:
   GrowableArray<Klass*>* compute_secondary_supers(int num_extra_slots,
                                                   Array<InstanceKlass*>* transitive_interfaces);
   bool can_be_primary_super_slow() const;
-  size_t oop_size(oop obj)  const             { return size_helper(); }
+  Words oop_size(oop obj)  const             { return size_helper(); }
   // slow because it's a virtual call and used for verifying the layout_helper.
   // Using the layout_helper bits, we can call is_instance_klass without a virtual call.
   DEBUG_ONLY(bool is_instance_klass_slow() const      { return true; })
@@ -928,19 +928,19 @@ public:
   }
 
   // Sizing (in words)
-  static int header_size()            { return sizeof(InstanceKlass)/wordSize; }
+  static Words header_size()          { return in_Words(sizeof(InstanceKlass)/wordSize); }
 
-  static int size(int vtable_length, int itable_length,
-                  int nonstatic_oop_map_size,
-                  bool is_interface) {
+  static Words size(int vtable_length, int itable_length,
+                    int nonstatic_oop_map_size,
+                    bool is_interface) {
     return align_metadata_size(header_size() +
-           vtable_length +
-           itable_length +
-           nonstatic_oop_map_size +
-           (is_interface ? (int)sizeof(Klass*)/wordSize : 0));
+           in_Words(vtable_length) +
+           in_Words(itable_length) +
+           in_Words(nonstatic_oop_map_size) +
+           in_Words((is_interface ? (int)sizeof(Klass*)/wordSize : 0)));
   }
 
-  int size() const                    { return size(vtable_length(),
+  Words size() const                  { return size(vtable_length(),
                                                itable_length(),
                                                nonstatic_oop_map_size(),
                                                is_interface());
@@ -957,8 +957,8 @@ public:
   inline InstanceKlass* volatile* adr_implementor() const;
 
   // Use this to return the size of an instance in heap words:
-  int size_helper() const {
-    return layout_helper_to_size_helper(layout_helper());
+  Words size_helper() const {
+    return in_Words(layout_helper_to_size_helper(layout_helper()));
   }
 
   // This bit is initialized in classFileParser.cpp.

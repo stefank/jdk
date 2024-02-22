@@ -35,7 +35,7 @@ class HeapRegion;
 class G1SurvivorRegions {
 private:
   GrowableArray<HeapRegion*>* _regions;
-  volatile size_t             _used_bytes;
+  volatile Bytes              _used_bytes;
   G1RegionsOnNodes            _regions_on_node;
 
 public:
@@ -55,9 +55,9 @@ public:
   }
 
   // Used bytes of all survivor regions.
-  size_t used_bytes() const { return _used_bytes; }
+  Bytes used_bytes() const { return _used_bytes; }
 
-  void add_used_bytes(size_t used_bytes);
+  void add_used_bytes(Bytes used_bytes);
 };
 
 #endif // SHARE_GC_G1_G1SURVIVORREGIONS_HPP

@@ -51,7 +51,7 @@ class MemAllocator::Allocation: StackObj {
   oop*                _obj_ptr;
   bool                _overhead_limit_exceeded;
   bool                _allocated_outside_tlab;
-  size_t              _allocated_tlab_size;
+  Words               _allocated_tlab_size;
   bool                _tlab_end_reset_for_sample;
 
   bool check_out_of_memory();
@@ -75,7 +75,7 @@ public:
       _obj_ptr(obj_ptr),
       _overhead_limit_exceeded(false),
       _allocated_outside_tlab(false),
-      _allocated_tlab_size(0),
+      _allocated_tlab_size(Words(0)),
       _tlab_end_reset_for_sample(false)
   {
     assert(Thread::current() == allocator._thread, "do not pass MemAllocator across threads");
@@ -171,7 +171,7 @@ void MemAllocator::Allocation::notify_allocation_jvmti_sampler() {
     return;
   }
 
-  if (!_allocated_outside_tlab && _allocated_tlab_size == 0 && !_tlab_end_reset_for_sample) {
+  if (!_allocated_outside_tlab && _allocated_tlab_size == Words(0) && !_tlab_end_reset_for_sample) {
     // Sample if it's a non-TLAB allocation, or a TLAB allocation that either refills the TLAB
     // or expands it due to taking a sampler induced slow path.
     return;
@@ -180,12 +180,12 @@ void MemAllocator::Allocation::notify_allocation_jvmti_sampler() {
   // If we want to be sampling, protect the allocated object with a Handle
   // before doing the callback. The callback is done in the destructor of
   // the JvmtiSampledObjectAllocEventCollector.
-  size_t bytes_since_last = 0;
+  Bytes bytes_since_last = Bytes(0);
 
   {
     PreserveObj obj_h(_thread, _obj_ptr);
     JvmtiSampledObjectAllocEventCollector collector;
-    size_t size_in_bytes = _allocator._word_size * HeapWordSize;
+    Bytes size_in_bytes = to_Bytes(_allocator._word_size);
     ThreadLocalAllocBuffer& tlab = _thread->tlab();
 
     if (!_allocated_outside_tlab) {
@@ -195,9 +195,9 @@ void MemAllocator::Allocation::notify_allocation_jvmti_sampler() {
     _thread->heap_sampler().check_for_sampling(obj_h(), size_in_bytes, bytes_since_last);
   }
 
-  if (_tlab_end_reset_for_sample || _allocated_tlab_size != 0) {
+  if (_tlab_end_reset_for_sample || _allocated_tlab_size != Words(0)) {
     // Tell tlab to forget bytes_since_last if we passed it to the heap sampler.
-    _thread->tlab().set_sample_end(bytes_since_last != 0);
+    _thread->tlab().set_sample_end(bytes_since_last != Bytes(0));
   }
 }
 
@@ -208,13 +208,13 @@ void MemAllocator::Allocation::notify_allocation_low_memory_detector() {
 
 void MemAllocator::Allocation::notify_allocation_jfr_sampler() {
   HeapWord* mem = cast_from_oop<HeapWord*>(obj());
-  size_t size_in_bytes = _allocator._word_size * HeapWordSize;
+  Bytes size_in_bytes = to_Bytes(_allocator._word_size);
 
   if (_allocated_outside_tlab) {
     AllocTracer::send_allocation_outside_tlab(obj()->klass(), mem, size_in_bytes, _thread);
-  } else if (_allocated_tlab_size != 0) {
+  } else if (_allocated_tlab_size != Words(0)) {
     // TLAB was refilled
-    AllocTracer::send_allocation_in_new_tlab(obj()->klass(), mem, _allocated_tlab_size * HeapWordSize,
+    AllocTracer::send_allocation_in_new_tlab(obj()->klass(), mem, to_Bytes(_allocated_tlab_size),
                                              size_in_bytes, _thread);
   }
 }
@@ -223,7 +223,7 @@ void MemAllocator::Allocation::notify_allocation_dtrace_sampler() {
   if (DTraceAllocProbes) {
     // support for Dtrace object alloc event (no-op most of the time)
     Klass* klass = obj()->klass();
-    size_t word_size = _allocator._word_size;
+    Words word_size = _allocator._word_size;
     if (klass != nullptr && klass->name() != nullptr) {
       SharedRuntime::dtrace_object_alloc(_thread, obj(), word_size);
     }
@@ -244,7 +244,7 @@ HeapWord* MemAllocator::mem_allocate_outside_tlab(Allocation& allocation) const 
     return mem;
   }
 
-  size_t size_in_bytes = _word_size * HeapWordSize;
+  Bytes size_in_bytes = to_Bytes(_word_size);
   _thread->incr_allocated_bytes(size_in_bytes);
 
   return mem;
@@ -293,26 +293,26 @@ HeapWord* MemAllocator::mem_allocate_inside_tlab_slow(Allocation& allocation) co
 
   // Discard tlab and allocate a new one.
   // To minimize fragmentation, the last TLAB may be smaller than the rest.
-  size_t new_tlab_size = tlab.compute_size(_word_size);
+  Words new_tlab_size = tlab.compute_size(_word_size);
 
   tlab.retire_before_allocation();
 
-  if (new_tlab_size == 0) {
+  if (new_tlab_size == Words(0)) {
     return nullptr;
   }
 
   // Allocate a new TLAB requesting new_tlab_size. Any size
   // between minimal and new_tlab_size is accepted.
-  size_t min_tlab_size = ThreadLocalAllocBuffer::compute_min_size(_word_size);
+  Words min_tlab_size = ThreadLocalAllocBuffer::compute_min_size(_word_size);
   mem = Universe::heap()->allocate_new_tlab(min_tlab_size, new_tlab_size, &allocation._allocated_tlab_size);
   if (mem == nullptr) {
-    assert(allocation._allocated_tlab_size == 0,
+    assert(allocation._allocated_tlab_size == Words(0),
            "Allocation failed, but actual size was updated. min: " SIZE_FORMAT
            ", desired: " SIZE_FORMAT ", actual: " SIZE_FORMAT,
            min_tlab_size, new_tlab_size, allocation._allocated_tlab_size);
     return nullptr;
   }
-  assert(allocation._allocated_tlab_size != 0, "Allocation succeeded but actual size not updated. mem at: "
+  assert(allocation._allocated_tlab_size != Words(0), "Allocation succeeded but actual size not updated. mem at: "
          PTR_FORMAT " min: " SIZE_FORMAT ", desired: " SIZE_FORMAT,
          p2i(mem), min_tlab_size, new_tlab_size);
 
@@ -325,7 +325,7 @@ HeapWord* MemAllocator::mem_allocate_inside_tlab_slow(Allocation& allocation) co
     // Skip mangling the space corresponding to the object header to
     // ensure that the returned space is not considered parsable by
     // any concurrent GC thread.
-    size_t hdr_size = oopDesc::header_size();
+    Words hdr_size = oopDesc::header_size();
     Copy::fill_to_words(mem + hdr_size, allocation._allocated_tlab_size - hdr_size, badHeapWordVal);
 #endif // ASSERT
   }
@@ -380,7 +380,7 @@ oop MemAllocator::allocate() const {
 
 void MemAllocator::mem_clear(HeapWord* mem) const {
   assert(mem != nullptr, "cannot initialize null object");
-  const size_t hs = oopDesc::header_size();
+  const Words hs = oopDesc::header_size();
   assert(_word_size >= hs, "unexpected object size");
   oopDesc::set_klass_gap(mem, 0);
   Copy::fill_to_aligned_words(mem + hs, _word_size - hs);
@@ -420,7 +420,7 @@ void ObjArrayAllocator::mem_zap_end_padding(HeapWord* mem) const {
   const size_t length_in_bytes = static_cast<size_t>(_length) << ArrayKlass::cast(_klass)->log2_element_size();
   const BasicType element_type = ArrayKlass::cast(_klass)->element_type();
   const size_t base_offset_in_bytes = arrayOopDesc::base_offset_in_bytes(element_type);
-  const size_t size_in_bytes = _word_size * BytesPerWord;
+  const Bytes size_in_bytes = to_Bytes(_word_size);
 
   const address obj_end = reinterpret_cast<address>(mem) + size_in_bytes;
   const address base = reinterpret_cast<address>(mem) + base_offset_in_bytes;
@@ -437,7 +437,7 @@ oop ClassAllocator::initialize(HeapWord* mem) const {
   // Set oop_size field before setting the _klass field because a
   // non-null _klass field indicates that the object is parsable by
   // concurrent GC.
-  assert(_word_size > 0, "oop_size must be positive.");
+  assert(_word_size > Words(0), "oop_size must be positive.");
   mem_clear(mem);
   java_lang_Class::set_oop_size(mem, _word_size);
   return finish(mem);

@@ -35,7 +35,7 @@ class HeapRegionTracer : AllStatic {
                                         G1HeapRegionTraceType::Type from,
                                         G1HeapRegionTraceType::Type to,
                                         uintptr_t start,
-                                        size_t used);
+                                        Bytes used);
 };
 
 #endif // SHARE_GC_G1_HEAPREGIONTRACER_HPP

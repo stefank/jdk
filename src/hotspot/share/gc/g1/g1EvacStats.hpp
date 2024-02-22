@@ -31,15 +31,15 @@
 // Records various memory allocation statistics gathered during evacuation. All sizes
 // are in HeapWords.
 class G1EvacStats : public PLABStats {
-  size_t _default_plab_size;
-  size_t _desired_net_plab_size; // Output of filter (below), suitably trimmed and quantized
+  Words _default_plab_size;
+  Words _desired_net_plab_size; // Output of filter (below), suitably trimmed and quantized
   AdaptiveWeightedAverage
          _net_plab_size_filter;  // Integrator with decay
 
-  size_t _region_end_waste; // Number of words wasted due to skipping to the next region.
+  Words _region_end_waste; // Number of words wasted due to skipping to the next region.
   uint   _regions_filled;   // Number of regions filled completely.
   size_t _num_plab_filled; // Number of PLABs filled and retired.
-  size_t _direct_allocated; // Number of words allocated directly into the regions.
+  Words  _direct_allocated; // Number of words allocated directly into the regions.
   size_t _num_direct_allocated; // Number of direct allocation attempts.
 
   // Number of words in live objects remaining in regions that ultimately suffered an
@@ -52,25 +52,25 @@ class G1EvacStats : public PLABStats {
 
   virtual void reset() {
     PLABStats::reset();
-    _region_end_waste = 0;
+    _region_end_waste = Words(0);
     _regions_filled = 0;
     _num_plab_filled = 0;
-    _direct_allocated = 0;
+    _direct_allocated = Words(0);
     _num_direct_allocated = 0;
     _failure_used = 0;
     _failure_waste = 0;
   }
 
   void log_plab_allocation();
-  void log_sizing(size_t calculated_words, size_t net_desired_words);
+  void log_sizing(Words calculated_words, Words net_desired_words);
 
-  size_t compute_desired_plab_size() const;
+  Words compute_desired_plab_size() const;
 
 public:
-  G1EvacStats(const char* description, size_t default_per_thread_plab_size, unsigned wt);
+  G1EvacStats(const char* description, Words default_per_thread_plab_size, unsigned wt);
 
   // Calculates plab size for current number of gc worker threads.
-  size_t desired_plab_size(uint no_of_gc_workers) const;
+  Words desired_plab_size(uint no_of_gc_workers) const;
 
   // Computes the new desired PLAB size assuming one gc worker thread, updating
   // _desired_plab_sz, and clearing statistics for the next GC.
@@ -79,8 +79,8 @@ public:
 
   uint regions_filled() const { return _regions_filled; }
   size_t num_plab_filled() const { return _num_plab_filled; }
-  size_t region_end_waste() const { return _region_end_waste; }
-  size_t direct_allocated() const { return _direct_allocated; }
+  Words region_end_waste() const { return _region_end_waste; }
+  Words direct_allocated() const { return _direct_allocated; }
   size_t num_direct_allocated() const { return _num_direct_allocated; }
 
   // Amount of space in heapwords used in the failing regions when an evacuation failure happens.
@@ -89,10 +89,10 @@ public:
   size_t failure_waste() const { return _failure_waste; }
 
   inline void add_num_plab_filled(size_t value);
-  inline void add_direct_allocated(size_t value);
+  inline void add_direct_allocated(Words value);
   inline void add_num_direct_allocated(size_t value);
-  inline void add_region_end_waste(size_t value);
-  inline void add_failure_used_and_waste(size_t used, size_t waste);
+  inline void add_region_end_waste(Words value);
+  inline void add_failure_used_and_waste(Words used, Words waste);
 };
 
 #endif // SHARE_GC_G1_G1EVACSTATS_HPP

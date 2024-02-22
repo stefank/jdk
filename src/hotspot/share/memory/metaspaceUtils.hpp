@@ -61,7 +61,7 @@ class MetaspaceGC : public AllStatic {
   // The current high-water-mark for inducing a GC.
   // When committed memory of all metaspaces reaches this value,
   // a GC is induced and the value is increased. Size is in bytes.
-  static volatile size_t _capacity_until_GC;
+  static volatile Bytes _capacity_until_GC;
   static uint _shrink_factor;
 
   static size_t shrink_factor() { return _shrink_factor; }
@@ -72,22 +72,22 @@ class MetaspaceGC : public AllStatic {
   static void initialize();
   static void post_initialize();
 
-  static size_t capacity_until_GC();
-  static bool inc_capacity_until_GC(size_t v,
-                                    size_t* new_cap_until_GC = nullptr,
-                                    size_t* old_cap_until_GC = nullptr,
+  static Bytes capacity_until_GC();
+  static bool inc_capacity_until_GC(Bytes v,
+                                    Bytes* new_cap_until_GC = nullptr,
+                                    Bytes* old_cap_until_GC = nullptr,
                                     bool* can_retry = nullptr);
-  static size_t dec_capacity_until_GC(size_t v);
+  static Bytes dec_capacity_until_GC(Bytes v);
 
   // The amount to increase the high-water-mark (_capacity_until_GC)
-  static size_t delta_capacity_until_GC(size_t bytes);
+  static Bytes delta_capacity_until_GC(Bytes bytes);
 
   // Tells if we have can expand metaspace without hitting set limits.
-  static bool can_expand(size_t words, bool is_class);
+  static bool can_expand(Words words, bool is_class);
 
   // Returns amount that we can expand without hitting a GC,
   // measured in words.
-  static size_t allowed_expansion();
+  static Words allowed_expansion();
 
   // Calculate the new high-water mark at which to induce
   // a GC.
@@ -98,24 +98,24 @@ class MetaspaceUtils : AllStatic {
 public:
 
   // Committed space actually in use by Metadata
-  static size_t used_words();
-  static size_t used_words(Metaspace::MetadataType mdtype);
+  static Words used_words();
+  static Words used_words(Metaspace::MetadataType mdtype);
 
   // Space committed for Metaspace
-  static size_t committed_words();
-  static size_t committed_words(Metaspace::MetadataType mdtype);
+  static Words committed_words();
+  static Words committed_words(Metaspace::MetadataType mdtype);
 
   // Space reserved for Metaspace
-  static size_t reserved_words();
-  static size_t reserved_words(Metaspace::MetadataType mdtype);
+  static Words reserved_words();
+  static Words reserved_words(Metaspace::MetadataType mdtype);
 
   // _bytes() variants for convenience...
-  static size_t used_bytes()                                    { return used_words() * BytesPerWord; }
-  static size_t used_bytes(Metaspace::MetadataType mdtype)      { return used_words(mdtype) * BytesPerWord; }
-  static size_t committed_bytes()                               { return committed_words() * BytesPerWord; }
-  static size_t committed_bytes(Metaspace::MetadataType mdtype) { return committed_words(mdtype) * BytesPerWord; }
-  static size_t reserved_bytes()                                { return reserved_words() * BytesPerWord; }
-  static size_t reserved_bytes(Metaspace::MetadataType mdtype)  { return reserved_words(mdtype) * BytesPerWord; }
+  static Bytes used_bytes()                                    { return to_Bytes(used_words()); }
+  static Bytes used_bytes(Metaspace::MetadataType mdtype)      { return to_Bytes(used_words(mdtype)); }
+  static Bytes committed_bytes()                               { return to_Bytes(committed_words()); }
+  static Bytes committed_bytes(Metaspace::MetadataType mdtype) { return to_Bytes(committed_words(mdtype)); }
+  static Bytes reserved_bytes()                                { return to_Bytes(reserved_words()); }
+  static Bytes reserved_bytes(Metaspace::MetadataType mdtype)  { return to_Bytes(reserved_words(mdtype)); }
 
   // Retrieve all statistics in one go; make sure the values are consistent.
   static MetaspaceStats get_statistics(Metaspace::MetadataType mdtype);

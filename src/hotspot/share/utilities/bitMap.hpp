@@ -32,6 +32,7 @@
 // Forward decl;
 class BitMapClosure;
 
+
 // Operations for bitmaps represented as arrays of unsigned integers.
 // Bits are numbered from 0 to size-1.
 
@@ -67,29 +68,29 @@ class BitMap {
  protected:
   // The maximum allowable size of a bitmap, in words or bits.
   // Limit max_size_in_bits so aligning up to a word boundary never overflows.
-  static idx_t max_size_in_words() { return raw_to_words_align_down(~idx_t(0)); }
-  static idx_t max_size_in_bits() { return max_size_in_words() * BitsPerWord; }
+  static Words max_size_in_words() { return raw_to_words_align_down(~idx_t(0)); }
+  static idx_t max_size_in_bits() { return untype(max_size_in_words()) * BitsPerWord; }
 
   // Assumes relevant validity checking for bit has already been done.
-  static idx_t raw_to_words_align_up(idx_t bit) {
+  static Words raw_to_words_align_up(idx_t bit) {
     return raw_to_words_align_down(bit + (BitsPerWord - 1));
   }
 
   // Assumes relevant validity checking for bit has already been done.
-  static idx_t raw_to_words_align_down(idx_t bit) {
-    return bit >> LogBitsPerWord;
+  static Words raw_to_words_align_down(idx_t bit) {
+    return Words(bit >> LogBitsPerWord);
   }
 
   // Word-aligns bit and converts it to a word offset.
   // precondition: bit <= size()
-  idx_t to_words_align_up(idx_t bit) const {
+  Words to_words_align_up(idx_t bit) const {
     verify_limit(bit);
     return raw_to_words_align_up(bit);
   }
 
   // Word-aligns bit and converts it to a word offset.
   // precondition: bit <= size()
-  inline idx_t to_words_align_down(idx_t bit) const {
+  inline Words to_words_align_down(idx_t bit) const {
     verify_limit(bit);
     return raw_to_words_align_down(bit);
   }
@@ -120,9 +121,9 @@ class BitMap {
 
   // Threshold for performing small range operation, even when large range
   // operation was requested. Measured in words.
-  static const size_t small_range_words = 32;
+  static const Words small_range_words = Words(32);
 
-  static bool is_small_range_of_words(idx_t beg_full_word, idx_t end_full_word);
+  static bool is_small_range_of_words(Words beg_full_word, Words end_full_word);
 
   // Return the position of bit within the word that contains it (e.g., if
   // bitmap words are 32 bits, return a number 0 <= n <= 31).
@@ -133,23 +134,19 @@ class BitMap {
   static bm_word_t bit_mask(idx_t bit) { return (bm_word_t)1 << bit_in_word(bit); }
 
   // Return the bit number of the first bit in the specified word.
-  static idx_t bit_index(idx_t word)  { return word << LogBitsPerWord; }
+  static idx_t bit_index(Words word)  { return untype(word) << LogBitsPerWord; }
 
   // Return the array of bitmap words, or a specific word from it.
   bm_word_t* map()                 { return _map; }
   const bm_word_t* map() const     { return _map; }
 
   // Return a pointer to the word containing the specified bit.
-  bm_word_t* word_addr(idx_t bit) {
-    return map() + to_words_align_down(bit);
-  }
-  const bm_word_t* word_addr(idx_t bit) const {
-    return map() + to_words_align_down(bit);
-  }
+  inline bm_word_t* word_addr(idx_t bit);
+  inline const bm_word_t* word_addr(idx_t bit) const;
 
   // Get a word and flip its bits according to flip.
-  bm_word_t flipped_word(idx_t word, bm_word_t flip) const {
-    return _map[word] ^ flip;
+  bm_word_t flipped_word(Words word, bm_word_t flip) const {
+    return _map[untype(word)] ^ flip;
   }
 
   // Set a word to a specified value or to all ones; clear a word.
@@ -168,15 +165,15 @@ class BitMap {
   void  par_put_range_within_word  (idx_t beg, idx_t end, bool value);
 
   // Ranges spanning entire words.
-  void      set_range_of_words         (idx_t beg, idx_t end);
-  void      clear_range_of_words       (idx_t beg, idx_t end);
-  void      set_large_range_of_words   (idx_t beg, idx_t end);
-  void      clear_large_range_of_words (idx_t beg, idx_t end);
+  void      set_range_of_words         (Words beg, Words end);
+  void      clear_range_of_words       (Words beg, Words end);
+  void      set_large_range_of_words   (Words beg, Words end);
+  void      clear_large_range_of_words (Words beg, Words end);
 
-  static void clear_range_of_words(bm_word_t* map, idx_t beg, idx_t end);
+  static void clear_range_of_words(bm_word_t* map, Words beg, Words end);
 
   idx_t count_one_bits_within_word(idx_t beg, idx_t end) const;
-  idx_t count_one_bits_in_range_of_words(idx_t beg_full_word, idx_t end_full_word) const;
+  idx_t count_one_bits_in_range_of_words(Words beg_full_word, Words end_full_word) const;
 
   // Set the map and size.
   void update(bm_word_t* map, idx_t size) {
@@ -195,19 +192,16 @@ class BitMap {
   void pretouch();
 
   // Accessing
-  static idx_t calc_size_in_words(size_t size_in_bits) {
+  static Words calc_size_in_words(size_t size_in_bits) {
     verify_size(size_in_bits);
     return raw_to_words_align_up(size_in_bits);
   }
 
   idx_t size() const          { return _size; }
-  idx_t size_in_words() const { return calc_size_in_words(size()); }
-  idx_t size_in_bytes() const { return size_in_words() * BytesPerWord; }
+  Words size_in_words() const { return calc_size_in_words(size()); }
+  Bytes size_in_bytes() const { return to_Bytes(size_in_words()); }
 
-  bool at(idx_t index) const {
-    verify_index(index);
-    return (*word_addr(index) & bit_mask(index)) != 0;
-  }
+  bool at(idx_t index) const;
 
   // memory_order must be memory_order_relaxed or memory_order_acquire.
   bool par_at(idx_t index, atomic_memory_order memory_order = memory_order_acquire) const;
@@ -384,7 +378,7 @@ class BitMap {
   bool is_full() const;
   bool is_empty() const;
 
-  void write_to(bm_word_t* buffer, size_t buffer_size_in_bytes) const;
+  void write_to(bm_word_t* buffer, Bytes buffer_size_in_bytes) const;
   void print_on_error(outputStream* st, const char* prefix) const;
 
 #ifndef PRODUCT
@@ -605,9 +599,9 @@ class ArenaBitMap : public GrowableBitMap<ArenaBitMap> {
  public:
   ArenaBitMap(Arena* arena, idx_t size_in_bits, bool clear = true);
 
-  bm_word_t* allocate(idx_t size_in_words) const;
-  bm_word_t* reallocate(bm_word_t* old_map, size_t old_size_in_words, size_t new_size_in_words) const;
-  void free(bm_word_t* map, idx_t size_in_words) const {
+  bm_word_t* allocate(Words size_in_words) const;
+  bm_word_t* reallocate(bm_word_t* old_map, Words old_size_in_words, Words new_size_in_words) const;
+  void free(bm_word_t* map, Words size_in_words) const {
     // ArenaBitMaps don't free memory.
   }
 };
@@ -618,9 +612,9 @@ class ResourceBitMap : public GrowableBitMap<ResourceBitMap> {
   ResourceBitMap() : ResourceBitMap(0) {}
   explicit ResourceBitMap(idx_t size_in_bits, bool clear = true);
 
-  bm_word_t* allocate(idx_t size_in_words) const;
-  bm_word_t* reallocate(bm_word_t* old_map, size_t old_size_in_words, size_t new_size_in_words) const;
-  void free(bm_word_t* map, idx_t size_in_words) const {
+  bm_word_t* allocate(Words size_in_words) const;
+  bm_word_t* reallocate(bm_word_t* old_map, Words old_size_in_words, Words new_size_in_words) const;
+  void free(bm_word_t* map, Words size_in_words) const {
     // ResourceBitMaps don't free memory.
   }
 };
@@ -639,9 +633,9 @@ class CHeapBitMap : public GrowableBitMap<CHeapBitMap> {
   CHeapBitMap(idx_t size_in_bits, MEMFLAGS flags, bool clear = true);
   ~CHeapBitMap();
 
-  bm_word_t* allocate(idx_t size_in_words) const;
-  bm_word_t* reallocate(bm_word_t* old_map, size_t old_size_in_words, size_t new_size_in_words) const;
-  void free(bm_word_t* map, idx_t size_in_words) const;
+  bm_word_t* allocate(Words size_in_words) const;
+  bm_word_t* reallocate(bm_word_t* old_map, Words old_size_in_words, Words new_size_in_words) const;
+  void free(bm_word_t* map, Words size_in_words) const;
 };
 
 // Convenience class wrapping BitMap which provides multiple bits per slot.

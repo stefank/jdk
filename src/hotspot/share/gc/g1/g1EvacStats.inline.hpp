@@ -29,8 +29,8 @@
 
 #include "runtime/atomic.hpp"
 
-inline void G1EvacStats::add_direct_allocated(size_t value) {
-  Atomic::add(&_direct_allocated, value);
+inline void G1EvacStats::add_direct_allocated(Words value) {
+  Atomic::add((size_t*)&_direct_allocated, untype(value));
 }
 
 inline void G1EvacStats::add_num_plab_filled(size_t value) {
@@ -41,14 +41,14 @@ inline void G1EvacStats::add_num_direct_allocated(size_t value) {
   Atomic::add(&_num_direct_allocated, value);
 }
 
-inline void G1EvacStats::add_region_end_waste(size_t value) {
-  Atomic::add(&_region_end_waste, value);
+inline void G1EvacStats::add_region_end_waste(Words value) {
+  Atomic::add((size_t*)&_region_end_waste, untype(value));
   Atomic::inc(&_regions_filled);
 }
 
-inline void G1EvacStats::add_failure_used_and_waste(size_t used, size_t waste) {
-  Atomic::add(&_failure_used, used);
-  Atomic::add(&_failure_waste, waste);
+inline void G1EvacStats::add_failure_used_and_waste(Words used, Words waste) {
+  Atomic::add((size_t*)&_failure_used, untype(used));
+  Atomic::add((size_t*)&_failure_waste, untype(waste));
 }
 
 #endif // SHARE_GC_G1_G1EVACSTATS_INLINE_HPP

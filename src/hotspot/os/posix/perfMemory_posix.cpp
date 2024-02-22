@@ -1074,7 +1074,7 @@ static char* mmap_create_shared(size_t size) {
   (void)::memset((void*) mapAddress, 0, size);
 
   // it does not go through os api, the operation has to record from here
-  MemTracker::record_virtual_memory_reserve_and_commit((address)mapAddress, size, CURRENT_PC, mtInternal);
+  MemTracker::record_virtual_memory_reserve_and_commit((address)mapAddress, in_Bytes(size), CURRENT_PC, mtInternal);
 
   log_info(perf, memops)("Successfully opened");
 
@@ -1090,7 +1090,7 @@ static void unmap_shared(char* addr, size_t bytes) {
     Tracker tkr(Tracker::release);
     res = ::munmap(addr, bytes);
     if (res == 0) {
-      tkr.record((address)addr, bytes);
+      tkr.record((address)addr, in_Bytes(bytes));
     }
   } else {
     res = ::munmap(addr, bytes);
@@ -1223,7 +1223,7 @@ static void mmap_attach_shared(int vmid, char** addr, size_t* sizep, TRAPS) {
   }
 
   // it does not go through os api, the operation has to record from here
-  MemTracker::record_virtual_memory_reserve_and_commit((address)mapAddress, size, CURRENT_PC, mtInternal);
+  MemTracker::record_virtual_memory_reserve_and_commit((address)mapAddress, in_Bytes(size), CURRENT_PC, mtInternal);
 
   *addr = mapAddress;
   *sizep = size;

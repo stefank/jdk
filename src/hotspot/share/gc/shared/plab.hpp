@@ -36,22 +36,22 @@ class PLABStats;
 class PLAB: public CHeapObj<mtGC> {
 protected:
   char      head[32];
-  size_t    _word_sz;          // In HeapWord units
+  Words     _word_sz;       // In HeapWord units
   HeapWord* _bottom;
   HeapWord* _top;
   HeapWord* _end;           // Last allocatable address + 1
   HeapWord* _hard_end;      // _end + AlignmentReserve
   // In support of ergonomic sizing of PLAB's
-  size_t    _allocated;     // in HeapWord units
-  size_t    _wasted;        // in HeapWord units
-  size_t    _undo_wasted;
+  Words     _allocated;     // in HeapWord units
+  Words     _wasted;        // in HeapWord units
+  Words     _undo_wasted;
   char      tail[32];
 
   // Force future allocations to fail and queries for contains()
   // to return false. Returns the amount of unused space in this PLAB.
-  size_t invalidate() {
+  Words invalidate() {
     _end    = _hard_end;
-    size_t remaining = pointer_delta(_end, _top);  // Calculate remaining space.
+    Words remaining = pointer_delta(_end, _top);  // Calculate remaining space.
     _top    = _end;      // Force future allocations to fail.
     _bottom = _end;      // Force future contains() queries to return false.
     return remaining;
@@ -59,33 +59,33 @@ protected:
 
   // Fill in remaining space with a dummy object and invalidate the PLAB. Returns
   // the amount of remaining space.
-  size_t retire_internal();
+  Words retire_internal();
 
-  void add_undo_waste(HeapWord* obj, size_t word_sz);
+  void add_undo_waste(HeapWord* obj, Words word_sz);
 
   // Undo the last allocation in the buffer, which is required to be of the
   // "obj" of the given "word_sz".
-  void undo_last_allocation(HeapWord* obj, size_t word_sz);
+  void undo_last_allocation(HeapWord* obj, Words word_sz);
 
 public:
   static void startup_initialization();
 
   // Initializes the buffer to be empty, but with the given "word_sz".
   // Must get initialized with "set_buf" for an allocation to succeed.
-  PLAB(size_t word_sz);
+  PLAB(Words word_sz);
 
-  static size_t size_required_for_allocation(size_t word_size) { return word_size + CollectedHeap::lab_alignment_reserve(); }
+  static Words size_required_for_allocation(Words word_size) { return word_size + CollectedHeap::lab_alignment_reserve(); }
 
   // Minimum PLAB size.
-  static size_t min_size();
+  static Words min_size();
   // Maximum PLAB size.
-  static size_t max_size();
+  static Words max_size();
 
   // If an allocation of the given "word_sz" can be satisfied within the
   // buffer, do the allocation, returning a pointer to the start of the
   // allocated block.  If the allocation request cannot be satisfied,
   // return null.
-  HeapWord* allocate(size_t word_sz) {
+  HeapWord* allocate(Words word_sz) {
     HeapWord* res = _top;
     if (pointer_delta(_end, _top) >= word_sz) {
       _top = _top + word_sz;
@@ -97,19 +97,19 @@ public:
 
   // Undo any allocation in the buffer, which is required to be of the
   // "obj" of the given "word_sz".
-  void undo_allocation(HeapWord* obj, size_t word_sz);
+  void undo_allocation(HeapWord* obj, Words word_sz);
 
   // The total (word) size of the buffer, including both allocated and
   // unallocated space.
-  size_t word_sz() { return _word_sz; }
+  Words word_sz() { return _word_sz; }
 
-  size_t waste() { return _wasted; }
-  size_t undo_waste() { return _undo_wasted; }
+  Words waste() { return _wasted; }
+  Words undo_waste() { return _undo_wasted; }
 
   // The number of words of unallocated space remaining in the buffer.
-  size_t words_remaining() {
+  Words words_remaining() {
     assert(_end >= _top, "Negative buffer");
-    return pointer_delta(_end, _top, HeapWordSize);
+    return pointer_delta(_end, _top);
   }
 
   bool contains(void* addr) {
@@ -117,7 +117,7 @@ public:
   }
 
   // Sets the space of the buffer to be [buf, space+word_sz()).
-  void set_buf(HeapWord* buf, size_t new_word_sz) {
+  void set_buf(HeapWord* buf, Words new_word_sz) {
     assert(new_word_sz > CollectedHeap::lab_alignment_reserve(), "Too small");
     _word_sz = new_word_sz;
 
@@ -149,50 +149,50 @@ class PLABStats : public CHeapObj<mtGC> {
 protected:
   const char* _description;   // Identifying string.
 
-  size_t _allocated;          // Total allocated
-  size_t _wasted;             // of which wasted (internal fragmentation)
-  size_t _undo_wasted;        // of which wasted on undo (is not used for calculation of PLAB size)
-  size_t _unused;             // Unused in last buffer
+  Words _allocated;          // Total allocated
+  Words _wasted;             // of which wasted (internal fragmentation)
+  Words _undo_wasted;        // of which wasted on undo (is not used for calculation of PLAB size)
+  Words _unused;             // Unused in last buffer
 
   virtual void reset() {
-    _allocated   = 0;
-    _wasted      = 0;
-    _undo_wasted = 0;
-    _unused      = 0;
+    _allocated   = Words(0);
+    _wasted      = Words(0);
+    _undo_wasted = Words(0);
+    _unused      = Words(0);
   }
 
 public:
   PLABStats(const char* description) :
     _description(description),
-    _allocated(0),
-    _wasted(0),
-    _undo_wasted(0),
-    _unused(0)
+    _allocated(Words(0)),
+    _wasted(Words(0)),
+    _undo_wasted(Words(0)),
+    _unused(Words(0))
   { }
 
   virtual ~PLABStats() { }
 
-  size_t allocated() const { return _allocated; }
-  size_t wasted() const { return _wasted; }
-  size_t unused() const { return _unused; }
-  size_t used() const { return allocated() - (wasted() + unused()); }
-  size_t undo_wasted() const { return _undo_wasted; }
+  Words allocated() const { return _allocated; }
+  Words wasted() const { return _wasted; }
+  Words unused() const { return _unused; }
+  Words used() const { return allocated() - (wasted() + unused()); }
+  Words undo_wasted() const { return _undo_wasted; }
 
-  static size_t min_size() {
+  static Words min_size() {
     return PLAB::min_size();
   }
 
-  static size_t max_size() {
+  static Words max_size() {
     return PLAB::max_size();
   }
 
-  inline void add_allocated(size_t v);
+  inline void add_allocated(Words v);
 
-  inline void add_unused(size_t v);
+  inline void add_unused(Words v);
 
-  inline void add_wasted(size_t v);
+  inline void add_wasted(Words v);
 
-  inline void add_undo_wasted(size_t v);
+  inline void add_undo_wasted(Words v);
 };
 
 #endif // SHARE_GC_SHARED_PLAB_HPP

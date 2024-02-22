@@ -47,14 +47,14 @@ class HSpaceCounters: public CHeapObj<mtGC> {
  public:
 
   HSpaceCounters(const char* name_space, const char* name, int ordinal,
-                 size_t max_size, size_t initial_capacity);
+                 Bytes max_size, Bytes initial_capacity);
 
   ~HSpaceCounters();
 
-  void update_capacity(size_t v);
-  void update_used(size_t v);
+  void update_capacity(Bytes v);
+  void update_used(Bytes v);
 
-  void update_all(size_t capacity, size_t used);
+  void update_all(Bytes capacity, Bytes used);
 
   debug_only(
     // for security reasons, we do not allow arbitrary reads from

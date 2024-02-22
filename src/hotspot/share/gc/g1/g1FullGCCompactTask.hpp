@@ -62,7 +62,7 @@ public:
     void clear_in_bitmap(oop object);
   public:
     G1CompactRegionClosure(G1CMBitMap* bitmap) : _bitmap(bitmap) { }
-    size_t apply(oop object);
+    Words apply(oop object);
   };
 };
 

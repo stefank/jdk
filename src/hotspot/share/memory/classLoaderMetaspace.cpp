@@ -88,7 +88,7 @@ ClassLoaderMetaspace::~ClassLoaderMetaspace() {
 }
 
 // Allocate word_size words from Metaspace.
-MetaWord* ClassLoaderMetaspace::allocate(size_t word_size, Metaspace::MetadataType mdType) {
+MetaWord* ClassLoaderMetaspace::allocate(Words word_size, Metaspace::MetadataType mdType) {
   MutexLocker fcl(lock(), Mutex::_no_safepoint_check_flag);
   if (Metaspace::is_class_space_allocation(mdType)) {
     return class_space_arena()->allocate(word_size);
@@ -99,12 +99,12 @@ MetaWord* ClassLoaderMetaspace::allocate(size_t word_size, Metaspace::MetadataTy
 
 // Attempt to expand the GC threshold to be good for at least another word_size words
 // and allocate. Returns null if failure. Used during Metaspace GC.
-MetaWord* ClassLoaderMetaspace::expand_and_allocate(size_t word_size, Metaspace::MetadataType mdType) {
-  size_t delta_bytes = MetaspaceGC::delta_capacity_until_GC(word_size * BytesPerWord);
-  assert(delta_bytes > 0, "Must be");
+MetaWord* ClassLoaderMetaspace::expand_and_allocate(Words word_size, Metaspace::MetadataType mdType) {
+  Bytes delta_bytes = MetaspaceGC::delta_capacity_until_GC(to_Bytes(word_size));
+  assert(delta_bytes > Bytes(0), "Must be");
 
-  size_t before = 0;
-  size_t after = 0;
+  Bytes before = Bytes(0);
+  Bytes after = Bytes(0);
   bool can_retry = true;
   MetaWord* res;
   bool incremented;
@@ -130,7 +130,7 @@ MetaWord* ClassLoaderMetaspace::expand_and_allocate(size_t word_size, Metaspace:
 
 // Prematurely returns a metaspace allocation to the _block_freelists
 // because it is not needed anymore.
-void ClassLoaderMetaspace::deallocate(MetaWord* ptr, size_t word_size, bool is_class) {
+void ClassLoaderMetaspace::deallocate(MetaWord* ptr, Words word_size, bool is_class) {
   MutexLocker fcl(lock(), Mutex::_no_safepoint_check_flag);
   if (Metaspace::using_class_space() && is_class) {
     class_space_arena()->deallocate(ptr, word_size);
@@ -164,18 +164,18 @@ void ClassLoaderMetaspace::verify() const {
 #endif // ASSERT
 
 // Convenience method to get the most important usage statistics.
-void ClassLoaderMetaspace::usage_numbers(Metaspace::MetadataType mdType, size_t* p_used_words,
-                                         size_t* p_committed_words, size_t* p_capacity_words) const {
+void ClassLoaderMetaspace::usage_numbers(Metaspace::MetadataType mdType, Words* p_used_words,
+                                         Words* p_committed_words, Words* p_capacity_words) const {
   const MetaspaceArena* arena = (mdType == Metaspace::MetadataType::ClassType) ?
       class_space_arena() : non_class_space_arena();
   arena->usage_numbers(p_used_words, p_committed_words, p_capacity_words);
 }
 
 // Convenience method to get total usage numbers
-void ClassLoaderMetaspace::usage_numbers(size_t* p_used_words, size_t* p_committed_words,
-                                         size_t* p_capacity_words) const {
-  size_t used_nc, comm_nc, cap_nc;
-  size_t used_c = 0, comm_c = 0, cap_c = 0;
+void ClassLoaderMetaspace::usage_numbers(Words* p_used_words, Words* p_committed_words,
+                                         Words* p_capacity_words) const {
+  Words used_nc, comm_nc, cap_nc;
+  Words used_c = Words(0), comm_c = Words(0), cap_c = Words(0);
   {
     MutexLocker fcl(lock(), Mutex::_no_safepoint_check_flag);
     usage_numbers(Metaspace::MetadataType::NonClassType, &used_nc, &comm_nc, &cap_nc);

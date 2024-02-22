@@ -35,7 +35,7 @@
 // so no more synchronization is needed.
 class JfrNativeMemoryEvent : public AllStatic {
 private:
-  static void send_type_event(const Ticks& starttime, MEMFLAGS flag, size_t reserved, size_t committed);
+  static void send_type_event(const Ticks& starttime, MEMFLAGS flag, Bytes reserved, Bytes committed);
  public:
   static void send_total_event(const Ticks& timestamp);
   static void send_type_events(const Ticks& timestamp);

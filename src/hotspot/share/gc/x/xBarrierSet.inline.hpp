@@ -204,7 +204,7 @@ inline bool XBarrierSet::AccessBarrier<decorators, BarrierSetT>::oop_arraycopy_i
 }
 
 template <DecoratorSet decorators, typename BarrierSetT>
-inline void XBarrierSet::AccessBarrier<decorators, BarrierSetT>::clone_in_heap(oop src, oop dst, size_t size) {
+inline void XBarrierSet::AccessBarrier<decorators, BarrierSetT>::clone_in_heap(oop src, oop dst, Words size) {
   XBarrier::load_barrier_on_oop_fields(src);
   Raw::clone_in_heap(src, dst, size);
 }

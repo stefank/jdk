@@ -37,24 +37,24 @@
 #include "utilities/globalDefinitions.hpp"
 #include "utilities/macros.hpp"
 
-inline size_t InstanceStackChunkKlass::instance_size(size_t stack_size_in_words) const {
-  return align_object_size(size_helper() + stack_size_in_words + gc_data_size(stack_size_in_words));
+inline Words InstanceStackChunkKlass::instance_size(Words stack_size_in_words) const {
+  return align_object_size(Words(size_helper()) + stack_size_in_words + gc_data_size(stack_size_in_words));
 }
 
-inline size_t InstanceStackChunkKlass::bitmap_size_in_bits(size_t stack_size_in_words) {
+inline size_t InstanceStackChunkKlass::bitmap_size_in_bits(Words stack_size_in_words) {
   // Need one bit per potential narrowOop* or oop* address.
-  size_t size_in_bits = stack_size_in_words << (LogBitsPerWord - LogBitsPerHeapOop);
+  size_t size_in_bits = untype(stack_size_in_words) << (LogBitsPerWord - LogBitsPerHeapOop);
 
   return align_up(size_in_bits, BitsPerWord);
 }
 
-inline size_t InstanceStackChunkKlass::gc_data_size(size_t stack_size_in_words) {
+inline Words InstanceStackChunkKlass::gc_data_size(Words stack_size_in_words) {
   // At the moment all GCs are okay with GC data big enough to fit a bit map
   return bitmap_size(stack_size_in_words);
 }
 
-inline size_t InstanceStackChunkKlass::bitmap_size(size_t stack_size_in_words) {
-  return bitmap_size_in_bits(stack_size_in_words) >> LogBitsPerWord;
+inline Words InstanceStackChunkKlass::bitmap_size(Words stack_size_in_words) {
+  return Words(bitmap_size_in_bits(stack_size_in_words) >> LogBitsPerWord);
 }
 
 template <typename T, class OopClosureType>

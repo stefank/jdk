@@ -58,11 +58,11 @@ void GCTraceTimeLoggerImpl::log_end(Ticks end) {
     out.print(" (%s)", GCCause::to_string(_gc_cause));
   }
 
-  if (_heap_usage_before != SIZE_MAX) {
+  if (_heap_usage_before != in_Bytes(SIZE_MAX)) {
     CollectedHeap* heap = Universe::heap();
-    size_t used_before_m = _heap_usage_before / M;
-    size_t used_m = heap->used() / M;
-    size_t capacity_m = heap->capacity() / M;
+    Bytes used_before_m = _heap_usage_before / M;
+    Bytes used_m = heap->used() / M;
+    Bytes capacity_m = heap->capacity() / M;
     out.print(" " SIZE_FORMAT "M->" SIZE_FORMAT "M("  SIZE_FORMAT "M)", used_before_m, used_m, capacity_m);
   }
 

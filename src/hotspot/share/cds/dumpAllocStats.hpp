@@ -62,8 +62,8 @@ public:
   CompactHashtableStats _symbol_stats;
   CompactHashtableStats _string_stats;
 
-  int _counts[2][_number_of_types];
-  int _bytes [2][_number_of_types];
+  int   _counts[2][_number_of_types];
+  Bytes _bytes [2][_number_of_types];
 
   int _num_klass_cp_entries;
   int _num_klass_cp_entries_archived;
@@ -81,24 +81,24 @@ public:
   CompactHashtableStats* symbol_stats() { return &_symbol_stats; }
   CompactHashtableStats* string_stats() { return &_string_stats; }
 
-  void record(MetaspaceObj::Type type, int byte_size, bool read_only) {
+  void record(MetaspaceObj::Type type, Bytes byte_size, bool read_only) {
     assert(int(type) >= 0 && type < MetaspaceObj::_number_of_types, "sanity");
     int which = (read_only) ? RO : RW;
     _counts[which][type] ++;
     _bytes [which][type] += byte_size;
   }
 
-  void record_modules(int byte_size, bool read_only) {
+  void record_modules(Bytes byte_size, bool read_only) {
     int which = (read_only) ? RO : RW;
     _bytes [which][ModulesNativesType] += byte_size;
   }
 
-  void record_other_type(int byte_size, bool read_only) {
+  void record_other_type(Bytes byte_size, bool read_only) {
     int which = (read_only) ? RO : RW;
     _bytes [which][OtherType] += byte_size;
   }
 
-  void record_cpp_vtables(int byte_size) {
+  void record_cpp_vtables(Bytes byte_size) {
     _bytes[RW][CppVTablesType] += byte_size;
   }
 
@@ -107,7 +107,7 @@ public:
     _num_klass_cp_entries_archived += archived ? 1 : 0;
   }
 
-  void print_stats(int ro_all, int rw_all);
+  void print_stats(Bytes ro_all, Bytes rw_all);
 };
 
 #endif // SHARE_CDS_DUMPALLOCSTATS_HPP

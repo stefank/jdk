@@ -503,7 +503,7 @@ StringDedup::Table::find(typeArrayOop obj, uint hash_code) {
 
 void StringDedup::Table::install(typeArrayOop obj, uint hash_code) {
   add(TableValue(_table_storage, obj), hash_code);
-  _cur_stat.inc_new(obj->size() * HeapWordSize);
+  _cur_stat.inc_new(to_Bytes(obj->size()));
 }
 
 #if INCLUDE_CDS_JAVA_HEAP
@@ -571,7 +571,7 @@ bool StringDedup::Table::try_deduplicate_found_shared(oop java_string, oop found
     // shared string.  But if they have different coders but happen to have
     // the same sequence of bytes in their value arrays, then java_string
     // could have been interned and marked deduplication-forbidden.
-    _cur_stat.inc_deduped(found_value->size() * HeapWordSize);
+    _cur_stat.inc_deduped(to_Bytes(found_value->size()));
     return true;
   } else {
     // Must be a mismatch between java_string and found string encodings,
@@ -627,7 +627,7 @@ void StringDedup::Table::deduplicate(oop java_string) {
     // Deduplicate if value array differs from what's in the table.
     if (found != value) {
       if (deduplicate_if_permitted(java_string, found)) {
-        _cur_stat.inc_deduped(found->size() * HeapWordSize);
+        _cur_stat.inc_deduped(to_Bytes(found->size()));
       } else {
         // If string marked deduplication_forbidden then we can't update its
         // value.  Instead, replace the array in the table with the new one,

@@ -76,9 +76,9 @@ public:
   intptr_t* cloned_vtable()   { return &_cloned_vtable[0]; }
   void zero()                 { memset(_cloned_vtable, 0, sizeof(intptr_t) * vtable_size()); }
   // Returns the address of the next CppVtableInfo that can be placed immediately after this CppVtableInfo
-  static size_t byte_size(int vtable_size) {
+  static Bytes byte_size(int vtable_size) {
     CppVtableInfo i;
-    return pointer_delta(&i._cloned_vtable[vtable_size], &i, sizeof(u1));
+    return in_Bytes(pointer_delta(&i._cloned_vtable[vtable_size], &i, sizeof(u1)));
   }
 };
 
@@ -217,13 +217,13 @@ CppVtableInfo** CppVtables::_index = nullptr;
 
 char* CppVtables::dumptime_init(ArchiveBuilder* builder) {
   assert(CDSConfig::is_dumping_static_archive(), "cpp tables are only dumped into static archive");
-  size_t vtptrs_bytes = _num_cloned_vtable_kinds * sizeof(CppVtableInfo*);
+  Bytes vtptrs_bytes = in_Bytes(_num_cloned_vtable_kinds * sizeof(CppVtableInfo*));
   _index = (CppVtableInfo**)builder->rw_region()->allocate(vtptrs_bytes);
 
   CPP_VTABLE_TYPES_DO(ALLOCATE_AND_INITIALIZE_VTABLE);
 
-  size_t cpp_tables_size = builder->rw_region()->top() - builder->rw_region()->base();
-  builder->alloc_stats()->record_cpp_vtables((int)cpp_tables_size);
+  Bytes cpp_tables_size = pointer_delta_bytes(builder->rw_region()->top(), builder->rw_region()->base());
+  builder->alloc_stats()->record_cpp_vtables(cpp_tables_size);
 
   return (char*)_index;
 }

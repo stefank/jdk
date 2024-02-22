@@ -54,11 +54,11 @@ public:
 
   // If an expansion would be appropriate, because recent GC overhead had
   // exceeded the desired limit, return an amount to expand by.
-  size_t young_collection_expansion_amount();
+  Bytes young_collection_expansion_amount();
 
   // Returns the amount of bytes to resize the heap; if expand is set, the heap
   // should by expanded by that amount, shrunk otherwise.
-  size_t full_collection_resize_amount(bool& expand);
+  Bytes full_collection_resize_amount(bool& expand);
   // Clear ratio tracking data used by expansion_amount().
   void clear_ratio_check_data();
 

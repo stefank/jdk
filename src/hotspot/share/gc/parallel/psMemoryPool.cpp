@@ -33,9 +33,9 @@ PSGenerationPool::PSGenerationPool(PSOldGen* old_gen,
 }
 
 MemoryUsage PSGenerationPool::get_memory_usage() {
-  size_t maxSize   = (available_for_allocation() ? max_size() : 0);
-  size_t used      = used_in_bytes();
-  size_t committed = _old_gen->capacity_in_bytes();
+  Bytes maxSize   = (available_for_allocation() ? max_size() : Bytes(0));
+  Bytes used      = used_in_bytes();
+  Bytes committed = _old_gen->capacity_in_bytes();
 
   return MemoryUsage(initial_size(), used, committed, maxSize);
 }
@@ -60,9 +60,9 @@ EdenMutableSpacePool::EdenMutableSpacePool(PSYoungGen* young_gen,
 }
 
 MemoryUsage EdenMutableSpacePool::get_memory_usage() {
-  size_t maxSize   = (available_for_allocation() ? max_size() : 0);
-  size_t used = used_in_bytes();
-  size_t committed = _space->capacity_in_bytes();
+  Bytes maxSize   = (available_for_allocation() ? max_size() : Bytes(0));
+  Bytes used = used_in_bytes();
+  Bytes committed = _space->capacity_in_bytes();
 
   return MemoryUsage(initial_size(), used, committed, maxSize);
 }
@@ -81,8 +81,9 @@ SurvivorMutableSpacePool::SurvivorMutableSpacePool(PSYoungGen* young_gen,
 }
 
 MemoryUsage SurvivorMutableSpacePool::get_memory_usage() {
-  size_t maxSize = (available_for_allocation() ? max_size() : 0);
-  size_t used    = used_in_bytes();
-  size_t committed = committed_in_bytes();
+  Bytes maxSize = (available_for_allocation() ? max_size() : Bytes(0));
+  Bytes used    = used_in_bytes();
+  Bytes committed = committed_in_bytes();
+
   return MemoryUsage(initial_size(), used, committed, maxSize);
 }

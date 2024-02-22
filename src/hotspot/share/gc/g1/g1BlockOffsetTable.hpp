@@ -54,8 +54,8 @@ private:
   // address.
   volatile u_char* _offset_array;  // byte array keeping backwards offsets
 
-  void check_offset(size_t offset, const char* msg) const {
-    assert(offset < BOTConstants::card_size_in_words(),
+  void check_offset(Words offset, const char* msg) const {
+    assert(untype(offset) < BOTConstants::card_size_in_words(),
            "%s - offset: " SIZE_FORMAT ", N_words: %u",
            msg, offset, BOTConstants::card_size_in_words());
   }
@@ -77,9 +77,12 @@ public:
 
   // Return the number of slots needed for an offset array
   // that covers mem_region_words words.
-  static size_t compute_size(size_t mem_region_words) {
-    size_t number_of_slots = (mem_region_words / BOTConstants::card_size_in_words());
-    return ReservedSpace::allocation_align_size_up(number_of_slots);
+  static Bytes compute_size(Words mem_region_words) {
+    size_t number_of_slots = mem_region_words / in_Words(BOTConstants::card_size_in_words());
+    // TODO: This is not a bytes time, but still we're using it as a byte. There is some
+    //       implicit assumption here.
+    Bytes number_of_slots_as_bytes = in_Bytes(number_of_slots);
+    return ReservedSpace::allocation_align_size_up(number_of_slots_as_bytes);
   }
 
   // Returns how many bytes of the heap a single byte of the BOT corresponds to.
@@ -127,7 +130,7 @@ private:
     return align_up(addr, BOTConstants::card_size());
   }
 
-  void update_for_block(HeapWord* blk_start, size_t size) {
+  void update_for_block(HeapWord* blk_start, Words size) {
     update_for_block(blk_start, blk_start + size);
   }
 public:
@@ -153,7 +156,7 @@ public:
     }
   }
 
-  void set_for_starts_humongous(HeapWord* obj_top, size_t fill_size);
+  void set_for_starts_humongous(HeapWord* obj_top, Words fill_size);
 
   void print_on(outputStream* out) PRODUCT_RETURN;
 };

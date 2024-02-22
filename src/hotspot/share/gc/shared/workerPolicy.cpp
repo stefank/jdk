@@ -110,7 +110,7 @@ uint WorkerPolicy::calc_default_active_workers(uintx total_workers,
   // the heap depends on factors such as the throughput goal.
   // Still a large heap should be collected by more GC threads.
   active_workers_by_heap_size =
-    MAX2((size_t) 2U, Universe::heap()->capacity() / HeapSizePerGCThread);
+    MAX2((size_t) 2U, untype(Universe::heap()->capacity()) / HeapSizePerGCThread);
 
   uintx max_active_workers =
     MAX2(active_workers_by_JT, active_workers_by_heap_size);

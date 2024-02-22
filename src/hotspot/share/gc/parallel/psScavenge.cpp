@@ -510,8 +510,8 @@ bool PSScavenge::invoke_no_policy() {
       young_gen->from_space()->clear(SpaceDecorator::Mangle);
       young_gen->swap_spaces();
 
-      size_t survived = young_gen->from_space()->used_in_bytes();
-      size_t promoted = old_gen->used_in_bytes() - pre_gc_values.old_gen_used();
+      Bytes survived = young_gen->from_space()->used_in_bytes();
+      Bytes promoted = old_gen->used_in_bytes() - pre_gc_values.old_gen_used();
       size_policy->update_averages(_survivor_overflow, survived, promoted);
 
       // A successful scavenge should restart the GC time limit count which is
@@ -537,7 +537,7 @@ bool PSScavenge::invoke_no_policy() {
           counters->update_survivor_overflowed(_survivor_overflow);
         }
 
-        size_t max_young_size = young_gen->max_gen_size();
+        Bytes max_young_size = young_gen->max_gen_size();
 
         // Deciding a free ratio in the young generation is tricky, so if
         // MinHeapFreeRatio or MaxHeapFreeRatio are in use (implicating
@@ -549,7 +549,7 @@ bool PSScavenge::invoke_no_policy() {
                                 young_gen->max_gen_size());
         }
 
-        size_t survivor_limit =
+        Bytes survivor_limit =
           size_policy->max_survivor_size(max_young_size);
         _tenuring_threshold =
           size_policy->compute_survivor_space_size_and_threshold(
@@ -578,11 +578,11 @@ bool PSScavenge::invoke_no_policy() {
                  young_gen->to_space()->capacity_in_bytes(),
                  "Sizes of space in young gen are out-of-bounds");
 
-          size_t young_live = young_gen->used_in_bytes();
-          size_t eden_live = young_gen->eden_space()->used_in_bytes();
-          size_t cur_eden = young_gen->eden_space()->capacity_in_bytes();
-          size_t max_old_gen_size = old_gen->max_gen_size();
-          size_t max_eden_size = max_young_size -
+          Bytes young_live = young_gen->used_in_bytes();
+          Bytes eden_live = young_gen->eden_space()->used_in_bytes();
+          Bytes cur_eden = young_gen->eden_space()->capacity_in_bytes();
+          Bytes max_old_gen_size = old_gen->max_gen_size();
+          Bytes max_eden_size = max_young_size -
             young_gen->from_space()->capacity_in_bytes() -
             young_gen->to_space()->capacity_in_bytes();
 
@@ -702,15 +702,15 @@ bool PSScavenge::should_attempt_scavenge() {
   // Test to see if the scavenge will likely fail.
   PSAdaptiveSizePolicy* policy = heap->size_policy();
 
-  size_t avg_promoted = (size_t) policy->padded_average_promoted_in_bytes();
-  size_t promotion_estimate = MIN2(avg_promoted, young_gen->used_in_bytes());
+  Bytes avg_promoted = policy->padded_average_promoted_in_bytes();
+  Bytes promotion_estimate = MIN2(avg_promoted, young_gen->used_in_bytes());
   bool result = promotion_estimate < old_gen->free_in_bytes();
 
   log_trace(ergo)("%s scavenge: average_promoted " SIZE_FORMAT " padded_average_promoted " SIZE_FORMAT " free in old gen " SIZE_FORMAT,
                 result ? "Do" : "Skip", (size_t) policy->average_promoted_in_bytes(),
                 (size_t) policy->padded_average_promoted_in_bytes(),
                 old_gen->free_in_bytes());
-  if (young_gen->used_in_bytes() < (size_t) policy->padded_average_promoted_in_bytes()) {
+  if (young_gen->used_in_bytes() < policy->padded_average_promoted_in_bytes()) {
     log_trace(ergo)(" padded_promoted_average is greater than maximum promotion = " SIZE_FORMAT, young_gen->used_in_bytes());
   }
 

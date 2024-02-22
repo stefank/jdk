@@ -41,13 +41,13 @@ inline idx_t word_align_down(idx_t bit) {
 
 class BitMapMemory {
 private:
-  idx_t _words;
+  Words _words;
   bm_word_t* _memory;
 
 public:
   BitMapMemory(idx_t bits) :
     _words(BitMap::calc_size_in_words(bits)),
-    _memory(static_cast<bm_word_t*>(os::malloc(_words * sizeof(bm_word_t), mtTest)))
+    _memory(static_cast<bm_word_t*>(os::malloc(to_bytes(_words), mtTest)))
   { }
 
   ~BitMapMemory() {
@@ -337,8 +337,8 @@ static void check_tail_unmodified(BitMapMemory& mem,
                                   bm_word_t fill_word) {
   if (!is_aligned(bits, BitsPerWord)) {
     idx_t last_word_bit_index = word_align_down(bits);
-    idx_t last_word_index = BitMap::calc_size_in_words(last_word_bit_index);
-    bm_word_t last_word = mem.memory()[last_word_index];
+    Words last_word_index = BitMap::calc_size_in_words(last_word_bit_index);
+    bm_word_t last_word = mem.memory()[untype(last_word_index)];
     idx_t shift = bits - last_word_bit_index;
     EXPECT_EQ(fill_word >> shift, last_word >> shift);
   }

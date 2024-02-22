@@ -31,32 +31,32 @@
 #include "jfr/support/jfrAllocationTracer.hpp"
 #endif
 
-void AllocTracer::send_allocation_outside_tlab(Klass* klass, HeapWord* obj, size_t alloc_size, JavaThread* thread) {
+void AllocTracer::send_allocation_outside_tlab(Klass* klass, HeapWord* obj, Bytes alloc_size, JavaThread* thread) {
   JFR_ONLY(JfrAllocationTracer tracer(klass, obj, alloc_size, true, thread);)
   EventObjectAllocationOutsideTLAB event;
   if (event.should_commit()) {
     event.set_objectClass(klass);
-    event.set_allocationSize(alloc_size);
+    event.set_allocationSize(untype(alloc_size));
     event.commit();
   }
 }
 
-void AllocTracer::send_allocation_in_new_tlab(Klass* klass, HeapWord* obj, size_t tlab_size, size_t alloc_size, JavaThread* thread) {
+void AllocTracer::send_allocation_in_new_tlab(Klass* klass, HeapWord* obj, Bytes tlab_size, Bytes alloc_size, JavaThread* thread) {
   JFR_ONLY(JfrAllocationTracer tracer(klass, obj, alloc_size, false, thread);)
   EventObjectAllocationInNewTLAB event;
   if (event.should_commit()) {
     event.set_objectClass(klass);
-    event.set_allocationSize(alloc_size);
-    event.set_tlabSize(tlab_size);
+    event.set_allocationSize(untype(alloc_size));
+    event.set_tlabSize(untype(tlab_size));
     event.commit();
   }
 }
 
-void AllocTracer::send_allocation_requiring_gc_event(size_t size, uint gcId) {
+void AllocTracer::send_allocation_requiring_gc_event(Bytes size, uint gcId) {
   EventAllocationRequiringGC event;
   if (event.should_commit()) {
     event.set_gcId(gcId);
-    event.set_size(size);
+    event.set_size(untype(size));
     event.commit();
   }
 }

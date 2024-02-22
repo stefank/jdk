@@ -50,22 +50,22 @@
 
 uint   HeapRegion::LogOfHRGrainBytes = 0;
 uint   HeapRegion::LogCardsPerRegion = 0;
-size_t HeapRegion::GrainBytes        = 0;
-size_t HeapRegion::GrainWords        = 0;
+Bytes  HeapRegion::GrainBytes        = Bytes(0);
+Words  HeapRegion::GrainWords        = Words(0);
 size_t HeapRegion::CardsPerRegion    = 0;
 
-size_t HeapRegion::max_region_size() {
+Bytes HeapRegion::max_region_size() {
   return HeapRegionBounds::max_size();
 }
 
-size_t HeapRegion::min_region_size_in_words() {
-  return HeapRegionBounds::min_size() >> LogHeapWordSize;
+Words HeapRegion::min_region_size_in_words() {
+  return to_Words(HeapRegionBounds::min_size());
 }
 
-void HeapRegion::setup_heap_region_size(size_t max_heap_size) {
-  size_t region_size = G1HeapRegionSize;
+void HeapRegion::setup_heap_region_size(Bytes max_heap_size) {
+  Bytes region_size = in_Bytes(G1HeapRegionSize);
   // G1HeapRegionSize = 0 means decide ergonomically.
-  if (region_size == 0) {
+  if (region_size == Bytes(0)) {
     region_size = clamp(max_heap_size / HeapRegionBounds::target_number(),
                         HeapRegionBounds::min_size(),
                         HeapRegionBounds::max_ergonomics_size());
@@ -73,28 +73,29 @@ void HeapRegion::setup_heap_region_size(size_t max_heap_size) {
 
   // Make sure region size is a power of 2. Rounding up since this
   // is beneficial in most cases.
-  region_size = round_up_power_of_2(region_size);
+  // TODO
+  region_size = in_Bytes(round_up_power_of_2(untype(region_size)));
 
   // Now make sure that we don't go over or under our limits.
   region_size = clamp(region_size, HeapRegionBounds::min_size(), HeapRegionBounds::max_size());
 
   // Now, set up the globals.
   guarantee(LogOfHRGrainBytes == 0, "we should only set it once");
-  LogOfHRGrainBytes = log2i_exact(region_size);
+  LogOfHRGrainBytes = log2i_exact(untype(region_size));
 
-  guarantee(GrainBytes == 0, "we should only set it once");
+  guarantee(GrainBytes == Bytes(0), "we should only set it once");
   GrainBytes = region_size;
 
-  guarantee(GrainWords == 0, "we should only set it once");
-  GrainWords = GrainBytes >> LogHeapWordSize;
+  guarantee(GrainWords == Words(0), "we should only set it once");
+  GrainWords = to_Words(GrainBytes);
 
   guarantee(CardsPerRegion == 0, "we should only set it once");
-  CardsPerRegion = GrainBytes >> G1CardTable::card_shift();
+  CardsPerRegion = untype(GrainBytes) >> G1CardTable::card_shift();
 
   LogCardsPerRegion = log2i_exact(CardsPerRegion);
 
-  if (G1HeapRegionSize != GrainBytes) {
-    FLAG_SET_ERGO(G1HeapRegionSize, GrainBytes);
+  if (G1HeapRegionSize != untype(GrainBytes)) {
+    FLAG_SET_ERGO(G1HeapRegionSize, untype(GrainBytes));
   }
 }
 
@@ -176,7 +177,7 @@ void HeapRegion::set_old() {
   _type.set_old();
 }
 
-void HeapRegion::set_starts_humongous(HeapWord* obj_top, size_t fill_size) {
+void HeapRegion::set_starts_humongous(HeapWord* obj_top, Words fill_size) {
   assert(!is_humongous(), "sanity / pre-condition");
   assert(top() == bottom(), "should be empty");
 
@@ -228,7 +229,7 @@ HeapRegion::HeapRegion(uint hrm_index,
 #endif
   _top_at_mark_start(nullptr),
   _parsable_bottom(nullptr),
-  _garbage_bytes(0),
+  _garbage_bytes(Bytes(0)),
   _young_index_in_cset(-1),
   _surv_rate_group(nullptr),
   _age_index(G1SurvRateGroup::InvalidAgeIndex),
@@ -267,11 +268,11 @@ void HeapRegion::report_region_type_change(G1HeapRegionTraceType::Type to) {
   // young gen regions never have their PB set to anything other than bottom.
   assert(parsable_bottom_acquire() == bottom(), "must be");
 
-  _garbage_bytes = 0;
+  _garbage_bytes = Bytes(0);
 }
 
-void HeapRegion::note_self_forward_chunk_done(size_t garbage_bytes) {
-  Atomic::add(&_garbage_bytes, garbage_bytes, memory_order_relaxed);
+void HeapRegion::note_self_forward_chunk_done(Bytes garbage_bytes) {
+  Atomic::add((size_t*)&_garbage_bytes, untype(garbage_bytes), memory_order_relaxed);
 }
 
 // Code roots support
@@ -404,7 +405,7 @@ void HeapRegion::print_on(outputStream* st) const {
   st->print("|%4u", this->_hrm_index);
   st->print("|" PTR_FORMAT ", " PTR_FORMAT ", " PTR_FORMAT,
             p2i(bottom()), p2i(top()), p2i(end()));
-  st->print("|%3d%%", (int) ((double) used() * 100 / capacity()));
+  st->print("|%3d%%", (int) ((double) used() * 100 / untype(capacity())));
   st->print("|%2s", get_short_type_str());
   if (in_collection_set()) {
     st->print("|CS");
@@ -716,7 +717,7 @@ void HeapRegion::object_iterate(ObjectClosure* blk) {
   }
 }
 
-void HeapRegion::fill_with_dummy_object(HeapWord* address, size_t word_size, bool zap) {
+void HeapRegion::fill_with_dummy_object(HeapWord* address, Words word_size, bool zap) {
   // Keep the BOT in sync for old generation regions.
   if (is_old()) {
     update_bot_for_obj(address, word_size);
@@ -726,7 +727,7 @@ void HeapRegion::fill_with_dummy_object(HeapWord* address, size_t word_size, boo
 }
 
 void HeapRegion::fill_range_with_dead_objects(HeapWord* start, HeapWord* end) {
-  size_t range_size = pointer_delta(end, start);
+  Words range_size = pointer_delta(end, start);
 
   // We must be a bit careful with regions that contain pinned objects. While the
   // ranges passed in here corresponding to the space between live objects, it is
@@ -745,7 +746,7 @@ void HeapRegion::fill_range_with_dead_objects(HeapWord* start, HeapWord* end) {
   HeapWord* current = start;
   do {
     // Update the BOT if the a threshold is crossed.
-    size_t obj_size = cast_to_oop(current)->size();
+    Words obj_size = cast_to_oop(current)->size();
     update_bot_for_block(current, current + obj_size);
 
     // Advance to the next object.

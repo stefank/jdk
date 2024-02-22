@@ -74,10 +74,10 @@ void RunTimeClassInfo::init(DumpTimeClassInfo& info) {
   }
 }
 
-size_t RunTimeClassInfo::crc_size(InstanceKlass* klass) {
+Bytes RunTimeClassInfo::crc_size(InstanceKlass* klass) {
   if (!SystemDictionaryShared::is_builtin(klass)) {
-    return sizeof(CrcInfo);
+    return in_Bytes(sizeof(CrcInfo));
   } else {
-    return 0;
+    return Bytes(0);
   }
 }

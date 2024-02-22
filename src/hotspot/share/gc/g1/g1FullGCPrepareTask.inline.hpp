@@ -45,8 +45,8 @@ inline bool G1DetermineCompactionQueueClosure::should_compact(HeapRegion* hr) co
   if (hr->is_humongous() || hr->has_pinned_objects()) {
     return false;
   }
-  size_t live_words = _collector->live_words(hr->hrm_index());
-  size_t live_words_threshold = _collector->scope()->region_compaction_threshold();
+  Words live_words = _collector->live_words(hr->hrm_index());
+  Words live_words_threshold = _collector->scope()->region_compaction_threshold();
   // High live ratio region will not be compacted.
   return live_words <= live_words_threshold;
 }
@@ -113,7 +113,7 @@ inline bool G1DetermineCompactionQueueClosure::do_heap_region(HeapRegion* hr) {
   return false;
 }
 
-inline size_t G1SerialRePrepareClosure::apply(oop obj) {
+inline Words G1SerialRePrepareClosure::apply(oop obj) {
   if (obj->is_forwarded()) {
     // We skip objects compiled into the first region or
     // into regions not part of the serial compaction point.
@@ -123,7 +123,7 @@ inline size_t G1SerialRePrepareClosure::apply(oop obj) {
   }
 
   // Get size and forward.
-  size_t size = obj->size();
+  Words size = obj->size();
   _cp->forward(obj, size);
 
   return size;

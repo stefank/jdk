@@ -43,8 +43,8 @@ struct Pointer : public AllStatic {
   static uintx get_hash(const Value& value, bool* dead_hash) {
     return (uintx)value;
   }
-  static void* allocate_node(void* context, size_t size, const Value& value) {
-    return os::malloc(size, mtTest);
+  static void* allocate_node(void* context, Bytes size, const Value& value) {
+    return os::malloc(untype(size), mtTest);
   }
   static void free_node(void* context, void* memory, const Value& value) {
     os::free(memory);
@@ -86,7 +86,7 @@ struct Config : public AllStatic {
   static uintx get_hash(const Value& value, bool* dead_hash) {
     return (uintx)value;
   }
-  static void* allocate_node(void* context, size_t size, const Value& value) {
+  static void* allocate_node(void* context, Bytes size, const Value& value) {
     Allocator* mm = (Allocator*)context;
     return mm->allocate_node();
   }
@@ -547,8 +547,8 @@ public:
   static uintx get_hash(const Value& value, bool* dead_hash) {
     return (uintx)(value + 18446744073709551557ul) * 18446744073709551557ul;
   }
-  static void* allocate_node(void* context, size_t size, const Value& value) {
-    return AllocateHeap(size, mtInternal);
+  static void* allocate_node(void* context, Bytes size, const Value& value) {
+    return AllocateHeap(untype(size), mtInternal);
   }
   static void free_node(void* context, void* memory, const Value& value) {
     FreeHeap(memory);

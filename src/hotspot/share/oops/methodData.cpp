@@ -656,7 +656,7 @@ void SpeculativeTrapData::print_data_on(outputStream* st, const char* extra) con
 
 MethodData* MethodData::allocate(ClassLoaderData* loader_data, const methodHandle& method, TRAPS) {
   assert(!THREAD->owns_locks(), "Should not own any locks");
-  int size = MethodData::compute_allocation_size_in_words(method);
+  Words size = MethodData::compute_allocation_size_in_words(method);
 
   return new (loader_data, size, MetaspaceObj::MethodDataType, THREAD)
     MethodData(method);
@@ -934,7 +934,7 @@ int MethodData::compute_extra_data_count(int data_size, int empty_bc_count, bool
 
 // Compute the size of the MethodData* necessary to store
 // profiling information about a given method.  Size is in bytes.
-int MethodData::compute_allocation_size_in_bytes(const methodHandle& method) {
+Bytes MethodData::compute_allocation_size_in_bytes(const methodHandle& method) {
   int data_size = 0;
   BytecodeStream stream(method);
   Bytecodes::Code c;
@@ -968,14 +968,14 @@ int MethodData::compute_allocation_size_in_bytes(const methodHandle& method) {
     object_size += num_exception_handlers * single_exception_handler_data_size();
   }
 
-  return object_size;
+  return in_Bytes(object_size);
 }
 
 // Compute the size of the MethodData* necessary to store
 // profiling information about a given method.  Size is in words
-int MethodData::compute_allocation_size_in_words(const methodHandle& method) {
-  int byte_size = compute_allocation_size_in_bytes(method);
-  int word_size = align_up(byte_size, BytesPerWord) / BytesPerWord;
+Words MethodData::compute_allocation_size_in_words(const methodHandle& method) {
+  Bytes byte_size = compute_allocation_size_in_bytes(method);
+  Words word_size = to_Words(align_up(byte_size, BytesPerWord));
   return align_metadata_size(word_size);
 }
 
@@ -1305,8 +1305,8 @@ void MethodData::initialize() {
 
   post_initialize(&stream);
 
-  assert(object_size == compute_allocation_size_in_bytes(methodHandle(thread, _method)), "MethodData: computed size != initialized size");
-  set_size(object_size);
+  assert(in_Bytes(object_size) == compute_allocation_size_in_bytes(methodHandle(thread, _method)), "MethodData: computed size != initialized size");
+  set_size(in_Bytes(object_size));
 }
 
 void MethodData::init() {

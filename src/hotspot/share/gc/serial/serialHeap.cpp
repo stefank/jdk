@@ -157,7 +157,7 @@ void SerialHeap::safepoint_synchronize_end() {
   }
 }
 
-HeapWord* SerialHeap::allocate_loaded_archive_space(size_t word_size) {
+HeapWord* SerialHeap::allocate_loaded_archive_space(Words word_size) {
   MutexLocker ml(Heap_lock);
   return old_gen()->allocate(word_size, false /* is_tlab */);
 }
@@ -188,8 +188,8 @@ jint SerialHeap::initialize() {
 
   initialize_reserved_region(heap_rs);
 
-  ReservedSpace young_rs = heap_rs.first_part(MaxNewSize);
-  ReservedSpace old_rs = heap_rs.last_part(MaxNewSize);
+  ReservedSpace young_rs = heap_rs.first_part(in_Bytes(MaxNewSize));
+  ReservedSpace old_rs = heap_rs.last_part(in_Bytes(MaxNewSize));
 
   _rem_set = new CardTableRS(heap_rs.region());
   _rem_set->initialize(young_rs.base(), old_rs.base());
@@ -198,38 +198,38 @@ jint SerialHeap::initialize() {
   bs->initialize();
   BarrierSet::set_barrier_set(bs);
 
-  _young_gen = new DefNewGeneration(young_rs, NewSize, MinNewSize, MaxNewSize);
-  _old_gen = new TenuredGeneration(old_rs, OldSize, MinOldSize, MaxOldSize, rem_set());
+  _young_gen = new DefNewGeneration(young_rs, in_Bytes(NewSize), MinNewSize, in_Bytes(MaxNewSize));
+  _old_gen = new TenuredGeneration(old_rs, in_Bytes(OldSize), MinOldSize, MaxOldSize, rem_set());
 
   GCInitLogger::print();
 
   return JNI_OK;
 }
 
-ReservedHeapSpace SerialHeap::allocate(size_t alignment) {
+ReservedHeapSpace SerialHeap::allocate(Bytes alignment) {
   // Now figure out the total size.
   const size_t pageSize = UseLargePages ? os::large_page_size() : os::vm_page_size();
-  assert(alignment % pageSize == 0, "Must be");
+  assert(is_aligned(alignment,  pageSize), "Must be");
 
   // Check for overflow.
-  size_t total_reserved = MaxNewSize + MaxOldSize;
-  if (total_reserved < MaxNewSize) {
+  Bytes total_reserved = in_Bytes(MaxNewSize) + MaxOldSize;
+  if (total_reserved < in_Bytes(MaxNewSize)) {
     vm_exit_during_initialization("The size of the object heap + VM data exceeds "
                                   "the maximum representable size");
   }
-  assert(total_reserved % alignment == 0,
+  assert(is_aligned(total_reserved, alignment),
          "Gen size; total_reserved=" SIZE_FORMAT ", alignment="
          SIZE_FORMAT, total_reserved, alignment);
 
   ReservedHeapSpace heap_rs = Universe::reserve_heap(total_reserved, alignment);
-  size_t used_page_size = heap_rs.page_size();
+  Bytes used_page_size = heap_rs.page_size();
 
   os::trace_page_sizes("Heap",
                        MinHeapSize,
-                       total_reserved,
+                       untype(total_reserved),
                        heap_rs.base(),
-                       heap_rs.size(),
-                       used_page_size);
+                       untype(heap_rs.size()),
+                       untype(used_page_size));
 
   return heap_rs;
 }
@@ -268,15 +268,15 @@ PreGenGCValues SerialHeap::get_pre_gc_values() const {
                         old_gen()->capacity());
 }
 
-size_t SerialHeap::capacity() const {
+Bytes SerialHeap::capacity() const {
   return _young_gen->capacity() + _old_gen->capacity();
 }
 
-size_t SerialHeap::used() const {
+Bytes SerialHeap::used() const {
   return _young_gen->used() + _old_gen->used();
 }
 
-size_t SerialHeap::max_capacity() const {
+Bytes SerialHeap::max_capacity() const {
   return _young_gen->max_capacity() + _old_gen->max_capacity();
 }
 
@@ -286,14 +286,14 @@ size_t SerialHeap::max_capacity() const {
 // . heap memory is tight -- the most recent previous collection
 //   was a full collection because a partial collection (would
 //   have) failed and is likely to fail again
-bool SerialHeap::should_try_older_generation_allocation(size_t word_size) const {
-  size_t young_capacity = _young_gen->capacity_before_gc();
-  return    (word_size > heap_word_size(young_capacity))
+bool SerialHeap::should_try_older_generation_allocation(Words word_size) const {
+  Bytes young_capacity = _young_gen->capacity_before_gc();
+  return    (word_size > heap_word_size(untype(young_capacity)))
          || GCLocker::is_active_and_needs_gc()
          || incremental_collection_failed();
 }
 
-HeapWord* SerialHeap::expand_heap_and_allocate(size_t size, bool is_tlab) {
+HeapWord* SerialHeap::expand_heap_and_allocate(Words size, bool is_tlab) {
   HeapWord* result = nullptr;
   if (_old_gen->should_allocate(size, is_tlab)) {
     result = _old_gen->expand_and_allocate(size, is_tlab);
@@ -307,7 +307,7 @@ HeapWord* SerialHeap::expand_heap_and_allocate(size_t size, bool is_tlab) {
   return result;
 }
 
-HeapWord* SerialHeap::mem_allocate_work(size_t size,
+HeapWord* SerialHeap::mem_allocate_work(Words size,
                                         bool is_tlab) {
 
   HeapWord* result = nullptr;
@@ -404,7 +404,7 @@ HeapWord* SerialHeap::mem_allocate_work(size_t size,
   }
 }
 
-HeapWord* SerialHeap::attempt_allocation(size_t size,
+HeapWord* SerialHeap::attempt_allocation(Words size,
                                          bool is_tlab,
                                          bool first_only) {
   HeapWord* res = nullptr;
@@ -423,7 +423,7 @@ HeapWord* SerialHeap::attempt_allocation(size_t size,
   return res;
 }
 
-HeapWord* SerialHeap::mem_allocate(size_t size,
+HeapWord* SerialHeap::mem_allocate(Words size,
                                    bool* gc_overhead_limit_was_exceeded) {
   return mem_allocate_work(size,
                            false /* is_tlab */);
@@ -434,7 +434,7 @@ bool SerialHeap::must_clear_all_soft_refs() {
          _gc_cause == GCCause::_wb_full_gc;
 }
 
-void SerialHeap::collect_generation(Generation* gen, bool full, size_t size,
+void SerialHeap::collect_generation(Generation* gen, bool full, Words size,
                                     bool is_tlab, bool run_verification, bool clear_soft_refs) {
   FormatBuffer<> title("Collect gen: %s", gen->short_name());
   GCTraceTime(Trace, gc, phases) t1(title);
@@ -476,7 +476,7 @@ void SerialHeap::collect_generation(Generation* gen, bool full, size_t size,
 
 void SerialHeap::do_collection(bool full,
                                bool clear_all_soft_refs,
-                               size_t size,
+                               Words size,
                                bool is_tlab,
                                GenerationType max_generation) {
   ResourceMark rm;
@@ -531,10 +531,10 @@ void SerialHeap::do_collection(bool full,
                        run_verification,
                        do_clear_all_soft_refs);
 
-    if (size > 0 && (!is_tlab || _young_gen->supports_tlab_allocation()) &&
-        size * HeapWordSize <= _young_gen->unsafe_max_alloc_nogc()) {
+    if (size > Words(0) && (!is_tlab || _young_gen->supports_tlab_allocation()) &&
+        to_Bytes(size) <= _young_gen->unsafe_max_alloc_nogc()) {
       // Allocation request was met by young GC.
-      size = 0;
+      size = Words(0);
     }
 
     // Ask if young collection is enough. If so, do the final steps for young collection,
@@ -625,7 +625,7 @@ void SerialHeap::do_collection(bool full,
   }
 }
 
-bool SerialHeap::should_do_full_collection(size_t size, bool full, bool is_tlab,
+bool SerialHeap::should_do_full_collection(Words size, bool full, bool is_tlab,
                                            SerialHeap::GenerationType max_gen) const {
   return max_gen == OldGen && _old_gen->should_collect(full, size, is_tlab);
 }
@@ -650,11 +650,11 @@ void SerialHeap::prune_unlinked_nmethods() {
   ScavengableNMethods::prune_unlinked_nmethods();
 }
 
-HeapWord* SerialHeap::satisfy_failed_allocation(size_t size, bool is_tlab) {
+HeapWord* SerialHeap::satisfy_failed_allocation(Words size, bool is_tlab) {
   GCCauseSetter x(this, GCCause::_allocation_failure);
   HeapWord* result = nullptr;
 
-  assert(size != 0, "Precondition violated");
+  assert(size != Words(0), "Precondition violated");
   if (GCLocker::is_active_and_needs_gc()) {
     // GC locker is active; instead of a collection we will attempt
     // to expand the heap, if there's room for expansion.
@@ -837,7 +837,7 @@ void SerialHeap::do_full_collection(bool clear_all_soft_refs,
                                     GenerationType last_generation) {
   do_collection(true,                   // full
                 clear_all_soft_refs,    // clear_all_soft_refs
-                0,                      // size
+                Words(0),               // size
                 false,                  // is_tlab
                 last_generation);       // last_generation
   // Hack XXX FIX ME !!!
@@ -848,7 +848,7 @@ void SerialHeap::do_full_collection(bool clear_all_soft_refs,
     // This time allow the old gen to be collected as well
     do_collection(true,                // full
                   clear_all_soft_refs, // clear_all_soft_refs
-                  0,                   // size
+                  Words(0),            // size
                   false,               // is_tlab
                   OldGen);             // last_generation
   }
@@ -911,27 +911,27 @@ bool SerialHeap::block_is_obj(const HeapWord* addr) const {
   return addr < _old_gen->space()->top();
 }
 
-size_t SerialHeap::tlab_capacity(Thread* thr) const {
+Bytes SerialHeap::tlab_capacity(Thread* thr) const {
   assert(!_old_gen->supports_tlab_allocation(), "Old gen supports TLAB allocation?!");
   assert(_young_gen->supports_tlab_allocation(), "Young gen doesn't support TLAB allocation?!");
   return _young_gen->tlab_capacity();
 }
 
-size_t SerialHeap::tlab_used(Thread* thr) const {
+Bytes SerialHeap::tlab_used(Thread* thr) const {
   assert(!_old_gen->supports_tlab_allocation(), "Old gen supports TLAB allocation?!");
   assert(_young_gen->supports_tlab_allocation(), "Young gen doesn't support TLAB allocation?!");
   return _young_gen->tlab_used();
 }
 
-size_t SerialHeap::unsafe_max_tlab_alloc(Thread* thr) const {
+Bytes SerialHeap::unsafe_max_tlab_alloc(Thread* thr) const {
   assert(!_old_gen->supports_tlab_allocation(), "Old gen supports TLAB allocation?!");
   assert(_young_gen->supports_tlab_allocation(), "Young gen doesn't support TLAB allocation?!");
   return _young_gen->unsafe_max_tlab_alloc();
 }
 
-HeapWord* SerialHeap::allocate_new_tlab(size_t min_size,
-                                        size_t requested_size,
-                                        size_t* actual_size) {
+HeapWord* SerialHeap::allocate_new_tlab(Words min_size,
+                                        Words requested_size,
+                                        Words* actual_size) {
   HeapWord* result = mem_allocate_work(requested_size /* size */,
                                        true /* is_tlab */);
   if (result != nullptr) {

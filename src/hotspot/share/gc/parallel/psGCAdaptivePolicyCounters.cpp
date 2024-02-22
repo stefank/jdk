@@ -42,11 +42,11 @@ PSGCAdaptivePolicyCounters::PSGCAdaptivePolicyCounters(const char* name_arg,
 
     cname = PerfDataManager::counter_name(name_space(), "oldPromoSize");
     _old_promo_size = PerfDataManager::create_variable(SUN_GC, cname,
-      PerfData::U_Bytes, ps_size_policy()->calculated_promo_size_in_bytes(), CHECK);
+      PerfData::U_Bytes, untype(ps_size_policy()->calculated_promo_size_in_bytes()), CHECK);
 
     cname = PerfDataManager::counter_name(name_space(), "oldEdenSize");
     _old_eden_size = PerfDataManager::create_variable(SUN_GC, cname,
-      PerfData::U_Bytes, ps_size_policy()->calculated_eden_size_in_bytes(), CHECK);
+      PerfData::U_Bytes, untype(ps_size_policy()->calculated_eden_size_in_bytes()), CHECK);
 
     cname = PerfDataManager::counter_name(name_space(), "oldCapacity");
     _old_capacity = PerfDataManager::create_variable(SUN_GC, cname,
@@ -55,7 +55,7 @@ PSGCAdaptivePolicyCounters::PSGCAdaptivePolicyCounters(const char* name_arg,
     cname = PerfDataManager::counter_name(name_space(), "avgPromotedAvg");
     _avg_promoted_avg_counter =
       PerfDataManager::create_variable(SUN_GC, cname, PerfData::U_Bytes,
-        ps_size_policy()->calculated_promo_size_in_bytes(), CHECK);
+        untype(ps_size_policy()->calculated_promo_size_in_bytes()), CHECK);
 
     cname = PerfDataManager::counter_name(name_space(), "avgPromotedDev");
     _avg_promoted_dev_counter =
@@ -65,7 +65,7 @@ PSGCAdaptivePolicyCounters::PSGCAdaptivePolicyCounters(const char* name_arg,
     cname = PerfDataManager::counter_name(name_space(), "avgPromotedPaddedAvg");
     _avg_promoted_padded_avg_counter =
       PerfDataManager::create_variable(SUN_GC, cname, PerfData::U_Bytes,
-        ps_size_policy()->calculated_promo_size_in_bytes(), CHECK);
+        untype(ps_size_policy()->calculated_promo_size_in_bytes()), CHECK);
 
     cname = PerfDataManager::counter_name(name_space(),
       "avgPretenuredPaddedAvg");
@@ -105,7 +105,7 @@ PSGCAdaptivePolicyCounters::PSGCAdaptivePolicyCounters(const char* name_arg,
 
     cname = PerfDataManager::counter_name(name_space(), "freeSpace");
     _free_space = PerfDataManager::create_variable(SUN_GC, cname,
-      PerfData::U_Bytes, ps_size_policy()->free_space(), CHECK);
+      PerfData::U_Bytes, untype(ps_size_policy()->free_space()), CHECK);
 
     cname = PerfDataManager::counter_name(name_space(), "avgBaseFootprint");
     _avg_base_footprint = PerfDataManager::create_variable(SUN_GC, cname,
@@ -114,7 +114,7 @@ PSGCAdaptivePolicyCounters::PSGCAdaptivePolicyCounters(const char* name_arg,
     cname = PerfDataManager::counter_name(name_space(), "liveAtLastFullGc");
     _live_at_last_full_gc_counter =
       PerfDataManager::create_variable(SUN_GC, cname,
-      PerfData::U_Bytes, ps_size_policy()->live_at_last_full_gc(), CHECK);
+      PerfData::U_Bytes, untype(ps_size_policy()->live_at_last_full_gc()), CHECK);
 
     cname = PerfDataManager::counter_name(name_space(), "majorPauseOldSlope");
     _major_pause_old_slope = PerfDataManager::create_variable(SUN_GC, cname,

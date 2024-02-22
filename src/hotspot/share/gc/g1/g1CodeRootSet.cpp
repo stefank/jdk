@@ -40,8 +40,8 @@ public:
 
   static uintx get_hash(Value const& value, bool* is_dead);
 
-  static void* allocate_node(void* context, size_t size, Value const& value) {
-    return AllocateHeap(size, mtGC);
+  static void* allocate_node(void* context, Bytes size, Value const& value) {
+    return AllocateHeap(untype(size), mtGC);
   }
 
   static void free_node(void* context, void* memory, Value const& value) {
@@ -226,7 +226,7 @@ public:
     _table_scanner.set(&_table, BucketClaimSize);
   }
 
-  size_t mem_size() { return sizeof(*this) + _table.get_mem_size(Thread::current()); }
+  Bytes mem_size() { return in_Bytes(sizeof(*this)) + _table.get_mem_size(Thread::current()); }
 
   size_t number_of_entries() const { return Atomic::load(&_num_entries); }
 };
@@ -280,8 +280,8 @@ void G1CodeRootSet::clear() {
   _table->clear();
 }
 
-size_t G1CodeRootSet::mem_size() {
-  return sizeof(*this) + _table->mem_size();
+Bytes G1CodeRootSet::mem_size() {
+  return in_Bytes(sizeof(*this)) + _table->mem_size();
 }
 
 void G1CodeRootSet::reset_table_scanner() {

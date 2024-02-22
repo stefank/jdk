@@ -38,7 +38,7 @@ using namespace metaspace::chunklevel;
 
 class MetaspaceGtestContext : public metaspace::MetaspaceTestContext {
 public:
-  MetaspaceGtestContext(size_t commit_limit = 0, size_t reserve_limit = 0) :
+  MetaspaceGtestContext(Words commit_limit = Words(0), Words reserve_limit = Words(0)) :
     metaspace::MetaspaceTestContext("gtest-metaspace-context", commit_limit, reserve_limit)
   {}
 };
@@ -48,15 +48,15 @@ class ChunkGtestContext : public MetaspaceGtestContext {
   int _num_chunks_allocated;
 
   void checked_alloc_chunk_0(Metachunk** p_return_value, chunklevel_t preferred_level,
-                             chunklevel_t max_level, size_t min_committed_size);
+                             chunklevel_t max_level, Words min_committed_size);
 
   // Test pattern established when allocating from the chunk with allocate_from_chunk_with_tests().
-  void test_pattern(Metachunk* c, size_t word_size);
+  void test_pattern(Metachunk* c, Words word_size);
   void test_pattern(Metachunk* c) { test_pattern(c, c->used_words()); }
 
 public:
 
-  ChunkGtestContext(size_t commit_limit = 0, size_t reserve_limit = 0) :
+  ChunkGtestContext(Words commit_limit = Words(0), Words reserve_limit = Words(0)) :
     MetaspaceGtestContext(commit_limit, reserve_limit),
     _num_chunks_allocated(0)
   {}
@@ -67,7 +67,7 @@ public:
   // use gtest ASSERT macros inside those functions.
 
   // Allocate a chunk (you do not know if it will succeed).
-  void alloc_chunk(Metachunk** p_return_value, chunklevel_t preferred_level, chunklevel_t max_level, size_t min_committed_size) {
+  void alloc_chunk(Metachunk** p_return_value, chunklevel_t preferred_level, chunklevel_t max_level, Words min_committed_size) {
     checked_alloc_chunk_0(p_return_value, preferred_level, max_level, min_committed_size);
   }
 
@@ -77,7 +77,7 @@ public:
   }
 
   // Allocate a chunk; it must succeed. Test the chunk.
-  void alloc_chunk_expect_success(Metachunk** p_return_value, chunklevel_t preferred_level, chunklevel_t max_level, size_t min_committed_size) {
+  void alloc_chunk_expect_success(Metachunk** p_return_value, chunklevel_t preferred_level, chunklevel_t max_level, Words min_committed_size) {
     checked_alloc_chunk_0(p_return_value, preferred_level, max_level, min_committed_size);
     ASSERT_NOT_NULL(*p_return_value);
   }
@@ -88,7 +88,7 @@ public:
   }
 
   // Allocate a chunk but expect it to fail.
-  void alloc_chunk_expect_failure(chunklevel_t preferred_level, chunklevel_t max_level, size_t min_committed_size) {
+  void alloc_chunk_expect_failure(chunklevel_t preferred_level, chunklevel_t max_level, Words min_committed_size) {
     Metachunk* c = nullptr;
     checked_alloc_chunk_0(&c, preferred_level, max_level, min_committed_size);
     ASSERT_NULL(c);
@@ -106,16 +106,16 @@ public:
   /////
 
   // Allocates from a chunk; also, fills allocated area with test pattern which will be tested with test_pattern().
-  void allocate_from_chunk(MetaWord** p_return_value, Metachunk* c, size_t word_size);
+  void allocate_from_chunk(MetaWord** p_return_value, Metachunk* c, Words word_size);
 
   // Convenience function: allocate from chunk for when you don't care for the result pointer
-  void allocate_from_chunk(Metachunk* c, size_t word_size) {
+  void allocate_from_chunk(Metachunk* c, Words word_size) {
     MetaWord* dummy;
     allocate_from_chunk(&dummy, c, word_size);
   }
 
-  void commit_chunk_with_test(Metachunk* c, size_t additional_size);
-  void commit_chunk_expect_failure(Metachunk* c, size_t additional_size);
+  void commit_chunk_with_test(Metachunk* c, Words additional_size);
+  void commit_chunk_expect_failure(Metachunk* c, Words additional_size);
 
   void uncommit_chunk_with_test(Metachunk* c);
 

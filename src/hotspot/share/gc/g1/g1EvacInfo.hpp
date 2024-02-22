@@ -30,17 +30,17 @@
 class G1EvacInfo : public StackObj {
   uint _collection_set_regions;
   uint _allocation_regions;
-  size_t _collection_set_used_before;
-  size_t _collection_set_used_after;
-  size_t _alloc_regions_used_before;
-  size_t _bytes_used;
+  Bytes _collection_set_used_before;
+  Bytes _collection_set_used_after;
+  Bytes _alloc_regions_used_before;
+  Bytes _bytes_used;
   uint   _regions_freed;
 
 public:
   G1EvacInfo() :
-    _collection_set_regions(0), _allocation_regions(0), _collection_set_used_before(0),
-    _collection_set_used_after(0), _alloc_regions_used_before(0),
-    _bytes_used(0), _regions_freed(0) { }
+    _collection_set_regions(0), _allocation_regions(0), _collection_set_used_before(Bytes(0)),
+    _collection_set_used_after(Bytes(0)), _alloc_regions_used_before(Bytes(0)),
+    _bytes_used(Bytes(0)), _regions_freed(0) { }
 
   void set_collection_set_regions(uint collection_set_regions) {
     _collection_set_regions = collection_set_regions;
@@ -50,19 +50,19 @@ public:
     _allocation_regions = allocation_regions;
   }
 
-  void set_collection_set_used_before(size_t used) {
+  void set_collection_set_used_before(Bytes used) {
     _collection_set_used_before = used;
   }
 
-  void increment_collection_set_used_after(size_t used) {
+  void increment_collection_set_used_after(Bytes used) {
     _collection_set_used_after += used;
   }
 
-  void set_alloc_regions_used_before(size_t used) {
+  void set_alloc_regions_used_before(Bytes used) {
     _alloc_regions_used_before = used;
   }
 
-  void set_bytes_used(size_t used) {
+  void set_bytes_used(Bytes used) {
     _bytes_used = used;
   }
 
@@ -70,13 +70,13 @@ public:
     _regions_freed += freed;
   }
 
-  uint   collection_set_regions()     { return _collection_set_regions; }
-  uint   allocation_regions()         { return _allocation_regions; }
-  size_t collection_set_used_before() { return _collection_set_used_before; }
-  size_t collection_set_used_after()  { return _collection_set_used_after; }
-  size_t alloc_regions_used_before()  { return _alloc_regions_used_before; }
-  size_t bytes_used()                 { return _bytes_used; }
-  uint   regions_freed()              { return _regions_freed; }
+  uint  collection_set_regions()     { return _collection_set_regions; }
+  uint  allocation_regions()         { return _allocation_regions; }
+  Bytes collection_set_used_before() { return _collection_set_used_before; }
+  Bytes collection_set_used_after()  { return _collection_set_used_after; }
+  Bytes alloc_regions_used_before()  { return _alloc_regions_used_before; }
+  Bytes bytes_used()                 { return _bytes_used; }
+  uint  regions_freed()              { return _regions_freed; }
 };
 
 #endif // SHARE_GC_G1_G1EVACINFO_HPP

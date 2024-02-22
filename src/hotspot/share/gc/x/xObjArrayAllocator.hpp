@@ -33,7 +33,7 @@ private:
   void yield_for_safepoint() const;
 
 public:
-  XObjArrayAllocator(Klass* klass, size_t word_size, int length, bool do_zero, Thread* thread);
+  XObjArrayAllocator(Klass* klass, Words word_size, int length, bool do_zero, Thread* thread);
 };
 
 #endif // SHARE_GC_X_XOBJARRAYALLOCATOR_HPP

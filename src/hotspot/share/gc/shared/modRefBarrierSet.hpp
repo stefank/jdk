@@ -90,7 +90,7 @@ public:
                                       arrayOop dst_obj, size_t dst_offset_in_bytes, T* dst_raw,
                                       size_t length);
 
-    static void clone_in_heap(oop src, oop dst, size_t size);
+    static void clone_in_heap(oop src, oop dst, Words size);
 
     static void oop_store_in_heap_at(oop base, ptrdiff_t offset, oop value) {
       oop_store_in_heap(AccessInternal::oop_field_addr<decorators>(base, offset), value);

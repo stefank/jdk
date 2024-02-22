@@ -643,7 +643,7 @@ void* os::malloc(size_t size, MEMFLAGS memflags, const NativeCallStack& stack) {
   size = MAX2((size_t)1, size);
 
   // Observe MallocLimit
-  if (MemTracker::check_exceeds_limit(size, memflags)) {
+  if (MemTracker::check_exceeds_limit(in_Bytes(size), memflags)) {
     return nullptr;
   }
 
@@ -659,7 +659,7 @@ void* os::malloc(size_t size, MEMFLAGS memflags, const NativeCallStack& stack) {
     return nullptr;
   }
 
-  void* const inner_ptr = MemTracker::record_malloc((address)outer_ptr, size, memflags, stack);
+  void* const inner_ptr = MemTracker::record_malloc((address)outer_ptr, in_Bytes(size), memflags, stack);
 
   if (CDSConfig::is_dumping_static_archive()) {
     // Need to deterministically fill all the alignment gaps in C++ structures.
@@ -704,10 +704,10 @@ void* os::realloc(void *memblock, size_t size, MEMFLAGS memflags, const NativeCa
       return nullptr;
     }
 
-    const size_t old_size = MallocTracker::malloc_header(memblock)->size();
+    const size_t old_size = untype(MallocTracker::malloc_header(memblock)->size());
 
     // Observe MallocLimit
-    if ((size > old_size) && MemTracker::check_exceeds_limit(size - old_size, memflags)) {
+    if ((size > old_size) && MemTracker::check_exceeds_limit(in_Bytes(size - old_size), memflags)) {
       return nullptr;
     }
 
@@ -734,10 +734,10 @@ void* os::realloc(void *memblock, size_t size, MEMFLAGS memflags, const NativeCa
 
     // After a successful realloc(3), we account the resized block with its new size
     // to NMT.
-    void* const new_inner_ptr = MemTracker::record_malloc(new_outer_ptr, size, memflags, stack);
+    void* const new_inner_ptr = MemTracker::record_malloc(new_outer_ptr, in_Bytes(size), memflags, stack);
 
 #ifdef ASSERT
-    assert(old_size == free_info.size, "Sanity");
+    assert(old_size == untype(free_info.size), "Sanity");
     if (old_size < size) {
       // We also zap the newly extended region.
       ::memset((char*)new_inner_ptr + old_size, uninitBlockPad, size - old_size);
@@ -1810,7 +1810,7 @@ bool os::create_stack_guard_pages(char* addr, size_t bytes) {
 char* os::reserve_memory(size_t bytes, bool executable, MEMFLAGS flags) {
   char* result = pd_reserve_memory(bytes, executable);
   if (result != nullptr) {
-    MemTracker::record_virtual_memory_reserve(result, bytes, CALLER_PC, flags);
+    MemTracker::record_virtual_memory_reserve(result, in_Bytes(bytes), CALLER_PC, flags);
   }
   return result;
 }
@@ -1818,7 +1818,7 @@ char* os::reserve_memory(size_t bytes, bool executable, MEMFLAGS flags) {
 char* os::attempt_reserve_memory_at(char* addr, size_t bytes, bool executable, MEMFLAGS flag) {
   char* result = SimulateFullAddressSpace ? nullptr : pd_attempt_reserve_memory_at(addr, bytes, executable);
   if (result != nullptr) {
-    MemTracker::record_virtual_memory_reserve((address)result, bytes, CALLER_PC, flag);
+    MemTracker::record_virtual_memory_reserve((address)result, in_Bytes(bytes), CALLER_PC, flag);
     log_debug(os)("Reserved memory at " INTPTR_FORMAT " for " SIZE_FORMAT " bytes.", p2i(addr), bytes);
   } else {
     log_debug(os)("Attempt to reserve memory at " INTPTR_FORMAT " for "
@@ -2009,7 +2009,7 @@ char* os::attempt_reserve_memory_between(char* min, char* max, size_t bytes, siz
     assert(is_aligned(result, alignment), "alignment invalid (" ERRFMT ")", ERRFMTARGS);
     log_trace(os, map)(ERRFMT, ERRFMTARGS);
     log_debug(os, map)("successfully attached at " PTR_FORMAT, p2i(result));
-    MemTracker::record_virtual_memory_reserve((address)result, bytes, CALLER_PC);
+    MemTracker::record_virtual_memory_reserve((address)result, in_Bytes(bytes), CALLER_PC);
   } else {
     log_debug(os, map)("failed to attach anywhere in [" PTR_FORMAT "-" PTR_FORMAT ")", p2i(min), p2i(max));
   }
@@ -2029,7 +2029,7 @@ bool os::commit_memory(char* addr, size_t bytes, bool executable) {
   assert_nonempty_range(addr, bytes);
   bool res = pd_commit_memory(addr, bytes, executable);
   if (res) {
-    MemTracker::record_virtual_memory_commit((address)addr, bytes, CALLER_PC);
+    MemTracker::record_virtual_memory_commit((address)addr, in_Bytes(bytes), CALLER_PC);
   }
   return res;
 }
@@ -2039,7 +2039,7 @@ bool os::commit_memory(char* addr, size_t size, size_t alignment_hint,
   assert_nonempty_range(addr, size);
   bool res = os::pd_commit_memory(addr, size, alignment_hint, executable);
   if (res) {
-    MemTracker::record_virtual_memory_commit((address)addr, size, CALLER_PC);
+    MemTracker::record_virtual_memory_commit((address)addr, in_Bytes(size), CALLER_PC);
   }
   return res;
 }
@@ -2048,14 +2048,14 @@ void os::commit_memory_or_exit(char* addr, size_t bytes, bool executable,
                                const char* mesg) {
   assert_nonempty_range(addr, bytes);
   pd_commit_memory_or_exit(addr, bytes, executable, mesg);
-  MemTracker::record_virtual_memory_commit((address)addr, bytes, CALLER_PC);
+  MemTracker::record_virtual_memory_commit((address)addr, in_Bytes(bytes), CALLER_PC);
 }
 
 void os::commit_memory_or_exit(char* addr, size_t size, size_t alignment_hint,
                                bool executable, const char* mesg) {
   assert_nonempty_range(addr, size);
   os::pd_commit_memory_or_exit(addr, size, alignment_hint, executable, mesg);
-  MemTracker::record_virtual_memory_commit((address)addr, size, CALLER_PC);
+  MemTracker::record_virtual_memory_commit((address)addr, in_Bytes(size), CALLER_PC);
 }
 
 bool os::uncommit_memory(char* addr, size_t bytes, bool executable) {
@@ -2065,7 +2065,7 @@ bool os::uncommit_memory(char* addr, size_t bytes, bool executable) {
     Tracker tkr(Tracker::uncommit);
     res = pd_uncommit_memory(addr, bytes, executable);
     if (res) {
-      tkr.record((address)addr, bytes);
+      tkr.record((address)addr, in_Bytes(bytes));
     }
   } else {
     res = pd_uncommit_memory(addr, bytes, executable);
@@ -2081,7 +2081,7 @@ bool os::release_memory(char* addr, size_t bytes) {
     Tracker tkr(Tracker::release);
     res = pd_release_memory(addr, bytes);
     if (res) {
-      tkr.record((address)addr, bytes);
+      tkr.record((address)addr, in_Bytes(bytes));
     }
   } else {
     res = pd_release_memory(addr, bytes);
@@ -2135,7 +2135,7 @@ char* os::map_memory_to_file(size_t bytes, int file_desc, MEMFLAGS flag) {
   // On all current implementations null is interpreted as any available address.
   char* result = os::map_memory_to_file(nullptr /* addr */, bytes, file_desc);
   if (result != nullptr) {
-    MemTracker::record_virtual_memory_reserve_and_commit(result, bytes, CALLER_PC, flag);
+    MemTracker::record_virtual_memory_reserve_and_commit(result, in_Bytes(bytes), CALLER_PC, flag);
   }
   return result;
 }
@@ -2143,7 +2143,7 @@ char* os::map_memory_to_file(size_t bytes, int file_desc, MEMFLAGS flag) {
 char* os::attempt_map_memory_to_file_at(char* addr, size_t bytes, int file_desc, MEMFLAGS flag) {
   char* result = pd_attempt_map_memory_to_file_at(addr, bytes, file_desc);
   if (result != nullptr) {
-    MemTracker::record_virtual_memory_reserve_and_commit((address)result, bytes, CALLER_PC, flag);
+    MemTracker::record_virtual_memory_reserve_and_commit((address)result, in_Bytes(bytes), CALLER_PC, flag);
   }
   return result;
 }
@@ -2153,7 +2153,7 @@ char* os::map_memory(int fd, const char* file_name, size_t file_offset,
                            bool allow_exec, MEMFLAGS flags) {
   char* result = pd_map_memory(fd, file_name, file_offset, addr, bytes, read_only, allow_exec);
   if (result != nullptr) {
-    MemTracker::record_virtual_memory_reserve_and_commit((address)result, bytes, CALLER_PC, flags);
+    MemTracker::record_virtual_memory_reserve_and_commit((address)result, in_Bytes(bytes), CALLER_PC, flags);
   }
   return result;
 }
@@ -2164,7 +2164,7 @@ bool os::unmap_memory(char *addr, size_t bytes) {
     Tracker tkr(Tracker::release);
     result = pd_unmap_memory(addr, bytes);
     if (result) {
-      tkr.record((address)addr, bytes);
+      tkr.record((address)addr, in_Bytes(bytes));
     }
   } else {
     result = pd_unmap_memory(addr, bytes);
@@ -2188,7 +2188,7 @@ char* os::reserve_memory_special(size_t size, size_t alignment, size_t page_size
   char* result = pd_reserve_memory_special(size, alignment, page_size, addr, executable);
   if (result != nullptr) {
     // The memory is committed
-    MemTracker::record_virtual_memory_reserve_and_commit((address)result, size, CALLER_PC);
+    MemTracker::record_virtual_memory_reserve_and_commit((address)result, in_Bytes(size), CALLER_PC);
   }
 
   return result;
@@ -2201,7 +2201,7 @@ bool os::release_memory_special(char* addr, size_t bytes) {
     Tracker tkr(Tracker::release);
     res = pd_release_memory_special(addr, bytes);
     if (res) {
-      tkr.record((address)addr, bytes);
+      tkr.record((address)addr, in_Bytes(bytes));
     }
   } else {
     res = pd_release_memory_special(addr, bytes);

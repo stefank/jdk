@@ -30,14 +30,14 @@
 
 class ThreadHeapSampler {
  private:
-  size_t _bytes_until_sample;
+  Bytes _bytes_until_sample;
   // Cheap random number generator
   static uint64_t _rnd;
 
   static volatile int _sampling_interval;
 
   void pick_next_geometric_sample();
-  void pick_next_sample(size_t overflowed_bytes = 0);
+  void pick_next_sample(Bytes overflowed_bytes = Bytes(0));
 
   static double fast_log2(const double& d);
   uint64_t next_random(uint64_t rnd);
@@ -53,9 +53,9 @@ class ThreadHeapSampler {
     pick_next_sample();
   }
 
-  size_t bytes_until_sample()                    { return _bytes_until_sample;   }
+  Bytes bytes_until_sample()                    { return _bytes_until_sample;   }
 
-  void check_for_sampling(oop obj, size_t size_in_bytes, size_t bytes_allocated_before);
+  void check_for_sampling(oop obj, Bytes size_in_bytes, Bytes bytes_allocated_before);
 
   static void set_sampling_interval(int sampling_interval);
   static int get_sampling_interval();

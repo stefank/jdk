@@ -48,12 +48,12 @@ namespace AccessInternal {
     Copy::conjoint_oops_atomic(src, dst, length);
   }
 
-  void arraycopy_disjoint_words(void* src, void* dst, size_t length) {
+  void arraycopy_disjoint_words(void* src, void* dst, Words length) {
     Copy::disjoint_words(reinterpret_cast<HeapWord*>(src),
                          reinterpret_cast<HeapWord*>(dst), length);
   }
 
-  void arraycopy_disjoint_words_atomic(void* src, void* dst, size_t length) {
+  void arraycopy_disjoint_words_atomic(void* src, void* dst, Words length) {
     Copy::disjoint_words_atomic(reinterpret_cast<HeapWord*>(src),
                                 reinterpret_cast<HeapWord*>(dst), length);
   }

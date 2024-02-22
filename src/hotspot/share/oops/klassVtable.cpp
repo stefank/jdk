@@ -72,10 +72,10 @@ void klassVtable::compute_vtable_size_and_num_mirandas(
   NoSafepointVerifier nsv;
 
   // set up default result values
-  int vtable_length = 0;
+  Words vtable_length = Words(0);
 
   // start off with super's vtable length
-  vtable_length = super == nullptr ? 0 : super->vtable_length();
+  vtable_length = in_Words(super == nullptr ? 0 : super->vtable_length());
 
   // go thru each method in the methods table to see if it needs a new entry
   int len = methods->length();
@@ -100,7 +100,7 @@ void klassVtable::compute_vtable_size_and_num_mirandas(
      vtable_length += *num_new_mirandas * vtableEntry::size();
   }
 
-  if (Universe::is_bootstrapping() && vtable_length == 0) {
+  if (Universe::is_bootstrapping() && vtable_length == Words(0)) {
     // array classes don't have their superclass set correctly during
     // bootstrapping
     vtable_length = Universe::base_vtable_size();
@@ -121,10 +121,10 @@ void klassVtable::compute_vtable_size_and_num_mirandas(
       vtable_length = Universe::base_vtable_size();
     }
   }
-  assert(vtable_length % vtableEntry::size() == 0, "bad vtable length");
+  assert(is_aligned(vtable_length, vtableEntry::size()), "bad vtable length");
   assert(vtable_length >= Universe::base_vtable_size(), "vtable too small");
 
-  *vtable_length_ret = vtable_length;
+  *vtable_length_ret = checked_cast<int>(vtable_length);
 }
 
 // Copy super class's vtable to the first part (prefix) of this class's vtable,
@@ -173,8 +173,8 @@ void klassVtable::initialize_vtable(GrowableArray<InstanceKlass*>* supers) {
   }
 
 #ifdef ASSERT
-  oop* end_of_obj = (oop*)_klass + _klass->size();
-  oop* end_of_vtable = (oop*)&table()[_length];
+  void** end_of_obj = (void**)_klass + _klass->size();
+  void** end_of_vtable = (void**)&table()[_length];
   assert(end_of_vtable <= end_of_obj, "vtable extends beyond end");
 #endif
 
@@ -1560,8 +1560,8 @@ void klassVtable::verify(outputStream* st, bool forced) {
   if (!forced && _verify_count == Universe::verify_count()) return;
   _verify_count = Universe::verify_count();
 #endif
-  oop* end_of_obj = (oop*)_klass + _klass->size();
-  oop* end_of_vtable = (oop *)&table()[_length];
+  void** end_of_obj = (void**)_klass + _klass->size();
+  void** end_of_vtable = (void**)&table()[_length];
   if (end_of_vtable > end_of_obj) {
     ResourceMark rm;
     fatal("klass %s: klass object too short (vtable extends beyond end)",

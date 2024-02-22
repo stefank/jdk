@@ -154,8 +154,8 @@ class FinalizerTableConfig : public AllStatic {
   static uintx get_hash(Value const& value, bool* is_dead) {
     return hash_function(value);
   }
-  static void* allocate_node(void* context, size_t size, Value const& value) {
-    return AllocateHeap(size, mtServiceability);
+  static void* allocate_node(void* context, Bytes size, Value const& value) {
+    return AllocateHeap(untype(size), mtServiceability);
   }
   static void free_node(void* context, void* memory, Value const& value) {
     FreeHeap(memory);

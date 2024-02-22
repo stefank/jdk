@@ -48,7 +48,7 @@ class AbstractCounter {
 
 public:
 
-  AbstractCounter() : _c(0) {}
+  AbstractCounter() : _c(T(0)) {}
 
   T get() const           { return _c; }
 
@@ -121,9 +121,48 @@ public:
 };
 
 typedef AbstractCounter<size_t>   SizeCounter;
+typedef AbstractCounter<Words>    WordsCounter;
 typedef AbstractCounter<unsigned> IntCounter;
 
 typedef AbstractAtomicCounter<size_t> SizeAtomicCounter;
+
+// FIXME: Fix Atomic to support enums
+// Atomic variant of AbstractCounter.
+class WordsAtomicCounter {
+
+  volatile size_t _c;
+
+public:
+
+  WordsAtomicCounter() : _c(0) {}
+
+  Words get() const               { return in_Words(Atomic::load(&_c)); }
+
+  void increment() {
+    Atomic::inc(&_c, memory_order_relaxed);
+  }
+
+  void decrement() {
+    Atomic::dec(&_c, memory_order_relaxed);
+  }
+
+  void increment_by(Words v) {
+    Atomic::add(&_c, untype(v), memory_order_relaxed);
+  }
+
+  void decrement_by(Words v) {
+    Atomic::sub(&_c, untype(v), memory_order_relaxed);
+  }
+
+#ifdef ASSERT
+  void check(Words expected) const {
+    assert(_c == untype(expected), "Counter mismatch: %d, expected: %d.",
+           (int)_c, (int)expected);
+    }
+#endif
+
+};
+
 
 // We often count memory ranges (blocks, chunks etc).
 // Make a helper class for that.
@@ -136,14 +175,14 @@ class AbstractMemoryRangeCounter {
 public:
 
   void add(T_size s) {
-    if(s > 0) {
+    if(s > T_size(0)) {
       _count.increment();
       _total_size.increment_by(s);
     }
   }
 
   void sub(T_size s) {
-    if(s > 0) {
+    if(s > T_size(0)) {
       _count.decrement();
       _total_size.decrement_by(s);
     }
@@ -164,7 +203,7 @@ public:
 
 };
 
-typedef AbstractMemoryRangeCounter<unsigned, size_t> MemRangeCounter;
+typedef AbstractMemoryRangeCounter<unsigned, Words> MemRangeCounter;
 
 } // namespace metaspace
 

@@ -31,13 +31,13 @@
 
 G1NUMA* G1NUMA::_inst = nullptr;
 
-size_t G1NUMA::region_size() const {
-  assert(_region_size > 0, "Heap region size is not yet set");
+Bytes G1NUMA::region_size() const {
+  assert(_region_size > Bytes(0), "Heap region size is not yet set");
   return _region_size;
 }
 
-size_t G1NUMA::page_size() const {
-  assert(_page_size > 0, "Page size not is yet set");
+Bytes G1NUMA::page_size() const {
+  assert(_page_size > Bytes(0), "Page size not is yet set");
   return _page_size;
 }
 
@@ -73,7 +73,7 @@ uint G1NUMA::index_of_node_id(uint node_id) const {
 G1NUMA::G1NUMA() :
   _node_id_to_index_map(nullptr), _len_node_id_to_index_map(0),
   _node_ids(nullptr), _num_active_node_ids(0),
-  _region_size(0), _page_size(0), _stats(nullptr) {
+  _region_size(Bytes(0)), _page_size(Bytes(0)), _stats(nullptr) {
 }
 
 void G1NUMA::initialize_without_numa() {
@@ -128,7 +128,7 @@ G1NUMA::~G1NUMA() {
   FREE_C_HEAP_ARRAY(uint, _node_ids);
 }
 
-void G1NUMA::set_region_info(size_t region_size, size_t page_size) {
+void G1NUMA::set_region_info(Bytes region_size, Bytes page_size) {
   _region_size = region_size;
   _page_size = page_size;
 }
@@ -203,23 +203,23 @@ uint G1NUMA::index_for_region(HeapRegion* hr) const {
 //      * Page #:       |-----0----||-----1----||-----2----||-----3----||-----4----||-----5----||-----6----||-----7----|
 //      * HeapRegion #: |-#0-||-#1-||-#2-||-#3-||-#4-||-#5-||-#6-||-#7-||-#8-||-#9-||#10-||#11-||#12-||#13-||#14-||#15-|
 //      * NUMA node #:  |----#0----||----#1----||----#2----||----#3----||----#0----||----#1----||----#2----||----#3----|
-void G1NUMA::request_memory_on_node(void* aligned_address, size_t size_in_bytes, uint region_index) {
+void G1NUMA::request_memory_on_node(void* aligned_address, Bytes size_in_bytes, uint region_index) {
   if (!is_enabled()) {
     return;
   }
 
-  if (size_in_bytes == 0) {
+  if (size_in_bytes == Bytes(0)) {
     return;
   }
 
   uint node_index = preferred_node_index_for_index(region_index);
 
-  assert(is_aligned(aligned_address, page_size()), "Given address (" PTR_FORMAT ") should be aligned.", p2i(aligned_address));
+  assert(is_aligned(aligned_address, untype(page_size())), "Given address (" PTR_FORMAT ") should be aligned.", p2i(aligned_address));
   assert(is_aligned(size_in_bytes, page_size()), "Given size (" SIZE_FORMAT ") should be aligned.", size_in_bytes);
 
   log_trace(gc, heap, numa)("Request memory [" PTR_FORMAT ", " PTR_FORMAT ") to be NUMA id (%u)",
                             p2i(aligned_address), p2i((char*)aligned_address + size_in_bytes), _node_ids[node_index]);
-  os::numa_make_local((char*)aligned_address, size_in_bytes, checked_cast<int>(_node_ids[node_index]));
+  os::numa_make_local((char*)aligned_address, untype(size_in_bytes), checked_cast<int>(_node_ids[node_index]));
 }
 
 uint G1NUMA::max_search_depth() const {

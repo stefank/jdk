@@ -36,8 +36,8 @@ class GenerationCounters: public CHeapObj<mtGC> {
 
 private:
   void initialize(const char* name, int ordinal, int spaces,
-                  size_t min_capacity, size_t max_capacity,
-                  size_t curr_capacity);
+                  Bytes min_capacity, Bytes max_capacity,
+                  Bytes curr_capacity);
 
  protected:
   PerfVariable*      _current_size;
@@ -61,12 +61,12 @@ private:
   // This constructor is used for subclasses that do not have a space
   // associated with them (e.g, in G1).
   GenerationCounters(const char* name, int ordinal, int spaces,
-                     size_t min_capacity, size_t max_capacity,
-                     size_t curr_capacity);
+                     Bytes min_capacity, Bytes max_capacity,
+                     Bytes curr_capacity);
 
  public:
   GenerationCounters(const char* name, int ordinal, int spaces,
-                     size_t min_capacity, size_t max_capacity, VirtualSpace* v);
+                     Bytes min_capacity, Bytes max_capacity, VirtualSpace* v);
 
   ~GenerationCounters();
 

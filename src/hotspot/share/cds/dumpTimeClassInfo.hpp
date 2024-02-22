@@ -214,7 +214,7 @@ public:
   InstanceKlass* nest_host() const                  { return _nest_host; }
   void set_nest_host(InstanceKlass* nest_host)      { _nest_host = nest_host; }
 
-  size_t runtime_info_bytesize() const;
+  Bytes runtime_info_bytesize() const;
 };
 
 template <typename T>

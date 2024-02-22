@@ -43,7 +43,7 @@ ConstMethod* ConstMethod::allocate(ClassLoaderData* loader_data,
                                    InlineTableSizes* sizes,
                                    MethodType method_type,
                                    TRAPS) {
-  int size = ConstMethod::size(byte_code_size, sizes);
+  Words size = ConstMethod::size(byte_code_size, sizes);
   return new (loader_data, size, MetaspaceObj::ConstMethodType, THREAD) ConstMethod(
       byte_code_size, sizes, method_type, size);
 }
@@ -51,13 +51,13 @@ ConstMethod* ConstMethod::allocate(ClassLoaderData* loader_data,
 ConstMethod::ConstMethod(int byte_code_size,
                          InlineTableSizes* sizes,
                          MethodType method_type,
-                         int size) {
+                         Words size) {
 
   NoSafepointVerifier no_safepoint;
   init_fingerprint();
   set_constants(nullptr);
   set_stackmap_data(nullptr);
-  set_code_size(byte_code_size);
+  set_code_size(checked_cast<int>(byte_code_size));
   set_constMethod_size(size);
   set_inlined_tables_length(sizes); // sets _flags
   set_method_type(method_type);
@@ -113,7 +113,7 @@ void ConstMethod::deallocate_contents(ClassLoaderData* loader_data) {
 
 // How big must this constMethodObject be?
 
-int ConstMethod::size(int code_size,
+Words ConstMethod::size(int code_size,
                       InlineTableSizes* sizes) {
   int extra_bytes = code_size;
   if (sizes->compressed_linenumber_size() > 0) {
@@ -163,7 +163,7 @@ int ConstMethod::size(int code_size,
 
   int extra_words = align_up(extra_bytes, BytesPerWord) / BytesPerWord;
   assert(extra_words == extra_bytes/BytesPerWord, "should already be aligned");
-  return align_metadata_size(header_size() + extra_words);
+  return align_metadata_size(header_size() + in_Words(extra_words));
 }
 
 Method* ConstMethod::method() const {
@@ -478,7 +478,7 @@ void ConstMethod::verify_on(outputStream* st) {
   // other fields have been initialized.
   guarantee(method() != nullptr && method()->is_method(), "should be method");
 
-  address m_end = (address)((intptr_t) this + size());
+  address m_end = (address)((intptr_t) this + untype(size()));
   address compressed_table_start = code_end();
   guarantee(compressed_table_start <= m_end, "invalid method layout");
   address compressed_table_end = compressed_table_start;
@@ -522,6 +522,6 @@ void ConstMethod::verify_on(outputStream* st) {
       uncompressed_table_start = (u2*) m_end;
   }
   int gap = int((intptr_t) uncompressed_table_start - (intptr_t) compressed_table_end);
-  int max_gap = align_metadata_size(1)*BytesPerWord;
+  int max_gap = to_bytes(align_metadata_size(Words(1)));
   guarantee(gap >= 0 && gap < max_gap, "invalid method layout");
 }

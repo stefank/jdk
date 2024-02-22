@@ -36,12 +36,12 @@
 namespace metaspace {
 
 // Print a size, in words, scaled.
-void print_scaled_words(outputStream* st, size_t word_size, size_t scale, int width) {
-  print_human_readable_size(st, word_size * sizeof(MetaWord), scale, width);
+void print_scaled_words(outputStream* st, Words word_size, size_t scale, int width) {
+  print_human_readable_size(st, to_Bytes(word_size), scale, width);
 }
 
 // Convenience helper: prints a size value and a percentage.
-void print_scaled_words_and_percentage(outputStream* st, size_t word_size, size_t compare_word_size, size_t scale, int width) {
+void print_scaled_words_and_percentage(outputStream* st, Words word_size, Words compare_word_size, size_t scale, int width) {
   print_scaled_words(st, word_size, scale, width);
   st->print(" (");
   print_percentage(st, compare_word_size, word_size);
@@ -67,7 +67,8 @@ static const char* display_unit_for_scale(size_t scale) {
 // scale: one of 1 (byte-wise printing), sizeof(word) (word-size printing), K, M, G (scaled by KB, MB, GB respectively,
 //         or 0, which means the best scale is chosen dynamically.
 // width: printing width.
-void print_human_readable_size(outputStream* st, size_t byte_size, size_t scale, int width)  {
+void print_human_readable_size(outputStream* st, Bytes byte_size_, size_t scale, int width)  {
+  size_t byte_size = untype(byte_size_);
   if (scale == 0) {
     // Dynamic mode. Choose scale for this value.
     if (byte_size == 0) {
@@ -84,7 +85,7 @@ void print_human_readable_size(outputStream* st, size_t byte_size, size_t scale,
         scale = 1;
       }
     }
-    return print_human_readable_size(st, byte_size, scale, width);
+    return print_human_readable_size(st, byte_size_, scale, width);
   }
 
 #ifdef ASSERT
@@ -133,10 +134,10 @@ void print_human_readable_size(outputStream* st, size_t byte_size, size_t scale,
 
 // Prints a percentage value. Values smaller than 1% but not 0 are displayed as "<1%", values
 // larger than 99% but not 100% are displayed as ">100%".
-void print_percentage(outputStream* st, size_t total, size_t part) {
-  if (total == 0) {
+void print_percentage(outputStream* st, Words total, Words part) {
+  if (total == Words(0)) {
     st->print("  ?%%");
-  } else if (part == 0) {
+  } else if (part == Words(0)) {
     st->print("  0%%");
   } else if (part == total) {
     st->print("100%%");

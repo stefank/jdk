@@ -43,8 +43,8 @@ private:
 public:
   EpsilonSpaceCounters(const char* name,
                  int ordinal,
-                 size_t max_size,
-                 size_t initial_capacity,
+                 Bytes max_size,
+                 Bytes initial_capacity,
                  GenerationCounters* gc) {
     if (UsePerfData) {
       EXCEPTION_MARK;
@@ -62,13 +62,13 @@ public:
       PerfDataManager::create_constant(SUN_GC, cname, PerfData::U_Bytes, (jlong)max_size, CHECK);
 
       cname = PerfDataManager::counter_name(_name_space, "capacity");
-      _capacity = PerfDataManager::create_variable(SUN_GC, cname, PerfData::U_Bytes, initial_capacity, CHECK);
+      _capacity = PerfDataManager::create_variable(SUN_GC, cname, PerfData::U_Bytes, untype(initial_capacity), CHECK);
 
       cname = PerfDataManager::counter_name(_name_space, "used");
       _used = PerfDataManager::create_variable(SUN_GC, cname, PerfData::U_Bytes, (jlong) 0, CHECK);
 
       cname = PerfDataManager::counter_name(_name_space, "initCapacity");
-      PerfDataManager::create_constant(SUN_GC, cname, PerfData::U_Bytes, initial_capacity, CHECK);
+      PerfDataManager::create_constant(SUN_GC, cname, PerfData::U_Bytes, untype(initial_capacity), CHECK);
     }
   }
 
@@ -76,9 +76,9 @@ public:
     FREE_C_HEAP_ARRAY(char, _name_space);
   }
 
-  inline void update_all(size_t capacity, size_t used) {
-    _capacity->set_value(capacity);
-    _used->set_value(used);
+  inline void update_all(Bytes capacity, Bytes used) {
+    _capacity->set_value(untype(capacity));
+    _used->set_value(untype(used));
   }
 };
 
@@ -87,18 +87,18 @@ private:
   EpsilonHeap* _heap;
 public:
   EpsilonGenerationCounters(EpsilonHeap* heap) :
-          GenerationCounters("Heap", 1, 1, 0, heap->max_capacity(), heap->capacity()),
+          GenerationCounters("Heap", 1, 1, Bytes(0), heap->max_capacity(), heap->capacity()),
           _heap(heap)
   {};
 
   virtual void update_all() {
-    _current_size->set_value(_heap->capacity());
+    _current_size->set_value(untype(_heap->capacity()));
   }
 };
 
 EpsilonMonitoringSupport::EpsilonMonitoringSupport(EpsilonHeap* heap) {
   _heap_counters  = new EpsilonGenerationCounters(heap);
-  _space_counters = new EpsilonSpaceCounters("Heap", 0, heap->max_capacity(), 0, _heap_counters);
+  _space_counters = new EpsilonSpaceCounters("Heap", 0, heap->max_capacity(), Bytes(0), _heap_counters);
 }
 
 void EpsilonMonitoringSupport::update_counters() {
@@ -106,8 +106,8 @@ void EpsilonMonitoringSupport::update_counters() {
 
   if (UsePerfData) {
     EpsilonHeap* heap = EpsilonHeap::heap();
-    size_t used = heap->used();
-    size_t capacity = heap->capacity();
+    Bytes used = heap->used();
+    Bytes capacity = heap->capacity();
     _heap_counters->update_all();
     _space_counters->update_all(capacity, used);
     MetaspaceCounters::update_performance_counters();

@@ -885,7 +885,7 @@ void CodeHeapAnalyticsDCmd::execute(DCmdSource source, TRAPS) {
     return;
   }
 
-  CompileBroker::print_heapinfo(output(), _function.value(), granularity);
+  CompileBroker::print_heapinfo(output(), _function.value(), in_Bytes(granularity));
 }
 //---<  END  >--- CodeHeap State Analytics.
 

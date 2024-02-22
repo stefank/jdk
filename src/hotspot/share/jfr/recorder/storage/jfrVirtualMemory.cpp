@@ -49,8 +49,8 @@ class JfrVirtualMemorySegment : public JfrCHeapObj {
   const u1* committed_high() const { return (const u1*)_virtual_memory.high(); }
   const u1* reserved_low() const { return (const u1*)_virtual_memory.low_boundary(); }
   const u1* reserved_high() const { return (const u1*)_virtual_memory.high_boundary(); }
-  size_t reserved_words() const  { return _virtual_memory.reserved_size() / BytesPerWord; }
-  size_t committed_words() const { return _virtual_memory.actual_committed_size() / BytesPerWord; }
+  Words reserved_words() const  { return to_Words(_virtual_memory.reserved_size()); }
+  Words committed_words() const { return to_Words(_virtual_memory.actual_committed_size()); }
   bool is_pre_committed() const { return _virtual_memory.special(); }
   VirtualSpace& virtual_space() { return _virtual_memory; }
 
@@ -61,29 +61,31 @@ class JfrVirtualMemorySegment : public JfrCHeapObj {
   void set_next(JfrVirtualMemorySegment* v) { _next = v; }
 
   // Returns true if requested size is available in the committed area
-  bool is_available(size_t block_size_request_words) {
-    return block_size_request_words <= pointer_delta(committed_high(), _top, sizeof(char*));
+  bool is_available(Words block_size_request_words) {
+    // FIXME: Bug
+    //return block_size_request_words <= pointer_delta(committed_high(), _top, sizeof(char*));
+    return to_bytes(block_size_request_words) <= pointer_delta(committed_high(), _top, sizeof(char*));
   }
 
   // allocation pointer committed memory
   char* top() const { return _top; }
-  void inc_top(size_t size_in_words) {
+  void inc_top(Words size_in_words) {
     assert(is_available(size_in_words), "invariant");
-    _top += size_in_words * BytesPerWord;
+    _top += to_bytes(size_in_words);
     assert(_top <= _virtual_memory.high(), "invariant");
   }
 
   // initialization is the virtual memory reservation
-  bool initialize(size_t reservation_size_request_bytes);
-  void* take_from_committed(size_t block_size_request_words);
+  bool initialize(Bytes reservation_size_request_bytes);
+  void* take_from_committed(Words block_size_request_words);
 
   // Returns committed memory
-  void* commit(size_t block_size_request_words) {
+  void* commit(Words block_size_request_words) {
     return take_from_committed(block_size_request_words);
   }
 
   // Commit more memory in a reservation
-  bool expand_by(size_t block_size_request_words);
+  bool expand_by(Words block_size_request_words);
 
   // Decommits all committed memory in this reservation segment.
   void decommit();
@@ -100,22 +102,22 @@ JfrVirtualMemorySegment::~JfrVirtualMemorySegment() {
   _rs.release();
 }
 
-bool JfrVirtualMemorySegment::initialize(size_t reservation_size_request_bytes) {
+bool JfrVirtualMemorySegment::initialize(Bytes reservation_size_request_bytes) {
   assert(is_aligned(reservation_size_request_bytes, os::vm_allocation_granularity()), "invariant");
   _rs = ReservedSpace(reservation_size_request_bytes,
-                      os::vm_allocation_granularity(),
-                      os::vm_page_size());
+                      in_Bytes(os::vm_allocation_granularity()),
+                      in_Bytes(os::vm_page_size()));
   if (!_rs.is_reserved()) {
     return false;
   }
   assert(_rs.base() != nullptr, "invariant");
-  assert(_rs.size() != 0, "invariant");
+  assert(_rs.size() != Bytes(0), "invariant");
   assert(is_aligned(_rs.base(), os::vm_allocation_granularity()), "invariant");
   assert(is_aligned(_rs.size(), os::vm_allocation_granularity()), "invariant");
-  os::trace_page_sizes("Jfr", reservation_size_request_bytes,
-                              reservation_size_request_bytes,
+  os::trace_page_sizes("Jfr", untype(reservation_size_request_bytes),
+                              untype(reservation_size_request_bytes),
                               _rs.base(),
-                              _rs.size(),
+                              untype(_rs.size()),
                               os::vm_page_size());
   MemTracker::record_virtual_memory_type((address)_rs.base(), mtTracing);
   assert(is_aligned(_rs.base(), os::vm_page_size()), "invariant");
@@ -124,8 +126,8 @@ bool JfrVirtualMemorySegment::initialize(size_t reservation_size_request_bytes) 
   // ReservedSpaces marked as special will have the entire memory
   // pre-committed. Setting a committed size will make sure that
   // committed_size and actual_committed_size agrees.
-  const size_t pre_committed_size = _rs.special() ? _rs.size() : 0;
-  const bool result = virtual_space().initialize_with_granularity(_rs, pre_committed_size, os::vm_page_size());
+  const Bytes pre_committed_size = _rs.special() ? _rs.size() : Bytes(0);
+  const bool result = virtual_space().initialize_with_granularity(_rs, pre_committed_size, in_Bytes(os::vm_page_size()));
 
   if (result) {
     assert(virtual_space().committed_size() == virtual_space().actual_committed_size(),
@@ -135,9 +137,9 @@ bool JfrVirtualMemorySegment::initialize(size_t reservation_size_request_bytes) 
   return result;
 }
 
-bool JfrVirtualMemorySegment::expand_by(size_t block_size_request_words) {
-  size_t block_size_request_bytes = block_size_request_words * BytesPerWord;
-  const size_t uncommitted = virtual_space().reserved_size() - virtual_space().actual_committed_size();
+bool JfrVirtualMemorySegment::expand_by(Words block_size_request_words) {
+  Bytes block_size_request_bytes = to_Bytes(block_size_request_words);
+  const Bytes uncommitted = virtual_space().reserved_size() - virtual_space().actual_committed_size();
   if (uncommitted < block_size_request_bytes) {
     // commit whatever is left in the reservation
     block_size_request_bytes = uncommitted;
@@ -153,16 +155,16 @@ void JfrVirtualMemorySegment::decommit() {
   assert(_virtual_memory.committed_size() == _virtual_memory.actual_committed_size(),
     "The committed memory doesn't match the expanded memory.");
 
-  const size_t committed_size = virtual_space().actual_committed_size();
-  if (committed_size > 0) {
+  const Bytes committed_size = virtual_space().actual_committed_size();
+  if (committed_size > Bytes(0)) {
     virtual_space().shrink_by(committed_size);
   }
 
-  assert(_virtual_memory.actual_committed_size() == 0, "invariant");
+  assert(_virtual_memory.actual_committed_size() == Bytes(0), "invariant");
 }
 
 // Attempt to get a committed block
-void* JfrVirtualMemorySegment::take_from_committed(size_t block_size_request_words) {
+void* JfrVirtualMemorySegment::take_from_committed(Words block_size_request_words) {
   // The virtual spaces are always expanded by the
   // commit granularity to enforce the following condition.
   // Without this the is_available check will not work correctly.
@@ -182,32 +184,32 @@ class JfrVirtualMemoryManager : public JfrCHeapObj {
  private:
   Segment* _segments;
   Segment* _current_segment;
-  size_t _reservation_size_request_words;
-  size_t _reservation_size_request_limit_words; // total reservation limit
+  Words _reservation_size_request_words;
+  Words _reservation_size_request_limit_words; // total reservation limit
 
   // Sum of reserved and committed memory in the segments
-  size_t _current_reserved_words;
-  size_t _current_committed_words;
+  Words _current_reserved_words;
+  Words _current_committed_words;
 
   void link(Segment* segment);
   Segment* current();
 
-  void inc_reserved_words(size_t words);
-  void inc_committed_words(size_t words);
+  void inc_reserved_words(Words words);
+  void inc_committed_words(Words);
 
-  bool new_segment(size_t reservation_size_request_words);
+  bool new_segment(Words reservation_size_request_words);
 
-  bool expand_segment_by(Segment* segment, size_t block_size_request_words);
+  bool expand_segment_by(Segment* segment, Words block_size_request_words);
 
-  bool expand_by(size_t block_size_request_words, size_t reservation_size_request_words);
+  bool expand_by(Words block_size_request_words, Words reservation_size_request_words);
   bool can_reserve() const;
 
  public:
   JfrVirtualMemoryManager();
   ~JfrVirtualMemoryManager();
 
-  bool initialize(size_t reservation_size_request_words, size_t segment_count = 1);
-  void* commit(size_t requested_block_size_words);
+  bool initialize(Words reservation_size_request_words, size_t segment_count = 1);
+  void* commit(Words requested_block_size_words);
 
   bool is_full() const {
     return reserved_high() == committed_high();
@@ -223,10 +225,10 @@ class JfrVirtualMemoryManager : public JfrCHeapObj {
 JfrVirtualMemoryManager::JfrVirtualMemoryManager() :
   _segments(nullptr),
   _current_segment(nullptr),
-  _reservation_size_request_words(0),
-  _reservation_size_request_limit_words(0),
-  _current_reserved_words(0),
-  _current_committed_words(0) {}
+  _reservation_size_request_words(Words(0)),
+  _reservation_size_request_limit_words(Words(0)),
+  _current_reserved_words(Words(0)),
+  _current_committed_words(Words(0)) {}
 
 JfrVirtualMemoryManager::~JfrVirtualMemoryManager() {
   JfrVirtualMemorySegment* segment = _segments;
@@ -238,7 +240,7 @@ JfrVirtualMemoryManager::~JfrVirtualMemoryManager() {
 }
 
 // for now only allow a singleton segment per virtual memory client
-bool JfrVirtualMemoryManager::initialize(size_t reservation_size_request_words, size_t segment_count /* 1 */) {
+bool JfrVirtualMemoryManager::initialize(Words reservation_size_request_words, size_t segment_count /* 1 */) {
   assert(is_aligned(reservation_size_request_words * BytesPerWord, os::vm_allocation_granularity()), "invariant");
   _reservation_size_request_words = reservation_size_request_words;
   assert(segment_count > 0, "invariant");
@@ -248,18 +250,18 @@ bool JfrVirtualMemoryManager::initialize(size_t reservation_size_request_words, 
 }
 
 bool JfrVirtualMemoryManager::can_reserve() const  {
-  return _reservation_size_request_limit_words == 0 ? true : _current_reserved_words < _reservation_size_request_limit_words;
+  return _reservation_size_request_limit_words == Words(0) ? true : _current_reserved_words < _reservation_size_request_limit_words;
 }
 
 // Allocate another segment and add it to the list.
-bool JfrVirtualMemoryManager::new_segment(size_t reservation_size_request_words) {
-  assert(reservation_size_request_words > 0, "invariant");
+bool JfrVirtualMemoryManager::new_segment(Words reservation_size_request_words) {
+  assert(reservation_size_request_words > Words(0), "invariant");
   assert(is_aligned(reservation_size_request_words * BytesPerWord, os::vm_allocation_granularity()), "invariant");
   Segment* segment = new Segment();
   if (nullptr == segment) {
     return false;
   }
-  if (!segment->initialize(reservation_size_request_words * BytesPerWord)) {
+  if (!segment->initialize(to_Bytes(reservation_size_request_words))) {
     delete segment;
     return false;
   }
@@ -269,18 +271,18 @@ bool JfrVirtualMemoryManager::new_segment(size_t reservation_size_request_words)
   return true;
 }
 
-bool JfrVirtualMemoryManager::expand_segment_by(JfrVirtualMemorySegment* segment, size_t block_size_request_words) {
+bool JfrVirtualMemoryManager::expand_segment_by(JfrVirtualMemorySegment* segment, Words block_size_request_words) {
   assert(segment != nullptr, "invariant");
-  const size_t before = segment->committed_words();
+  const Words before = segment->committed_words();
   const bool result = segment->expand_by(block_size_request_words);
-  const size_t after = segment->committed_words();
+  const Words after = segment->committed_words();
   // after and before can be the same if the memory was pre-committed.
   assert(after >= before, "Inconsistency");
   inc_committed_words(after - before);
   return result;
 }
 
-void JfrVirtualMemoryManager::inc_reserved_words(size_t words) {
+void JfrVirtualMemoryManager::inc_reserved_words(Words words) {
   _current_reserved_words += words;
 }
 
@@ -288,11 +290,11 @@ JfrVirtualMemorySegment* JfrVirtualMemoryManager::current() {
   return _current_segment;
 }
 
-void JfrVirtualMemoryManager::inc_committed_words(size_t words) {
+void JfrVirtualMemoryManager::inc_committed_words(Words words) {
   _current_committed_words += words;
 }
 
-bool JfrVirtualMemoryManager::expand_by(size_t block_size_request_words, size_t reservation_size_request_words) {
+bool JfrVirtualMemoryManager::expand_by(Words block_size_request_words, Words reservation_size_request_words) {
   assert(is_aligned(block_size_request_words * BytesPerWord, os::vm_page_size()), "invariant");
   assert(is_aligned(block_size_request_words * BytesPerWord, os::vm_allocation_granularity()), "invariant");
   assert(is_aligned(reservation_size_request_words * BytesPerWord, os::vm_page_size()), "invariant");
@@ -337,7 +339,7 @@ void JfrVirtualMemoryManager::link(JfrVirtualMemorySegment* segment) {
   inc_committed_words(segment->committed_words());
 }
 
-void* JfrVirtualMemoryManager::commit(size_t block_size_request_words) {
+void* JfrVirtualMemoryManager::commit(Words block_size_request_words) {
   assert(is_aligned(block_size_request_words * BytesPerWord, os::vm_allocation_granularity()), "invariant");
   void* block = current()->commit(block_size_request_words);
   if (block != nullptr) {
@@ -361,29 +363,29 @@ JfrVirtualMemory::JfrVirtualMemory() :
   _reserved_high(),
   _top(nullptr),
   _commit_point(nullptr),
-  _physical_commit_size_request_words(0),
-  _aligned_datum_size_bytes(0) {}
+  _physical_commit_size_request_words(Words(0)),
+  _aligned_datum_size_bytes(Bytes(0)) {}
 
 JfrVirtualMemory::~JfrVirtualMemory() {
   assert(_vmm != nullptr, "invariant");
   delete _vmm;
 }
 
-size_t JfrVirtualMemory::aligned_datum_size_bytes() const {
+Bytes JfrVirtualMemory::aligned_datum_size_bytes() const {
   return _aligned_datum_size_bytes;
 }
 
-static void adjust_allocation_ratio(size_t* const reservation_size_bytes, size_t* const commit_size_bytes) {
+static void adjust_allocation_ratio(Bytes* const reservation_size_bytes, Bytes* const commit_size_bytes) {
   assert(reservation_size_bytes != nullptr, "invariant");
-  assert(*reservation_size_bytes > 0, "invariant");
+  assert(*reservation_size_bytes > Bytes(0), "invariant");
   assert(commit_size_bytes != nullptr, "invariant");
-  assert(*commit_size_bytes > 0, "invariant");
+  assert(*commit_size_bytes > Bytes(0), "invariant");
   assert(*reservation_size_bytes >= *commit_size_bytes, "invariant");
   assert(is_aligned(*reservation_size_bytes, os::vm_allocation_granularity()), "invariant");
   assert(is_aligned(*commit_size_bytes, os::vm_allocation_granularity()), "invariant");
 
-  size_t reservation_size_units = *reservation_size_bytes / os::vm_allocation_granularity();
-  size_t commit_size_units = *commit_size_bytes / os::vm_allocation_granularity();
+  size_t reservation_size_units = untype(*reservation_size_bytes) / os::vm_allocation_granularity();
+  size_t commit_size_units = untype(*commit_size_bytes) / os::vm_allocation_granularity();
   assert(reservation_size_units > 0, "invariant");
   assert(commit_size_units > 0, "invariant");
 
@@ -400,15 +402,15 @@ static void adjust_allocation_ratio(size_t* const reservation_size_bytes, size_t
   assert(reservation_size_units % original_ratio_units == 0, "invariant");
   assert(original_ratio_units * commit_size_units == reservation_size_units , "invariant");
   assert(original_ratio_units == reservation_size_units / commit_size_units, "invariant");
-  *reservation_size_bytes = reservation_size_units * os::vm_allocation_granularity();
-  *commit_size_bytes = commit_size_units * os::vm_allocation_granularity();
-  assert((*reservation_size_bytes % *commit_size_bytes) == 0, "invariant");
+  *reservation_size_bytes = in_Bytes(reservation_size_units * os::vm_allocation_granularity());
+  *commit_size_bytes = in_Bytes(commit_size_units * os::vm_allocation_granularity());
+  assert(is_aligned(*reservation_size_bytes, *commit_size_bytes), "invariant");
 }
 
 
-void* JfrVirtualMemory::initialize(size_t reservation_size_request_bytes,
-                                   size_t block_size_request_bytes,
-                                   size_t datum_size_bytes /* 1 */) {
+void* JfrVirtualMemory::initialize(Bytes reservation_size_request_bytes,
+                                   Bytes block_size_request_bytes,
+                                   Bytes datum_size_bytes /* 1 */) {
   assert(_vmm == nullptr, "invariant");
   _vmm = new JfrVirtualMemoryManager();
 
@@ -416,14 +418,14 @@ void* JfrVirtualMemory::initialize(size_t reservation_size_request_bytes,
     return nullptr;
   }
 
-  assert(reservation_size_request_bytes > 0, "invariant");
+  assert(reservation_size_request_bytes > Bytes(0), "invariant");
   _aligned_datum_size_bytes = align_up(datum_size_bytes, BytesPerWord);
   assert(is_aligned(_aligned_datum_size_bytes, BytesPerWord), "invariant");
 
   reservation_size_request_bytes = ReservedSpace::allocation_align_size_up(reservation_size_request_bytes);
   assert(is_aligned(reservation_size_request_bytes, os::vm_allocation_granularity()), "invariant");
   assert(is_aligned(reservation_size_request_bytes, _aligned_datum_size_bytes), "invariant");
-  block_size_request_bytes = MAX2(block_size_request_bytes, (size_t)os::vm_allocation_granularity());
+  block_size_request_bytes = MAX2(block_size_request_bytes, in_Bytes(os::vm_allocation_granularity()));
   block_size_request_bytes = ReservedSpace::allocation_align_size_up(block_size_request_bytes);
   assert(is_aligned(block_size_request_bytes, os::vm_allocation_granularity()), "invariant");
   assert(is_aligned(block_size_request_bytes, _aligned_datum_size_bytes), "invariant");
@@ -433,9 +435,9 @@ void* JfrVirtualMemory::initialize(size_t reservation_size_request_bytes,
   assert(is_aligned(reservation_size_request_bytes, _aligned_datum_size_bytes), "invariant");
   assert(is_aligned(block_size_request_bytes, os::vm_allocation_granularity()), "invariant");
   assert(is_aligned(block_size_request_bytes, _aligned_datum_size_bytes), "invariant");
-  assert((reservation_size_request_bytes % block_size_request_bytes) == 0, "invariant");
-  const size_t reservation_size_request_words = reservation_size_request_bytes / BytesPerWord;
-  _physical_commit_size_request_words = block_size_request_bytes / BytesPerWord;
+  assert(is_aligned(reservation_size_request_bytes, block_size_request_bytes), "invariant");
+  const Words reservation_size_request_words = to_Words(reservation_size_request_bytes);
+  _physical_commit_size_request_words = to_Words(block_size_request_bytes);
   // virtual memory reservation
   if (!_vmm->initialize(reservation_size_request_words)) {
     // is implicitly "full" if reservation fails
@@ -444,7 +446,7 @@ void* JfrVirtualMemory::initialize(size_t reservation_size_request_bytes,
   }
   _reserved_low = (const u1*)_vmm->reserved_low();
   _reserved_high = (const u1*)_vmm->reserved_high();
-  assert(static_cast<size_t>(_reserved_high - _reserved_low) == reservation_size_request_bytes, "invariant");
+  assert(static_cast<Bytes>(_reserved_high - _reserved_low) == reservation_size_request_bytes, "invariant");
   // reservation complete
   _top = _vmm->top();
   assert(_reserved_low == _top, "invariant"); // initial empty state
@@ -453,7 +455,7 @@ void* JfrVirtualMemory::initialize(size_t reservation_size_request_bytes,
   return _top;
 }
 
-void* JfrVirtualMemory::commit(size_t block_size_request_words) {
+void* JfrVirtualMemory::commit(Words block_size_request_words) {
   assert(_vmm != nullptr, "invariant");
   assert(is_aligned(block_size_request_words * BytesPerWord, os::vm_allocation_granularity()), "invariant");
   return _vmm->commit(block_size_request_words);
@@ -492,14 +494,14 @@ void* JfrVirtualMemory::new_datum() {
   }
   assert(_top + _aligned_datum_size_bytes <= _commit_point, "invariant");
   u1* allocation = _top;
-  _top += _aligned_datum_size_bytes;
+  _top += untype(_aligned_datum_size_bytes);
   assert(is_aligned(allocation, _aligned_datum_size_bytes), "invariant");
   return allocation;
 }
 
 void* JfrVirtualMemory::index_ptr(size_t index) {
-  assert((index * _aligned_datum_size_bytes) + _reserved_low < _commit_point, "invariant");
-  return (void*)((index * _aligned_datum_size_bytes) + _reserved_low);
+  assert((index * untype(_aligned_datum_size_bytes)) + _reserved_low < _commit_point, "invariant");
+  return (void*)((index * untype(_aligned_datum_size_bytes)) + _reserved_low);
 }
 
 void* JfrVirtualMemory::get(size_t index) {
@@ -507,7 +509,7 @@ void* JfrVirtualMemory::get(size_t index) {
 }
 
 size_t JfrVirtualMemory::count() const {
-  return (_top - _reserved_low) / _aligned_datum_size_bytes;
+  return (_top - _reserved_low) / untype(_aligned_datum_size_bytes);
 }
 
 size_t JfrVirtualMemory::live_set() const {

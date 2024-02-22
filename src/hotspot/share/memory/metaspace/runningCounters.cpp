@@ -31,65 +31,65 @@
 
 namespace metaspace {
 
-SizeAtomicCounter RunningCounters::_used_class_counter;
-SizeAtomicCounter RunningCounters::_used_nonclass_counter;
+WordsAtomicCounter RunningCounters::_used_class_counter;
+WordsAtomicCounter RunningCounters::_used_nonclass_counter;
 
 // Return reserved size, in words, for Metaspace
-size_t RunningCounters::reserved_words() {
+Words RunningCounters::reserved_words() {
   return reserved_words_class() + reserved_words_nonclass();
 }
 
-size_t RunningCounters::reserved_words_class() {
+Words RunningCounters::reserved_words_class() {
   VirtualSpaceList* vs = VirtualSpaceList::vslist_class();
-  return vs != nullptr ? vs->reserved_words() : 0;
+  return vs != nullptr ? vs->reserved_words() : Words(0);
 }
 
-size_t RunningCounters::reserved_words_nonclass() {
+Words RunningCounters::reserved_words_nonclass() {
   return VirtualSpaceList::vslist_nonclass()->reserved_words();
 }
 
 // Return total committed size, in words, for Metaspace
-size_t RunningCounters::committed_words() {
+Words RunningCounters::committed_words() {
   return committed_words_class() + committed_words_nonclass();
 }
 
-size_t RunningCounters::committed_words_class() {
+Words RunningCounters::committed_words_class() {
   VirtualSpaceList* vs = VirtualSpaceList::vslist_class();
-  return vs != nullptr ? vs->committed_words() : 0;
+  return vs != nullptr ? vs->committed_words() : Words(0);
 }
 
-size_t RunningCounters::committed_words_nonclass() {
+Words RunningCounters::committed_words_nonclass() {
   return VirtualSpaceList::vslist_nonclass()->committed_words();
 }
 
 // ---- used chunks -----
 
 // Returns size, in words, used for metadata.
-size_t RunningCounters::used_words() {
+Words RunningCounters::used_words() {
   return used_words_class() + used_words_nonclass();
 }
 
-size_t RunningCounters::used_words_class() {
+Words RunningCounters::used_words_class() {
   return _used_class_counter.get();
 }
 
-size_t RunningCounters::used_words_nonclass() {
+Words RunningCounters::used_words_nonclass() {
   return _used_nonclass_counter.get();
 }
 
 // ---- free chunks -----
 
 // Returns size, in words, of all chunks in all freelists.
-size_t RunningCounters::free_chunks_words() {
+Words RunningCounters::free_chunks_words() {
   return free_chunks_words_class() + free_chunks_words_nonclass();
 }
 
-size_t RunningCounters::free_chunks_words_class() {
+Words RunningCounters::free_chunks_words_class() {
   ChunkManager* cm = ChunkManager::chunkmanager_class();
-  return cm != nullptr ? cm->total_word_size() : 0;
+  return cm != nullptr ? cm->total_word_size() : Words(0);
 }
 
-size_t RunningCounters::free_chunks_words_nonclass() {
+Words RunningCounters::free_chunks_words_nonclass() {
   return ChunkManager::chunkmanager_nonclass()->total_word_size();
 }
 

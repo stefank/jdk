@@ -46,7 +46,7 @@ public:
   G1AdjustLiveClosure(G1AdjustClosure* cl) :
     _adjust_closure(cl) { }
 
-  size_t apply(oop object) {
+  Words apply(oop object) {
     return object->oop_iterate_size(_adjust_closure);
   }
 };

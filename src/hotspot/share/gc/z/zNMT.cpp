@@ -71,11 +71,11 @@ void ZNMT::process_fake_mapping(zoffset offset, size_t size, bool commit) {
 
     // commit / uncommit memory
     if (commit) {
-      MemTracker::record_virtual_memory_commit((void*)sub_range_addr, sub_range_size, CALLER_PC);
+      MemTracker::record_virtual_memory_commit((void*)sub_range_addr, in_Bytes(sub_range_size), CALLER_PC);
     } else {
       if (MemTracker::enabled()) {
         Tracker tracker(Tracker::uncommit);
-        tracker.record((address)sub_range_addr, sub_range_size);
+        tracker.record((address)sub_range_addr, in_Bytes(sub_range_size));
       }
     }
 
@@ -98,7 +98,7 @@ void ZNMT::reserve(zaddress_unsafe start, size_t size) {
   // See details in ZNMT::process_fake_mapping
   _reservations[_num_reservations++] = {start, size};
 
-  MemTracker::record_virtual_memory_reserve((void*)untype(start), size, CALLER_PC, mtJavaHeap);
+  MemTracker::record_virtual_memory_reserve((void*)untype(start), in_Bytes(size), CALLER_PC, mtJavaHeap);
 }
 
 void ZNMT::commit(zoffset offset, size_t size) {

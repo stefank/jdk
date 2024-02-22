@@ -46,13 +46,13 @@ ArrayKlass::ArrayKlass() {
   assert(CDSConfig::is_dumping_static_archive() || UseSharedSpaces, "only for CDS");
 }
 
-int ArrayKlass::static_size(int header_size) {
+Words ArrayKlass::static_size(Words header_size) {
   // size of an array klass object
   assert(header_size <= InstanceKlass::header_size(), "bad header size");
   // If this assert fails, see comments in base_create_array_klass.
   header_size = InstanceKlass::header_size();
-  int vtable_len = Universe::base_vtable_size();
-  int size = header_size + vtable_len;
+  Words vtable_size = Universe::base_vtable_size();
+  Words size = header_size + vtable_size;
   return align_metadata_size(size);
 }
 
@@ -96,7 +96,7 @@ ArrayKlass::ArrayKlass(Symbol* name, KlassKind kind) :
   _lower_dimension(nullptr) {
   // Arrays don't add any new methods, so their vtable is the same size as
   // the vtable of klass Object.
-  set_vtable_length(Universe::base_vtable_size());
+  set_vtable_length(checked_cast<int>(Universe::base_vtable_size()));
   set_name(name);
   set_super(Universe::is_bootstrapping() ? nullptr : vmClasses::Object_klass());
   set_layout_helper(Klass::_lh_neutral_value);
@@ -190,7 +190,7 @@ GrowableArray<Klass*>* ArrayKlass::compute_secondary_supers(int num_extra_slots,
 
 objArrayOop ArrayKlass::allocate_arrayArray(int n, int length, TRAPS) {
   check_array_allocation_length(length, arrayOopDesc::max_array_length(T_ARRAY), CHECK_NULL);
-  size_t size = objArrayOopDesc::object_size(length);
+  Words size = objArrayOopDesc::object_size(length);
   ArrayKlass* ak = array_klass(n + dimension(), CHECK_NULL);
   objArrayOop o = (objArrayOop)Universe::heap()->array_allocate(ak, size, length,
                                                                 /* do_zero */ true, CHECK_NULL);

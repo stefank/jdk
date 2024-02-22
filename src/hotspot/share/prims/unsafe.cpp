@@ -67,8 +67,8 @@
 
 
 #define MAX_OBJECT_SIZE \
-  ( arrayOopDesc::header_size(T_DOUBLE) * HeapWordSize \
-    + ((julong)max_jint * sizeof(double)) )
+  ( to_Bytes(arrayOopDesc::header_size(T_DOUBLE)) \
+    + in_Bytes((julong)max_jint * sizeof(double)) )
 
 #define UNSAFE_ENTRY(result_type, header) \
   JVM_ENTRY(static result_type, header)
@@ -139,7 +139,7 @@ static inline void assert_field_offset_sane(oop p, jlong field_offset) {
   jlong byte_offset = field_offset_to_byte_offset(field_offset);
 
   if (p != nullptr) {
-    assert(byte_offset >= 0 && byte_offset <= (jlong)MAX_OBJECT_SIZE, "sane offset");
+    assert(byte_offset >= 0 && byte_offset <= (jlong)untype(MAX_OBJECT_SIZE), "sane offset");
     if (byte_offset == (jint)byte_offset) {
       void* ptr_plus_disp = cast_from_oop<address>(p) + byte_offset;
       assert(p->field_addr<void>((jint)byte_offset) == ptr_plus_disp,

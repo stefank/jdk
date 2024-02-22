@@ -698,14 +698,14 @@ JVM_ENTRY(jlong, jmm_SetPoolThreshold(JNIEnv* env, jobject obj, jmmThresholdType
       if (!pool->usage_threshold()->is_high_threshold_supported()) {
         return -1;
       }
-      prev = pool->usage_threshold()->set_high_threshold((size_t) threshold);
+      prev = untype(pool->usage_threshold()->set_high_threshold(in_Bytes(threshold)));
       break;
 
     case JMM_USAGE_THRESHOLD_LOW:
       if (!pool->usage_threshold()->is_low_threshold_supported()) {
         return -1;
       }
-      prev = pool->usage_threshold()->set_low_threshold((size_t) threshold);
+      prev = untype(pool->usage_threshold()->set_low_threshold(in_Bytes(threshold)));
       break;
 
     case JMM_COLLECTION_USAGE_THRESHOLD_HIGH:
@@ -713,14 +713,14 @@ JVM_ENTRY(jlong, jmm_SetPoolThreshold(JNIEnv* env, jobject obj, jmmThresholdType
         return -1;
       }
       // return and the new threshold is effective for the next GC
-      return pool->gc_usage_threshold()->set_high_threshold((size_t) threshold);
+      return untype(pool->gc_usage_threshold()->set_high_threshold(in_Bytes(threshold)));
 
     case JMM_COLLECTION_USAGE_THRESHOLD_LOW:
       if (!pool->gc_usage_threshold()->is_low_threshold_supported()) {
         return -1;
       }
       // return and the new threshold is effective for the next GC
-      return pool->gc_usage_threshold()->set_low_threshold((size_t) threshold);
+      return untype(pool->gc_usage_threshold()->set_low_threshold(in_Bytes(threshold)));
 
     default:
       assert(false, "Unrecognized type");
@@ -747,10 +747,10 @@ JVM_ENTRY(jobject, jmm_GetMemoryUsage(JNIEnv* env, jboolean heap))
     usage = Universe::heap()->memory_usage();
   } else {
     // Calculate the memory usage by summing up the pools.
-    size_t total_init = 0;
-    size_t total_used = 0;
-    size_t total_committed = 0;
-    size_t total_max = 0;
+    Bytes total_init = Bytes(0);
+    Bytes total_used = Bytes(0);
+    Bytes total_committed = Bytes(0);
+    Bytes total_max = Bytes(0);
     bool   has_undefined_init_size = false;
     bool   has_undefined_max_size = false;
 
@@ -1907,7 +1907,7 @@ JVM_ENTRY(void, jmm_GetLastGCStat(JNIEnv *env, jobject obj, jmmGCStat *gc_stat))
     Handle after_usage;
 
     MemoryUsage u = stat.after_gc_usage_for_pool(i);
-    if (u.max_size() == 0 && u.used() > 0) {
+    if (u.max_size() == Bytes(0) && u.used() > Bytes(0)) {
       // If max size == 0, this pool is a survivor space.
       // Set max size = -1 since the pools will be swapped after GC.
       MemoryUsage usage(u.init_size(), u.used(), u.committed(), MemoryUsage::undefined_size());

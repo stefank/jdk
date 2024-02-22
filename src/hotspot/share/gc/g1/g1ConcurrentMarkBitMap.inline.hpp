@@ -46,8 +46,8 @@ inline bool G1CMBitMap::iterate(G1CMBitMapClosure* cl, MemRegion mr) {
     if (!cl->do_addr(addr)) {
       return false;
     }
-    size_t const obj_size = cast_to_oop(addr)->size();
-    offset = _bm.find_first_set_bit(offset + (obj_size >> _shifter), end_offset);
+    Words const obj_size = cast_to_oop(addr)->size();
+    offset = _bm.find_first_set_bit(offset + (untype(obj_size) >> _shifter), end_offset);
   }
   return true;
 }

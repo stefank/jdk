@@ -46,7 +46,7 @@ TEST_VM(metaspace, metachunklist) {
   MetachunkList lst;
 
   Metachunk* chunks[10];
-  size_t total_size = 0;
+  Words total_size = 0_w;
 
   for (int i = 0; i < 10; i++) {
     Metachunk* c = nullptr;
@@ -78,7 +78,7 @@ TEST_VM(metaspace, metachunklist) {
   }
 
   EXPECT_EQ(lst.count(), 0);
-  EXPECT_EQ(lst.calc_committed_word_size(), (size_t)0);
+  EXPECT_EQ(lst.calc_committed_word_size(), 0_w);
 
 }
 
@@ -156,14 +156,14 @@ TEST_VM(metaspace, freechunklist_retrieval) {
   Metachunk* c = nullptr;
 
   // For a chunk level which allows us to have partially committed chunks...
-  const size_t chunk_word_size = Settings::commit_granule_words() * 4;
+  const Words chunk_word_size = Settings::commit_granule_words() * 4;
   const chunklevel_t lvl = level_fitting_word_size(chunk_word_size);
 
   // get some chunks:
 
   // ...a completely uncommitted one ...
   Metachunk* c_0 = nullptr;
-  context.alloc_chunk_expect_success(&c_0, lvl, lvl, 0);
+  context.alloc_chunk_expect_success(&c_0, lvl, lvl, 0_w);
 
   // ... a fully committed one ...
   Metachunk* c_full = nullptr;
@@ -185,16 +185,16 @@ TEST_VM(metaspace, freechunklist_retrieval) {
 
   // Simple check 1. Empty list should yield nothing.
   {
-    c = fcl.first_minimally_committed(0);
+    c = fcl.first_minimally_committed(0_w);
     ASSERT_NULL(c);
   }
 
   // Simple check 2. Just a single uncommitted chunk.
   {
     fcl.add(c_0);
-    c = fcl.first_minimally_committed(0);
+    c = fcl.first_minimally_committed(0_w);
     ASSERT_EQ(c_0, c);
-    c = fcl.first_minimally_committed(1);
+    c = fcl.first_minimally_committed(1_w);
     ASSERT_NULL(c);
     fcl.remove(c_0);
   }
@@ -231,28 +231,28 @@ TEST_VM(metaspace, freechunklist_retrieval) {
       break;
     }
 
-    c = fcl.first_minimally_committed(0);
+    c = fcl.first_minimally_committed(0_w);
     ASSERT_TRUE(c == c_full || c == c_0 || c == c_1g || c == c_2g);
 
-    c = fcl.first_minimally_committed(1);
+    c = fcl.first_minimally_committed(1_w);
     ASSERT_TRUE(c == c_full || c == c_1g || c == c_2g);
 
     c = fcl.first_minimally_committed(Settings::commit_granule_words());
     ASSERT_TRUE(c == c_full || c == c_1g || c == c_2g);
 
-    c = fcl.first_minimally_committed(Settings::commit_granule_words() + 1);
+    c = fcl.first_minimally_committed(Settings::commit_granule_words() + 1_w);
     ASSERT_TRUE(c == c_full || c == c_2g);
 
     c = fcl.first_minimally_committed(Settings::commit_granule_words() * 2);
     ASSERT_TRUE(c == c_full || c == c_2g);
 
-    c = fcl.first_minimally_committed((Settings::commit_granule_words() * 2) + 1);
+    c = fcl.first_minimally_committed((Settings::commit_granule_words() * 2) + 1_w);
     ASSERT_TRUE(c == c_full);
 
     c = fcl.first_minimally_committed(chunk_word_size);
     ASSERT_TRUE(c == c_full);
 
-    c = fcl.first_minimally_committed(chunk_word_size + 1);
+    c = fcl.first_minimally_committed(chunk_word_size + 1_w);
     ASSERT_NULL(c);
 
     fcl.remove(c_0);

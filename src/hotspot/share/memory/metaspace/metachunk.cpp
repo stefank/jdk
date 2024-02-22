@@ -56,7 +56,7 @@ void Metachunk::assert_have_expand_lock() {
 
 // Commit uncommitted section of the chunk.
 // Fails if we hit a commit limit.
-bool Metachunk::commit_up_to(size_t new_committed_words) {
+bool Metachunk::commit_up_to(Words new_committed_words) {
   // Please note:
   //
   // VirtualSpaceNode::ensure_range_is_committed(), when called over a range containing both committed and uncommitted parts,
@@ -88,15 +88,15 @@ bool Metachunk::commit_up_to(size_t new_committed_words) {
     assert(_used_words <= _committed_words, "Sanity");
   } else {
     // case (2)
-    assert(_committed_words == 0 || _committed_words == word_size(), "Sanity");
+    assert(_committed_words == Words(0) || _committed_words == word_size(), "Sanity");
   }
 #endif
 
   // We should hold the expand lock at this point.
   assert_lock_strong(Metaspace_lock);
 
-  const size_t commit_from = _committed_words;
-  const size_t commit_to =   MIN2(align_up(new_committed_words, Settings::commit_granule_words()), word_size());
+  const Words commit_from = _committed_words;
+  const Words commit_to =   MIN2(align_up(new_committed_words, Settings::commit_granule_words()), word_size());
   assert(commit_from >= used_words(), "Sanity");
   assert(commit_to <= word_size(), "Sanity");
   if (commit_to > commit_from) {
@@ -116,7 +116,7 @@ bool Metachunk::commit_up_to(size_t new_committed_words) {
 
 // Ensure that chunk is committed up to at least new_committed_words words.
 // Fails if we hit a commit limit.
-bool Metachunk::ensure_committed(size_t new_committed_words) {
+bool Metachunk::ensure_committed(Words new_committed_words) {
   bool rc = true;
   if (new_committed_words > committed_words()) {
     MutexLocker cl(Metaspace_lock, Mutex::_no_safepoint_check_flag);
@@ -125,7 +125,7 @@ bool Metachunk::ensure_committed(size_t new_committed_words) {
   return rc;
 }
 
-bool Metachunk::ensure_committed_locked(size_t new_committed_words) {
+bool Metachunk::ensure_committed_locked(Words new_committed_words) {
   // the .._locked() variant should be called if we own the lock already.
   assert_lock_strong(Metaspace_lock);
   bool rc = true;
@@ -146,15 +146,15 @@ void Metachunk::uncommit() {
 void Metachunk::uncommit_locked() {
   // Only uncommit chunks which are free, have no used words set (extra precaution) and are equal or larger in size than a single commit granule.
   assert_lock_strong(Metaspace_lock);
-  assert(_state == State::Free && _used_words == 0 && word_size() >= Settings::commit_granule_words(),
+  assert(_state == State::Free && _used_words == Words(0) && word_size() >= Settings::commit_granule_words(),
          "Only free chunks equal or larger than commit granule size can be uncommitted "
          "(chunk " METACHUNK_FULL_FORMAT ").", METACHUNK_FULL_FORMAT_ARGS(this));
   if (word_size() >= Settings::commit_granule_words()) {
     _vsnode->uncommit_range(base(), word_size());
-    _committed_words = 0;
+    _committed_words = Words(0);
   }
 }
-void Metachunk::set_committed_words(size_t v) {
+void Metachunk::set_committed_words(Words v) {
   // Set committed words. Since we know that we only commit whole commit granules, we can round up v here.
   v = MIN2(align_up(v, Settings::commit_granule_words()), word_size());
  _committed_words = v;
@@ -166,7 +166,7 @@ void Metachunk::set_committed_words(size_t v) {
 // Caller must make sure the chunk is both large enough and committed far enough
 // to hold the allocation. Will always work.
 //
-MetaWord* Metachunk::allocate(size_t request_word_size) {
+MetaWord* Metachunk::allocate(Words request_word_size) {
   // Caller must have made sure this works
   assert(free_words() >= request_word_size, "Chunk too small.");
   assert(free_below_committed_words() >= request_word_size, "Chunk not committed.");
@@ -262,7 +262,7 @@ void Metachunk::verify() const {
   //  on the content of _next_in_vs/_prev_in_vs unless we have the expand lock.
   assert(!is_dead(), "Do not call on dead chunks.");
   if (is_free()) {
-    assert(used_words() == 0, "free chunks are not used.");
+    assert(used_words() == Words(0), "free chunks are not used.");
   }
 
   // Note: only call this on a life Metachunk.
@@ -282,12 +282,12 @@ void Metachunk::verify() const {
   vsnode()->check_pointer(base());
 
   // Starting address shall be aligned to chunk size.
-  const size_t required_alignment = word_size() * sizeof(MetaWord);
+  const Bytes required_alignment = to_Bytes(word_size());
   assert_is_aligned(base(), required_alignment);
 
   // Test accessing the committed area.
   SOMETIMES(
-    if (_committed_words > 0) {
+    if (_committed_words > Words(0)) {
       for (const MetaWord* p = _base; p < _base + _committed_words; p += os::vm_page_size()) {
         dummy = *p;
       }
@@ -303,7 +303,7 @@ void Metachunk::print_on(outputStream* st) const {
             "level " CHKLVL_FORMAT " (" SIZE_FORMAT " words), "
             "used " SIZE_FORMAT " words, committed " SIZE_FORMAT " words.",
             p2i(this), get_state_char(), p2i(base()), level(),
-            (chunklevel::is_valid_level(level()) ? chunklevel::word_size_for_level(level()) : SIZE_MAX),
+            (chunklevel::is_valid_level(level()) ? chunklevel::word_size_for_level(level()) : Words(SIZE_MAX)),
             used_words(), committed_words());
 }
 

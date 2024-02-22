@@ -51,14 +51,14 @@ using metaspace::SizeCounter;
 class VirtualSpaceNodeTest {
 
   // These counters are updated by the Node.
-  SizeCounter _counter_reserved_words;
-  SizeCounter _counter_committed_words;
+  metaspace::WordsCounter _counter_reserved_words;
+  metaspace::WordsCounter _counter_committed_words;
   CommitLimiter _commit_limiter;
   VirtualSpaceNode* _node;
 
   // These are my checks and counters.
-  const size_t _vs_word_size;
-  const size_t _commit_limit;
+  const Words _vs_word_size;
+  const Words _commit_limit;
 
   MetachunkList _root_chunks;
 
@@ -125,11 +125,11 @@ class VirtualSpaceNodeTest {
 
   }
 
-  bool commit_root_chunk(Metachunk* c, size_t request_commit_words) {
+  bool commit_root_chunk(Metachunk* c, Words request_commit_words) {
 
     verify();
 
-    const size_t committed_words_before = _counter_committed_words.get();
+    const Words committed_words_before = _counter_committed_words.get();
 
     bool rc = c->ensure_committed(request_commit_words);
 
@@ -171,8 +171,8 @@ class VirtualSpaceNodeTest {
 
     verify();
 
-    const size_t committed_words_before = _counter_committed_words.get();
-    const size_t available_words_before = _commit_limiter.possible_expansion_words();
+    const Words committed_words_before = _counter_committed_words.get();
+    const Words available_words_before = _commit_limiter.possible_expansion_words();
 
     c->uncommit();
 
@@ -180,7 +180,7 @@ class VirtualSpaceNodeTest {
 
     lock_and_verify_node();
 
-    EXPECT_EQ(c->committed_words(), (size_t)0);
+    EXPECT_EQ(c->committed_words(), 0_w);
 
     // Commit counter should have gone down (by exactly the size of the chunk) if chunk
     // is larger than a commit granule.
@@ -213,7 +213,7 @@ class VirtualSpaceNodeTest {
     DEBUG_ONLY(metaspace::chunklevel::check_valid_level(target_level);)
 
     const int total_num_chunks_in_freelist_before = freelist->num_chunks();
-    const size_t total_word_size_in_freelist_before = freelist->word_size();
+    const Words total_word_size_in_freelist_before = freelist->word_size();
 
    // freelist->print_on(tty);
 
@@ -231,7 +231,7 @@ class VirtualSpaceNodeTest {
 
     // ... check that we get the proper amount of splinters. For every chunk split we expect one
     // buddy chunk to appear of level + 1 (aka, half size).
-    size_t expected_wordsize_increase = 0;
+    Words expected_wordsize_increase = 0_w;
     int expected_num_chunks_increase = 0;
     for (chunklevel_t l = orig_level + 1; l <= target_level; l++) {
       expected_wordsize_increase += metaspace::chunklevel::word_size_for_level(l);
@@ -239,7 +239,7 @@ class VirtualSpaceNodeTest {
     }
 
     const int total_num_chunks_in_freelist_after = freelist->num_chunks();
-    const size_t total_word_size_in_freelist_after = freelist->word_size();
+    const Words total_word_size_in_freelist_after = freelist->word_size();
 
     EXPECT_EQ(total_num_chunks_in_freelist_after, total_num_chunks_in_freelist_before + expected_num_chunks_increase);
     EXPECT_EQ(total_word_size_in_freelist_after, total_word_size_in_freelist_before + expected_wordsize_increase);
@@ -254,7 +254,7 @@ class VirtualSpaceNodeTest {
     assert(expected_target_level < orig_level, "Sanity");
 
     const int total_num_chunks_in_freelist_before = freelist->num_chunks();
-    const size_t total_word_size_in_freelist_before = freelist->word_size();
+    const Words total_word_size_in_freelist_before = freelist->word_size();
 
     //freelist->print_on(tty);
 
@@ -270,7 +270,7 @@ class VirtualSpaceNodeTest {
 
     // ... check that we merged in the proper amount of chunks. For every decreased level
     // of the original chunk (each size doubling) we should see one buddy chunk swallowed up.
-    size_t expected_wordsize_decrease = 0;
+    Words expected_wordsize_decrease = 0_w;
     int expected_num_chunks_decrease = 0;
     for (chunklevel_t l = orig_level; l > expected_target_level; l --) {
       expected_wordsize_decrease += metaspace::chunklevel::word_size_for_level(l);
@@ -278,7 +278,7 @@ class VirtualSpaceNodeTest {
     }
 
     const int total_num_chunks_in_freelist_after = freelist->num_chunks();
-    const size_t total_word_size_in_freelist_after = freelist->word_size();
+    const Words total_word_size_in_freelist_after = freelist->word_size();
 
     EXPECT_EQ(total_num_chunks_in_freelist_after, total_num_chunks_in_freelist_before - expected_num_chunks_decrease);
     EXPECT_EQ(total_word_size_in_freelist_after, total_word_size_in_freelist_before - expected_wordsize_decrease);
@@ -289,7 +289,7 @@ class VirtualSpaceNodeTest {
 
 public:
 
-  VirtualSpaceNodeTest(size_t vs_word_size, size_t commit_limit) :
+  VirtualSpaceNodeTest(Words vs_word_size, Words commit_limit) :
     _counter_reserved_words(),
     _counter_committed_words(),
     _commit_limiter(commit_limit),
@@ -314,9 +314,9 @@ public:
     }
     // After the node is deleted, counters should be back to zero
     // (we cannot use ASSERT/EXPECT here in the destructor)
-    assert(_counter_reserved_words.get() == 0, "Sanity");
-    assert(_counter_committed_words.get() == 0, "Sanity");
-    assert(_commit_limiter.committed_words() == 0, "Sanity");
+    assert(_counter_reserved_words.get() == 0_w, "Sanity");
+    assert(_counter_committed_words.get() == 0_w, "Sanity");
+    assert(_commit_limiter.committed_words() == 0_w, "Sanity");
   }
 
   void test_simple() {
@@ -345,27 +345,27 @@ public:
     Metachunk* c = alloc_root_chunk();
     ASSERT_NOT_NULL(c);
 
-    if (c->committed_words() > 0) {
+    if (c->committed_words() > 0_w) {
       c->uncommit();
     }
 
-    ASSERT_EQ(_node->committed_words(), (size_t)0);
-    ASSERT_EQ(_counter_committed_words.get(), (size_t)0);
+    ASSERT_EQ(_node->committed_words(), 0_w);
+    ASSERT_EQ(_counter_committed_words.get(), 0_w);
 
     TestMap testmap(c->word_size());
     assert(testmap.get_num_set() == 0, "Sanity");
 
     for (int run = 0; run < 750; run++) {
 
-      const size_t committed_words_before = testmap.get_num_set();
+      const Words committed_words_before = in_Words(testmap.get_num_set());
       ASSERT_EQ(_commit_limiter.committed_words(), committed_words_before);
       ASSERT_EQ(_counter_committed_words.get(), committed_words_before);
 
       // A random range
-      SizeRange r = SizeRange(c->word_size()).random_aligned_subrange(Settings::commit_granule_words());
+      WordsRange r = WordsRange(c->word_size()).random_aligned_subrange(Settings::commit_granule_words());
 
-      const size_t committed_words_in_range_before =
-                   testmap.get_num_set(r.start(), r.end());
+      const Words committed_words_in_range_before =
+                   in_Words(testmap.get_num_set(r.start(), r.end()));
 
       const bool do_commit = IntRange(100).random_value() >= 50;
       if (do_commit) {
@@ -401,7 +401,7 @@ public:
 
       }
 
-      const size_t committed_words_after = testmap.get_num_set();
+      const Words committed_words_after = in_Words(testmap.get_num_set());
 
       ASSERT_EQ(_commit_limiter.committed_words(), committed_words_after);
       ASSERT_EQ(_counter_committed_words.get(), committed_words_after);
@@ -411,13 +411,13 @@ public:
   }
 
   // Helper function for test_splitting_chunks_1
-  static void check_chunk_is_committed_at_least_up_to(const Metachunk* c, size_t& word_size) {
+  static void check_chunk_is_committed_at_least_up_to(const Metachunk* c, Words& word_size) {
     if (word_size >= c->word_size()) {
       EXPECT_TRUE(c->is_fully_committed());
       word_size -= c->word_size();
     } else {
       EXPECT_EQ(c->committed_words(), word_size);
-      word_size = 0; // clear remaining size if there is.
+      word_size = 0_w; // clear remaining size if there is.
     }
   }
 
@@ -430,7 +430,7 @@ public:
 
     Metachunk* c = alloc_root_chunk();
 
-    if (c->committed_words() > 0) {
+    if (c->committed_words() > 0_w) {
       c->uncommit();
     }
 
@@ -441,7 +441,7 @@ public:
 
     for (int granules_to_commit = 0; granules_to_commit < granules_per_root_chunk; granules_to_commit++) {
 
-      const size_t words_to_commit = Settings::commit_granule_words() * granules_to_commit;
+      const Words words_to_commit = Settings::commit_granule_words() * granules_to_commit;
 
       c->ensure_committed(words_to_commit);
 
@@ -449,7 +449,7 @@ public:
       ASSERT_EQ(_counter_committed_words.get(), words_to_commit);
       ASSERT_EQ(_commit_limiter.committed_words(), words_to_commit);
 
-      const size_t committed_words_before = c->committed_words();
+      const Words committed_words_before = c->committed_words();
 
       verify();
 
@@ -496,15 +496,15 @@ TEST_VM(metaspace, virtual_space_node_test_basics) {
 
   MutexLocker fcl(Metaspace_lock, Mutex::_no_safepoint_check_flag);
 
-  const size_t word_size = metaspace::chunklevel::MAX_CHUNK_WORD_SIZE * 3;
+  const Words word_size = metaspace::chunklevel::MAX_CHUNK_WORD_SIZE * 3;
 
-  SizeCounter scomm;
-  SizeCounter sres;
+  metaspace::WordsCounter scomm;
+  metaspace::WordsCounter sres;
   CommitLimiter cl (word_size * 2); // basically, no commit limiter.
 
   VirtualSpaceNode* node = VirtualSpaceNode::create_node(word_size, &cl, &sres, &scomm);
   ASSERT_NOT_NULL(node);
-  ASSERT_EQ(node->committed_words(), (size_t)0);
+  ASSERT_EQ(node->committed_words(), 0_w);
   ASSERT_EQ(node->committed_words(), scomm.get());
   DEBUG_ONLY(node->verify_locked();)
 
@@ -518,7 +518,7 @@ TEST_VM(metaspace, virtual_space_node_test_basics) {
   ASAN_POISON_MEMORY_REGION(node->base(), node->word_size() * BytesPerWord);
 
   node->uncommit_range(node->base(), node->word_size());
-  ASSERT_EQ(node->committed_words(), (size_t)0);
+  ASSERT_EQ(node->committed_words(), 0_w);
   ASSERT_EQ(node->committed_words(), scomm.get());
   DEBUG_ONLY(node->verify_locked();)
 
@@ -535,13 +535,13 @@ TEST_VM(metaspace, virtual_space_node_test_basics) {
   }
 
   node->uncommit_range(node->base(), node->word_size());
-  ASSERT_EQ(node->committed_words(), (size_t)0);
+  ASSERT_EQ(node->committed_words(), 0_w);
   ASSERT_EQ(node->committed_words(), scomm.get());
   DEBUG_ONLY(node->verify_locked();)
 
   delete node;
-  ASSERT_EQ(scomm.get(), (size_t)0);
-  ASSERT_EQ(sres.get(), (size_t)0);
+  ASSERT_EQ(scomm.get(), 0_w);
+  ASSERT_EQ(sres.get(), 0_w);
 }
 
 // Note: we unfortunately need TEST_VM even though the system tested

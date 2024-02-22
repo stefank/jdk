@@ -55,14 +55,14 @@ class KlassInfoEntry: public CHeapObj<mtInternal> {
   KlassInfoEntry* _next;
   Klass*          _klass;
   uint64_t        _instance_count;
-  size_t          _instance_words;
+  Words           _instance_words;
   int64_t         _index;
   bool            _do_print; // True if we should print this class when printing the class hierarchy.
   GrowableArray<KlassInfoEntry*>* _subclasses;
 
  public:
   KlassInfoEntry(Klass* k, KlassInfoEntry* next) :
-    _next(next), _klass(k), _instance_count(0), _instance_words(0), _index(-1),
+    _next(next), _klass(k), _instance_count(0), _instance_words(Words(0)), _index(-1),
     _do_print(false), _subclasses(nullptr)
   {}
   ~KlassInfoEntry();
@@ -71,8 +71,8 @@ class KlassInfoEntry: public CHeapObj<mtInternal> {
   Klass* klass()  const          { return _klass; }
   uint64_t count()    const      { return _instance_count; }
   void set_count(uint64_t ct)    { _instance_count = ct; }
-  size_t words()  const          { return _instance_words; }
-  void set_words(size_t wds)     { _instance_words = wds; }
+  Words words()  const           { return _instance_words; }
+  void set_words(Words wds)      { _instance_words = wds; }
   void set_index(int64_t index)  { _index = index; }
   int64_t index()    const       { return _index; }
   GrowableArray<KlassInfoEntry*>* subclasses() const { return _subclasses; }
@@ -105,7 +105,7 @@ class KlassInfoBucket: public CHeapObj<mtInternal> {
 class KlassInfoTable: public StackObj {
  private:
   static const int _num_buckets = 20011;
-  size_t _size_of_instances_in_words;
+  Words _size_of_instances_in_words;
 
   // An aligned reference address (typically the least
   // address in the perm gen) used for hashing klass
@@ -124,7 +124,7 @@ class KlassInfoTable: public StackObj {
   bool record_instance(const oop obj);
   void iterate(KlassInfoClosure* cic);
   bool allocation_failed() { return _buckets == nullptr; }
-  size_t size_of_instances_in_words() const;
+  Words size_of_instances_in_words() const;
   bool merge(KlassInfoTable* table);
   bool merge_entry(const KlassInfoEntry* cie);
 

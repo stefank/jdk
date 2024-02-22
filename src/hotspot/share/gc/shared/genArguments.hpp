@@ -28,12 +28,12 @@
 #include "gc/shared/gcArguments.hpp"
 #include "utilities/debug.hpp"
 
-extern size_t MinNewSize;
+extern Bytes MinNewSize;
 
-extern size_t MinOldSize;
-extern size_t MaxOldSize;
+extern Bytes MinOldSize;
+extern Bytes MaxOldSize;
 
-extern size_t GenAlignment;
+extern Bytes GenAlignment;
 
 class GenArguments : public GCArguments {
   friend class TestGenCollectorPolicy; // Testing
@@ -42,12 +42,12 @@ private:
   virtual void initialize_size_info();
 
   // Return the (conservative) maximum heap alignment
-  virtual size_t conservative_max_heap_alignment();
+  virtual Bytes conservative_max_heap_alignment();
 
   DEBUG_ONLY(void assert_flags();)
   DEBUG_ONLY(void assert_size_info();)
 
-  static size_t scale_by_NewRatio_aligned(size_t base_size, size_t alignment);
+  static Bytes scale_by_NewRatio_aligned(Bytes base_size, Bytes alignment);
 
 protected:
   virtual void initialize_heap_flags_and_sizes();

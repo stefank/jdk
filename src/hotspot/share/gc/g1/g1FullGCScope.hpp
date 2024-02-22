@@ -57,7 +57,7 @@ class G1FullGCScope : public StackObj {
   ClearedAllSoftRefs      _soft_refs;
   G1FullGCMonitoringScope _monitoring_scope;
   G1HeapPrinterMark       _heap_printer;
-  size_t                  _region_compaction_threshold;
+  Words                   _region_compaction_threshold;
 
 public:
   G1FullGCScope(G1MonitoringSupport* monitoring_support,
@@ -70,7 +70,7 @@ public:
 
   STWGCTimer* timer();
   G1FullGCTracer* tracer();
-  size_t region_compaction_threshold() const;
+  Words region_compaction_threshold() const;
 };
 
 #endif // SHARE_GC_G1_G1FULLGCSCOPE_HPP

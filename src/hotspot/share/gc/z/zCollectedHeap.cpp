@@ -105,20 +105,20 @@ void ZCollectedHeap::stop() {
   gc_threads_do(&cl);
 }
 
-size_t ZCollectedHeap::max_capacity() const {
-  return _heap.max_capacity();
+Bytes ZCollectedHeap::max_capacity() const {
+  return in_Bytes(_heap.max_capacity());
 }
 
-size_t ZCollectedHeap::capacity() const {
-  return _heap.capacity();
+Bytes ZCollectedHeap::capacity() const {
+  return in_Bytes(_heap.capacity());
 }
 
-size_t ZCollectedHeap::used() const {
-  return _heap.used();
+Bytes ZCollectedHeap::used() const {
+  return in_Bytes(_heap.used());
 }
 
-size_t ZCollectedHeap::unused() const {
-  return _heap.unused();
+Bytes ZCollectedHeap::unused() const {
+  return in_Bytes(_heap.unused());
 }
 
 bool ZCollectedHeap::is_maximal_no_gc() const {
@@ -135,7 +135,7 @@ bool ZCollectedHeap::requires_barriers(stackChunkOop obj) const {
   return ZContinuation::requires_barriers(&_heap, obj);
 }
 
-HeapWord* ZCollectedHeap::allocate_new_tlab(size_t min_size, size_t requested_size, size_t* actual_size) {
+HeapWord* ZCollectedHeap::allocate_new_tlab(Words min_size, Words requested_size, Words* actual_size) {
   const size_t size_in_bytes = ZUtils::words_to_bytes(align_object_size(requested_size));
   const zaddress addr = ZAllocator::eden()->alloc_tlab(size_in_bytes);
 
@@ -146,18 +146,18 @@ HeapWord* ZCollectedHeap::allocate_new_tlab(size_t min_size, size_t requested_si
   return (HeapWord*)untype(addr);
 }
 
-oop ZCollectedHeap::array_allocate(Klass* klass, size_t size, int length, bool do_zero, TRAPS) {
+oop ZCollectedHeap::array_allocate(Klass* klass, Words size, int length, bool do_zero, TRAPS) {
   const ZObjArrayAllocator allocator(klass, size, length, do_zero, THREAD);
   return allocator.allocate();
 }
 
-HeapWord* ZCollectedHeap::mem_allocate(size_t size, bool* gc_overhead_limit_was_exceeded) {
+HeapWord* ZCollectedHeap::mem_allocate(Words size, bool* gc_overhead_limit_was_exceeded) {
   const size_t size_in_bytes = ZUtils::words_to_bytes(align_object_size(size));
   return (HeapWord*)ZAllocator::eden()->alloc_object(size_in_bytes);
 }
 
 MetaWord* ZCollectedHeap::satisfy_failed_metadata_allocation(ClassLoaderData* loader_data,
-                                                             size_t size,
+                                                             Words size,
                                                              Metaspace::MetadataType mdtype) {
   // Start asynchronous GC
   collect(GCCause::_metadata_GC_threshold);
@@ -224,20 +224,20 @@ void ZCollectedHeap::do_full_collection(bool clear_all_soft_refs) {
   ShouldNotReachHere();
 }
 
-size_t ZCollectedHeap::tlab_capacity(Thread* ignored) const {
-  return _heap.tlab_capacity();
+Bytes ZCollectedHeap::tlab_capacity(Thread* ignored) const {
+  return in_Bytes(_heap.tlab_capacity());
 }
 
-size_t ZCollectedHeap::tlab_used(Thread* ignored) const {
-  return _heap.tlab_used();
+Bytes ZCollectedHeap::tlab_used(Thread* ignored) const {
+  return in_Bytes(_heap.tlab_used());
 }
 
-size_t ZCollectedHeap::max_tlab_size() const {
-  return _heap.max_tlab_size();
+Words ZCollectedHeap::max_tlab_size() const {
+  return in_Words(_heap.max_tlab_size());
 }
 
-size_t ZCollectedHeap::unsafe_max_tlab_alloc(Thread* ignored) const {
-  return _heap.unsafe_max_tlab_alloc();
+Bytes ZCollectedHeap::unsafe_max_tlab_alloc(Thread* ignored) const {
+  return in_Bytes(_heap.unsafe_max_tlab_alloc());
 }
 
 bool ZCollectedHeap::uses_stack_watermark_barrier() const {
@@ -250,7 +250,10 @@ MemoryUsage ZCollectedHeap::memory_usage() {
   const size_t used         = MIN2(ZHeap::heap()->used(), committed);
   const size_t max_size     = ZHeap::heap()->max_capacity();
 
-  return MemoryUsage(initial_size, used, committed, max_size);
+  return MemoryUsage(in_Bytes(initial_size),
+                     in_Bytes(used),
+                     in_Bytes(committed),
+                     in_Bytes(max_size));
 }
 
 GrowableArray<GCMemoryManager*> ZCollectedHeap::memory_managers() {
@@ -326,8 +329,8 @@ VirtualSpaceSummary ZCollectedHeap::create_heap_space_summary() {
 
   // Fake values. ZGC does not commit memory contiguously in the reserved
   // address space, and the reserved space is larger than MaxHeapSize.
-  const uintptr_t committed_end = ZAddressHeapBase + capacity();
-  const uintptr_t reserved_end = ZAddressHeapBase + max_capacity();
+  const uintptr_t committed_end = ZAddressHeapBase + _heap.capacity();
+  const uintptr_t reserved_end = ZAddressHeapBase + _heap.max_capacity();
 
   return VirtualSpaceSummary((HeapWord*)start, (HeapWord*)committed_end, (HeapWord*)reserved_end);
 }
