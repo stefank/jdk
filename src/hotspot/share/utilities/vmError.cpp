@@ -1619,6 +1619,9 @@ void VMError::report_and_die(int id, const char* message, const char* detail_fmt
                              Thread* thread, address pc, void* siginfo, void* context, const char* filename,
                              int lineno, size_t size)
 {
+  // Forcefully turn off WXExec to fix hs_err files
+  MACOS_AARCH64_ONLY(os::current_thread_enable_wx(WXExec));
+
   // A single scratch buffer to be used from here on.
   // Do not rely on it being preserved across function calls.
   static char buffer[O_BUFLEN];
