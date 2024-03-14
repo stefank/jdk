@@ -32,17 +32,20 @@
 
 #include "runtime/thread.inline.hpp"
 
-class ThreadWXEnable  {
+class ThreadWXEnable {
   Thread* _thread;
   WXMode _old_mode;
+
 public:
+  DEBUG_ONLY(static bool _enforce_thread_is_provided;)
+
   ThreadWXEnable(WXMode new_mode, Thread* thread)
     : _thread(thread),
-      _old_mode(_thread ? _thread->enable_wx(new_mode) : WXWrite) {
-    assert(_thread != nullptr, "Catch me!");
+      _old_mode(_thread != nullptr ? _thread->enable_wx(new_mode) : WXExec) {
+    assert(_thread != nullptr || new_mode == WXExec, "Catch me!");
   }
   ~ThreadWXEnable() {
-    if (_thread) {
+    if (_thread != nullptr) {
       _thread->enable_wx(_old_mode);
     }
   }

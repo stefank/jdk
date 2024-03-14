@@ -201,6 +201,7 @@ void Thread::call_run() {
 
   // Perform common initialization actions
 
+  // TODO: Shold this also be moved to thread_native_entry just like the init_wx move?
   register_thread_stack_with_NMT();
 
   JFR_ONLY(Jfr::on_thread_start(this);)

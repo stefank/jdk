@@ -3776,14 +3776,14 @@ static jint attach_current_thread(JavaVM *vm, void **penv, void *_args, bool dae
   // Create a thread and mark it as attaching so it will be skipped by the
   // ThreadsListEnumerator - see CR 6404306
   JavaThread* thread = new JavaThread(true);
-  MACOS_AARCH64_ONLY(thread->init_wx());
   // Set correct safepoint info. The thread is going to call into Java when
   // initializing the Java level thread object. Hence, the correct state must
   // be set in order for the Safepoint code to deal with it correctly.
   thread->set_thread_state(_thread_in_vm);
+  thread->initialize_thread_current();
+  MACOS_AARCH64_ONLY(thread->init_wx());
   thread->record_stack_base_and_size();
   thread->register_thread_stack_with_NMT();
-  thread->initialize_thread_current();
 
   if (!os::create_attached_thread(thread)) {
     thread->smr_delete();

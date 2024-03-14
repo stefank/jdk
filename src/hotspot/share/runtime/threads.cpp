@@ -88,6 +88,7 @@
 #include "runtime/stubCodeGenerator.hpp"
 #include "runtime/thread.inline.hpp"
 #include "runtime/threadSMR.inline.hpp"
+#include "runtime/threadWXSetters.inline.hpp"
 #include "runtime/threads.hpp"
 #include "runtime/timer.hpp"
 #include "runtime/timerTrace.hpp"
@@ -410,8 +411,12 @@ void Threads::initialize_jsr292_core_classes(TRAPS) {
   initialize_class(vmSymbols::java_lang_invoke_MethodHandleNatives(), CHECK);
 }
 
+MACOS_AARCH64_ONLY(bool ThreadWXEnable::_enforce_thread_is_provided = false;)
+
 jint Threads::create_vm(JavaVMInitArgs* args, bool* canTryAgain) {
   extern void JDK_Version_init();
+
+  MACOS_AARCH64_ONLY(os::current_thread_enable_wx(WXExec));
 
   // Preinitialize version info.
   VM_Version::early_initialize();
@@ -430,8 +435,6 @@ jint Threads::create_vm(JavaVMInitArgs* args, bool* canTryAgain) {
 
   // Initialize the os module
   os::init();
-
-  MACOS_AARCH64_ONLY(os::current_thread_enable_wx(WXWrite));
 
   // Record VM creation timing statistics
   TraceVmCreationTime create_vm_timer;
@@ -525,9 +528,10 @@ jint Threads::create_vm(JavaVMInitArgs* args, bool* canTryAgain) {
 
   // Attach the main thread to this os thread
   JavaThread* main_thread = new JavaThread();
-  MACOS_AARCH64_ONLY(main_thread->init_wx());
+  MACOS_AARCH64_ONLY(ThreadWXEnable::_enforce_thread_is_provided = true;)
   main_thread->set_thread_state(_thread_in_vm);
   main_thread->initialize_thread_current();
+  MACOS_AARCH64_ONLY(main_thread->init_wx());
   // must do this before set_active_handles
   main_thread->record_stack_base_and_size();
   main_thread->register_thread_stack_with_NMT();
