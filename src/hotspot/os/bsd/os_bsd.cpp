@@ -550,6 +550,7 @@ objc_registerThreadWithCollector_t objc_registerThreadWithCollectorFunction = nu
 
 // Thread start routine for all newly created threads
 static void *thread_native_entry(Thread *thread) {
+  MACOS_AARCH64_ONLY(thread->init_wx();)
 
   thread->record_stack_base_and_size();
   thread->initialize_thread_current();

@@ -2101,6 +2101,8 @@ static void ALWAYSINLINE crash_with_sigfpe() {
 
 // crash with sigsegv at non-null address.
 static void ALWAYSINLINE crash_with_segfault() {
+  // The code below reads non-accessible memory and therefore provokes the SIGKILL bug.
+  MACOS_AARCH64_ONLY(ThreadWXEnable sigkill_workaround(WXExec, Thread::current_or_null_safe());)
 
   int* crash_addr = reinterpret_cast<int*>(VMError::segfault_address);
   *crash_addr = 1;

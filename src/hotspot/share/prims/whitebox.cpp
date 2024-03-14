@@ -90,6 +90,7 @@
 #include "runtime/stackFrameStream.inline.hpp"
 #include "runtime/synchronizer.hpp"
 #include "runtime/threadSMR.hpp"
+#include "runtime/threadWXSetters.inline.hpp"
 #include "runtime/vframe.hpp"
 #include "runtime/vm_version.hpp"
 #include "services/memoryService.hpp"
@@ -300,6 +301,10 @@ WB_ENTRY(void, WB_ReadFromNoaccessArea(JNIEnv* env, jobject o))
                   CompressedOops::use_implicit_null_checks());
     return;
   }
+
+  // The code below reads non-accessible memory and therefore provokes the SIGKILL bug.
+  MACOS_AARCH64_ONLY(ThreadWXEnable sigkill_workaround(WXExec, thread);)
+
   tty->print_cr("Reading from no access area... ");
   tty->print_cr("*(vs.low_boundary() - rhs.noaccess_prefix() / 2 ) = %c",
                 *(vs.low_boundary() - rhs.noaccess_prefix() / 2 ));
@@ -1489,6 +1494,9 @@ WB_ENTRY(void, WB_ReadReservedMemory(JNIEnv* env, jobject o))
   if (p == nullptr) {
     THROW_MSG(vmSymbols::java_lang_OutOfMemoryError(), "Failed to reserve memory");
   }
+
+  // The code below reads non-accessible memory and therefore provokes the SIGKILL bug.
+  MACOS_AARCH64_ONLY(ThreadWXEnable sigkill_workaround(WXExec, thread);)
 
   c = *p;
 WB_END

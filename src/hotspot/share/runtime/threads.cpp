@@ -525,13 +525,13 @@ jint Threads::create_vm(JavaVMInitArgs* args, bool* canTryAgain) {
 
   // Attach the main thread to this os thread
   JavaThread* main_thread = new JavaThread();
+  MACOS_AARCH64_ONLY(main_thread->init_wx());
   main_thread->set_thread_state(_thread_in_vm);
   main_thread->initialize_thread_current();
   // must do this before set_active_handles
   main_thread->record_stack_base_and_size();
   main_thread->register_thread_stack_with_NMT();
   main_thread->set_active_handles(JNIHandleBlock::allocate_block());
-  MACOS_AARCH64_ONLY(main_thread->init_wx());
 
   if (!main_thread->set_as_starting_thread()) {
     vm_shutdown_during_initialization(
