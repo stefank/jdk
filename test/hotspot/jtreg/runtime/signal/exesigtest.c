@@ -219,7 +219,11 @@ void initVM()
         exit(TEST_FAILED);
     }
 
-    (*vm)->AttachCurrentThread(vm, (void **) &env,  (void *) 0);
+    result = (*vm)->AttachCurrentThread(vm, (void **) &env,  (void *) 0);
+    if (result != 0) {
+        printf("ERROR: cannot attach thread.\n");
+        exit(TEST_FAILED);
+    }
     printf("initVM: JVM started and attached\n");
 }
 
