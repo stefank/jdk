@@ -43,6 +43,7 @@ class JavaCallWrapper: StackObj {
   friend class VMStructs;
  private:
   JavaThread*      _thread;                 // the thread to which this call belongs
+  MACOS_AARCH64_ONLY(WXMode _old_mode);
   JNIHandleBlock*  _handles;                // the saved handle block
   Method*          _callee_method;          // to be able to collect arguments if entry frame is top frame
   oop              _receiver;               // the receiver of the call (if a non-static call)
