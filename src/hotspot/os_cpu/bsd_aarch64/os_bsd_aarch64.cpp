@@ -194,10 +194,6 @@ NOINLINE frame os::current_frame() {
 
 bool PosixSignals::pd_hotspot_signal_handler(int sig, siginfo_t* info,
                                              ucontext_t* uc, JavaThread* thread) {
-  // Enable WXWrite: this function is called by the signal handler at arbitrary
-  // point of execution.
-  ThreadWXEnable wx(WXWrite, thread);
-
   // decide if this trap can be handled by a stub
   address stub = nullptr;
 
@@ -205,6 +201,11 @@ bool PosixSignals::pd_hotspot_signal_handler(int sig, siginfo_t* info,
 
   //%note os_trap_1
   if (info != nullptr && uc != nullptr && thread != nullptr) {
+    // Enable WXWrite: this function is called by the signal handler at arbitrary
+    // point of execution. Called here where we have null-checked the thread.
+    // TODO: We really don't need to be in WXWrite here and this line could likely be skipped.
+    ThreadWXEnable wx(WXWrite, thread);
+
     pc = (address) os::Posix::ucontext_get_pc(uc);
 
     // Handle ALL stack overflow variations here
