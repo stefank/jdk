@@ -780,10 +780,11 @@ public final class ProcessTools {
         String exitValue = output == null ? "null" : Integer.toString(output.getExitValue());
         return String.format("--- ProcessLog ---%n" +
                              "cmd: %s%n" +
+                             "env: %s%n" +
                              "exitvalue: %s%n" +
                              "stderr: %s%n" +
                              "stdout: %s%n",
-                             getCommandLine(pb), exitValue, stderr, stdout);
+                             getCommandLine(pb), getEnv(pb), exitValue, stderr, stdout);
     }
 
     /**
@@ -798,6 +799,21 @@ public final class ProcessTools {
             cmd.append(s).append(" ");
         }
         return cmd.toString().trim();
+    }
+
+    /**
+     * @return The environment variables for the ProcessBuilder.
+     */
+    public static String getEnv(ProcessBuilder pb) {
+        StringBuilder sb = new StringBuilder();
+        for (var entry : pb.environment().entrySet()) {
+            sb.append(entry.getKey());
+            sb.append("=");
+            sb.append("'");
+            sb.append(entry.getValue());
+            sb.append("' ");
+        }
+        return sb.toString();
     }
 
     /**
