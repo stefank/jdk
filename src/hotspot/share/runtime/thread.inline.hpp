@@ -89,6 +89,10 @@ inline WXMode Thread::enable_wx(WXMode new_state) {
   }
   return old;
 }
+
+inline WXMode Thread::wx() const {
+  return _wx_state;
+}
 #endif // __APPLE__ && AARCH64
 
 #endif // SHARE_RUNTIME_THREAD_INLINE_HPP
