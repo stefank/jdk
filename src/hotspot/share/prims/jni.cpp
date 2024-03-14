@@ -3776,6 +3776,7 @@ static jint attach_current_thread(JavaVM *vm, void **penv, void *_args, bool dae
   // Create a thread and mark it as attaching so it will be skipped by the
   // ThreadsListEnumerator - see CR 6404306
   JavaThread* thread = new JavaThread(true);
+
   // Set correct safepoint info. The thread is going to call into Java when
   // initializing the Java level thread object. Hence, the correct state must
   // be set in order for the Safepoint code to deal with it correctly.
