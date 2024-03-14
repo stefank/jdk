@@ -411,8 +411,6 @@ void Threads::initialize_jsr292_core_classes(TRAPS) {
   initialize_class(vmSymbols::java_lang_invoke_MethodHandleNatives(), CHECK);
 }
 
-MACOS_AARCH64_ONLY(bool ThreadWXEnable::_enforce_thread_is_provided = false;)
-
 jint Threads::create_vm(JavaVMInitArgs* args, bool* canTryAgain) {
   extern void JDK_Version_init();
 
@@ -528,7 +526,6 @@ jint Threads::create_vm(JavaVMInitArgs* args, bool* canTryAgain) {
 
   // Attach the main thread to this os thread
   JavaThread* main_thread = new JavaThread();
-  MACOS_AARCH64_ONLY(ThreadWXEnable::_enforce_thread_is_provided = true;)
   main_thread->set_thread_state(_thread_in_vm);
   main_thread->initialize_thread_current();
   MACOS_AARCH64_ONLY(main_thread->init_wx());

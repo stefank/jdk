@@ -37,8 +37,6 @@ class ThreadWXEnable {
   WXMode _old_mode;
 
 public:
-  DEBUG_ONLY(static bool _enforce_thread_is_provided;)
-
   ThreadWXEnable(WXMode new_mode, Thread* thread)
     : _thread(thread),
       _old_mode(_thread != nullptr ? _thread->enable_wx(new_mode) : WXExec) {
