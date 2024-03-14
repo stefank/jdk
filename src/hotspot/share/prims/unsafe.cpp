@@ -184,11 +184,9 @@ class GuardUnsafeAccess {
   MACOS_AARCH64_ONLY(ThreadWXEnable _sigkill_workaround;)
 
 public:
-  GuardUnsafeAccess(JavaThread* thread) : _thread(thread)
-#if defined(__APPLE__) && defined(AARCH64)
-    , _sigkill_workaround(WXExec, thread)
-#endif
-  {
+  GuardUnsafeAccess(JavaThread* thread)
+    : _thread(thread)
+      MACOS_AARCH64_ONLY(COMMA _sigkill_workaround(WXExec COMMA thread)) {
     // native/off-heap access which may raise SIGBUS if accessing
     // memory mapped file data in a region of the file which has
     // been truncated and is now invalid.
