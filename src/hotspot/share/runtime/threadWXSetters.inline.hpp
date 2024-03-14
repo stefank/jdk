@@ -36,10 +36,11 @@ class ThreadWXEnable  {
   Thread* _thread;
   WXMode _old_mode;
 public:
-  ThreadWXEnable(WXMode new_mode, Thread* thread) :
-    _thread(thread),
-    _old_mode(_thread ? _thread->enable_wx(new_mode) : WXWrite)
-  { }
+  ThreadWXEnable(WXMode new_mode, Thread* thread)
+    : _thread(thread),
+      _old_mode(_thread ? _thread->enable_wx(new_mode) : WXWrite) {
+    assert(_thread != nullptr, "Catch me!");
+  }
   ~ThreadWXEnable() {
     if (_thread) {
       _thread->enable_wx(_old_mode);
