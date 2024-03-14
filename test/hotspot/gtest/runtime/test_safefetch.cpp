@@ -25,6 +25,7 @@
 #include "precompiled.hpp"
 #include "runtime/interfaceSupport.inline.hpp"
 #include "runtime/safefetch.hpp"
+#include "runtime/threadWXSetters.inline.hpp"
 #include "runtime/vmOperations.hpp"
 #include "runtime/vmThread.hpp"
 #include "utilities/globalDefinitions.hpp"
@@ -110,9 +111,11 @@ TEST_VM(os, safefetch32_negative) {
 
 class ThreadCurrentNullMark : public StackObj {
   Thread* _saved;
+  MACOS_AARCH64_ONLY(ThreadWXEnable _sigkill_workaround;)
 public:
-  ThreadCurrentNullMark() {
-    _saved = Thread::current();
+  ThreadCurrentNullMark()
+    : _saved(Thread::current())
+      MACOS_AARCH64_ONLY(COMMA _sigkill_workaround(WXExec COMMA _saved)) {
     Thread::clear_thread_current();
   }
   ~ThreadCurrentNullMark() {
