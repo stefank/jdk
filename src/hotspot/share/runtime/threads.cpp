@@ -414,6 +414,8 @@ void Threads::initialize_jsr292_core_classes(TRAPS) {
 jint Threads::create_vm(JavaVMInitArgs* args, bool* canTryAgain) {
   extern void JDK_Version_init();
 
+  // WXExec is usually the default mode, however custom launchers could change this.
+  // Explicit run in WXExec mode until a Thread has been set up,
   MACOS_AARCH64_ONLY(os::current_thread_enable_wx(WXExec));
 
   // Preinitialize version info.
