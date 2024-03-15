@@ -969,6 +969,10 @@ void Threads::destroy_vm() {
 #endif
 
   LogConfiguration::finalize();
+
+  // Don't leave the thread in WXWrite mode. Using current_thread_enable_wx
+  // since thread has been deleted at this point.
+  MACOS_AARCH64_ONLY(os::current_thread_enable_wx(WXExec));
 }
 
 
