@@ -55,7 +55,6 @@
 
 JavaCallWrapper::JavaCallWrapper(const methodHandle& callee_method, Handle receiver, JavaValue* result, TRAPS) {
   JavaThread* thread = THREAD;
-  MACOS_AARCH64_ONLY(_old_mode = thread->wx());
 
   guarantee(thread->is_Java_thread(), "crucial check - the VM thread cannot and must not escape to Java code");
   assert(!thread->owns_locks(), "must release all locks when leaving VM");
@@ -103,7 +102,7 @@ JavaCallWrapper::JavaCallWrapper(const methodHandle& callee_method, Handle recei
 JavaCallWrapper::~JavaCallWrapper() {
   assert(_thread == JavaThread::current(), "must still be the same thread");
 
-  MACOS_AARCH64_ONLY(_thread->enable_wx(_old_mode));
+  MACOS_AARCH64_ONLY(_thread->enable_wx(WXWrite));
 
   // restore previous handle block & Java frame linkage
   JNIHandleBlock *_old_handles = _thread->active_handles();
