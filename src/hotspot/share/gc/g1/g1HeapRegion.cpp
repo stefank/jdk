@@ -455,17 +455,31 @@ static bool is_oop_safe(oop obj) {
   return true;
 }
 
-// Closure that glues together validity check for oop references (first),
-// then optionally verifies the remembered set for that reference.
-class G1VerifyLiveAndRemSetClosure : public BasicOopIterateClosure {
-  VerifyOption _vo;
-  oop _containing_obj;
+class G1VerifyFailureCounter {
   size_t _num_failures;
+
+public:
+  G1VerifyFailureCounter() : _num_failures(0) {}
 
   // Increases the failure counter and return whether this has been the first failure.
   bool record_failure() {
     _num_failures++;
     return _num_failures == 1;
+  }
+
+  size_t num_failures() const { return _num_failures; }
+};
+
+// Closure that glues together validity check for oop references (first),
+// then optionally verifies the remembered set for that reference.
+class G1VerifyLiveAndRemSetClosure : public BasicOopIterateClosure {
+  VerifyOption _vo;
+  oop _containing_obj;
+  G1VerifyFailureCounter* const _failure_counter;
+
+  // Increases the failure counter and return whether this has been the first failure.
+  bool record_failure() {
+    return _failure_counter->record_failure();
   }
 
   static void print_object(outputStream* out, oop obj) {
@@ -591,9 +605,7 @@ class G1VerifyLiveAndRemSetClosure : public BasicOopIterateClosure {
 
   template <class T>
   void do_oop_work(T* p) {
-    assert(_containing_obj != nullptr, "must be");
-
-    if (num_failures() >= G1MaxVerifyFailures) {
+    if (_failure_counter->num_failures() >= G1MaxVerifyFailures) {
       return;
     }
 
@@ -617,17 +629,13 @@ class G1VerifyLiveAndRemSetClosure : public BasicOopIterateClosure {
   }
 
 public:
-  G1VerifyLiveAndRemSetClosure(G1CollectedHeap* g1h, VerifyOption vo) :
-    _vo(vo),
-    _containing_obj(nullptr),
-    _num_failures(0) { }
-
-  void set_containing_obj(oop const obj) {
-    assert(!G1CollectedHeap::heap()->is_obj_dead_cond(obj, _vo), "Precondition");
-    _containing_obj = obj;
+  G1VerifyLiveAndRemSetClosure(oop containing_obj, VerifyOption vo, G1VerifyFailureCounter* failure_counter) :
+      _vo(vo),
+      _containing_obj(containing_obj),
+      _failure_counter(failure_counter) {
+    assert(containing_obj != nullptr, "must be");
+    assert(!G1CollectedHeap::heap()->is_obj_dead_cond(containing_obj, _vo), "Precondition");
   }
-
-  size_t num_failures() const { return _num_failures; }
 
   virtual inline void do_oop(narrowOop* p) { do_oop_work(p); }
   virtual inline void do_oop(oop* p) { do_oop_work(p); }
@@ -636,7 +644,7 @@ public:
 bool HeapRegion::verify_liveness_and_remset(VerifyOption vo) const {
   G1CollectedHeap* g1h = G1CollectedHeap::heap();
 
-  G1VerifyLiveAndRemSetClosure cl(g1h, vo);
+  G1VerifyFailureCounter failure_counter;
 
   size_t other_failures = 0;
 
@@ -649,13 +657,13 @@ bool HeapRegion::verify_liveness_and_remset(VerifyOption vo) const {
     }
 
     if (is_oop_safe(obj)) {
-      cl.set_containing_obj(obj);
+      G1VerifyLiveAndRemSetClosure cl(obj, vo, &failure_counter);
       obj->oop_iterate(&cl);
     } else {
       other_failures++;
     }
 
-    if ((cl.num_failures() + other_failures) >= G1MaxVerifyFailures) {
+    if ((failure_counter.num_failures() + other_failures) >= G1MaxVerifyFailures) {
       return true;
     }
   }
@@ -665,7 +673,7 @@ bool HeapRegion::verify_liveness_and_remset(VerifyOption vo) const {
                           p2i(p), p2i(top()));
     return true;
   }
-  return (cl.num_failures() + other_failures) != 0;
+  return (failure_counter.num_failures() + other_failures) != 0;
 }
 
 bool HeapRegion::verify(VerifyOption vo) const {
