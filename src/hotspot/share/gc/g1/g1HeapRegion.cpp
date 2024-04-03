@@ -456,18 +456,28 @@ static bool is_oop_safe(oop obj) {
 }
 
 class G1VerifyFailureCounter {
-  size_t _num_failures;
+  size_t _num_containing_obj_failures;
+  size_t _num_oop_failures;
 
 public:
-  G1VerifyFailureCounter() : _num_failures(0) {}
+  G1VerifyFailureCounter() :
+      _num_containing_obj_failures(0),
+      _num_oop_failures(0) {}
 
   // Increases the failure counter and return whether this has been the first failure.
-  bool record_failure() {
-    _num_failures++;
-    return _num_failures == 1;
+  bool record_containing_obj_failure() {
+    _num_containing_obj_failures++;
+    return _num_containing_obj_failures == 1;
   }
 
-  size_t num_failures() const { return _num_failures; }
+  bool record_oop_failure() {
+    _num_oop_failures++;
+    return _num_oop_failures == 1;
+  }
+
+  size_t num_containing_obj_failures() const { return _num_containing_obj_failures; }
+  size_t num_oop_failures() const { return _num_oop_failures; }
+  size_t num_failures() const { return _num_containing_obj_failures + _num_oop_failures; }
 };
 
 // Closure that glues together validity check for oop references (first),
@@ -478,8 +488,8 @@ class G1VerifyLiveAndRemSetClosure : public BasicOopIterateClosure {
   G1VerifyFailureCounter* const _failure_counter;
 
   // Increases the failure counter and return whether this has been the first failure.
-  bool record_failure() {
-    return _failure_counter->record_failure();
+  bool record_oop_failure() {
+    return _failure_counter->record_oop_failure();
   }
 
   static void print_object(outputStream* out, oop obj) {
@@ -539,7 +549,7 @@ class G1VerifyLiveAndRemSetClosure : public BasicOopIterateClosure {
 
       MutexLocker x(G1RareEvent_lock, Mutex::_no_safepoint_check_flag);
 
-      if (this->_cl->record_failure()) {
+      if (this->_cl->record_oop_failure()) {
         log.error("----------");
       }
 
@@ -592,7 +602,7 @@ class G1VerifyLiveAndRemSetClosure : public BasicOopIterateClosure {
 
       MutexLocker x(G1RareEvent_lock, Mutex::_no_safepoint_check_flag);
 
-      if (this->_cl->record_failure()) {
+      if (this->_cl->record_oop_failure()) {
         log.error("----------");
       }
       log.error("Missing rem set entry:");
@@ -605,7 +615,7 @@ class G1VerifyLiveAndRemSetClosure : public BasicOopIterateClosure {
 
   template <class T>
   void do_oop_work(T* p) {
-    if (_failure_counter->num_failures() >= G1MaxVerifyFailures) {
+    if (_failure_counter->num_oop_failures() >= G1MaxVerifyFailures) {
       return;
     }
 
@@ -646,8 +656,6 @@ bool HeapRegion::verify_liveness_and_remset(VerifyOption vo) const {
 
   G1VerifyFailureCounter failure_counter;
 
-  size_t other_failures = 0;
-
   HeapWord* p;
   for (p = bottom(); p < top(); p += block_size(p)) {
     oop obj = cast_to_oop(p);
@@ -660,10 +668,10 @@ bool HeapRegion::verify_liveness_and_remset(VerifyOption vo) const {
       G1VerifyLiveAndRemSetClosure cl(obj, vo, &failure_counter);
       obj->oop_iterate(&cl);
     } else {
-      other_failures++;
+      failure_counter.record_containing_obj_failure();
     }
 
-    if ((failure_counter.num_failures() + other_failures) >= G1MaxVerifyFailures) {
+    if (failure_counter.num_failures() >= G1MaxVerifyFailures) {
       return true;
     }
   }
@@ -673,7 +681,7 @@ bool HeapRegion::verify_liveness_and_remset(VerifyOption vo) const {
                           p2i(p), p2i(top()));
     return true;
   }
-  return (failure_counter.num_failures() + other_failures) != 0;
+  return failure_counter.num_failures() != 0;
 }
 
 bool HeapRegion::verify(VerifyOption vo) const {
