@@ -2281,9 +2281,9 @@ JNI_ENTRY(jobjectArray, jni_NewObjectArray(JNIEnv *env, jsize length, jclass ele
   jobjectArray ret = nullptr;
   DT_RETURN_MARK(NewObjectArray, jobjectArray, (const jobjectArray&)ret);
   Klass* ek = java_lang_Class::as_Klass(JNIHandles::resolve_non_null(elementClass));
-  Klass* ak = ek->array_klass(CHECK_NULL);
-  ObjArrayKlass::cast(ak)->initialize(CHECK_NULL);
-  objArrayOop result = ObjArrayKlass::cast(ak)->allocate(length, CHECK_NULL);
+  ObjArrayKlass* ak = ek->array_klass(CHECK_NULL);
+  ak->initialize(CHECK_NULL);
+  objArrayOop result = ak->allocate(length, CHECK_NULL);
   oop initial_value = JNIHandles::resolve(initialElement);
   if (initial_value != nullptr) {  // array already initialized with null
     for (int index = 0; index < length; index++) {

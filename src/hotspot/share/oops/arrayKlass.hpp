@@ -54,12 +54,19 @@ class ArrayKlass: public Klass {
   DEBUG_ONLY(bool is_array_klass_slow() const { return true; })
 
   // Returns the ObjArrayKlass for n'th dimension.
+  // Precondition: n > dimension()
+  ObjArrayKlass* obj_array_klass(int n, TRAPS);
+  ObjArrayKlass* obj_array_klass_or_null(int n);
+
+  // Returns the ArrayKlass for n'th dimension.
+  // Can't return an ObjArrayKlass* since we return a TypeArrayKlass*
+  // when n == 1 and 'this' is a TypeArrayKlass*.
   ArrayKlass* array_klass(int n, TRAPS);
   ArrayKlass* array_klass_or_null(int n);
 
   // Returns the array class with this class as element type.
-  ArrayKlass* array_klass(TRAPS);
-  ArrayKlass* array_klass_or_null();
+  ObjArrayKlass* array_klass(TRAPS);
+  ObjArrayKlass* array_klass_or_null();
 
   // Instance variables
   int dimension() const                 { return _dimension;      }

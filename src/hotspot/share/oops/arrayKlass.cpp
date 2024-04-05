@@ -121,11 +121,8 @@ void ArrayKlass::complete_create_array_klass(ArrayKlass* k, Klass* super_klass, 
   java_lang_Class::create_mirror(k, Handle(THREAD, k->class_loader()), Handle(THREAD, module), Handle(), Handle(), CHECK);
 }
 
-ArrayKlass* ArrayKlass::array_klass(int n, TRAPS) {
-
+ObjArrayKlass* ArrayKlass::obj_array_klass(int n, TRAPS) {
   assert(dimension() <= n, "check order of chain");
-  int dim = dimension();
-  if (dim == n) return this;
 
   // lock-free read needs acquire semantics
   if (higher_dimension_acquire() == nullptr) {
@@ -136,7 +133,7 @@ ArrayKlass* ArrayKlass::array_klass(int n, TRAPS) {
     if (higher_dimension() == nullptr) {
       // Create multi-dim klass object and link them together
       ObjArrayKlass* ak =
-          ObjArrayKlass::allocate_objArray_klass(class_loader_data(), dim + 1, this, CHECK_NULL);
+          ObjArrayKlass::allocate_objArray_klass(class_loader_data(), dimension() + 1, this, CHECK_NULL);
       // use 'release' to pair with lock-free load
       release_set_higher_dimension(ak);
       assert(ak->lower_dimension() == this, "lower dimension mismatch");
@@ -145,15 +142,16 @@ ArrayKlass* ArrayKlass::array_klass(int n, TRAPS) {
 
   ObjArrayKlass* ak = higher_dimension();
   assert(ak != nullptr, "should be set");
+  if (ak->dimension() == n) {
+    return ak;
+  }
+
   THREAD->check_possible_safepoint();
-  return ak->array_klass(n, THREAD);
+  return ak->obj_array_klass(n, THREAD);
 }
 
-ArrayKlass* ArrayKlass::array_klass_or_null(int n) {
-
-  assert(dimension() <= n, "check order of chain");
-  int dim = dimension();
-  if (dim == n) return this;
+ObjArrayKlass* ArrayKlass::obj_array_klass_or_null(int n) {
+  assert(dimension() < n, "check order of chain");
 
   // lock-free read needs acquire semantics
   if (higher_dimension_acquire() == nullptr) {
@@ -161,17 +159,40 @@ ArrayKlass* ArrayKlass::array_klass_or_null(int n) {
   }
 
   ObjArrayKlass *ak = higher_dimension();
-  return ak->array_klass_or_null(n);
+  if (ak->dimension() == n) {
+    return ak;
+  }
+
+  return ak->obj_array_klass_or_null(n);
 }
 
-ArrayKlass* ArrayKlass::array_klass(TRAPS) {
-  return array_klass(dimension() +  1, THREAD);
+ArrayKlass* ArrayKlass::array_klass(int n, TRAPS) {
+  assert(dimension() <= n, "check order of chain");
+
+  if (dimension() == n) {
+    return this;
+  }
+
+  return obj_array_klass(n, THREAD);
 }
 
-ArrayKlass* ArrayKlass::array_klass_or_null() {
-  return array_klass_or_null(dimension() +  1);
+ArrayKlass* ArrayKlass::array_klass_or_null(int n) {
+  assert(dimension() <= n, "check order of chain");
+
+  if (dimension() == n) {
+    return this;
+  }
+
+  return obj_array_klass_or_null(n);
 }
 
+ObjArrayKlass* ArrayKlass::array_klass(TRAPS) {
+  return obj_array_klass(dimension() + 1, THREAD);
+}
+
+ObjArrayKlass* ArrayKlass::array_klass_or_null() {
+  return obj_array_klass_or_null(dimension() + 1);
+}
 
 GrowableArray<Klass*>* ArrayKlass::compute_secondary_supers(int num_extra_slots,
                                                             Array<InstanceKlass*>* transitive_interfaces) {

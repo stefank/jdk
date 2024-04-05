@@ -184,10 +184,10 @@ static void array_construction(JfrJavaArguments* args, JavaValue* result, Instan
   assert(klass != nullptr, "invariant");
   assert(klass->is_initialized(), "invariant");
 
-  Klass* const ak = klass->array_klass(THREAD);
-  ObjArrayKlass::cast(ak)->initialize(THREAD);
+  ObjArrayKlass* const ak = klass->array_klass(THREAD);
+  ak->initialize(THREAD);
   HandleMark hm(THREAD);
-  objArrayOop arr = ObjArrayKlass::cast(ak)->allocate(array_length, CHECK);
+  objArrayOop arr = ak->allocate(array_length, CHECK);
   result->set_oop(arr);
 }
 

@@ -1076,12 +1076,16 @@ public:
 
 public:
   // Returns the array class for the n'th dimension
-  virtual ArrayKlass* array_klass(int n, TRAPS);
-  virtual ArrayKlass* array_klass_or_null(int n);
+  ObjArrayKlass* obj_array_klass(int n, TRAPS);
+  ObjArrayKlass* obj_array_klass_or_null(int n);
+
+  // Returns the array class for the n'th dimension
+  ArrayKlass* array_klass(int n, TRAPS);
+  ArrayKlass* array_klass_or_null(int n);
 
   // Returns the array class with this class as element type
-  virtual ArrayKlass* array_klass(TRAPS);
-  virtual ArrayKlass* array_klass_or_null();
+  virtual ObjArrayKlass* array_klass(TRAPS);
+  virtual ObjArrayKlass* array_klass_or_null();
 
   static void clean_initialization_error_table();
 

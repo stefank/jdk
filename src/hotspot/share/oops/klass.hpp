@@ -539,13 +539,13 @@ protected:
 
   // array class with specific rank
   virtual ArrayKlass* array_klass(int rank, TRAPS) = 0;
+  // Return null instead of allocating on the heap
+  virtual ArrayKlass* array_klass_or_null(int rank) = 0;
 
   // array class with this klass as element type
-  virtual ArrayKlass* array_klass(TRAPS) = 0;
-
-  // These will return null instead of allocating on the heap:
-  virtual ArrayKlass* array_klass_or_null(int rank) = 0;
-  virtual ArrayKlass* array_klass_or_null() = 0;
+  virtual ObjArrayKlass* array_klass(TRAPS) = 0;
+  // Return null instead of allocating on the heap
+  virtual ObjArrayKlass* array_klass_or_null() = 0;
 
   virtual oop protection_domain() const = 0;
 

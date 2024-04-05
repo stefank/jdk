@@ -1542,7 +1542,7 @@ void InstanceKlass::check_valid_for_instantiation(bool throwError, TRAPS) {
   }
 }
 
-ArrayKlass* InstanceKlass::array_klass(int n, TRAPS) {
+ObjArrayKlass* InstanceKlass::obj_array_klass(int n, TRAPS) {
   // Need load-acquire for lock-free read
   if (array_klasses_acquire() == nullptr) {
 
@@ -1560,25 +1560,43 @@ ArrayKlass* InstanceKlass::array_klass(int n, TRAPS) {
   // array_klasses() will always be set at this point
   ObjArrayKlass* ak = array_klasses();
   assert(ak != nullptr, "should be set");
-  return ak->array_klass(n, THREAD);
+
+  if (n == 1) {
+    return ak;
+  }
+
+  return ak->obj_array_klass(n, THREAD);
 }
 
-ArrayKlass* InstanceKlass::array_klass_or_null(int n) {
+ObjArrayKlass* InstanceKlass::obj_array_klass_or_null(int n) {
   // Need load-acquire for lock-free read
   ObjArrayKlass* oak = array_klasses_acquire();
   if (oak == nullptr) {
     return nullptr;
-  } else {
-    return oak->array_klass_or_null(n);
   }
+
+  if (n == 1) {
+    return oak;
+  }
+
+  return oak->obj_array_klass_or_null(n);
 }
 
-ArrayKlass* InstanceKlass::array_klass(TRAPS) {
-  return array_klass(1, THREAD);
+ArrayKlass* InstanceKlass::array_klass(int n, TRAPS) {
+  return obj_array_klass(n, THREAD);
 }
 
-ArrayKlass* InstanceKlass::array_klass_or_null() {
-  return array_klass_or_null(1);
+ArrayKlass* InstanceKlass::array_klass_or_null(int n) {
+  return obj_array_klass_or_null(n);
+}
+
+
+ObjArrayKlass* InstanceKlass::array_klass(TRAPS) {
+  return obj_array_klass(1, THREAD);
+}
+
+ObjArrayKlass* InstanceKlass::array_klass_or_null() {
+  return obj_array_klass_or_null(1);
 }
 
 static int call_class_initializer_counter = 0;   // for debugging
