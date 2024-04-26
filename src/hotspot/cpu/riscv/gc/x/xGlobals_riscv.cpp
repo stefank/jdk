@@ -144,15 +144,11 @@
 //  * 63-48 Fixed (16-bits, always zero)
 //
 
-static const size_t DEFAULT_MAX_ADDRESS_BIT = XMaxAddressOffsetBits + XAddressableMetadataBits - 1;
-// Minimum value returned, if probing fails: 64GB
-static const size_t MINIMUM_MAX_ADDRESS_BIT = 36;
-
-static size_t probe_valid_max_address_bit() {
+static size_t probe_valid_max_address_bit(size_t min_probe_bit, size_t max_probe_bit) {
 #ifdef LINUX
   size_t max_address_bit = 0;
   const size_t page_size = os::vm_page_size();
-  for (size_t i = DEFAULT_MAX_ADDRESS_BIT; i > MINIMUM_MAX_ADDRESS_BIT; --i) {
+  for (size_t i = max_probe_bit; i > min_probe_bit; --i) {
     const uintptr_t base_addr = ((uintptr_t) 1U) << i;
     if (msync((void*)base_addr, page_size, MS_ASYNC) == 0) {
       // msync succeeded, the address is valid, and maybe even already mapped.
@@ -183,7 +179,7 @@ static size_t probe_valid_max_address_bit() {
   }
   if (max_address_bit == 0) {
     // probing failed, allocate a very high page and take that bit as the maximum
-    const uintptr_t high_addr = ((uintptr_t) 1U) << DEFAULT_MAX_ADDRESS_BIT;
+    const uintptr_t high_addr = ((uintptr_t) 1U) << max_probe_bit;
     void* const result_addr = mmap((void*) high_addr, page_size, PROT_NONE, MAP_PRIVATE|MAP_ANONYMOUS|MAP_NORESERVE, -1, 0);
     if (result_addr != MAP_FAILED) {
       max_address_bit = BitsPerSize_t - count_leading_zeros((size_t) result_addr) - 1;
@@ -191,14 +187,25 @@ static size_t probe_valid_max_address_bit() {
     }
   }
   log_info_p(gc, init)("Probing address space for the highest valid bit: " SIZE_FORMAT, max_address_bit);
-  return MAX2(max_address_bit, MINIMUM_MAX_ADDRESS_BIT);
+  return MAX2(max_address_bit, min_probe_bit);
 #else // LINUX
-  return DEFAULT_MAX_ADDRESS_BIT;
+  return max_probe_bit;
 #endif // LINUX
 }
 
 size_t XPlatformAddressOffsetBits() {
-  const static size_t valid_max_address_offset_bits = probe_valid_max_address_bit() + 1;
+  // Minimum value returned, if probing fails: 64GB
+  const size_t min_probe_bit = 36;
+
+  // Limit the probing to what we actually can use
+  const size_t max_addressable_bits = XMaxAddressOffsetBits + XAddressableMetadataBits;
+  const size_t max_probe_bit = max_addressable_bits - 1;
+
+  // Find the maximum bit for addressable memory - called once
+  const static size_t found_max_bit = probe_valid_max_address_bit(min_probe_bit, max_probe_bit);
+
+  // Now calculate the number of offset bits to use
+  const size_t valid_max_address_offset_bits = found_max_bit + 1;
   const size_t max_address_offset_bits = valid_max_address_offset_bits - XAddressableMetadataBits;
   const size_t min_address_offset_bits = max_address_offset_bits - 2;
   const size_t address_offset = round_up_power_of_2(MaxHeapSize * XVirtualToPhysicalRatio);

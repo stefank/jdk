@@ -51,6 +51,15 @@ const size_t      XHeapViews                    = XPlatformHeapViews;
 // Virtual memory to physical memory ratio
 const size_t      XVirtualToPhysicalRatio       = 16; // 16:1
 
+// There are a number of implicit assumptions in the code that currently
+// restricts the number of offset bits to be at most 44 bits. One example is
+// the bit layout of XForwardingEntry.
+const size_t      XMaxAddressOffsetBits         = 44;
+
+// marked0, marked1, and remapped are all mapped to one of the bits that
+// represent an addressable heap view.
+const size_t      XAddressableMetadataBits      = XHeapViews;
+
 // Page types
 const uint8_t     XPageTypeSmall                = 0;
 const uint8_t     XPageTypeMedium               = 1;
@@ -102,18 +111,13 @@ extern uint32_t*  XAddressBadMaskHighOrderBitsAddr;
 const int         XAddressBadMaskHighOrderBitsOffset = LITTLE_ENDIAN_ONLY(4) BIG_ENDIAN_ONLY(0);
 
 // Pointer part of address
-// Maximum value of addressable offset bits is set to 44 based on the
-// maximum address space requirement of 16 TB.
-const size_t      XMaxAddressOffsetBits  = 44;
 extern size_t     XAddressOffsetBits;
 const  size_t     XAddressOffsetShift           = 0;
 extern uintptr_t  XAddressOffsetMask;
 extern size_t     XAddressOffsetMax;
 
 // Metadata part of address
-// Finalizable bit doesn't need to be addressable
 const size_t      XAddressMetadataBits          = 4;
-const size_t      XAddressableMetadataBits      = XAddressMetadataBits - 1;
 extern size_t     XAddressMetadataShift;
 extern uintptr_t  XAddressMetadataMask;
 

@@ -41,6 +41,11 @@ const size_t      ZVirtualToPhysicalRatio       = 16; // 16:1
 // Max virtual memory ranges
 const size_t      ZMaxVirtualReservations       = 100; // Each reservation at least 1% of total
 
+// There are a number of implicit assumptions in the code that currently
+// restricts the number of offset bits to be at most 44 bits. One example is
+// the bit layout of ZForwardingEntry.
+const size_t      ZMaxAddressOffsetBits         = 44;
+
 // Page size shifts
 const size_t      ZPageSizeSmallShift           = ZGranuleSizeShift;
 extern size_t     ZPageSizeMediumShift;
