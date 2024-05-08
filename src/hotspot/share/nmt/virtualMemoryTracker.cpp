@@ -340,6 +340,8 @@ bool VirtualMemoryTracker::add_reserved_region(address base_addr, size_t size,
   assert(base_addr != nullptr, "Invalid address");
   assert(size > 0, "Invalid size");
   assert(_reserved_regions != nullptr, "Sanity check");
+  assert(flag != mtNone, "Must provide a valid MEMFLAG");
+
   ReservedMemoryRegion  rgn(base_addr, size, stack, flag);
   ReservedMemoryRegion* reserved_rgn = _reserved_regions->find(rgn);
 
@@ -436,6 +438,7 @@ bool VirtualMemoryTracker::add_committed_region(address addr, size_t size,
   assert(addr != nullptr, "Invalid address");
   assert(size > 0, "Invalid size");
   assert(_reserved_regions != nullptr, "Sanity check");
+  assert(flag != mtNone, "Must provide a valid MEMFLAG");
 
   ReservedMemoryRegion  rgn(addr, size, stack, flag);
   ReservedMemoryRegion* reserved_rgn = _reserved_regions->find(rgn);

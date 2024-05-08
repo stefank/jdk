@@ -78,7 +78,7 @@ ReservedSpace::ReservedSpace(char* base, size_t size, size_t alignment, size_t p
                              bool special, bool executable, MEMFLAGS flag) : _fd_for_heap(-1), _flag(flag) {
   assert((size % os::vm_allocation_granularity()) == 0,
          "size not allocation aligned");
-  initialize_members(base, size, alignment, page_size, special, executable, flag);
+  initialize_members(base, size, alignment, page_size, special, executable);
 }
 
 // Helper method
@@ -203,19 +203,21 @@ static char* reserve_memory_special(char* requested_address, const size_t size,
 }
 
 void ReservedSpace::clear_members() {
-  initialize_members(nullptr, 0, 0, 0, false, false, mtNone);
+  initialize_members(nullptr, 0, 0, 0, false, false);
 }
 
 void ReservedSpace::initialize_members(char* base, size_t size, size_t alignment,
-                                       size_t page_size, bool special, bool executable, MEMFLAGS flag) {
+                                       size_t page_size, bool special, bool executable) {
   _base = base;
   _size = size;
   _noaccess_prefix = 0;
-  _alignment = alignment;
   _page_size = page_size;
   _special = special;
+
+  // _fd_for_heap
+  _alignment = alignment;
   _executable = executable;
-  _flag = flag;
+  // _flag
 }
 
 void ReservedSpace::reserve(size_t size,
@@ -239,7 +241,7 @@ void ReservedSpace::reserve(size_t size,
     // So UseLargePages is not taken into account for this reservation.
     char* base = reserve_memory(requested_address, size, alignment, _fd_for_heap, executable, _flag);
     if (base != nullptr) {
-      initialize_members(base, size, alignment, os::vm_page_size(), true, executable, _flag);
+      initialize_members(base, size, alignment, os::vm_page_size(), true, executable);
     }
     // Always return, not possible to fall back to reservation not using a file.
     return;
@@ -255,7 +257,7 @@ void ReservedSpace::reserve(size_t size,
       char* base = reserve_memory_special(requested_address, size, alignment, page_size, executable, _flag);
       if (base != nullptr) {
         // Successful reservation using large pages.
-        initialize_members(base, size, alignment, page_size, true, executable, _flag);
+        initialize_members(base, size, alignment, page_size, true, executable);
         return;
       }
       page_size = os::page_sizes().next_smaller(page_size);
@@ -271,7 +273,7 @@ void ReservedSpace::reserve(size_t size,
   char* base = reserve_memory(requested_address, size, alignment, -1, executable, _flag);
   if (base != nullptr) {
     // Successful mapping.
-    initialize_members(base, size, alignment, page_size, false, executable, _flag);
+    initialize_members(base, size, alignment, page_size, false, executable);
   }
 }
 
@@ -651,7 +653,7 @@ ReservedHeapSpace::ReservedHeapSpace(size_t size, size_t alignment, size_t page_
       establish_noaccess_prefix();
     }
   } else {
-    initialize(size, alignment, page_size, nullptr, false, nmt_flag());
+    initialize(size, alignment, page_size, nullptr, false, _flag);
   }
 
   assert(markWord::encode_pointer_as_mark(_base).decode_pointer() == _base,

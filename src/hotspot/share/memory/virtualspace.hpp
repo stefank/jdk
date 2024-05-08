@@ -54,12 +54,17 @@ class ReservedSpace {
   // require special treatment:
   //  * _fd_for_heap     - The fd is set once and should not be cleared
   //                       even if the reservation has to be retried.
+  //  * _flag
+  //
+  //  * _executable
+  //  * _alignment
+  //
   //  * _noaccess_prefix - Used for compressed heaps and updated after
   //                       the reservation is initialized. Always set to
   //                       0 during initialization.
   void clear_members();
   void initialize_members(char* base, size_t size, size_t alignment,
-                          size_t page_size, bool special, bool executable, MEMFLAGS flag);
+                          size_t page_size, bool special, bool executable);
 
   void initialize(size_t size, size_t alignment, size_t page_size,
                   char* requested_address, bool executable, MEMFLAGS flag);
@@ -68,7 +73,7 @@ class ReservedSpace {
                char* requested_address, bool executable);
  public:
 
-  MEMFLAGS nmt_flag() const { return _flag; }
+  MEMFLAGS nmt_flag() const { assert(is_reserved(), "Uninitialized?"); assert(_flag != mtNone, "apa"); return _flag; }
 
   // Constructor
   ReservedSpace();
@@ -85,13 +90,13 @@ class ReservedSpace {
 
   // Accessors
   char*  base()            const { return _base;      }
-  size_t size()            const { return _size;      }
-  char*  end()             const { return _base + _size; }
-  size_t alignment()       const { return _alignment; }
-  size_t page_size()       const { return _page_size; }
-  bool   special()         const { return _special;   }
-  bool   executable()      const { return _executable;   }
-  size_t noaccess_prefix() const { return _noaccess_prefix;   }
+  size_t size()            const { assert(is_reserved(), "Uninitialized?"); return _size;      }
+  char*  end()             const { assert(is_reserved(), "Uninitialized?"); return _base + _size; }
+  size_t alignment()       const { assert(is_reserved(), "Uninitialized?"); return _alignment; }
+  size_t page_size()       const { assert(is_reserved(), "Uninitialized?"); return _page_size; }
+  bool   special()         const { assert(is_reserved(), "Uninitialized?"); return _special;   }
+  bool   executable()      const { assert(is_reserved(), "Uninitialized?"); return _executable;   }
+  size_t noaccess_prefix() const { assert(is_reserved(), "Uninitialized?"); return _noaccess_prefix;   }
   bool is_reserved()       const { return _base != nullptr; }
   void release();
 
