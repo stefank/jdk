@@ -451,7 +451,7 @@ void ConstMethod::print_on(outputStream* st) const {
     m->print_value_on(st);
   }
   st->cr();
-  st->print(" - flags:            0x%x  ", _flags.as_int()); _flags.print_on(st); st->cr();
+  st->print(" - flags:            0x%x  ", _flags.as_u4()); _flags.print_on(st); st->cr();
   if (has_stackmap_table()) {
     st->print(" - stackmap data:    ");
     stackmap_data()->print_value_on(st);

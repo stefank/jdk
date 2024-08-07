@@ -55,25 +55,22 @@ class DeoptResourceMark;
 class InternalOOMEMark;
 class JNIHandleBlock;
 class JVMCIRuntime;
-
+class JavaThread;
+class javaVFrame;
 class JvmtiDeferredUpdates;
 class JvmtiSampledObjectAllocEventCollector;
 class JvmtiThreadState;
-
 class Metadata;
+class OSThread;
 class OopHandleList;
 class OopStorage;
-class OSThread;
-
-class ThreadsList;
+class RegisterMap;
 class ThreadSafepointState;
 class ThreadStatistics;
-
-class vframeArray;
+class ThreadsList;
 class vframe;
-class javaVFrame;
+class vframeArray;
 
-class JavaThread;
 typedef void (*ThreadFunction)(JavaThread*, TRAPS);
 
 class JavaThread: public Thread {

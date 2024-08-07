@@ -60,7 +60,7 @@ public:
     {
       assert(type != T_METADATA, "wrong constructor");
       _v._value = value;
-      _alignment = type == T_VOID ? sizeof(jobject) : type2aelembytes(type);
+      _alignment = type == T_VOID ? (int)sizeof(jobject) : type2aelembytes(type);
     }
     Constant(Metadata* metadata, bool can_be_reused = true) :
       _type(T_METADATA),
@@ -124,7 +124,7 @@ private:
   // We use negative frequencies to keep the order of the
   // jump-tables in which they were added.  Otherwise we get into
   // trouble with relocation.
-  float next_jump_table_freq() { return -1.0f * (++_nof_jump_tables); }
+  float next_jump_table_freq() { return -1.0f * (float)(++_nof_jump_tables); }
 
 public:
   ConstantTable() :

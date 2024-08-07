@@ -312,8 +312,8 @@ inline int randomParkAndMiller(int *seed0) {
 }
 
 template<class E, MEMFLAGS F, unsigned int N>
-int GenericTaskQueue<E, F, N>::next_random_queue_id() {
-  return randomParkAndMiller(&_seed);
+uint GenericTaskQueue<E, F, N>::next_random_queue_id() {
+  return signed_cast(randomParkAndMiller(&_seed));
 }
 
 template<class T, MEMFLAGS F>

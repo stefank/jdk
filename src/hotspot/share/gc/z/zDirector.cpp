@@ -172,7 +172,7 @@ static ZDriverRequest rule_minor_allocation_rate_dynamic(const ZDirectorStats& s
   const double alloc_rate_sd_percent = alloc_rate_sd / (alloc_rate_avg + 1.0);
   const double alloc_rate_conservative = (MAX2(alloc_rate_predict, alloc_rate_avg) * ZAllocationSpikeTolerance) + (alloc_rate_sd * one_in_1000) + 1.0;
   const double alloc_rate = conservative_alloc_rate ? alloc_rate_conservative : alloc_rate_stats._avg;
-  const double time_until_oom = (free / alloc_rate) / (1.0 + alloc_rate_sd_percent);
+  const double time_until_oom = ((double)free / alloc_rate) / (1.0 + alloc_rate_sd_percent);
 
   // Calculate max serial/parallel times of a GC cycle. The times are
   // moving averages, we add ~3.3 sigma to account for the variance.
@@ -271,7 +271,7 @@ static bool rule_minor_allocation_rate_static(const ZDirectorStats& stats) {
   // that a sample is outside of the confidence interval.
   const ZStatMutatorAllocRateStats alloc_rate_stats = stats._mutator_alloc_rate;
   const double max_alloc_rate = (alloc_rate_stats._avg * ZAllocationSpikeTolerance) + (alloc_rate_stats._sd * one_in_1000);
-  const double time_until_oom = free / (max_alloc_rate + 1.0); // Plus 1.0B/s to avoid division by zero
+  const double time_until_oom = (double)free / (max_alloc_rate + 1.0); // Plus 1.0B/s to avoid division by zero
 
   // Calculate max serial/parallel times of a GC cycle. The times are
   // moving averages, we add ~3.3 sigma to account for the variance.
@@ -425,8 +425,8 @@ static bool rule_major_warmup(const ZDirectorStats& stats) {
   // duration, which is needed by the other rules.
   const size_t soft_max_capacity = stats._heap._soft_max_heap_size;
   const size_t used = stats._heap._used;
-  const double used_threshold_percent = (stats._old_stats._cycle._nwarmup_cycles + 1) * 0.1;
-  const size_t used_threshold = (size_t)(soft_max_capacity * used_threshold_percent);
+  const double used_threshold_percent = double(stats._old_stats._cycle._nwarmup_cycles + 1) * 0.1;
+  const size_t used_threshold = (size_t)(double(soft_max_capacity) * used_threshold_percent);
 
   log_debug(gc, director)("Rule Major: Warmup %.0f%%, Used: " SIZE_FORMAT "MB, UsedThreshold: " SIZE_FORMAT "MB",
                           used_threshold_percent * 100, used / M, used_threshold / M);
@@ -467,7 +467,7 @@ static double calculate_extra_young_gc_time(const ZDirectorStats& stats) {
   // Calculate extra time per young collection inflicted by *not* doing an
   // old collection that frees up memory in the old generation.
   const double extra_young_gc_time_per_bytes_freed = current_young_gc_time_per_bytes_freed - potential_young_gc_time_per_bytes_freed;
-  const double extra_young_gc_time = extra_young_gc_time_per_bytes_freed * (reclaimed_per_young_gc + old_garbage);
+  const double extra_young_gc_time = extra_young_gc_time_per_bytes_freed * double(reclaimed_per_young_gc + old_garbage);
 
   return extra_young_gc_time;
 }
@@ -565,7 +565,7 @@ static bool rule_major_proactive(const ZDirectorStats& stats) {
   // passed since the previous GC. This helps avoid superfluous GCs when running
   // applications with very low allocation rate.
   const size_t used_after_last_gc = stats._old_stats._stat_heap._used_at_relocate_end;
-  const size_t used_increase_threshold = (size_t)(stats._heap._soft_max_heap_size * 0.10); // 10%
+  const size_t used_increase_threshold = (size_t)((double)stats._heap._soft_max_heap_size * 0.10); // 10%
   const size_t used_threshold = used_after_last_gc + used_increase_threshold;
   const size_t used = stats._heap._used;
   const double time_since_last_gc = stats._old_stats._cycle._time_since_last;

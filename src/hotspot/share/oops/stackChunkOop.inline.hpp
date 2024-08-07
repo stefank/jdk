@@ -248,7 +248,7 @@ inline void* stackChunkOopDesc::gc_data() const {
 inline BitMapView stackChunkOopDesc::bitmap() const {
   HeapWord* bitmap_addr = static_cast<HeapWord*>(gc_data());
   int stack_sz = stack_size();
-  size_t bitmap_size_in_bits = InstanceStackChunkKlass::bitmap_size_in_bits(stack_sz);
+  size_t bitmap_size_in_bits = InstanceStackChunkKlass::bitmap_size_in_bits(signed_cast(stack_sz));
 
   BitMapView bitmap((BitMap::bm_word_t*)bitmap_addr, bitmap_size_in_bits);
 
@@ -265,7 +265,7 @@ template <typename OopT>
 inline BitMap::idx_t stackChunkOopDesc::bit_index_for(OopT* p) const {
   assert(is_aligned(p, alignof(OopT)), "should be aligned: " PTR_FORMAT, p2i(p));
   assert(p >= (OopT*)start_address(), "Address not in chunk");
-  return p - (OopT*)start_address();
+  return pointer_delta(p, (OopT*)start_address(), sizeof(OopT));
 }
 
 inline intptr_t* stackChunkOopDesc::address_for_bit(BitMap::idx_t index) const {
@@ -343,7 +343,7 @@ inline void stackChunkOopDesc::copy_from_stack_to_chunk(intptr_t* from, intptr_t
   // to figure out the argument is always null and then warn about it.
   if (to != nullptr)
 #endif
-  memcpy(to, from, size << LogBytesPerWord);
+    memcpy(to, from, (size_t)size << LogBytesPerWord);
 }
 
 inline void stackChunkOopDesc::copy_from_chunk_to_stack(intptr_t* from, intptr_t* to, int size) {
@@ -362,7 +362,7 @@ inline void stackChunkOopDesc::copy_from_chunk_to_stack(intptr_t* from, intptr_t
   // to figure out the argument is always null and then warn about it.
   if (to != nullptr)
 #endif
-  memcpy(to, from, size << LogBytesPerWord);
+    memcpy(to, from, (size_t)size << LogBytesPerWord);
 }
 
 template <typename OopT>

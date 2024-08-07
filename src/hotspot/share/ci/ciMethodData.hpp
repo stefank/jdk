@@ -196,13 +196,13 @@ public:
 
   void set_receiver(uint row, ciKlass* recv) {
     assert((uint)row < row_limit(), "oob");
-    set_intptr_at(receiver0_offset + row * receiver_type_row_cell_count,
+    set_intptr_at(receiver0_offset + signed_cast(row) * receiver_type_row_cell_count,
                   (intptr_t) recv);
   }
 
   ciKlass* receiver(uint row) const {
     assert((uint)row < row_limit(), "oob");
-    ciKlass* recv = (ciKlass*)intptr_at(receiver0_offset + row * receiver_type_row_cell_count);
+    ciKlass* recv = (ciKlass*)intptr_at(receiver0_offset + signed_cast(row) * receiver_type_row_cell_count);
     assert(recv == nullptr || recv->is_klass(), "wrong type");
     return recv;
   }
@@ -425,7 +425,7 @@ private:
   void print_impl(outputStream* st);
 
   DataLayout* data_layout_at(int data_index) const {
-    assert(data_index % sizeof(intptr_t) == 0, "unaligned: %d", data_index);
+    assert(is_aligned(data_index, sizeof(intptr_t)), "unaligned: %d", data_index);
     return (DataLayout*) (((address)_data) + data_index);
   }
 

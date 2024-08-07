@@ -82,9 +82,9 @@ class UnhandledOops : public CHeapObj<mtThread> {
 };
 
 #ifdef _LP64
-const intptr_t BAD_OOP_ADDR =  0xfffffffffffffff1;
+const intptr_t BAD_OOP_ADDR =  (intptr_t)0xfffffffffffffff1;
 #else
-const intptr_t BAD_OOP_ADDR =  0xfffffff1;
+const intptr_t BAD_OOP_ADDR =  (intptr_t)0xfffffff1;
 #endif // _LP64
 #endif // CHECK_UNHANDLED_OOPS
 

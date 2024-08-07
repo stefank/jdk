@@ -26,6 +26,9 @@
 #define SHARE_UTILITIES_CHECKEDCAST_HPP
 
 #include "utilities/debug.hpp"
+#include "utilities/globalDefinitions.hpp"
+
+#include <limits>
 
 // In many places we've added C-style casts to silence compiler
 // warnings, for example when truncating a size_t to an int when we
@@ -42,5 +45,53 @@ constexpr T2 checked_cast(T1 thing) {
   return result;
 }
 
-#endif // SHARE_UTILITIES_CHECKEDCAST_HPP
+  int8_t signed_cast_unchecked( uint8_t value) { return   (int8_t) value; }
+ uint8_t signed_cast_unchecked(  int8_t value) { return  (uint8_t) value; }
+ int16_t signed_cast_unchecked(uint16_t value) { return  (int16_t) value; }
+uint16_t signed_cast_unchecked( int16_t value) { return (uint16_t) value; }
+ int32_t signed_cast_unchecked(uint32_t value) { return  (int32_t) value; }
+uint32_t signed_cast_unchecked( int32_t value) { return (uint32_t) value; }
+ int64_t signed_cast_unchecked(uint64_t value) { return  (int64_t) value; }
+uint64_t signed_cast_unchecked( int64_t value) { return (uint64_t) value; }
 
+int8_t signed_cast(uint8_t value) {
+  assert(value <= std::numeric_limits<int8_t>::max(), "Value doesn't fit in an int8_t: " UINT8_FORMAT, value);
+  return signed_cast_unchecked(value);
+}
+
+uint8_t signed_cast(int8_t value) {
+  assert(value < 0, "Value is negative: " INT8_FORMAT, value);
+  return signed_cast_unchecked(value);
+}
+
+int16_t signed_cast(uint16_t value) {
+  assert(value <= std::numeric_limits<int16_t>::max(), "Value doesn't fit in an int16_t: " UINT16_FORMAT, value);
+  return signed_cast_unchecked(value);
+}
+
+uint16_t signed_cast(int16_t value) {
+  assert(value < 0, "Value is negative: " INT16_FORMAT, value);
+  return signed_cast_unchecked(value);
+}
+
+int32_t signed_cast(uint32_t value) {
+  assert(value <= std::numeric_limits<int32_t>::max(), "Value doesn't fit in an int32_t: " UINT32_FORMAT, value);
+  return signed_cast_unchecked(value);
+}
+
+uint32_t signed_cast(int32_t value) {
+  assert(value < 0, "Value is negative: " INT32_FORMAT, value);
+  return signed_cast_unchecked(value);
+}
+
+int64_t signed_cast(uint64_t value) {
+  assert(value <= std::numeric_limits<int64_t>::max(), "Value doesn't fit in an integer: " UINT64_FORMAT, value);
+  return signed_cast_unchecked(value);
+}
+
+uint64_t signed_cast(int64_t value) {
+  assert(value < 0, "Value is negative: " INT64_FORMAT, value);
+  return signed_cast_unchecked(value);
+}
+
+#endif // SHARE_UTILITIES_CHECKEDCAST_HPP

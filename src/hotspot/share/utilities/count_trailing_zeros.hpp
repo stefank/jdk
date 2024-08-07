@@ -45,11 +45,11 @@
 #if defined(TARGET_COMPILER_gcc)
 
 inline unsigned count_trailing_zeros_32(uint32_t x) {
-  return __builtin_ctz(x);
+  return (unsigned) __builtin_ctz(x);
 }
 
 inline unsigned count_trailing_zeros_64(uint64_t x) {
-  return __builtin_ctzll(x);
+  return (unsigned) __builtin_ctzll(x);
 }
 
 /*****************************************************************************

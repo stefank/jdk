@@ -2289,7 +2289,7 @@ void Method::print_on(outputStream* st) const {
   st->print   (" - constants:         " PTR_FORMAT " ", p2i(constants()));
   constants()->print_value_on(st); st->cr();
   st->print   (" - access:            0x%x  ", access_flags().as_int()); access_flags().print_on(st); st->cr();
-  st->print   (" - flags:             0x%x  ", _flags.as_int()); _flags.print_on(st); st->cr();
+  st->print   (" - flags:             0x%x  ", _flags.as_u4()); _flags.print_on(st); st->cr();
   st->print   (" - name:              ");    name()->print_value_on(st); st->cr();
   st->print   (" - signature:         ");    signature()->print_value_on(st); st->cr();
   st->print_cr(" - max stack:         %d",   max_stack());

@@ -40,7 +40,7 @@ class instanceOopDesc : public oopDesc {
   static int base_offset_in_bytes() {
     return (UseCompressedClassPointers) ?
             klass_gap_offset_in_bytes() :
-            sizeof(instanceOopDesc);
+            (int)sizeof(instanceOopDesc);
 
   }
 };

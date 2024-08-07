@@ -880,9 +880,8 @@ private:
                                              _dead_node_count = 0;
                                            }
   uint          live_nodes() const         {
-    int  val = _unique - _dead_node_count;
-    assert (val >= 0, "number of tracked dead nodes %d more than created nodes %d", _unique, _dead_node_count);
-            return (uint) val;
+    assert (_unique >= _dead_node_count, "number of tracked dead nodes %d more than created nodes %d", _unique, _dead_node_count);
+    return _unique - _dead_node_count;
                                            }
 #ifdef ASSERT
   void         set_phase_optimize_finished() { _phase_optimize_finished = true; }
@@ -955,8 +954,8 @@ private:
   AliasType*        alias_type(ciField*         field);
 
   int               get_alias_index(const TypePtr* at)  { return alias_type(at)->index(); }
-  const TypePtr*    get_adr_type(uint aidx)             { return alias_type(aidx)->adr_type(); }
-  int               get_general_index(uint aidx)        { return alias_type(aidx)->general_index(); }
+  const TypePtr*    get_adr_type(uint aidx)             { return alias_type(signed_cast(aidx))->adr_type(); }
+  int               get_general_index(uint aidx)        { return alias_type(signed_cast(aidx))->general_index(); }
 
   // Building nodes
   void              rethrow_exceptions(JVMState* jvms);

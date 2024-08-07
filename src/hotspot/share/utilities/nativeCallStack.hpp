@@ -63,7 +63,7 @@ public:
 
   enum class FakeMarker { its_fake };
 #ifdef ASSERT
-  static constexpr uintptr_t _fake_address = -2; // 0xFF...FE
+  static constexpr uintptr_t _fake_address = (uintptr_t)-2; // 0xFF...FE
   inline void assert_not_fake() const {
     assert(_stack[0] != (address)_fake_address, "Must not be a fake stack");
   }

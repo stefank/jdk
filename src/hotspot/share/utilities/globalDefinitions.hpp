@@ -104,11 +104,15 @@ class oopDesc;
 // just like the _X_0 version for integers.
 
 // Format 8-bit quantities.
+#define INT8_FORMAT              "%"          PRId8
 #define INT8_FORMAT_X_0          "0x%02"      PRIx8
+#define UINT8_FORMAT             "%"          PRIu8
 #define UINT8_FORMAT_X_0         "0x%02"      PRIx8
 
 // Format 16-bit quantities.
+#define INT16_FORMAT             "%"          PRId16
 #define INT16_FORMAT_X_0         "0x%04"      PRIx16
+#define UINT16_FORMAT            "%"          PRIu16
 #define UINT16_FORMAT_X_0        "0x%04"      PRIx16
 
 // Format 32-bit quantities.
@@ -308,8 +312,8 @@ inline jdouble jdouble_cast(jlong x);
 #define CONST64(x)  (x ## LL)
 #define UCONST64(x) (x ## ULL)
 
-const jlong min_jlong = CONST64(0x8000000000000000);
-const jlong max_jlong = CONST64(0x7fffffffffffffff);
+const jlong min_jlong = std::numeric_limits<int64_t>::min();
+const jlong max_jlong = std::numeric_limits<int64_t>::max();
 
 //-------------------------------------------
 // Constant for jdouble
@@ -1071,8 +1075,9 @@ const intptr_t OneBit     =  1; // only right_most bit set in a word
 // bit-operations using a mask m
 inline void   set_bits    (intptr_t& x, intptr_t m) { x |= m; }
 inline void clear_bits    (intptr_t& x, intptr_t m) { x &= ~m; }
-inline intptr_t mask_bits      (intptr_t  x, intptr_t m) { return x & m; }
-inline jlong    mask_long_bits (jlong     x, jlong    m) { return x & m; }
+inline intptr_t  mask_bits     (intptr_t  x, intptr_t  m) { return x & m; }
+inline uintptr_t mask_bits_u   (uintptr_t x, uintptr_t m) { return x & m; }
+inline jlong    mask_long_bits (jlong     x, jlong     m) { return x & m; }
 inline bool mask_bits_are_true (intptr_t flags, intptr_t mask) { return (flags & mask) == mask; }
 
 // bit-operations using the n.th bit
@@ -1227,7 +1232,7 @@ inline jlong java_negate(jlong v) { return java_subtract((jlong)0, v); }
 // the same safe conversion technique as above for java_add and friends.
 #define JAVA_INTEGER_SHIFT_OP(OP, NAME, TYPE, XTYPE)    \
 inline TYPE NAME (TYPE lhs, jint rhs) {                 \
-  const uint rhs_mask = (sizeof(TYPE) * 8) - 1;         \
+  const int rhs_mask = (sizeof(TYPE) * 8) - 1;          \
   STATIC_ASSERT(rhs_mask == 31 || rhs_mask == 63);      \
   XTYPE xres = static_cast<XTYPE>(lhs);                 \
   xres OP ## = (rhs & rhs_mask);                        \
@@ -1285,9 +1290,9 @@ SATURATED_INTEGER_OP(+, saturated_add, uint, uint)
 // Taken from rom section 8-2 of Henry S. Warren, Jr., Hacker's Delight (2nd ed.) (Addison Wesley, 2013), 173-174.
 inline uint64_t multiply_high_unsigned(const uint64_t x, const uint64_t y) {
   const uint64_t x1 = x >> 32u;
-  const uint64_t x2 = x & 0xFFFFFFFF;
+  const uint64_t x2 = x & 0xFFFFFFFFu;
   const uint64_t y1 = y >> 32u;
-  const uint64_t y2 = y & 0xFFFFFFFF;
+  const uint64_t y2 = y & 0xFFFFFFFFu;
   const uint64_t z2 = x2 * y2;
   const uint64_t t = x1 * y2 + (z2 >> 32u);
   uint64_t z1 = t & 0xFFFFFFFF;
@@ -1300,18 +1305,18 @@ inline uint64_t multiply_high_unsigned(const uint64_t x, const uint64_t y) {
 // Taken from java.lang.Math::multiplyHigh which uses the technique from section 8-2 of Henry S. Warren, Jr.,
 // Hacker's Delight (2nd ed.) (Addison Wesley, 2013), 173-174 but adapted for signed longs.
 inline int64_t multiply_high_signed(const int64_t x, const int64_t y) {
-  const jlong x1 = java_shift_right((jlong)x, 32);
-  const jlong x2 = x & 0xFFFFFFFF;
-  const jlong y1 = java_shift_right((jlong)y, 32);
-  const jlong y2 = y & 0xFFFFFFFF;
+  const int64_t x1 = java_shift_right(x, 32);
+  const int64_t x2 = x & 0xFFFFFFFF;
+  const int64_t y1 = java_shift_right(y, 32);
+  const int64_t y2 = y & 0xFFFFFFFF;
 
-  const uint64_t z2 = (uint64_t)x2 * y2;
-  const int64_t t = x1 * y2 + (z2 >> 32u); // Unsigned shift
+  const uint64_t z2 = (uint64_t)x2 * (uint64_t)y2;
+  const int64_t t = x1 * y2 + (int64_t)(z2 >> 32u); // Unsigned shift
   int64_t z1 = t & 0xFFFFFFFF;
-  const int64_t z0 = java_shift_right((jlong)t, 32);
+  const int64_t z0 = java_shift_right(t, 32);
   z1 += x2 * y1;
 
-  return x1 * y1 + z0 + java_shift_right((jlong)z1, 32);
+  return x1 * y1 + z0 + java_shift_right(z1, 32);
 }
 
 // Dereference vptr

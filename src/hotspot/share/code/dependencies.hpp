@@ -102,7 +102,7 @@ class Dependencies: public ResourceObj {
   // responsible for re-evaluating changed dependencies whose context
   // type now includes N, that is, all super types of N.
   //
-  enum DepType {
+  enum DepType : int {
     end_marker = 0,
 
     // An 'evol' dependency simply notes that the contents of the
@@ -154,7 +154,7 @@ class Dependencies: public ResourceObj {
 
     TYPE_LIMIT
   };
-  enum {
+  enum : int {
     LG2_TYPE_LIMIT = 4,  // assert(TYPE_LIMIT <= (1<<LG2_TYPE_LIMIT))
 
     // handy categorizations of dependency types:
@@ -265,7 +265,7 @@ class Dependencies: public ResourceObj {
 
   bool note_dep_seen(int dept, ciBaseObject* x) {
     assert(dept < BitsPerInt, "oob");
-    int x_id = x->ident();
+    int x_id = signed_cast(x->ident());
     assert(_dep_seen != nullptr, "deps must be writable");
     int seen = _dep_seen->at_grow(x_id, 0);
     _dep_seen->at_put(x_id, seen | (1<<dept));
@@ -598,7 +598,7 @@ class Dependencies: public ResourceObj {
         _deps(nullptr),
         _bytes(code->dependencies_begin())
     {
-      initial_asserts(code->dependencies_size());
+      initial_asserts(signed_cast(code->dependencies_size()));
     }
 
     bool next();

@@ -56,7 +56,7 @@ static constexpr auto alignment_mask(T alignment) {
 
 template<typename T, typename A, ENABLE_IF(std::is_integral<T>::value)>
 constexpr bool is_aligned(T size, A alignment) {
-  return (size & alignment_mask(alignment)) == 0;
+  return (size & checked_cast<T>(alignment_mask(alignment))) == 0;
 }
 
 template<typename T, typename A, ENABLE_IF(std::is_integral<T>::value)>
@@ -72,7 +72,7 @@ constexpr T align_down(T size, A alignment) {
 
 template<typename T, typename A, ENABLE_IF(std::is_integral<T>::value)>
 constexpr T align_up(T size, A alignment) {
-  T adjusted = checked_cast<T>(size + alignment_mask(alignment));
+  T adjusted = size + checked_cast<T>(alignment_mask(alignment));
   return align_down(adjusted, alignment);
 }
 
@@ -107,13 +107,12 @@ inline T align_metadata_size(T size) {
 }
 
 // Align objects in the Java Heap by rounding up their size, in HeapWord units.
-template <typename T>
-inline T align_object_size(T word_size) {
-  return align_up(word_size, MinObjAlignment);
+inline size_t align_object_size(size_t word_size) {
+  return align_up(word_size, (size_t)MinObjAlignment);
 }
 
 inline bool is_object_aligned(size_t word_size) {
-  return is_aligned(word_size, MinObjAlignment);
+  return is_aligned(word_size, (size_t)MinObjAlignment);
 }
 
 inline bool is_object_aligned(const void* addr) {

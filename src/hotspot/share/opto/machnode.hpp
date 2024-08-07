@@ -247,7 +247,7 @@ public:
                              AVOID_BEFORE_AND_AFTER = AVOID_BEFORE | AVOID_AFTER };
 
   bool avoid_back_to_back(AvoidBackToBackFlag flag_value) const {
-    return (flags() & flag_value) == flag_value;
+    return (flags() & checked_cast<juint>(flag_value)) == flag_value;
   }
 
   // instruction implemented with a call
@@ -861,11 +861,11 @@ public:
  }
   Node *monitor_obj(const JVMState* jvms, uint idx) const {
     assert(verify_jvms(jvms), "jvms must match");
-    return in(_jvmadj + jvms->monitor_obj_offset(idx));
+    return in(_jvmadj + signed_cast(jvms->monitor_obj_offset(signed_cast(idx))));
   }
   Node *monitor_box(const JVMState* jvms, uint idx) const {
     assert(verify_jvms(jvms), "jvms must match");
-    return in(_jvmadj + jvms->monitor_box_offset(idx));
+    return in(_jvmadj + signed_cast(jvms->monitor_box_offset(signed_cast(idx))));
   }
   Node* scalarized_obj(const JVMState* jvms, uint idx) const {
     assert(verify_jvms(jvms), "jvms must match");

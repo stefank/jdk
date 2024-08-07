@@ -353,7 +353,7 @@ class NativeMovRegMem: public NativeInstruction {
   }
 
   int num_bytes_to_end_of_patch() const {
-    return patch_offset() + sizeof(jint);
+    return patch_offset() + (int)sizeof(jint);
   }
 
   int offset() const {
@@ -448,7 +448,8 @@ class NativeJump: public NativeInstruction {
       val = -5; // jump to self
     }
 #ifdef AMD64
-    assert((labs(val)  & 0xFFFFFFFF00000000) == 0 || dest == (address)-1, "must be 32bit offset or -1");
+    STATIC_ASSERT(sizeof(long) == 8); // labs return long
+    assert((labs(val) & (int64_t)0xFFFFFFFF00000000) == 0 || dest == (address)-1, "must be 32bit offset or -1");
 #endif // AMD64
     set_int_at(data_offset, (jint)val);
   }

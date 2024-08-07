@@ -85,22 +85,22 @@ class Location {
   }
 
   inline void set(Where where_, Type type_, unsigned offset_) {
-    _value = (juint) ((where_  << WHERE_SHIFT) |
-                      (type_   << TYPE_SHIFT)  |
+    _value = (juint) (signed_cast_unchecked(where_  << WHERE_SHIFT) |
+                      signed_cast_unchecked(type_   << TYPE_SHIFT)  |
                       ((offset_ << OFFSET_SHIFT) & OFFSET_MASK));
   }
 
  public:
 
   // Stack location Factory.  Offset is 4-byte aligned; remove low bits
-  static Location new_stk_loc( Type t, int offset ) { return Location(on_stack,t,offset>>LogBytesPerInt); }
+  static Location new_stk_loc(Type t, int offset) { return Location(on_stack, t, signed_cast_unchecked(offset >> LogBytesPerInt)); }
   // Register location Factory
-  static Location new_reg_loc( Type t, VMReg reg ) { return Location(in_register, t, reg->value()); }
+  static Location new_reg_loc(Type t, VMReg reg)  { return Location(in_register, t, signed_cast_unchecked(reg->value())); }
   // Default constructor
   Location() { set(on_stack,invalid,0); }
 
   // Bit field accessors
-  Where where()  const { return (Where)       ((_value & WHERE_MASK)  >> WHERE_SHIFT);}
+  Where where()  const { return (Where)       ((_value & WHERE_MASK)  >> WHERE_SHIFT); }
   Type  type()   const { return (Type)        ((_value & TYPE_MASK)   >> TYPE_SHIFT); }
   unsigned offset() const { return (unsigned) ((_value & OFFSET_MASK) >> OFFSET_SHIFT); }
 
@@ -108,10 +108,10 @@ class Location {
   bool is_register() const    { return where() == in_register; }
   bool is_stack() const       { return where() == on_stack;    }
 
-  int stack_offset() const    { assert(where() == on_stack,    "wrong Where"); return offset()<<LogBytesPerInt; }
-  int register_number() const { assert(where() == in_register, "wrong Where"); return offset()   ; }
+  int stack_offset() const    { assert(where() == on_stack,    "wrong Where"); return signed_cast_unchecked(offset() << LogBytesPerInt); }
+  int register_number() const { assert(where() == in_register, "wrong Where"); return signed_cast_unchecked(offset()); }
 
-  VMReg reg() const { assert(where() == in_register, "wrong Where"); return VMRegImpl::as_VMReg(offset())   ; }
+  VMReg reg() const { assert(where() == in_register, "wrong Where"); return VMRegImpl::as_VMReg(signed_cast_unchecked(offset())); }
 
   // Printing
   void print_on(outputStream* st) const;

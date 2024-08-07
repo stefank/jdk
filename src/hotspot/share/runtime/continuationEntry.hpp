@@ -91,7 +91,7 @@ public:
   static ByteSize parent_held_monitor_count_offset() { return byte_offset_of(ContinuationEntry, _parent_held_monitor_count); }
 
 public:
-  static size_t size() { return align_up((int)sizeof(ContinuationEntry), 2*wordSize); }
+  static size_t size() { return align_up(sizeof(ContinuationEntry), 2*wordSize); }
 
   ContinuationEntry* parent() const { return _parent; }
   int64_t parent_held_monitor_count() const { return (int64_t)_parent_held_monitor_count; }

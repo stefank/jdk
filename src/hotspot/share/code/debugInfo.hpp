@@ -404,7 +404,7 @@ class DebugInfoWriteStream : public CompressedWriteStream {
  public:
   DebugInfoWriteStream(DebugInformationRecorder* recorder, int initial_size);
   void write_handle(jobject h);
-  void write_bci(int bci) { write_int(bci - InvocationEntryBci); }
+  void write_bci(int bci) { write_int(signed_cast_unchecked(bci - InvocationEntryBci)); }
 
   void write_metadata(Metadata* m);
 };

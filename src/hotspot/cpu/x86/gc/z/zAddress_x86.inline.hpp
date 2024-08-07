@@ -31,8 +31,8 @@ inline uintptr_t ZPointer::remap_bits(uintptr_t colored) {
 }
 
 inline constexpr int ZPointer::load_shift_lookup(uintptr_t value) {
-  const size_t index = load_shift_lookup_index(value);
-  assert(index == 0 || is_power_of_2(index), "Incorrect load shift: " SIZE_FORMAT, index);
+  const int index = load_shift_lookup_index(value);
+  assert(index == 0 || is_power_of_2(index), "Incorrect load shift: %d", index);
   return ZPointerLoadShiftTable[index];
 }
 

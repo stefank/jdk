@@ -39,6 +39,7 @@
 #include "runtime/mutexLocker.hpp"
 #include "runtime/os.hpp"
 #include "runtime/signature.hpp"
+#include "runtime/safepoint.hpp"
 #include "utilities/stringUtils.hpp"
 #include "utilities/utf8.hpp"
 

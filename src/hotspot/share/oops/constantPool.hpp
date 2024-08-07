@@ -123,8 +123,8 @@ class ConstantPool : public Metadata {
   } _saved;
 
   void set_tags(Array<u1>* tags)                 { _tags = tags; }
-  void tag_at_put(int cp_index, jbyte t)         { tags()->at_put(cp_index, t); }
-  void release_tag_at_put(int cp_index, jbyte t) { tags()->release_at_put(cp_index, t); }
+  void tag_at_put(int cp_index, jbyte t)         { tags()->at_put(cp_index, (u1)t); }
+  void release_tag_at_put(int cp_index, jbyte t) { tags()->release_at_put(cp_index, (u1)t); }
 
   u1* tag_addr_at(int cp_index) const            { return tags()->adr_at(cp_index); }
 
@@ -273,8 +273,8 @@ class ConstantPool : public Metadata {
   void unresolved_klass_at_put(int cp_index, int name_index, int resolved_klass_index) {
     release_tag_at_put(cp_index, JVM_CONSTANT_UnresolvedClass);
 
-    assert((name_index & 0xffff0000) == 0, "must be");
-    assert((resolved_klass_index & 0xffff0000) == 0, "must be");
+    assert((name_index & (int)0xffff0000) == 0, "must be");
+    assert((resolved_klass_index & (int)0xffff0000) == 0, "must be");
     *int_at_addr(cp_index) =
       build_int_from_shorts((jushort)resolved_klass_index, (jushort)name_index);
   }
@@ -372,7 +372,7 @@ class ConstantPool : public Metadata {
 
   // Tag query
 
-  constantTag tag_at(int cp_index) const { return (constantTag)tags()->at_acquire(cp_index); }
+  constantTag tag_at(int cp_index) const { return (jbyte)tags()->at_acquire(cp_index); }
 
   // Fetching constants
 
@@ -385,8 +385,8 @@ class ConstantPool : public Metadata {
     assert(tag_at(cp_index).is_unresolved_klass() || tag_at(cp_index).is_klass(),
            "Corrupted constant pool");
     int value = *int_at_addr(cp_index);
-    int name_index = extract_high_short_from_int(value);
-    int resolved_klass_index = extract_low_short_from_int(value);
+    int name_index = extract_high_short_from_int((u4)value);
+    int resolved_klass_index = extract_low_short_from_int((u4)value);
     return CPKlassSlot(name_index, resolved_klass_index);
   }
 
@@ -475,12 +475,12 @@ class ConstantPool : public Metadata {
   int method_handle_ref_kind_at(int cp_index) {
     assert(tag_at(cp_index).is_method_handle() ||
            tag_at(cp_index).is_method_handle_in_error(), "Corrupted constant pool");
-    return extract_low_short_from_int(*int_at_addr(cp_index));  // mask out unwanted ref_index bits
+    return extract_low_short_from_int((u4)*int_at_addr(cp_index));  // mask out unwanted ref_index bits
   }
   int method_handle_index_at(int cp_index) {
     assert(tag_at(cp_index).is_method_handle() ||
            tag_at(cp_index).is_method_handle_in_error(), "Corrupted constant pool");
-    return extract_high_short_from_int(*int_at_addr(cp_index));  // shift out unwanted ref_kind bits
+    return extract_high_short_from_int((u4)*int_at_addr(cp_index));  // shift out unwanted ref_kind bits
   }
   int method_type_index_at(int cp_index) {
     assert(tag_at(cp_index).is_method_type() ||
@@ -508,11 +508,11 @@ class ConstantPool : public Metadata {
 
   u2 bootstrap_name_and_type_ref_index_at(int cp_index) {
     assert(tag_at(cp_index).has_bootstrap(), "Corrupted constant pool");
-    return extract_high_short_from_int(*int_at_addr(cp_index));
+    return extract_high_short_from_int((u4)*int_at_addr(cp_index));
   }
   u2 bootstrap_methods_attribute_index(int cp_index) {
     assert(tag_at(cp_index).has_bootstrap(), "Corrupted constant pool");
-    return extract_low_short_from_int(*int_at_addr(cp_index));
+    return extract_low_short_from_int((u4)*int_at_addr(cp_index));
   }
   int bootstrap_operand_base(int cp_index) {
     int bsms_attribute_index = bootstrap_methods_attribute_index(cp_index);
@@ -537,8 +537,9 @@ class ConstantPool : public Metadata {
   static void operand_offset_at_put(Array<u2>* operands, int bsms_attribute_index, int offset) {
     int n = bsms_attribute_index * 2;
     assert(n >= 0 && n+2 <= operands->length(), "oob");
-    operands->at_put(n+0, extract_low_short_from_int(offset));
-    operands->at_put(n+1, extract_high_short_from_int(offset));
+
+    operands->at_put(n+0, extract_low_short_from_int((u4)offset));
+    operands->at_put(n+1, extract_high_short_from_int((u4)offset));
   }
   static int operand_array_length(Array<u2>* operands) {
     if (operands == nullptr || operands->length() == 0)  return 0;

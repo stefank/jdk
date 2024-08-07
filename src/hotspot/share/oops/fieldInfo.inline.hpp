@@ -57,15 +57,15 @@ inline Symbol* FieldInfo::lookup_symbol(int symbol_index) const {
 inline int FieldInfoStream::num_injected_java_fields(const Array<u1>* fis) {
   FieldInfoReader fir(fis);
   fir.skip(1);
-  return fir.next_uint();
+  return signed_cast(fir.next_uint());
 }
 
 inline int FieldInfoStream::num_total_fields(const Array<u1>* fis) {
   FieldInfoReader fir(fis);
-  return fir.next_uint() + fir.next_uint();
+  return signed_cast(fir.next_uint() + fir.next_uint());
 }
 
-inline int FieldInfoStream::num_java_fields(const Array<u1>* fis) { return FieldInfoReader(fis).next_uint(); }
+inline int FieldInfoStream::num_java_fields(const Array<u1>* fis) { return signed_cast(FieldInfoReader(fis).next_uint()); }
 
 template<typename CON>
 inline void Mapper<CON>::map_field_info(const FieldInfo& fi) {
@@ -98,11 +98,11 @@ inline FieldInfoReader::FieldInfoReader(const Array<u1>* fi)
     _next_index(0) { }
 
 inline void FieldInfoReader::read_field_info(FieldInfo& fi) {
-  fi._index = _next_index++;
+  fi._index = signed_cast(_next_index++);
   fi._name_index = checked_cast<u2>(next_uint());
   fi._signature_index = checked_cast<u2>(next_uint());
   fi._offset = next_uint();
-  fi._access_flags = AccessFlags(next_uint());
+  fi._access_flags = AccessFlags(signed_cast_unchecked(next_uint()));
   fi._field_flags = FieldInfo::FieldFlags(next_uint());
   if (fi._field_flags.is_initialized()) {
     fi._initializer_index = checked_cast<u2>(next_uint());

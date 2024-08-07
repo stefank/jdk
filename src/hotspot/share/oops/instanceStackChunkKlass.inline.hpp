@@ -38,7 +38,7 @@
 #include "utilities/macros.hpp"
 
 inline size_t InstanceStackChunkKlass::instance_size(size_t stack_size_in_words) const {
-  return align_object_size(size_helper() + stack_size_in_words + gc_data_size(stack_size_in_words));
+  return align_object_size(signed_cast(size_helper()) + stack_size_in_words + gc_data_size(stack_size_in_words));
 }
 
 inline size_t InstanceStackChunkKlass::bitmap_size_in_bits(size_t stack_size_in_words) {

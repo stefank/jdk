@@ -30,17 +30,16 @@
 #include "runtime/os.hpp"
 #include "utilities/globalDefinitions.hpp"
 
-
 class ThreadStatisticalInfo {
   // The time stamp the thread was started.
-  const uint64_t _start_time_stamp;
+  const int64_t _start_time_stamp;
   uint64_t _define_class_count;
 
 public:
   ThreadStatisticalInfo() : _start_time_stamp(os::javaTimeNanos()), _define_class_count(0) {}
   uint64_t getDefineClassCount() const { return  _define_class_count; }
   void     incr_define_class_count() { _define_class_count += 1; }
-  uint64_t getElapsedTime() const { return nanos_to_millis(os::javaTimeNanos() - _start_time_stamp); }
+  int64_t getElapsedTime() const { return nanos_to_millis(os::javaTimeNanos() - _start_time_stamp); }
 };
 
 #endif // SHARE_RUNTIME_THREADSTATISTICALINFO_HPP

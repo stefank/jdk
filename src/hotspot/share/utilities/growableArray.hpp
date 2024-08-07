@@ -316,7 +316,7 @@ public:
     int max = length() - 1;
 
     while (max >= min) {
-      int mid = (int)(((uint)max + min) / 2);
+      int mid = (int)(((uint)max + (uint)min) / 2);
       E value = at(mid);
       int diff = compare(key, value);
       if (diff > 0) {
@@ -338,7 +338,7 @@ public:
     int max = length() - 1;
 
     while (max >= min) {
-      int mid = (int)(((uint)max + min) / 2);
+      int mid = (int)(((uint)max + (uint)min) / 2);
       E value = at(mid);
       int diff = cc->do_compare(key, value);
       if (diff > 0) {

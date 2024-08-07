@@ -396,7 +396,7 @@ public:
   // Alignment of stack, measured in stack slots.
   // The size of stack slots is defined by VMRegImpl::stack_slot_size.
   static uint stack_alignment_in_slots() {
-    return stack_alignment_in_bytes() / (VMRegImpl::stack_slot_size);
+    return stack_alignment_in_bytes() / signed_cast(VMRegImpl::stack_slot_size);
   }
 
   // Convert a sig into a calling convention register layout

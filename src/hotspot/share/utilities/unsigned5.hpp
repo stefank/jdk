@@ -178,7 +178,7 @@ class UNSIGNED5 : AllStatic {
     uint32_t lg_H_i = 0;
     for (uint32_t i = 0; ; i++) {  // for i in [1..4]
       if (value <= sum + ((L-1) << lg_H_i) || i == MAX_LENGTH-1) {
-        return i + 1;  // stopping at byte i implies length is i+1
+        return (int)i + 1;  // stopping at byte i implies length is i+1
       }
       sum += (MAX_b - X) << lg_H_i;
       lg_H_i += lg_H;
@@ -398,8 +398,8 @@ class UNSIGNED5 : AllStatic {
   // 32-bit one-to-one sign encoding taken from Pack200
   // converts leading sign bits into leading zeroes with trailing sign bit
   // use this to better compress 32-bit values that might be negative
-  static uint32_t encode_sign(int32_t value) { return ((uint32_t)value << 1) ^ (value >> 31); }
-  static int32_t decode_sign(uint32_t value) { return (value >> 1) ^ -(int32_t)(value & 1); }
+  static uint32_t encode_sign(int32_t value) { return ((uint32_t)value << 1) ^ (uint32_t)(value >> 31); }
+  static int32_t decode_sign(uint32_t value) { return (int32_t)(value >> 1) ^ -(int32_t)(value & 1); }
 
   template<typename ARR, typename OFF, typename GET = ArrayGetSet<ARR,OFF>>
   static OFF print(ARR array, OFF offset = 0, OFF limit = 0,

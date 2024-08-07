@@ -427,7 +427,7 @@ class nmethod : public CodeBlob {
   static oops_do_mark_link* mark_link(nmethod* nm, uint tag) {
     assert(tag <= claim_strong_done_tag, "invalid tag %u", tag);
     assert(is_aligned(nm, 4), "nmethod pointer must have zero lower two LSB");
-    return (oops_do_mark_link*)(((uintptr_t)nm & ~0x3) | tag);
+    return (oops_do_mark_link*)(((uintptr_t)nm & ~(uintptr_t)0x3) | tag);
   }
 
   static uint extract_state(oops_do_mark_link* link) {
@@ -435,7 +435,7 @@ class nmethod : public CodeBlob {
   }
 
   static nmethod* extract_nmethod(oops_do_mark_link* link) {
-    return (nmethod*)((uintptr_t)link & ~0x3);
+    return (nmethod*)((uintptr_t)link & ~(uintptr_t)0x3);
   }
 
   void oops_do_log_change(const char* state);

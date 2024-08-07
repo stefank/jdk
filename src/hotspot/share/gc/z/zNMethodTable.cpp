@@ -144,9 +144,9 @@ void ZNMethodTable::rebuild_if_needed() {
   // grows/shrinks by doubling/halving its size. Pruning of unregistered
   // entries is done by rebuilding the table with or without resizing it.
   const size_t min_size = 1024;
-  const size_t shrink_threshold = (size_t)(_size * 0.30);
-  const size_t prune_threshold = (size_t)(_size * 0.65);
-  const size_t grow_threshold = (size_t)(_size * 0.70);
+  const size_t shrink_threshold = (size_t)((double)_size * 0.30);
+  const size_t prune_threshold = (size_t)((double)_size * 0.65);
+  const size_t grow_threshold = (size_t)((double)_size * 0.70);
 
   if (_size == 0) {
     // Initialize table

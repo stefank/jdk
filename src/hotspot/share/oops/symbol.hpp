@@ -123,11 +123,11 @@ class Symbol : public MetaspaceObj {
 
   static int byte_size(int length) {
     // minimum number of bytes needed to hold these bits (no non-heap version)
-    return (int)(sizeof(Symbol) + (length > 2 ? length - 2 : 0));
+    return (int)sizeof(Symbol) + (length > 2 ? length - 2 : 0);
   }
   static int size(int length) {
     // minimum number of natural words needed to hold these bits (no non-heap version)
-    return (int)heap_word_size(byte_size(length));
+    return checked_cast<int>(heap_word_size(signed_cast(byte_size(length))));
   }
 
   // Constructor is private for use only by SymbolTable.
@@ -156,7 +156,7 @@ class Symbol : public MetaspaceObj {
   unsigned identity_hash() const {
     unsigned addr_bits = (unsigned)((uintptr_t)this >> LogBytesPerWord);
     return ((unsigned)extract_hash(_hash_and_refcount) & 0xffff) |
-           ((addr_bits ^ (length() << 8) ^ (( _body[0] << 8) | _body[1])) << 16);
+        ((addr_bits ^ (uint)(length() << 8) ^ (( _body[0] << 8) | _body[1])) << 16);
   }
 
   // Reference counting.  See comments above this class for when to use.
@@ -230,7 +230,7 @@ class Symbol : public MetaspaceObj {
     assert(len >= 0 && substring != nullptr, "substring must be valid");
     if (position < 0)  return false;  // can happen with ends_with
     if (position + len > utf8_length()) return false;
-    return (memcmp((char*)base() + position, substring, len) == 0);
+    return (memcmp((char*)base() + position, substring, (size_t)len) == 0);
   }
 
   // Tests if the symbol contains the given byte at the given position.

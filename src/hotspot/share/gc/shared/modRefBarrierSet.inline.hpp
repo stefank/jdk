@@ -37,7 +37,7 @@ class Klass;
 
 // count is number of array elements being written
 void ModRefBarrierSet::write_ref_array(HeapWord* start, size_t count) {
-  HeapWord* end = (HeapWord*)((char*)start + (count*heapOopSize));
+  HeapWord* end = (HeapWord*)((char*)start + (count * signed_cast(heapOopSize)));
   // In the case of compressed oops, start and end may potentially be misaligned;
   // so we need to conservatively align the first downward (this is not
   // strictly necessary for current uses, but a case of good hygiene and,

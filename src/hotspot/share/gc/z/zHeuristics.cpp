@@ -39,7 +39,7 @@ void ZHeuristics::set_medium_page_size() {
   // becomes larger than ZPageSizeSmall.
   const size_t min = ZGranuleSize;
   const size_t max = ZGranuleSize * 16;
-  const size_t unclamped = (size_t)(MaxHeapSize * 0.03125);
+  const size_t unclamped = (size_t)((double)MaxHeapSize * 0.03125);
   const size_t clamped = clamp(unclamped, min, max);
   const size_t size = round_down_power_of_2(clamped);
 
@@ -72,7 +72,7 @@ static uint nworkers_based_on_ncpus(double cpu_share_in_percent) {
 }
 
 static uint nworkers_based_on_heap_size(double heap_share_in_percent) {
-  return (uint)(MaxHeapSize * (heap_share_in_percent / 100.0) / ZPageSizeSmall);
+  return (uint)((double)MaxHeapSize * (heap_share_in_percent / 100.0) / ZPageSizeSmall);
 }
 
 static uint nworkers(double cpu_share_in_percent) {
@@ -101,9 +101,9 @@ uint ZHeuristics::nconcurrent_workers() {
 }
 
 size_t ZHeuristics::significant_heap_overhead() {
-  return (size_t)(MaxHeapSize * (ZFragmentationLimit / 100));
+  return (size_t)((double)MaxHeapSize * (ZFragmentationLimit / 100));
 }
 
 size_t ZHeuristics::significant_young_overhead() {
-  return (size_t)(MaxHeapSize * (ZYoungCompactionLimit / 100));
+  return (size_t)((double)MaxHeapSize * (ZYoungCompactionLimit / 100));
 }

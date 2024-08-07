@@ -133,6 +133,10 @@ class markWord {
   // Creates a markWord with all bits set to zero.
   static markWord zero() { return markWord(uintptr_t(0)); }
 
+  static uintptr_t mask_bits(uintptr_t value, uintptr_t mask) {
+    return mask_bits_u(value, mask);
+  }
+
   // lock accessors (note that these assume lock_shift == 0)
   bool is_locked()   const {
     return (mask_bits(value(), lock_mask_in_place) != unlocked_value);
@@ -201,13 +205,13 @@ class markWord {
     return (ObjectMonitor*) (value() ^ monitor_value);
   }
   bool has_displaced_mark_helper() const {
-    intptr_t lockbits = value() & lock_mask_in_place;
+    uintptr_t lockbits = value() & lock_mask_in_place;
     return LockingMode == LM_LIGHTWEIGHT  ? lockbits == monitor_value   // monitor?
                                           : (lockbits & unlocked_value) == 0; // monitor | stack-locked?
   }
   markWord displaced_mark_helper() const;
   void set_displaced_mark_helper(markWord m) const;
-  markWord copy_set_hash(intptr_t hash) const {
+  markWord copy_set_hash(uintptr_t hash) const {
     uintptr_t tmp = value() & (~hash_mask_in_place);
     tmp |= ((hash & hash_mask) << hash_shift);
     return markWord(tmp);
@@ -243,7 +247,7 @@ class markWord {
 
   // hash operations
   intptr_t hash() const {
-    return mask_bits(value() >> hash_shift, hash_mask);
+    return (intptr_t)(mask_bits(value() >> hash_shift, hash_mask));
   }
 
   bool has_no_hash() const {

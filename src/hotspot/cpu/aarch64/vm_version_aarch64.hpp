@@ -142,7 +142,7 @@ enum Ampere_CPU_Model {
 
   // Feature identification
 #define CPU_FEATURE_DETECTION(id, name, bit) \
-  static bool supports_##name() { return (_features & CPU_##id) != 0; };
+  static bool supports_##name() { return (_features & (uint64_t)CPU_##id) != 0; };
   CPU_FEATURE_FLAGS(CPU_FEATURE_DETECTION)
 #undef CPU_FEATURE_DETECTION
 

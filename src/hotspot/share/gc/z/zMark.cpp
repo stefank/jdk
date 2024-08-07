@@ -218,6 +218,10 @@ void ZMark::follow_array_elements_small(zpointer* addr, size_t length, bool fina
   mark_barrier_on_oop_array(addr, length, finalizable, _generation->is_young());
 }
 
+static size_t count(zpointer* end, zpointer* start) {
+  return pointer_delta(end, start, sizeof(zpointer));
+}
+
 void ZMark::follow_array_elements_large(zpointer* addr, size_t length, bool finalizable) {
   assert(length <= (size_t)arrayOopDesc::max_array_length(T_OBJECT), "Too large");
   assert(length > ZMarkPartialArrayMinLength, "Too small, should not be split");
@@ -229,7 +233,7 @@ void ZMark::follow_array_elements_large(zpointer* addr, size_t length, bool fina
   // should always be greater than the start (hence the +1 below) to make
   // sure we always do some follow work, not just split the array into pieces.
   zpointer* const middle_start = align_up(start + 1, ZMarkPartialArrayMinSize);
-  const size_t    middle_length = align_down(end - middle_start, ZMarkPartialArrayMinLength);
+  const size_t    middle_length = align_down(count(end, middle_start), ZMarkPartialArrayMinLength);
   zpointer* const middle_end = middle_start + middle_length;
 
   log_develop_trace(gc, marking)("Array follow large: " PTR_FORMAT "-" PTR_FORMAT" (" SIZE_FORMAT "), "
@@ -239,7 +243,7 @@ void ZMark::follow_array_elements_large(zpointer* addr, size_t length, bool fina
   // Push unaligned trailing part
   if (end > middle_end) {
     zpointer* const trailing_addr = middle_end;
-    const size_t trailing_length = end - middle_end;
+    const size_t trailing_length = count(end, middle_end);
     push_partial_array(trailing_addr, trailing_length, finalizable);
   }
 
@@ -247,7 +251,7 @@ void ZMark::follow_array_elements_large(zpointer* addr, size_t length, bool fina
   zpointer* partial_addr = middle_end;
   while (partial_addr > middle_start) {
     const size_t parts = 2;
-    const size_t partial_length = align_up((partial_addr - middle_start) / parts, ZMarkPartialArrayMinLength);
+    const size_t partial_length = align_up(count(partial_addr, middle_start) / parts, ZMarkPartialArrayMinLength);
     partial_addr -= partial_length;
     push_partial_array(partial_addr, partial_length, finalizable);
   }
@@ -255,7 +259,7 @@ void ZMark::follow_array_elements_large(zpointer* addr, size_t length, bool fina
   // Follow leading part
   assert(start < middle_start, "Miscalculated middle start");
   zpointer* const leading_addr = start;
-  const size_t leading_length = middle_start - start;
+  const size_t leading_length = count(middle_start, start);
   follow_array_elements_small(leading_addr, leading_length, finalizable);
 }
 

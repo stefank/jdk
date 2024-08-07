@@ -78,7 +78,7 @@
 
 #ifdef _LP64
   // No CMOVF/CMOVD with SSE2
-  static int float_cmove_cost() { return ConditionalMoveLimit; }
+  static int float_cmove_cost() { return checked_cast<int>(ConditionalMoveLimit); }
 #else
   // No CMOVF/CMOVD with SSE/SSE2
   static int float_cmove_cost() { return (UseSSE>=1) ? ConditionalMoveLimit : 0; }

@@ -410,22 +410,22 @@ public:
 
   static CompileLog* get_log(CompilerThread* ct);
 
-  static int get_c1_thread_count() {                return _compilers[0]->num_compiler_threads(); }
-  static int get_c2_thread_count() {                return _compilers[1]->num_compiler_threads(); }
-  static int get_total_compile_count() {            return _total_compile_count; }
-  static int get_total_bailout_count() {            return _total_bailout_count; }
-  static int get_total_invalidated_count() {        return _total_invalidated_count; }
-  static int get_total_native_compile_count() {     return _total_native_compile_count; }
-  static int get_total_osr_compile_count() {        return _total_osr_compile_count; }
-  static int get_total_standard_compile_count() {   return _total_standard_compile_count; }
-  static int get_total_compiler_stopped_count() {   return _total_compiler_stopped_count; }
-  static int get_total_compiler_restarted_count() { return _total_compiler_restarted_count; }
-  static int get_sum_osr_bytes_compiled() {         return _sum_osr_bytes_compiled; }
-  static int get_sum_standard_bytes_compiled() {    return _sum_standard_bytes_compiled; }
-  static int get_sum_nmethod_size() {               return _sum_nmethod_size;}
-  static int get_sum_nmethod_code_size() {          return _sum_nmethod_code_size; }
-  static jlong get_peak_compilation_time() {        return _peak_compilation_time; }
-  static jlong get_total_compilation_time() {       return _t_total_compilation.milliseconds(); }
+  static int get_c1_thread_count() {                 return _compilers[0]->num_compiler_threads(); }
+  static int get_c2_thread_count() {                 return _compilers[1]->num_compiler_threads(); }
+  static uint get_total_compile_count() {            return _total_compile_count; }
+  static uint get_total_bailout_count() {            return _total_bailout_count; }
+  static uint get_total_invalidated_count() {        return _total_invalidated_count; }
+  static uint get_total_native_compile_count() {     return _total_native_compile_count; }
+  static uint get_total_osr_compile_count() {        return _total_osr_compile_count; }
+  static uint get_total_standard_compile_count() {   return _total_standard_compile_count; }
+  static uint get_total_compiler_stopped_count() {   return _total_compiler_stopped_count; }
+  static uint get_total_compiler_restarted_count() { return _total_compiler_restarted_count; }
+  static uint get_sum_osr_bytes_compiled() {         return _sum_osr_bytes_compiled; }
+  static uint get_sum_standard_bytes_compiled() {    return _sum_standard_bytes_compiled; }
+  static uint get_sum_nmethod_size() {               return _sum_nmethod_size;}
+  static uint get_sum_nmethod_code_size() {          return _sum_nmethod_code_size; }
+  static jlong get_peak_compilation_time() {         return _peak_compilation_time; }
+  static jlong get_total_compilation_time() {        return _t_total_compilation.milliseconds(); }
 
   // Log that compilation profiling is skipped because metaspace is full.
   static void log_metaspace_failure();

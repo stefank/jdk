@@ -621,8 +621,8 @@ public:
   static ByteSize apx_save_offset() { return byte_offset_of(CpuidInfo, apx_save); }
 
   // The value used to check ymm register after signal handle
-  static int ymm_test_value()    { return 0xCAFEBABE; }
-  static jlong egpr_test_value()   { return 0xCAFEBABECAFEBABELL; }
+  static int ymm_test_value()    { return (int)0xCAFEBABE; }
+  static jlong egpr_test_value()   { return (jlong)0xCAFEBABECAFEBABELL; }
 
   static void get_cpu_info_wrapper();
   static void set_cpuinfo_segv_addr(address pc) { _cpuinfo_segv_addr = pc; }

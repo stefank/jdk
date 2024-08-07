@@ -132,7 +132,7 @@ public:
       if (ZapResourceArea) {
         char* limit = _chunk->contains(replaced_hwm) ? replaced_hwm : _max;
         assert(limit >= _hwm, "Sanity check: non-negative memset size");
-        memset(_hwm, badResourceValue, limit - _hwm);
+        memset(_hwm, badResourceValue, pointer_delta(limit, _hwm, 1));
       }
     } else {
       // No allocations. Nothing to rollback. Check it.

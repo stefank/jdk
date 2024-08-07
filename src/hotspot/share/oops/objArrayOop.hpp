@@ -48,7 +48,7 @@ class objArrayOopDesc : public arrayOopDesc {
 
   template <class T>
   static ptrdiff_t obj_at_offset(int index) {
-    return base_offset_in_bytes() + sizeof(T) * index;
+    return signed_cast(signed_cast(base_offset_in_bytes()) + sizeof(T) * signed_cast(index));
   }
 
  public:
@@ -72,8 +72,8 @@ class objArrayOopDesc : public arrayOopDesc {
 
   static size_t object_size(int length) {
     // This returns the object size in HeapWords.
-    size_t asz = (size_t)length * heapOopSize;
-    size_t size_words = heap_word_size(base_offset_in_bytes() + asz);
+    size_t asz = signed_cast(length) * (size_t)heapOopSize;
+    size_t size_words = heap_word_size((size_t)base_offset_in_bytes() + asz);
     size_t osz = align_object_size(size_words);
     assert(osz < max_jint, "no overflow");
     return osz;

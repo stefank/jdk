@@ -96,7 +96,7 @@ public:
       reset(nullptr, 0);
     } else {
       _holder = m->holder();
-      reset(m->code(), m->code_size());
+      reset(m->code(), signed_cast(m->code_size()));
     }
   }
 
@@ -163,7 +163,7 @@ public:
 
   // Get 4-byte index, for invokedynamic.
   int get_index_u4() const {
-    return bytecode().get_index_u4(cur_bc_raw());
+    return signed_cast(bytecode().get_index_u4(cur_bc_raw()));
   }
 
   bool has_index_u4() const {

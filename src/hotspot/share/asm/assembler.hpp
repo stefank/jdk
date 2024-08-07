@@ -429,7 +429,7 @@ class AbstractAssembler : public ResourceObj  {
     CodeSection* c1 = _code_section;
     address ptr = start_a_const(sizeof(c), sizeof(c));
     if (ptr != nullptr) {
-      emit_int32(c);
+      emit_int32(signed_cast_unchecked(c));
       end_a_const(c1);
     }
     return ptr;
@@ -438,7 +438,7 @@ class AbstractAssembler : public ResourceObj  {
     CodeSection* c1 = _code_section;
     address ptr = start_a_const(sizeof(c), sizeof(c));
     if (ptr != nullptr) {
-      emit_int64(c);
+      emit_int64(signed_cast_unchecked(c));
       end_a_const(c1);
     }
     return ptr;
@@ -493,8 +493,8 @@ class AbstractAssembler : public ResourceObj  {
           case T_BYTE:    emit_int8(e.b);   break;
           case T_CHAR:    emit_int16(e.c);  break;
           case T_SHORT:   emit_int16(e.s);  break;
-          case T_INT:     emit_int32(e.i);  break;
-          case T_LONG:    emit_int64(e.j);  break;
+          case T_INT:     emit_int32(signed_cast(e.i));  break;
+          case T_LONG:    emit_int64(signed_cast(e.j));  break;
           case T_FLOAT:   emit_float(e.f);  break;
           case T_DOUBLE:  emit_double(e.d); break;
           default:

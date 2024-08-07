@@ -742,7 +742,7 @@ retry:
 
   // Send event
   event.commit((u8)type, size, allocation.flushed(), allocation.committed(),
-               page->physical_memory().nsegments(), flags.non_blocking());
+               signed_cast(page->physical_memory().nsegments()), flags.non_blocking());
 
   return page;
 }

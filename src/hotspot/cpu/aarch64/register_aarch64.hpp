@@ -390,7 +390,7 @@ typedef AbstractRegSet<PRegister> PRegSet;
 template <>
 inline Register AbstractRegSet<Register>::first() {
   if (_bitset == 0) { return noreg; }
-  return as_Register(count_trailing_zeros(_bitset));
+  return as_Register((int)count_trailing_zeros(_bitset));
 }
 
 template <>

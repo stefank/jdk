@@ -406,7 +406,7 @@ private:
 
   DEFINE_PAD_MINUS_SIZE(2, DEFAULT_PADDING_SIZE, sizeof(uint) + sizeof(int));
 public:
-  int next_random_queue_id();
+  uint next_random_queue_id();
 
   void set_last_stolen_queue_id(uint id)     { _last_stolen_queue_id = id; }
   uint last_stolen_queue_id() const          { return _last_stolen_queue_id; }

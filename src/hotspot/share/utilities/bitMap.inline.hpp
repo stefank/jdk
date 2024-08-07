@@ -270,7 +270,7 @@ inline BitMap::idx_t BitMap::find_last_bit_impl(idx_t beg, idx_t end) const {
     // was non-zero, or found a non-zero word in range, or fully scanned range
     // (so cword is zero).
     if (cword != 0) {
-      idx_t result = bit_index(word_index) + log2i(cword);
+      idx_t result = bit_index(word_index) + signed_cast(log2i(cword));
       if (aligned_left || (result >= beg)) return result;
       // Result is below range bound; return end.
     }

@@ -60,13 +60,13 @@ template <typename T> struct CountLeadingZerosImpl<T, 2> {
 
 template <typename T> struct CountLeadingZerosImpl<T, 4> {
   static unsigned doit(T v) {
-    return __builtin_clz(v);
+    return (unsigned)__builtin_clz(checked_cast<unsigned>(v));
   }
 };
 
 template <typename T> struct CountLeadingZerosImpl<T, 8> {
   static unsigned doit(T v) {
-    return __builtin_clzll(v);
+    return (unsigned)__builtin_clzll(v);
   }
 };
 

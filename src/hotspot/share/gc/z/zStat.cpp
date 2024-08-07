@@ -985,13 +985,13 @@ void ZStatMutatorAllocRate::sample_allocation(size_t allocation_bytes) {
 
   Atomic::sub(&_allocated_since_sample, allocated_sample);
 
-  _samples_time.add(elapsed);
-  _samples_bytes.add(allocated_sample);
+  _samples_time.add((double)elapsed);
+  _samples_bytes.add((double)allocated_sample);
 
   const double last_sample_bytes = _samples_bytes.sum();
   const double elapsed_time = _samples_time.sum();
 
-  const double elapsed_seconds = elapsed_time / os::elapsed_frequency();
+  const double elapsed_seconds = elapsed_time / (double)os::elapsed_frequency();
   const double bytes_per_second = double(last_sample_bytes) / elapsed_seconds;
   _rate.add(bytes_per_second);
 
@@ -1845,7 +1845,7 @@ void ZStatHeap::at_relocate_end(const ZPageAllocatorStats& stats, bool record_st
   _at_relocate_end.allocation_stalls = stats.allocation_stalls();
 
   if (record_stats) {
-    _reclaimed_bytes.add(_at_relocate_end.reclaimed);
+    _reclaimed_bytes.add((double)_at_relocate_end.reclaimed);
   }
 }
 

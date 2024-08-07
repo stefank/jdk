@@ -370,7 +370,7 @@ class Instruction: public CompilationResourceObj {
 
  public:
   bool check_flag(InstructionFlag id) const      { return (_flags & (1 << id)) != 0;    }
-  void set_flag(InstructionFlag id, bool f)      { _flags = f ? (_flags | (1 << id)) : (_flags & ~(1 << id)); };
+  void set_flag(InstructionFlag id, bool f)      { _flags = f ? (_flags | (1 << id)) : (_flags & ~signed_cast(1 << id)); };
 
   // 'globally' used condition values
   enum Condition {
@@ -1722,7 +1722,7 @@ LEAF(BlockBegin, StateSplit)
   void set_first_lir_instruction_id(int id)      { _first_lir_instruction_id = id;  }
   void set_last_lir_instruction_id(int id)       { _last_lir_instruction_id = id;  }
   void increment_total_preds(int n = 1)          { _total_preds += n; }
-  void init_stores_to_locals(int locals_count)   { _stores_to_locals.initialize(locals_count); }
+  void init_stores_to_locals(int locals_count)   { _stores_to_locals.initialize(signed_cast(locals_count)); }
 
   // generic
   virtual void state_values_do(ValueVisitor* f);

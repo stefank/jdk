@@ -103,9 +103,9 @@ class OopMapBlock {
   uint count() const         { return _count; }
   void set_count(uint count) { _count = count; }
 
-  void increment_count(int diff) { _count += diff; }
+  void increment_count(int diff) { _count += (uint)diff; }
 
-  int offset_span() const { return _count * heapOopSize; }
+  int offset_span() const { return (int)_count * heapOopSize; }
 
   int end_offset() const {
     return offset() + offset_span();
@@ -392,7 +392,7 @@ class InstanceKlass: public Klass {
   FieldInfo field(int index) const;
 
  public:
-  int     field_offset      (int index) const { return field(index).offset(); }
+  int     field_offset      (int index) const { return signed_cast(field(index).offset()); }
   int     field_access_flags(int index) const { return field(index).access_flags().as_int(); }
   FieldInfo::FieldFlags field_flags(int index) const { return field(index).field_flags(); }
   FieldStatus field_status(int index)   const { return fields_status()->at(index); }
@@ -660,10 +660,10 @@ public:
 
   // nonstatic oop-map blocks
   static int nonstatic_oop_map_size(unsigned int oop_map_count) {
-    return oop_map_count * OopMapBlock::size_in_words();
+    return signed_cast(oop_map_count * signed_cast(OopMapBlock::size_in_words()));
   }
   unsigned int nonstatic_oop_map_count() const {
-    return _nonstatic_oop_map_size / OopMapBlock::size_in_words();
+    return signed_cast(_nonstatic_oop_map_size / OopMapBlock::size_in_words());
   }
   int nonstatic_oop_map_size() const { return _nonstatic_oop_map_size; }
   void set_nonstatic_oop_map_size(int words) {
@@ -881,7 +881,7 @@ public:
   GrowableArray<Klass*>* compute_secondary_supers(int num_extra_slots,
                                                   Array<InstanceKlass*>* transitive_interfaces);
   bool can_be_primary_super_slow() const;
-  size_t oop_size(oop obj)  const             { return size_helper(); }
+  size_t oop_size(oop obj)  const             { return signed_cast(size_helper()); }
   // slow because it's a virtual call and used for verifying the layout_helper.
   // Using the layout_helper bits, we can call is_instance_klass without a virtual call.
   DEBUG_ONLY(bool is_instance_klass_slow() const      { return true; })

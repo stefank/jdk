@@ -28,6 +28,7 @@
 #include "gc/epsilon/epsilonInitLogger.hpp"
 #include "gc/epsilon/epsilonMemoryPool.hpp"
 #include "gc/epsilon/epsilonThreadLocalData.hpp"
+#include "gc/shared/collectedHeap.inline.hpp"
 #include "gc/shared/gcArguments.hpp"
 #include "gc/shared/locationPrinter.inline.hpp"
 #include "logging/log.hpp"
@@ -38,6 +39,7 @@
 #include "memory/universe.hpp"
 #include "runtime/atomic.hpp"
 #include "runtime/globals.hpp"
+#include "runtime/safepoint.hpp"
 
 jint EpsilonHeap::initialize() {
   size_t align = HeapAlignment;

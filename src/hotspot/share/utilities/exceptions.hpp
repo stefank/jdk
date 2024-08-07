@@ -27,7 +27,6 @@
 
 #include "memory/allocation.hpp"
 #include "oops/oopsHierarchy.hpp"
-#include "utilities/ostream.hpp"
 #include "utilities/sizes.hpp"
 
 // This file provides the basic support for exception handling in the VM.

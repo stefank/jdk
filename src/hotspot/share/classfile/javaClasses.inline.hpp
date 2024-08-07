@@ -53,7 +53,7 @@ bool java_lang_String::value_equals(typeArrayOop str_value1, typeArrayOop str_va
           (str_value1->length() == str_value2->length() &&
            (!memcmp(str_value1->base(T_BYTE),
                     str_value2->base(T_BYTE),
-                    str_value2->length() * sizeof(jbyte)))));
+                    signed_cast(str_value2->length()) * sizeof(jbyte)))));
 }
 
 typeArrayOop java_lang_String::value(oop java_string) {
@@ -222,11 +222,11 @@ inline oop java_lang_VirtualThread::vthread_scope() {
 
 #if INCLUDE_JFR
 inline u2 java_lang_Thread::jfr_epoch(oop ref) {
-  return ref->short_field(_jfr_epoch_offset);
+  return signed_cast(ref->short_field(_jfr_epoch_offset));
 }
 
 inline void java_lang_Thread::set_jfr_epoch(oop ref, u2 epoch) {
-  ref->short_field_put(_jfr_epoch_offset, epoch);
+  ref->short_field_put(_jfr_epoch_offset, signed_cast(epoch));
 }
 #endif // INCLUDE_JFR
 
@@ -307,7 +307,7 @@ inline size_t java_lang_Class::oop_size(oop java_class) {
   assert(_oop_size_offset != 0, "must be set");
   int size = java_class->int_field(_oop_size_offset);
   assert(size > 0, "Oop size must be greater than zero, not %d", size);
-  return size;
+  return signed_cast(size);
 }
 
 inline bool java_lang_invoke_DirectMethodHandle::is_instance(oop obj) {

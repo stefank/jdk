@@ -84,7 +84,7 @@ class ConstMethodFlags {
   CM_FLAGS_DO(CM_FLAGS_GET_SET)
 #undef CM_FLAGS_GET_SET
 
-  int as_int() const { return _flags; }
+  u4 as_u4() const { return _flags; }
   void print_on(outputStream* st) const;
 };
 

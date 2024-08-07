@@ -782,7 +782,7 @@ public:
 // Preceding equivalent StoreCMs may be eliminated.
 class StoreCMNode : public StoreNode {
  private:
-  virtual uint hash() const { return StoreNode::hash() + _oop_alias_idx; }
+  virtual uint hash() const { return StoreNode::hash() + signed_cast(_oop_alias_idx); }
   virtual bool cmp( const Node &n ) const {
     return _oop_alias_idx == ((StoreCMNode&)n)._oop_alias_idx
       && StoreNode::cmp(n);
@@ -1480,7 +1480,7 @@ class MergeMemStream : public StackObj {
     _mm  = mm;
     _mm_base = mm->base_memory();
     _mm2 = mm2;
-    _cnt = mm->req();
+    _cnt = signed_cast(mm->req());
     _idx = Compile::AliasIdxBot-1; // start at the base memory
     _mem = nullptr;
     _mem2 = nullptr;
@@ -1490,13 +1490,13 @@ class MergeMemStream : public StackObj {
   Node* check_memory() const {
     if (at_base_memory())
       return _mm->base_memory();
-    else if ((uint)_idx < _mm->req() && !_mm->in(_idx)->is_top())
-      return _mm->memory_at(_idx);
+    else if (signed_cast(_idx) < _mm->req() && !_mm->in(signed_cast(_idx))->is_top())
+      return _mm->memory_at(signed_cast(_idx));
     else
       return _mm_base;
   }
   Node* check_memory2() const {
-    return at_base_memory()? _mm2->base_memory(): _mm2->memory_at(_idx);
+    return at_base_memory()? _mm2->base_memory(): _mm2->memory_at(signed_cast(_idx));
   }
 #endif
 
@@ -1525,7 +1525,7 @@ class MergeMemStream : public StackObj {
     ((MergeMemNode*)mm2)->iteration_setup();  // update hidden state
     mm->iteration_setup(mm2);
     init(mm, mm2);
-    _cnt2 = mm2->req();
+    _cnt2 = signed_cast(mm2->req());
   }
 #ifdef ASSERT
   ~MergeMemStream() {
@@ -1553,11 +1553,11 @@ class MergeMemStream : public StackObj {
   }
 
   const TypePtr* adr_type() const {
-    return Compile::current()->get_adr_type(alias_idx());
+    return Compile::current()->get_adr_type(signed_cast(alias_idx()));
   }
 
   const TypePtr* adr_type(Compile* C) const {
-    return C->get_adr_type(alias_idx());
+    return C->get_adr_type(signed_cast(alias_idx()));
   }
   bool is_empty() const {
     assert(_mem, "must call next 1st");
@@ -1591,7 +1591,7 @@ class MergeMemStream : public StackObj {
       // Note that this does not change the invariant _mm_base.
       _mm->set_base_memory(mem);
     } else {
-      _mm->set_memory_at(_idx, mem);
+      _mm->set_memory_at(signed_cast(_idx), mem);
     }
     _mem = mem;
     assert_synch();
@@ -1599,7 +1599,7 @@ class MergeMemStream : public StackObj {
 
   // Recover from a side effect to the MergeMemNode.
   void set_memory() {
-    _mem = _mm->in(_idx);
+    _mem = _mm->in(signed_cast(_idx));
   }
 
   bool next()  { return next(false); }
@@ -1617,9 +1617,9 @@ class MergeMemStream : public StackObj {
     if (++_idx < _cnt) {
       // Note:  This iterator allows _mm to be non-sparse.
       // It behaves the same whether _mem is top or base_memory.
-      _mem = _mm->in(_idx);
+      _mem = _mm->in(signed_cast(_idx));
       if (have_mm2)
-        _mem2 = _mm2->in((_idx < _cnt2) ? _idx : Compile::AliasIdxTop);
+        _mem2 = _mm2->in(signed_cast((_idx < _cnt2) ? _idx : Compile::AliasIdxTop));
       return true;
     }
     return false;

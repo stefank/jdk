@@ -360,7 +360,7 @@ static size_t random_arena_chunk_size() {
     };
     return standard_sizes[os::random() % 4];
   }
-  return ARENA_ALIGN(os::random() % 1024);
+  return arena_align_up(os::random() % 1024);
 }
 
 TEST_VM(Arena, different_chunk_sizes) {

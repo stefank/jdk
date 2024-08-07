@@ -44,7 +44,7 @@ class CompilerStatistics {
     Data() : _bytes(0), _count(0) {}
     void update(elapsedTimer time, int bytes) {
       _time.add(time);
-      _bytes += bytes;
+      _bytes += signed_cast(bytes);
       _count++;
     }
     void reset() {

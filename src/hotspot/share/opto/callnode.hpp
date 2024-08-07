@@ -233,10 +233,10 @@ public:
   uint              endoff() const { return _endoff; }
   uint              oopoff() const { return debug_end(); }
 
-  int            loc_size() const { return stkoff() - locoff(); }
-  int            stk_size() const { return monoff() - stkoff(); }
-  int            mon_size() const { return scloff() - monoff(); }
-  int            scl_size() const { return endoff() - scloff(); }
+  uint            loc_size() const { return stkoff() - locoff(); }
+  uint            stk_size() const { return monoff() - stkoff(); }
+  uint            mon_size() const { return scloff() - monoff(); }
+  uint            scl_size() const { return endoff() - scloff(); }
 
   bool        is_loc(uint i) const { return locoff() <= i && i < stkoff(); }
   bool        is_stk(uint i) const { return stkoff() <= i && i < monoff(); }
@@ -267,10 +267,10 @@ public:
 
   // Monitors (monitors are stored as (boxNode, objNode) pairs
   enum { logMonitorEdges = 1 };
-  int  nof_monitors()              const { return mon_size() >> logMonitorEdges; }
+  int  nof_monitors()              const { return signed_cast(mon_size() >> logMonitorEdges); }
   int  monitor_depth()             const { return nof_monitors() + (caller() ? caller()->monitor_depth() : 0); }
-  int  monitor_box_offset(int idx) const { return monoff() + (idx << logMonitorEdges) + 0; }
-  int  monitor_obj_offset(int idx) const { return monoff() + (idx << logMonitorEdges) + 1; }
+  int  monitor_box_offset(int idx) const { return signed_cast(monoff()) + (idx << logMonitorEdges) + 0; }
+  int  monitor_obj_offset(int idx) const { return signed_cast(monoff()) + (idx << logMonitorEdges) + 1; }
   bool is_monitor_box(uint off)    const {
     assert(is_mon(off), "should be called only for monitor edge");
     return (0 == bitfield(off - monoff(), 0, logMonitorEdges));
@@ -387,11 +387,11 @@ public:
   }
   Node *monitor_box(JVMState* jvms, uint idx) const {
     assert(verify_jvms(jvms), "jvms must match");
-    return in(jvms->monitor_box_offset(idx));
+    return in(signed_cast(jvms->monitor_box_offset(signed_cast(idx))));
   }
   Node *monitor_obj(JVMState* jvms, uint idx) const {
     assert(verify_jvms(jvms), "jvms must match");
-    return in(jvms->monitor_obj_offset(idx));
+    return in(signed_cast(jvms->monitor_obj_offset(signed_cast(idx))));
   }
 
   void  set_local(JVMState* jvms, uint idx, Node *c);
@@ -407,7 +407,7 @@ public:
   void ensure_stack(JVMState* jvms, uint stk_size) {
     assert(verify_jvms(jvms), "jvms must match");
     int grow_by = (int)stk_size - (int)jvms->stk_size();
-    if (grow_by > 0)  grow_stack(jvms, grow_by);
+    if (grow_by > 0)  grow_stack(jvms, signed_cast(grow_by));
   }
   void grow_stack(JVMState* jvms, uint grow_by);
   // Handle monitor stack
@@ -529,7 +529,7 @@ public:
 
   uint first_index(JVMState* jvms) const {
     assert(jvms != nullptr, "missed JVMS");
-    return jvms->of_depth(_depth)->scloff() + _first_index;
+    return jvms->of_depth(signed_cast(_depth))->scloff() + _first_index;
   }
   uint n_fields()    const { return _n_fields; }
 
@@ -618,12 +618,12 @@ public:
 
   int merge_pointer_idx(JVMState* jvms) const {
     assert(jvms != nullptr, "JVMS reference is null.");
-    return jvms->scloff() + _merge_pointer_idx;
+    return signed_cast(jvms->scloff()) + _merge_pointer_idx;
   }
 
   int selector_idx(JVMState* jvms) const {
     assert(jvms != nullptr, "JVMS reference is null.");
-    return jvms->scloff() + _merge_pointer_idx + 1;
+    return signed_cast(jvms->scloff()) + _merge_pointer_idx + 1;
   }
 
   // Assumes that "this" is an argument to a safepoint node "s", and that

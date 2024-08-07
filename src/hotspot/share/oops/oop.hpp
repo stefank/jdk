@@ -314,7 +314,7 @@ class oopDesc {
   static int klass_offset_in_bytes()     { return (int)offset_of(oopDesc, _metadata._klass); }
   static int klass_gap_offset_in_bytes() {
     assert(has_klass_gap(), "only applicable to compressed klass pointers");
-    return klass_offset_in_bytes() + sizeof(narrowKlass);
+    return klass_offset_in_bytes() + (int)sizeof(narrowKlass);
   }
 
   // for error reporting

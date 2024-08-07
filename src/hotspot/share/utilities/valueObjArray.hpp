@@ -55,7 +55,8 @@ public:
 // Maps an array of size Count over stamped-out instances of Type.
 template <typename Type, int Count>
 struct ValueObjArray {
-  Type*                      _ptrs[Count];
+  // GCC -Wsign-conversion complains without the cast ...
+  Type*                      _ptrs[(size_t)Count];
   ValueObjBlock<Type, Count> _block;
 
   template <typename Generator>

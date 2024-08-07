@@ -170,7 +170,7 @@ size_t oopDesc::size_given_klass(Klass* klass)  {
 
   if (lh > Klass::_lh_neutral_value) {
     if (!Klass::layout_helper_needs_slow_path(lh)) {
-      s = lh >> LogHeapWordSize;  // deliver size scaled by wordSize
+      s = signed_cast(lh >> LogHeapWordSize);  // deliver size scaled by wordSize
     } else {
       s = klass->oop_size(this);
     }
@@ -183,7 +183,7 @@ size_t oopDesc::size_given_klass(Klass* klass)  {
       size_t size_in_bytes;
       size_t array_length = (size_t) ((arrayOop)this)->length();
       size_in_bytes = array_length << Klass::layout_helper_log2_element_size(lh);
-      size_in_bytes += Klass::layout_helper_header_size(lh);
+      size_in_bytes += signed_cast(Klass::layout_helper_header_size(lh));
 
       // This code could be simplified, but by keeping array_header_in_bytes
       // in units of bytes and doing it this way we can round up just once,

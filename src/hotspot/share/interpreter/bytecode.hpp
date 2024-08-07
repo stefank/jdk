@@ -49,11 +49,13 @@ class Bytecode: public StackObj {
   address aligned_addr_at    (int offset)        const     { return align_up(addr_at(offset), jintSize); }
 
   // Word access:
-  int     get_Java_u2_at     (int offset)        const     { return Bytes::get_Java_u2(addr_at(offset)); }
-  int     get_Java_u4_at     (int offset)        const     { return Bytes::get_Java_u4(addr_at(offset)); }
-  int     get_aligned_Java_u4_at(int offset)     const     { return Bytes::get_Java_u4(aligned_addr_at(offset)); }
-  int     get_native_u2_at   (int offset)        const     { return Bytes::get_native_u2(addr_at(offset)); }
-  int     get_native_u4_at   (int offset)        const     { return Bytes::get_native_u4(addr_at(offset)); }
+  u2      get_Java_u2_at     (int offset)        const     { return Bytes::get_Java_u2(addr_at(offset)); }
+  u4      get_Java_u4_at     (int offset)        const     { return Bytes::get_Java_u4(addr_at(offset)); }
+  u4      get_aligned_Java_u4_at(int offset)     const     { return Bytes::get_Java_u4(aligned_addr_at(offset)); }
+  u2      get_native_u2_at   (int offset)        const     { return Bytes::get_native_u2(addr_at(offset)); }
+  u4      get_native_u4_at   (int offset)        const     { return Bytes::get_native_u4(addr_at(offset)); }
+
+  int get_aligned_Java_u4_at_as_int(int offset)  const     { return signed_cast(get_aligned_Java_u4_at(offset)); }
 
  public:
   Bytecode(Method* method, address bcp): _bcp(bcp), _code(Bytecodes::code_at(method, addr_at(0))) {
@@ -84,7 +86,7 @@ class Bytecode: public StackObj {
       return Bytes::get_Java_u2(p);
     }
   }
-  int get_index_u4(Bytecodes::Code bc) const {
+  u4 get_index_u4(Bytecodes::Code bc) const {
     assert_same_format_as(bc); assert_index_size(4, bc);
     assert(can_use_native_byte_order(bc), "");
     return Bytes::get_native_u4(addr_at(1));
@@ -129,12 +131,12 @@ class LookupswitchPair {
   const address _bcp;
 
   address addr_at            (int offset)        const     { return _bcp + offset; }
-  int     get_Java_u4_at     (int offset)        const     { return Bytes::get_Java_u4(addr_at(offset)); }
+  u4      get_Java_u4_at     (int offset)        const     { return Bytes::get_Java_u4(addr_at(offset)); }
 
  public:
   LookupswitchPair(address bcp): _bcp(bcp) {}
-  int  match() const                             { return get_Java_u4_at(0 * jintSize); }
-  int  offset() const                            { return get_Java_u4_at(1 * jintSize); }
+  int  match() const                             { return signed_cast_unchecked(get_Java_u4_at(0 * jintSize)); }
+  int  offset() const                            { return signed_cast_unchecked(get_Java_u4_at(1 * jintSize)); }
 };
 
 
@@ -146,8 +148,8 @@ class Bytecode_lookupswitch: public Bytecode {
   void verify() const PRODUCT_RETURN;
 
   // Attributes
-  int  default_offset() const                    { return get_aligned_Java_u4_at(1 + 0*jintSize); }
-  int  number_of_pairs() const                   { return get_aligned_Java_u4_at(1 + 1*jintSize); }
+  int  default_offset() const                    { return get_aligned_Java_u4_at_as_int(1 + 0*jintSize); }
+  int  number_of_pairs() const                   { return get_aligned_Java_u4_at_as_int(1 + 1*jintSize); }
   LookupswitchPair pair_at(int i) const          {
     assert(0 <= i && i < number_of_pairs(), "pair index out of bounds");
     return LookupswitchPair(aligned_addr_at(1 + (1 + i)*2*jintSize));
@@ -162,9 +164,9 @@ class Bytecode_tableswitch: public Bytecode {
   void verify() const PRODUCT_RETURN;
 
   // Attributes
-  int  default_offset() const                    { return get_aligned_Java_u4_at(1 + 0*jintSize); }
-  int  low_key() const                           { return get_aligned_Java_u4_at(1 + 1*jintSize); }
-  int  high_key() const                          { return get_aligned_Java_u4_at(1 + 2*jintSize); }
+  int  default_offset() const                    { return get_aligned_Java_u4_at_as_int(1 + 0*jintSize); }
+  int  low_key() const                           { return get_aligned_Java_u4_at_as_int(1 + 1*jintSize); }
+  int  high_key() const                          { return get_aligned_Java_u4_at_as_int(1 + 2*jintSize); }
   int  dest_offset_at(int i) const;
   int  length()                                  { return high_key()-low_key()+1; }
 };

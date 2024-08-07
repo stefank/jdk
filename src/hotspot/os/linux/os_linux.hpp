@@ -286,7 +286,7 @@ class os::Linux {
 
   static NumaAllocationPolicy identify_numa_policy() {
     for (int node = 0; node <= Linux::numa_max_node(); node++) {
-      if (Linux::_numa_bitmask_isbitset(Linux::_numa_interleave_bitmask, node)) {
+      if (Linux::_numa_bitmask_isbitset(Linux::_numa_interleave_bitmask, (uint)node)) {
         return Interleave;
       }
     }
@@ -353,9 +353,9 @@ class os::Linux {
   static bool is_node_in_bound_nodes(int node) {
     if (_numa_bitmask_isbitset != nullptr) {
       if (is_running_in_interleave_mode()) {
-        return _numa_bitmask_isbitset(_numa_interleave_bitmask, node);
+        return _numa_bitmask_isbitset(_numa_interleave_bitmask, (uint)node);
       } else {
-        return _numa_membind_bitmask != nullptr ? _numa_bitmask_isbitset(_numa_membind_bitmask, node) : false;
+        return _numa_membind_bitmask != nullptr ? _numa_bitmask_isbitset(_numa_membind_bitmask, (uint)node) : false;
       }
     }
     return false;
@@ -368,7 +368,7 @@ class os::Linux {
     unsigned int highest_node_number = 0;
 
     if (_numa_membind_bitmask != nullptr && _numa_max_node != nullptr && _numa_bitmask_isbitset != nullptr) {
-      highest_node_number = _numa_max_node();
+      highest_node_number = (unsigned int)_numa_max_node();
     } else {
       return false;
     }

@@ -103,7 +103,7 @@ class CompilerThread : public JavaThread {
 
   void start_idle_timer()                        { _idle_time.update(); }
   jlong idle_time_millis() {
-    return TimeHelper::counter_to_millis(_idle_time.ticks_since_update());
+    return (jlong)TimeHelper::counter_to_millis(_idle_time.ticks_since_update());
   }
 
 #ifndef PRODUCT

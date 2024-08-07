@@ -86,7 +86,7 @@ class MethodFlags {
   M_STATUS_DO(M_STATUS_GET_SET)
 #undef M_STATUS_GET_SET
 
-  int as_int() const { return _status; }
+  u4 as_u4() const { return _status; }
   void atomic_set_bits(u4 bits)   { Atomic::fetch_then_or(&_status, bits); }
   void atomic_clear_bits(u4 bits) { Atomic::fetch_then_and(&_status, ~bits); }
   void print_on(outputStream* st) const;

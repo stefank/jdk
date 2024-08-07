@@ -114,8 +114,9 @@ class outputStream : public CHeapObjBase {
 
    // sizing
    int position() const { return _position; }
-   julong count() const { return _precount + _position; }
-   void set_count(julong count) { _precount = count - _position; }
+   // Unclear about possible values of _position
+   julong count() const { return _precount + (julong)_position; }
+   void set_count(julong count) { _precount = count - (julong)_position; }
    void set_position(int pos)   { _position = pos; }
 
    // printing

@@ -472,7 +472,7 @@ protected:
   int find_edge(Node* n);
   int find_prec_edge(Node* n) {
     for (uint i = req(); i < len(); i++) {
-      if (_in[i] == n) return i;
+      if (_in[i] == n) return signed_cast(i);
       if (_in[i] == nullptr) {
         DEBUG_ONLY( while ((++i) < len()) assert(_in[i] == nullptr, "Gap in prec edges!"); )
         break;
@@ -1600,7 +1600,7 @@ protected:
 
   void   grow( uint i );        // Grow array node to fit
 public:
-  Node_Array(Arena* a, uint max = OptoNodeListSize) : _a(a), _max(max) {
+  Node_Array(Arena* a, uint max = checked_cast<uint>(OptoNodeListSize)) : _a(a), _max(max) {
     _nodes = NEW_ARENA_ARRAY(a, Node*, max);
     clear();
   }
@@ -1632,8 +1632,8 @@ class Node_List : public Node_Array {
   friend class VMStructs;
   uint _cnt;
 public:
-  Node_List(uint max = OptoNodeListSize) : Node_Array(Thread::current()->resource_area(), max), _cnt(0) {}
-  Node_List(Arena *a, uint max = OptoNodeListSize) : Node_Array(a, max), _cnt(0) {}
+  Node_List(uint max = checked_cast<uint>(OptoNodeListSize)) : Node_Array(Thread::current()->resource_area(), max), _cnt(0) {}
+  Node_List(Arena *a, uint max = checked_cast<uint>(OptoNodeListSize)) : Node_Array(a, max), _cnt(0) {}
 
   NONCOPYABLE(Node_List);
   Node_List& operator=(Node_List&&) = delete;
@@ -1850,7 +1850,7 @@ protected:
   void grow();
 public:
   Node_Stack(int size) {
-    size_t max = (size > OptoNodeListSize) ? size : OptoNodeListSize;
+    size_t max = (size > OptoNodeListSize) ? signed_cast(size) : signed_cast(OptoNodeListSize);
     _a = Thread::current()->resource_area();
     _inodes = NEW_ARENA_ARRAY( _a, INode, max );
     _inode_max = _inodes + max;
@@ -1858,7 +1858,7 @@ public:
   }
 
   Node_Stack(Arena *a, int size) : _a(a) {
-    size_t max = (size > OptoNodeListSize) ? size : OptoNodeListSize;
+    size_t max = (size > OptoNodeListSize) ? signed_cast(size) : signed_cast(OptoNodeListSize);
     _inodes = NEW_ARENA_ARRAY( _a, INode, max );
     _inode_max = _inodes + max;
     _inode_top = _inodes - 1; // stack is empty

@@ -88,7 +88,7 @@ class OptoReg {
   // Get the stack slot number of an OptoReg::Name
   static unsigned int reg2stack( OptoReg::Name r) {
     assert( r >= stack0(), " must be");
-    return r - stack0();
+    return signed_cast(r - stack0());
   }
 
   static void invalidate(Name n) {
@@ -128,7 +128,7 @@ class OptoReg {
       // Must use table, it'd be nice if Bad was indexable...
       return opto2vm[n];
     } else if (is_stack(n)) {
-      int stack_slot = reg2stack(n);
+      int stack_slot = signed_cast_unchecked(reg2stack(n));
       if (stack_slot < arg_count) {
         return VMRegImpl::stack2reg(stack_slot + frame_size);
       }
@@ -187,24 +187,24 @@ private:
   short _second;
   short _first;
 public:
-  void set_bad (                   ) { _second = OptoReg::Bad; _first = OptoReg::Bad; }
-  void set1    ( OptoReg::Name n  ) { _second = OptoReg::Bad; _first = n; }
-  void set2    ( OptoReg::Name n  ) { _second = n + 1;       _first = n; }
-  void set_pair( OptoReg::Name second, OptoReg::Name first    ) { _second= second;    _first= first; }
+  void set_bad (                  ) { _second = OptoReg::Bad; _first = OptoReg::Bad; }
+  void set1    ( OptoReg::Name n  ) { _second = OptoReg::Bad; _first = checked_cast<short>(n); }
+  void set2    ( OptoReg::Name n  ) { _second = checked_cast<short>(n + 1); _first = checked_cast<short>(n); }
+  void set_pair( OptoReg::Name second, OptoReg::Name first    ) { _second = checked_cast<short>(second); _first  = checked_cast<short>(first); }
   void set_ptr ( OptoReg::Name ptr ) {
 #ifdef _LP64
-    _second = ptr+1;
+    _second = checked_cast<short>(ptr + 1);
 #else
     _second = OptoReg::Bad;
 #endif
-    _first = ptr;
+    _first = checked_cast<short>(ptr);
   }
 
   OptoReg::Name second() const { return _second; }
   OptoReg::Name first() const { return _first; }
-  OptoRegPair(OptoReg::Name second, OptoReg::Name first) {  _second = second; _first = first; }
-  OptoRegPair(OptoReg::Name f) { _second = OptoReg::Bad; _first = f; }
-  OptoRegPair() { _second = OptoReg::Bad; _first = OptoReg::Bad; }
+  OptoRegPair(OptoReg::Name second, OptoReg::Name first) :  _second(checked_cast<short>(second)), _first(checked_cast<short>(first)) {}
+  OptoRegPair(OptoReg::Name f) : OptoRegPair(OptoReg::Bad, f) {}
+  OptoRegPair() : OptoRegPair(OptoReg::Bad, OptoReg::Bad) {}
 };
 
 #endif // SHARE_OPTO_OPTOREG_HPP

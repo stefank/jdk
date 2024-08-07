@@ -101,7 +101,7 @@ void WriterHost<BE, IE, WriterPolicyImpl>::write_utf8(const char* value) {
   const jint len = MIN2<jint>(max_jint, (jint)strlen(value));
   write(len);
   if (len > 0) {
-    be_write(value, len);
+    be_write(value, signed_cast(len));
   }
 }
 

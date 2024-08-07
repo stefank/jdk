@@ -34,9 +34,12 @@
 #include <new>
 
 // The byte alignment to be used by Arena::Amalloc.
-#define ARENA_AMALLOC_ALIGNMENT BytesPerLong
-#define ARENA_ALIGN(x) (align_up((x), ARENA_AMALLOC_ALIGNMENT))
+#define ARENA_AMALLOC_ALIGNMENT size_t(BytesPerLong)
 
+template <typename T>
+inline T arena_align_up(T x) {
+  return align_up(x, ARENA_AMALLOC_ALIGNMENT);
+}
 
 // Linked list of raw memory chunks
 class Chunk {
@@ -52,27 +55,25 @@ public:
 
   Chunk(size_t length);
 
-  enum {
-    // default sizes; make them slightly smaller than 2**k to guard against
-    // buddy-system style malloc implementations
-    // Note: please keep these constants 64-bit aligned.
+  // default sizes; make them slightly smaller than 2**k to guard against
+  // buddy-system style malloc implementations
+  // Note: please keep these constants 64-bit aligned.
 #ifdef _LP64
-    slack      = 40,            // [RGV] Not sure if this is right, but make it
-                                //       a multiple of 8.
+  static const size_t slack         = 40;          // [RGV] Not sure if this is right, but make it
+                                                   //       a multiple of 8.
 #else
-    slack      = 24,            // suspected sizeof(Chunk) + internal malloc headers
+  static const size_t slack         = 24:          // suspected sizeof(Chunk) + internal malloc headers
 #endif
 
-    tiny_size  =  256  - slack, // Size of first chunk (tiny)
-    init_size  =  1*K  - slack, // Size of first chunk (normal aka small)
-    medium_size= 10*K  - slack, // Size of medium-sized chunk
-    size       = 32*K  - slack  // Default size of an Arena chunk (following the first)
-  };
+  static const size_t tiny_size   =  256  - slack; // Size of first chunk (tiny)
+  static const size_t init_size   =  1*K  - slack; // Size of first chunk (normal aka small)
+  static const size_t medium_size = 10*K  - slack; // Size of medium-sized chunk
+  static const size_t size        = 32*K  - slack; // Default size of an Arena chunk (following the first)
 
   static void chop(Chunk* chunk);                  // Chop this chunk
   static void next_chop(Chunk* chunk);             // Chop next chunk
-  static size_t aligned_overhead_size(void) { return ARENA_ALIGN(sizeof(Chunk)); }
-  static size_t aligned_overhead_size(size_t byte_size) { return ARENA_ALIGN(byte_size); }
+  static size_t aligned_overhead_size(void) { return arena_align_up(sizeof(Chunk)); }
+  static size_t aligned_overhead_size(size_t byte_size) { return arena_align_up(byte_size); }
 
   size_t length() const         { return _len;  }
   Chunk* next() const           { return _next;  }
@@ -125,7 +126,7 @@ protected:
   void* grow(size_t x, AllocFailType alloc_failmode = AllocFailStrategy::EXIT_OOM);
 
   void* internal_amalloc(size_t x, AllocFailType alloc_failmode = AllocFailStrategy::EXIT_OOM)  {
-    assert(is_aligned(x, BytesPerWord), "misaligned size");
+    assert(is_aligned(x, size_t(BytesPerWord)), "misaligned size");
     if (pointer_delta(_max, _hwm, 1) >= x) {
       char *old = _hwm;
       _hwm += x;
@@ -146,19 +147,19 @@ protected:
   // Fast allocate in the arena.  Common case aligns to the size of jlong which is 64 bits
   // on both 32 and 64 bit platforms. Required for atomic jlong operations on 32 bits.
   void* Amalloc(size_t x, AllocFailType alloc_failmode = AllocFailStrategy::EXIT_OOM) {
-    x = ARENA_ALIGN(x);  // note for 32 bits this should align _hwm as well.
+    x = arena_align_up(x);  // note for 32 bits this should align _hwm as well.
     // Amalloc guarantees 64-bit alignment and we need to ensure that in case the preceding
     // allocation was AmallocWords. Only needed on 32-bit - on 64-bit Amalloc and AmallocWords are
     // identical.
     assert(is_aligned(_max, ARENA_AMALLOC_ALIGNMENT), "chunk end unaligned?");
-    NOT_LP64(_hwm = ARENA_ALIGN(_hwm));
+    NOT_LP64(_hwm = arena_align_up(_hwm));
     return internal_amalloc(x, alloc_failmode);
   }
 
   // Allocate in the arena, assuming the size has been aligned to size of pointer, which
   // is 4 bytes on 32 bits, hence the name.
   void* AmallocWords(size_t x, AllocFailType alloc_failmode = AllocFailStrategy::EXIT_OOM) {
-    assert(is_aligned(x, BytesPerWord), "misaligned size");
+    assert(is_aligned(x, size_t(BytesPerWord)), "misaligned size");
     return internal_amalloc(x, alloc_failmode);
   }
 

@@ -45,14 +45,14 @@ inline void JavaThread::set_suspend_flag(SuspendFlags f) {
   do {
     flags = _suspend_flags;
   }
-  while (Atomic::cmpxchg(&_suspend_flags, flags, (flags | f)) != flags);
+  while (Atomic::cmpxchg(&_suspend_flags, flags, (flags | checked_cast<uint32_t>(f))) != flags);
 }
 inline void JavaThread::clear_suspend_flag(SuspendFlags f) {
   uint32_t flags;
   do {
     flags = _suspend_flags;
   }
-  while (Atomic::cmpxchg(&_suspend_flags, flags, (flags & ~f)) != flags);
+  while (Atomic::cmpxchg(&_suspend_flags, flags, (flags & ~checked_cast<uint32_t>(f))) != flags);
 }
 
 inline void JavaThread::set_trace_flag() {

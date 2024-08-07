@@ -510,7 +510,7 @@ static ZStoreBarrierBufferTable* z_verify_store_barrier_buffer_table = nullptr;
 #define BAD_REMSET_ARG(p, ptr, addr) \
   "Missing remembered set at " PTR_FORMAT " pointing at " PTR_FORMAT \
   " (" PTR_FORMAT " + " INTX_FORMAT ")" \
-  , p2i(p), untype(ptr), untype(addr), p2i(p) - untype(addr)
+  , p2i(p), untype(ptr), untype(addr), uintptr_t(p) - untype(addr)
 
 class ZVerifyRemsetBeforeOopClosure : public BasicOopIterateClosure {
 private:

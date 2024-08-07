@@ -58,7 +58,7 @@ private:
   uint32_t _top;
   // The _bad_oop_sentinel acts as a sentinel value to elide underflow checks in generated code.
   // The correct layout is statically asserted in the constructor.
-  const uintptr_t _bad_oop_sentinel = badOopVal;
+  const uintptr_t _bad_oop_sentinel = (uintptr_t)badOopVal;
   oop _base[CAPACITY];
 
   // Get the owning thread of this lock-stack.

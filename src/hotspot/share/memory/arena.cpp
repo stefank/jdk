@@ -39,10 +39,10 @@
 #include "utilities/ostream.hpp"
 
 // Pre-defined default chunk sizes must be arena-aligned, see Chunk::operator new()
-STATIC_ASSERT(is_aligned((int)Chunk::tiny_size, ARENA_AMALLOC_ALIGNMENT));
-STATIC_ASSERT(is_aligned((int)Chunk::init_size, ARENA_AMALLOC_ALIGNMENT));
-STATIC_ASSERT(is_aligned((int)Chunk::medium_size, ARENA_AMALLOC_ALIGNMENT));
-STATIC_ASSERT(is_aligned((int)Chunk::size, ARENA_AMALLOC_ALIGNMENT));
+STATIC_ASSERT(is_aligned(Chunk::tiny_size, ARENA_AMALLOC_ALIGNMENT));
+STATIC_ASSERT(is_aligned(Chunk::init_size, ARENA_AMALLOC_ALIGNMENT));
+STATIC_ASSERT(is_aligned(Chunk::medium_size, ARENA_AMALLOC_ALIGNMENT));
+STATIC_ASSERT(is_aligned(Chunk::size, ARENA_AMALLOC_ALIGNMENT));
 
 
 const char* Arena::tag_name[] = {
@@ -156,7 +156,7 @@ Chunk* ChunkPool::allocate_chunk(size_t length, AllocFailType alloc_failmode) {
   }
   if (chunk == nullptr) {
     // Either the pool was empty, or this is a non-standard length. Allocate a new Chunk from C-heap.
-    size_t bytes = ARENA_ALIGN(sizeof(Chunk)) + length;
+    size_t bytes = arena_align_up(sizeof(Chunk)) + length;
     void* p = os::malloc(bytes, mtChunk, CALLER_PC);
     if (p == nullptr && alloc_failmode == AllocFailStrategy::EXIT_OOM) {
       vm_exit_out_of_memory(bytes, OOM_MALLOC_ERROR, "Chunk::new");
@@ -228,7 +228,7 @@ Arena::Arena(MEMFLAGS flag, Tag tag, size_t init_size) :
   _first(nullptr), _chunk(nullptr),
   _hwm(nullptr), _max(nullptr)
 {
-  init_size = ARENA_ALIGN(init_size);
+  init_size = arena_align_up(init_size);
   _chunk = ChunkPool::allocate_chunk(init_size, AllocFailStrategy::EXIT_OOM);
   _first = _chunk;
   _hwm = _chunk->bottom();      // Save the cached hwm, max
@@ -284,7 +284,7 @@ size_t Arena::used() const {
 void* Arena::grow(size_t x, AllocFailType alloc_failmode) {
   // Get minimal required size.  Either real big, or even bigger for giant objs
   // (Note: all chunk sizes have to be 64-bit aligned)
-  size_t len = MAX2(ARENA_ALIGN(x), (size_t) Chunk::size);
+  size_t len = MAX2(arena_align_up(x), Chunk::size);
 
   if (MemTracker::check_exceeds_limit(x, _flags)) {
     return nullptr;
@@ -332,7 +332,7 @@ void *Arena::Arealloc(void* old_ptr, size_t old_size, size_t new_size, AllocFail
   }
 
   // make sure that new_size is legal
-  size_t corrected_new_size = ARENA_ALIGN(new_size);
+  size_t corrected_new_size = arena_align_up(new_size);
 
   // See if we can resize in-place
   if( (c_old+old_size == _hwm) &&       // Adjusting recent thing

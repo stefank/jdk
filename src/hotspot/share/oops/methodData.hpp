@@ -402,10 +402,10 @@ public:
   }
 
   int trap_state() const {
-    return data()->trap_state();
+    return signed_cast_unchecked(data()->trap_state());
   }
   void set_trap_state(int new_state) {
-    data()->set_trap_state(new_state);
+    data()->set_trap_state(signed_cast_unchecked(new_state));
   }
 
   // Type checking
@@ -999,7 +999,7 @@ private:
 
   // number of cells not counting the header
   int cell_count_no_header() const {
-    return uint_at(cell_count_global_offset());
+    return signed_cast(uint_at(cell_count_global_offset()));
   }
 
   void check_number_of_arguments(int total) {
@@ -1141,7 +1141,7 @@ public:
   virtual bool is_ReceiverTypeData() const { return true; }
 
   static int static_cell_count() {
-    return counter_cell_count + (uint) TypeProfileWidth * receiver_type_row_cell_count;
+    return counter_cell_count + checked_cast<int>(TypeProfileWidth) * receiver_type_row_cell_count;
   }
 
   virtual int cell_count() const {
@@ -1153,10 +1153,10 @@ public:
     return (uint) TypeProfileWidth;
   }
   static int receiver_cell_index(uint row) {
-    return receiver0_offset + row * receiver_type_row_cell_count;
+    return receiver0_offset + signed_cast(row) * receiver_type_row_cell_count;
   }
   static int receiver_count_cell_index(uint row) {
-    return count0_offset + row * receiver_type_row_cell_count;
+    return count0_offset + signed_cast(row) * receiver_type_row_cell_count;
   }
 
   Klass* receiver(uint row) const {
@@ -1169,7 +1169,7 @@ public:
 
   void set_receiver(uint row, Klass* k) {
     assert((uint)row < row_limit(), "oob");
-    set_intptr_at(receiver_cell_index(row), (uintptr_t)k);
+    set_intptr_at(receiver_cell_index(row), (intptr_t)k);
   }
 
   uint receiver_count(uint row) const {
@@ -1273,7 +1273,7 @@ private:
 
   // number of cells not counting the header
   int cell_count_no_header() const {
-    return uint_at(cell_count_global_offset());
+    return signed_cast(uint_at(cell_count_global_offset()));
   }
 
   void check_number_of_arguments(int total) {
@@ -1405,15 +1405,15 @@ protected:
 
   void set_bci(uint row, int bci) {
     assert((uint)row < row_limit(), "oob");
-    set_int_at(bci0_offset + row * ret_row_cell_count, bci);
+    set_int_at(bci0_offset + signed_cast(row) * ret_row_cell_count, bci);
   }
   void release_set_bci(uint row, int bci);
   void set_bci_count(uint row, uint count) {
     assert((uint)row < row_limit(), "oob");
-    set_uint_at(count0_offset + row * ret_row_cell_count, count);
+    set_uint_at(count0_offset + signed_cast(row) * ret_row_cell_count, count);
   }
   void set_bci_displacement(uint row, int disp) {
-    set_int_at(displacement0_offset + row * ret_row_cell_count, disp);
+    set_int_at(displacement0_offset + signed_cast(row) * ret_row_cell_count, disp);
   }
 
 public:
@@ -1428,7 +1428,7 @@ public:
   };
 
   static int static_cell_count() {
-    return counter_cell_count + (uint) BciProfileWidth * ret_row_cell_count;
+    return counter_cell_count + checked_cast<int>(BciProfileWidth) * ret_row_cell_count;
   }
 
   virtual int cell_count() const {
@@ -1439,13 +1439,13 @@ public:
     return (uint) BciProfileWidth;
   }
   static int bci_cell_index(uint row) {
-    return bci0_offset + row * ret_row_cell_count;
+    return bci0_offset + signed_cast(row) * ret_row_cell_count;
   }
   static int bci_count_cell_index(uint row) {
-    return count0_offset + row * ret_row_cell_count;
+    return count0_offset + signed_cast(row) * ret_row_cell_count;
   }
   static int bci_displacement_cell_index(uint row) {
-    return displacement0_offset + row * ret_row_cell_count;
+    return displacement0_offset + signed_cast(row) * ret_row_cell_count;
   }
 
   // Direct accessors
@@ -1721,7 +1721,7 @@ public:
   }
 
   void set_arg_modified(int arg, uint val) {
-    array_set_int_at(arg, val);
+    array_set_int_at(arg, signed_cast_unchecked(val));
   }
 
   void print_data_on(outputStream* st, const char* extra = nullptr) const;
@@ -2106,7 +2106,7 @@ private:
 
   // Helper for initialization
   DataLayout* data_layout_at(int data_index) const {
-    assert(data_index % sizeof(intptr_t) == 0, "unaligned");
+    assert(is_aligned(data_index, sizeof(intptr_t)), "unaligned");
     return (DataLayout*) (((address)_data) + data_index);
   }
 
@@ -2224,13 +2224,13 @@ public:
     if (invocation_counter()->carry()) {
       return InvocationCounter::count_limit;
     }
-    return invocation_counter()->count();
+    return signed_cast(invocation_counter()->count());
   }
   int backedge_count() {
     if (backedge_counter()->carry()) {
       return InvocationCounter::count_limit;
     }
-    return backedge_counter()->count();
+    return signed_cast(backedge_counter()->count());
   }
 
   int invocation_count_start() {

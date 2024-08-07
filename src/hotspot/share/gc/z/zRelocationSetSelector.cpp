@@ -51,7 +51,7 @@ ZRelocationSetSelectorGroup::ZRelocationSetSelectorGroup(const char* name,
     _page_size(page_size),
     _object_size_limit(object_size_limit),
     _fragmentation_limit(fragmentation_limit),
-    _page_fragmentation_limit((size_t)(page_size * (fragmentation_limit / 100))),
+    _page_fragmentation_limit((size_t)((double)page_size * (fragmentation_limit / 100))),
     _live_pages(),
     _not_selected_pages(),
     _forwarding_entries(0),
@@ -135,7 +135,7 @@ void ZRelocationSetSelectorGroup::select_inner() {
     // By subtracting the object size limit from the pages size we get the maximum
     // number of pages that the relocation set is guaranteed to fit in, regardless
     // of in which order the objects are relocated.
-    const int to = (int)ceil(from_live_bytes / (double)(_page_size - _object_size_limit));
+    const int to = (int)ceil((double)from_live_bytes / (double)(_page_size - _object_size_limit));
 
     // Calculate the relative difference in reclaimable space compared to our
     // currently selected final relocation set. If this number is larger than the

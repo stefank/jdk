@@ -62,7 +62,7 @@
 #define EVENT_BITS                                (EVENT_HOST_KLASS | JDK_JFR_EVENT_KLASS | JDK_JFR_EVENT_SUBKLASS)
 #define TAG_BITS                                  (EPOCH_1_METHOD_BIT | EPOCH_0_METHOD_BIT | EPOCH_1_BIT | EPOCH_0_BIT)
 #define ALL_BITS                                  (META_BITS | EVENT_BITS | TAG_BITS)
-#define ALL_BITS_MASK                             (~(ALL_BITS))
+#define ALL_BITS_MASK                             (~signed_cast(ALL_BITS))
 
 // epoch relative bits
 #define THIS_EPOCH_BIT                            (JfrTraceIdEpoch::this_epoch_bit())

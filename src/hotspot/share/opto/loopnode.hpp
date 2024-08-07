@@ -110,7 +110,7 @@ public:
   void mark_loop_vectorized() { _loop_flags |= VectorizedLoop; }
   void mark_has_atomic_post_loop() { _loop_flags |= HasAtomicPostLoop; }
   void mark_strip_mined() { _loop_flags |= StripMined; }
-  void clear_strip_mined() { _loop_flags &= ~StripMined; }
+  void clear_strip_mined() { _loop_flags &= ~signed_cast(StripMined); }
   void mark_profile_trip_failed() { _loop_flags |= ProfileTripFailed; }
   void mark_subword_loop() { _loop_flags |= SubwordLoop; }
   void mark_loop_nest_inner_loop() { _loop_flags |= LoopNestInnerLoop; }
@@ -120,8 +120,8 @@ public:
   int unswitch_count() { return _unswitch_count; }
 
   void set_unswitch_count(int val) {
-    assert (val <= unswitch_max(), "too many unswitches");
-    _unswitch_count = val;
+    assert(val <= unswitch_max(), "too many unswitches");
+    _unswitch_count = checked_cast<char>(val);
   }
 
   void set_profile_trip_cnt(float ptc) { _profile_trip_cnt = ptc; }
@@ -284,13 +284,13 @@ public:
   bool has_atomic_post_loop  () const { return (_loop_flags & HasAtomicPostLoop) == HasAtomicPostLoop; }
   void set_main_no_pre_loop() { _loop_flags |= MainHasNoPreLoop; }
 
-  int main_idx() const { return _main_idx; }
+  int main_idx() const { return checked_cast<int>(_main_idx); }
 
 
   void set_pre_loop  (CountedLoopNode *main) { assert(is_normal_loop(),""); _loop_flags |= Pre ; _main_idx = main->_idx; }
   void set_main_loop (                     ) { assert(is_normal_loop(),""); _loop_flags |= Main;                         }
   void set_post_loop (CountedLoopNode *main) { assert(is_normal_loop(),""); _loop_flags |= Post; _main_idx = main->_idx; }
-  void set_normal_loop(                    ) { _loop_flags &= ~PreMainPostFlagsMask; }
+  void set_normal_loop(                    ) { _loop_flags &= ~signed_cast(PreMainPostFlagsMask); }
 
   void set_trip_count(uint tc) { _trip_count = tc; }
   uint trip_count()            { return _trip_count; }
@@ -301,10 +301,10 @@ public:
     _loop_flags |= HasExactTripCount;
   }
   void set_nonexact_trip_count() {
-    _loop_flags &= ~HasExactTripCount;
+    _loop_flags &= ~signed_cast(HasExactTripCount);
   }
   void set_notpassed_slp() {
-    _loop_flags &= ~PassedSlpAnalysis;
+    _loop_flags &= ~signed_cast(PassedSlpAnalysis);
   }
 
   void double_unrolled_count() { _unrolled_count_log2++; }
@@ -800,7 +800,7 @@ public:
   // Check if the number of residual iterations is large with unroll_cnt.
   // Return true if the residual iterations are more than 10% of the trip count.
   bool is_residual_iters_large(int unroll_cnt, CountedLoopNode *cl) const {
-    return (unroll_cnt - 1) * (100.0 / LoopPercentProfileLimit) > cl->profile_trip_cnt();
+    return (unroll_cnt - 1) * (100.0 / (double)LoopPercentProfileLimit) > cl->profile_trip_cnt();
   }
 
   void collect_loop_core_nodes(PhaseIdealLoop* phase, Unique_Node_List& wq) const;
@@ -875,14 +875,14 @@ class PhaseIdealLoop : public PhaseTransform {
     }
   }
   // Check for pre-visited.  Zero for NOT visited; non-zero for visited.
-  int is_visited( Node *n ) const { return _preorders[n->_idx]; }
+  int is_visited( Node *n ) const { return signed_cast(_preorders[n->_idx]); }
   // Pre-order numbers are written to the Nodes array as low-bit-set values.
   void set_preorder_visited( Node *n, int pre_order ) {
     assert( !is_visited( n ), "already set" );
-    _preorders[n->_idx] = (pre_order<<1);
+    _preorders[n->_idx] = signed_cast(pre_order<<1);
   };
   // Return pre-order number.
-  int get_preorder( Node *n ) const { assert( is_visited(n), "" ); return _preorders[n->_idx]>>1; }
+  int get_preorder( Node *n ) const { assert( is_visited(n), "" ); return signed_cast(_preorders[n->_idx]>>1); }
 
   // Check for being post-visited.
   // Should be previsited already (checked with assert(is_visited(n))).
@@ -1912,7 +1912,7 @@ class DataNodeGraph : public StackObj {
       : _phase(phase),
         _data_nodes(data_nodes),
         // Use 107 as best guess which is the first resize value in ResizeableResourceHashtable::large_table_sizes.
-        _orig_to_new(107, MaxNodeLimit)
+        _orig_to_new(107, checked_cast<uint>(MaxNodeLimit))
   {
 #ifdef ASSERT
     for (uint i = 0; i < data_nodes.size(); i++) {

@@ -46,4 +46,15 @@ inline oop CollectedHeap::class_allocate(Klass* klass, size_t size, TRAPS) {
   return allocator.allocate();
 }
 
+// Get a pointer to the derived heap object.  Used to implement
+// derived class heap() functions rather than being called directly.
+template<typename T>
+T* CollectedHeap::named_heap(Name kind) {
+  CollectedHeap* heap = Universe::heap();
+  assert(heap != nullptr, "Uninitialized heap");
+  assert(kind == heap->kind(), "Heap kind %u should be %u",
+         static_cast<uint>(heap->kind()), static_cast<uint>(kind));
+  return static_cast<T*>(heap);
+}
+
 #endif // SHARE_GC_SHARED_COLLECTEDHEAP_INLINE_HPP

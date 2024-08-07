@@ -36,6 +36,7 @@
 #include "memory/metaspace/virtualSpaceNode.hpp"
 #include "runtime/atomic.hpp"
 #include "runtime/mutexLocker.hpp"
+#include "utilities/ostream.hpp"
 
 namespace metaspace {
 

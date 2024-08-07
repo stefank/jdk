@@ -583,7 +583,7 @@ public:
   virtual Node *Ideal(PhaseGVN *phase, bool can_reshape);
   virtual const Type *bottom_type() const;
   virtual bool pinned() const { return true; }
-  virtual int required_outcnt() const { return _size; }
+  virtual int required_outcnt() const { return signed_cast(_size); }
 };
 
 //------------------------------JumpNode---------------------------------------

@@ -110,7 +110,7 @@ class InterpreterOopMap: ResourceObj {
 
   // return the word size of_bit_mask.  mask_size() <= 4 * MAX_USHORT
   size_t mask_word_size() const {
-    return (mask_size() + BitsPerWord - 1) / BitsPerWord;
+    return signed_cast((mask_size() + BitsPerWord - 1) / BitsPerWord);
   }
 
   uintptr_t entry_at(int offset) const           { int i = offset * bits_per_entry; return bit_mask()[i / BitsPerWord] >> (i % BitsPerWord); }

@@ -253,7 +253,7 @@ protected:
   // Can this klass be a primary super?  False for interfaces and arrays of
   // interfaces.  False also for arrays or classes with long super chains.
   bool can_be_primary_super() const {
-    const juint secondary_offset = in_bytes(secondary_super_cache_offset());
+    const juint secondary_offset = (juint)in_bytes(secondary_super_cache_offset());
     return super_check_offset() != secondary_offset;
   }
   virtual bool can_be_primary_super_slow() const;
@@ -263,7 +263,7 @@ protected:
     if (!can_be_primary_super()) {
       return primary_super_limit();
     } else {
-      juint d = (super_check_offset() - in_bytes(primary_supers_offset())) / sizeof(Klass*);
+      juint d = (super_check_offset() - (juint)in_bytes(primary_supers_offset())) / sizeof(Klass*);
       assert(d < primary_super_limit(), "oob");
       assert(_primary_supers[d] == this, "proper init");
       return d;
@@ -531,7 +531,7 @@ protected:
   bool is_subtype_of(Klass* k) const {
     juint    off = k->super_check_offset();
     Klass* sup = *(Klass**)( (address)this + off );
-    const juint secondary_offset = in_bytes(secondary_super_cache_offset());
+    const juint secondary_offset = (juint)in_bytes(secondary_super_cache_offset());
     if (sup == k) {
       return true;
     } else if (off != secondary_offset) {

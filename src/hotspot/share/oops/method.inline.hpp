@@ -48,7 +48,7 @@ inline nmethod* Method::code() const {
 inline void CompressedLineNumberWriteStream::write_pair_regular(int bci_delta, int line_delta) {
   // bci and line number does not compress into single byte.
   // Write out escape character and use regular compression for bci and line number.
-  write_byte((jubyte)0xFF);
+  write_byte((jbyte)0xFF);
   write_signed_int(bci_delta);
   write_signed_int(line_delta);
 }
@@ -66,7 +66,7 @@ inline void CompressedLineNumberWriteStream::write_pair_inline(int bci, int line
     jubyte value = (jubyte)((bci_delta << 3) | line_delta);
     // Check that value doesn't match escape character.
     if (value != 0xFF) {
-      write_byte(value);
+      write_byte(signed_cast(value));
       return;
     }
   }

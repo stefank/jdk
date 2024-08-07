@@ -112,7 +112,7 @@ public:
   void write_on(CompressedWriteStream* stream) {
     stream->write_int(value());
     if(is_callee_saved() || is_derived_oop()) {
-      stream->write_int(checked_cast<int>(content_reg()->value()));
+      stream->write_int((juint)content_reg()->value());
     }
   }
 
@@ -332,7 +332,7 @@ private:
   int _count; // nr of ImmutableOopMapPairs in the Set
   int _size; // nr of bytes including ImmutableOopMapSet itself
 
-  address data() const { return (address) this + sizeof(*this) + sizeof(ImmutableOopMapPair) * _count; }
+  address data() const { return (address) this + sizeof(*this) + sizeof(ImmutableOopMapPair) * (size_t)_count; }
 
 public:
   void operator delete(void* p);
