@@ -537,10 +537,10 @@ jint JNICALL heapReferenceCallback(
     jlong ref_tag;
 
     printf(" heapReferenceCallback: %s\n", ref_kind_str[reference_kind]);
-    printf("   reference_info: 0x%p, class_tag: 0x%" LL "d, referrer_class_tag: 0x%" LL "d\n",
+    printf("   reference_info: 0x%p, class_tag: " JLONG_FORMAT_X ", referrer_class_tag: " JLONG_FORMAT_X "\n",
                reference_info,       class_tag,           referrer_class_tag);
                           /* ss45998: class_tag=>referrence_class_tag */
-    printf("   size: %" LL "d, tag_ptr: 0x%p, referrer_tag_ptr: 0x%p, length: %-d\n",
+    printf("   size: " JLONG_FORMAT ", tag_ptr: 0x%p, referrer_tag_ptr: 0x%p, length: %-d\n",
                size,         tag_ptr,       referrer_tag_ptr,       length);
     fflush(nullptr);
 
@@ -564,8 +564,8 @@ jint JNICALL heapReferenceCallback(
 
     referrer_index = get_reference_index(reference_kind, reference_info);
 
-    printf("   class_tag=%" LL "d, tag=%" LL "d, size=%" LL "d,"
-           " ref_tag=%" LL "d, referrer_index=%d\n\n",
+    printf("   class_tag=" JLONG_FORMAT ", tag=" JLONG_FORMAT ", size=" JLONG_FORMAT ","
+           " ref_tag=" JLONG_FORMAT ", referrer_index=%d\n\n",
                class_tag, tag, size, ref_tag, referrer_index);
     fflush(nullptr);
 

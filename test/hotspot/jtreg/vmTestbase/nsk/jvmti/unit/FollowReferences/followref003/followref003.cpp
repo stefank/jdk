@@ -537,7 +537,7 @@ static int registerLocal(jint frame_id, jlocation location, jint slot, jlong tag
                 printf("Second report of the local: "
                        "loc_idx=%d, frame_id=%d, slot=%d\n",
                        idx, frame_id, slot);
-                printf("\t thr_id=%" LL "d, depth=%d, meth=0x%p\n",
+                printf("\t thr_id=" JLONG_FORMAT ", depth=%d, meth=0x%p\n",
                        fr->thr_id, fr->depth, fr->method);
                 failed = 1;
             }
@@ -652,7 +652,7 @@ jint JNICALL heapReferenceCallback(
 
     printf("     heapReferenceCallback: ref=%s, class_tag=%-3ld, tag=%-3ld,"
            " size=%-3ld, len=%-2d\n"
-           "\t\t ref_tag=%-" LL "d, thr_tag=%-3ld, thr_id=%" LL "d, "
+           "\t\t ref_tag=" JLONG_FORMAT_W(-) ", thr_tag=%-3ld, thr_id=" JLONG_FORMAT ", "
            "meth=0x%p, loc=%ld, idx=%#x\n",
            ref_kind_str[ref_kind],
            (long) class_tag,

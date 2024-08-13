@@ -321,7 +321,7 @@ int nsk_jvmti_waitForSync(jlong timeout) {
     }
 
     if (agent_data.thread_state == WAITING) {
-        NSK_COMPLAIN1("No status sync occured for timeout: %" LL "d ms\n", timeout);
+        NSK_COMPLAIN1("No status sync occured for timeout: " JLONG_FORMAT " ms\n", timeout);
         nsk_jvmti_setFailStatus();
         result = NSK_FALSE;
     }

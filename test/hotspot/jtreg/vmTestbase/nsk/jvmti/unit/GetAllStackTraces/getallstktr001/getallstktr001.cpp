@@ -177,7 +177,7 @@ void compare_all_frames(int ti, int frames_count,
             return;
         }
         printf("thr #%d: compare frame #%d: fields are the same: "
-               " method: 0x%p, location: %#" LL "x\n",
+               " method: 0x%p, location: %#" PRIx64 "\n",
                ti, fi, fr1->method, fr1->location);
         fflush(nullptr);
     }

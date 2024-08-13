@@ -262,13 +262,13 @@ void JNICALL MethodExit(jvmtiEnv *jvmti_env, JNIEnv *env, jthread thread,
 
     methodExitEventCount++;
     if (method == midCountDownLong) {
-        printf(">>> ForceEarlyReturnLong value: dec: %" LL "d, hex: %#x %#x\n",
+        printf(">>> ForceEarlyReturnLong value: dec: " JLONG_FORMAT ", hex: %#x %#x\n",
                 ret_val, val_ptr[0], val_ptr[1]);
-        printf(">>>      expected return value: dec: %" LL "d, hex: %#x %#x\n",
+        printf(">>>      expected return value: dec: " JLONG_FORMAT ", hex: %#x %#x\n",
                 val_exp, exp_ptr[0], exp_ptr[1]);
 
         if (ret_val != val_exp) {
-            printf("Wrong ForceEarlyReturnLong return value: %" LL "d\n", ret_val);
+            printf("Wrong ForceEarlyReturnLong return value: " JLONG_FORMAT "\n", ret_val);
             errCode = STATUS_FAILED;
         }
         if (was_popped_by_exception) {
@@ -410,7 +410,7 @@ Java_nsk_jvmti_unit_ForceEarlyReturn_earlyretlong_printLong(
       JNIEnv *env, jclass cls, jlong val) {
     jint *iptr = (jint *) &val;
 
-    printf("\n>>> Returned value: dec: %" LL "d, hex: %#x %#x\n",
+    printf("\n>>> Returned value: dec: " JLONG_FORMAT ", hex: %#x %#x\n",
             val, iptr[0], iptr[1]);
     fflush(nullptr);
     return;

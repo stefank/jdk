@@ -158,14 +158,14 @@ Java_nsk_jvmti_RedefineClasses_redefclass003_checkNewFields(JNIEnv *env,
     if (intFld != 33 || longFld != 44) {
         printf("Completely new static variable has not assigned its default value:\n");
         printf("\tintComplNewFld = %d, expected 33\n", intFld);
-        printf("\tlongComplNewFld = %" LL "d, expected 44\n", longFld);
+        printf("\tlongComplNewFld = " JLONG_FORMAT", expected 44\n", longFld);
         return STATUS_FAILED;
     } else {
         if (vrb == 1) {
             printf(
                 "Completely new static variables:\n"
                 "\tintComplNewFld = %d\n"
-                "\tlongComplNewFld = %" LL "d\n",
+                "\tlongComplNewFld = " JLONG_FORMAT "\n",
                 intFld, longFld);
         }
         return PASSED;

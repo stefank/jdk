@@ -39,16 +39,17 @@
 /* printf format specifier for jlong */
 #ifdef _WIN32
 
-#define LL "I64"
 #include <STDDEF.H>
 
 #else // !_WIN32
 
 #include <stdint.h>
 
-#define LL "ll"
-
 #endif // !_WIN32
+
+#define JLONG_FORMAT          "%" PRId64
+#define JLONG_FORMAT_W(width) "%" #width PRId64
+#define JLONG_FORMAT_X "0x%" PRIx64
 
 /*************************************************************/
 

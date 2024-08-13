@@ -32,8 +32,4 @@
 #define JNIIMPORT __declspec(dllimport)
 #define JNICALL __stdcall
 
-typedef int jint;
-typedef long long jlong;
-typedef signed char jbyte;
-
 #endif /* !_JAVASOFT_JNI_MD_H_ */

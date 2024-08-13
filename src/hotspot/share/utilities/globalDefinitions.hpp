@@ -1139,27 +1139,26 @@ inline bool is_even(intx x) { return !is_odd(x); }
 
 // abs methods which cannot overflow and so are well-defined across
 // the entire domain of integer types.
-static inline unsigned int uabs(unsigned int n) {
+static inline unsigned int uabs(uint32_t n) {
   union {
-    unsigned int result;
-    int value;
+    uint32_t result;
+    int32_t value;
   };
   result = n;
   if (value < 0) result = 0-result;
   return result;
 }
-static inline julong uabs(julong n) {
+static inline uint64_t uabs(uint64_t n) {
   union {
-    julong result;
-    jlong value;
+    uint64_t result;
+    int64_t value;
   };
   result = n;
   if (value < 0) result = 0-result;
   return result;
 }
-static inline julong uabs(jlong n) { return uabs((julong)n); }
-static inline julong uabs(ptrdiff_t n) { return uabs((julong)n); }
-static inline unsigned int uabs(int n) { return uabs((unsigned int)n); }
+static inline uint64_t uabs(int64_t n) { return uabs((uint64_t)n); }
+static inline uint32_t uabs(int32_t n) { return uabs((uint32_t)n); }
 
 // "to" should be greater than "from."
 inline size_t byte_size(void* from, void* to) {

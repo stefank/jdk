@@ -92,11 +92,11 @@ jboolean checkThatAllTagsVisited()
 
         if ((g_tagFlags[i] & FLAG_TAG_SET)) {
             if (g_tagVisitCount[i] == 0) {
-                NSK_COMPLAIN1("Tag %" LL "d has not been visited: %x\n", i);
+                NSK_COMPLAIN1("Tag " JLONG_FORMAT " has not been visited: %x\n", i);
                 ok = JNI_FALSE;
             }
 
-            DBG(printf(">>> Tag %" LL "d has been visited %i times: %s\n", i, g_tagVisitCount[i], g_szTagInfo[i]));
+            DBG(printf(">>> Tag " JLONG_FORMAT " has been visited %i times: %s\n", i, g_tagVisitCount[i], g_szTagInfo[i]));
         }
     }
 
@@ -292,13 +292,13 @@ void printHeapRefCallbackInfo(
 
     NSK_DISPLAY1("heapReferenceCallback: %s", g_refKindStr[reference_kind]);
 
-    NSK_DISPLAY3("   reference_info: %#lx, class_tag: %#" LL "d, referrer_class_tag: %#" LL "d\n",
+    NSK_DISPLAY3("   reference_info: %#lx, class_tag: " JLONG_FORMAT_W(#) ", referrer_class_tag: " JLONG_FORMAT_W(#) "\n",
                      reference_info,       class_tag,            referrer_class_tag);
 
-    NSK_DISPLAY4("   size: %" LL "d, tag_ptr: %p,  referrer_tag_ptr: %p,  length: %-ld\n",
+    NSK_DISPLAY4("   size: " JLONG_FORMAT ", tag_ptr: %p,  referrer_tag_ptr: %p,  length: %-ld\n",
                      size,           tag_ptr,      referrer_tag_ptr,      length);
 
-    NSK_DISPLAY2("   tag: %" LL "d, referrer_tag: %" LL "d\n",
+    NSK_DISPLAY2("   tag: " JLONG_FORMAT ", referrer_tag: " JLONG_FORMAT "\n",
                      tag_val, DEREF(referrer_tag_ptr));
 
     szInfo = (tag_val > 0 && tag_val < MAX_TAG) ? g_szTagInfo[tag_val] : "<none>";

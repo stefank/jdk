@@ -36,11 +36,9 @@
 #ifndef _JAVASOFT_JNI_H_
 #define _JAVASOFT_JNI_H_
 
+#include <inttypes.h>
 #include <stdio.h>
 #include <stdarg.h>
-
-/* jni_md.h contains the machine-dependent typedefs for jbyte, jint
-   and jlong */
 
 #include "jni_md.h"
 
@@ -55,8 +53,11 @@ extern "C" {
 #ifndef JNI_TYPES_ALREADY_DEFINED_IN_JNI_MD_H
 
 typedef unsigned char   jboolean;
+typedef signed char     jbyte;
 typedef unsigned short  jchar;
 typedef short           jshort;
+typedef int             jint;
+typedef int64_t         jlong;
 typedef float           jfloat;
 typedef double          jdouble;
 

@@ -29,6 +29,7 @@
 /*
  * This file contains common defines and includes for unix.
  */
+#include <inttypes.h>
 #include <limits.h>
 #include <unistd.h>
 #include <sys/param.h>
@@ -45,7 +46,7 @@
 #define MAXNAMELEN           PATH_MAX
 #endif
 
-#define JLONG_FORMAT_SPECIFIER "%lld"
+#define JLONG_FORMAT_SPECIFIER "%" PRId64
 
 int UnsetEnv(char *name);
 char *FindExecName(char *program);

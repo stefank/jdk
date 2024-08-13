@@ -45,8 +45,8 @@ static jint methodExitCnt = -1;
 
 void print_LocalVariableEntry(jvmtiLocalVariableEntry *lvt_elem) {
   printf("\n Var name: %s, slot: %d", lvt_elem->name, lvt_elem->slot);
-  printf(", start_bci: %" LL "d", lvt_elem->start_location);
-  printf(", end_bci: %" LL "d",   lvt_elem->start_location + lvt_elem->length);
+  printf(", start_bci: " JLONG_FORMAT, lvt_elem->start_location);
+  printf(", end_bci: " JLONG_FORMAT,   lvt_elem->start_location + lvt_elem->length);
   printf(", signature: %s\n", lvt_elem->signature);
 }
 

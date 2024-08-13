@@ -181,8 +181,8 @@ Java_nsk_jvmti_RedefineClasses_redefclass004_checkNewFields(JNIEnv *env,
         printf("Completely new fields have not assigned their default values:\n");
         printf("\tintComplNewFld = %d,\texpected %d\n",
             intFld, INTFLD);
-        printf("\tlongComplNewFld = %" LL "d", longFld);
-        printf(",\texpected %" LL "d\n", LONGFLD);
+        printf("\tlongComplNewFld = " JLONG_FORMAT, longFld);
+        printf(",\texpected " JLONG_FORMAT "\n", LONGFLD);
         printf("\tstringComplNewFld = \"%s\",\texpected \"%s\"\n",
             strFld, STRFLD);
         env->ReleaseStringUTFChars(stringObj, strFld);
@@ -193,7 +193,7 @@ Java_nsk_jvmti_RedefineClasses_redefclass004_checkNewFields(JNIEnv *env,
                 "Completely new fields:\n"
                 "\tstringComplNewFld = \"%s\"\n"
                 "\tintComplNewFld = %d\n"
-                "\tlongComplNewFld = %" LL "d\n",
+                "\tlongComplNewFld = " JLONG_FORMAT "\n",
                 strFld, intFld, longFld);
         }
         env->ReleaseStringUTFChars(stringObj, strFld);

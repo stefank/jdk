@@ -220,14 +220,14 @@ static void walk(MyTag* tag, jint depth, const char* ref_label) {
   printf("%s", indent);
 
   if (tag->visited) {
-    printf("<a href=\"#%" LL "d\">", tag->sequence);
+    printf("<a href=\"#" JLONG_FORMAT "\">", tag->sequence);
   } else {
-    printf("<a name=\"%" LL "d\">", tag->sequence);
+    printf("<a name=\"" JLONG_FORMAT "d\">", tag->sequence);
   }
   if (tag->name) {
     printf("<b>%s(%s)</b>", cname, tag->name);
   } else {
-    printf("%s(%" LL "d)", cname, tag->sequence);
+    printf("%s(" JLONG_FORMAT ")", cname, tag->sequence);
   }
   printf("</a> -- ");
   printf("%s\n", ref_label);

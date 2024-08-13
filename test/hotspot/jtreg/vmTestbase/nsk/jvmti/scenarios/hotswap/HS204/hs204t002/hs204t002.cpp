@@ -72,7 +72,7 @@ callbackClassPrepare(jvmtiEnv *jvmti,
                 if (err != JVMTI_ERROR_NONE) {
                     printf("Agent::Errors in finding start and end for the method \n");
                 } else {
-                    printf("Agent Start = %" LL "d and end = %" LL "d \n", start , end);
+                    printf("Agent Start = " JLONG_FORMAT " and end = " JLONG_FORMAT " \n", start , end);
                     printf("Agent::setting break points..");
                     err= jvmti->SetBreakpoint(method, start+1);
                     if (err == JVMTI_ERROR_DUPLICATE) {

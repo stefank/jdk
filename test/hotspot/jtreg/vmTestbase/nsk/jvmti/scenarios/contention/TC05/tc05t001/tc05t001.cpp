@@ -272,7 +272,7 @@ agentProc(jvmtiEnv* jvmti, JNIEnv* jni, void* arg) {
 #else
         nsk_jvmti_setFailStatus();
 #endif
-        printf("waitedTime: %" LL "d,  waitTime: %" LL "d, waitedTime - waitTime: %" LL "d\n",
+        printf("waitedTime: " JLONG_FORMAT ",  waitTime: " JLONG_FORMAT ", waitedTime - waitTime: " JLONG_FORMAT "\n",
                 waitedTime, waitTime, waitedTime - waitTime);
     }
 
@@ -281,7 +281,7 @@ agentProc(jvmtiEnv* jvmti, JNIEnv* jni, void* arg) {
     if (!(NSK_VERIFY((waitedThreadCpuTime - waitThreadCpuTime)
             < (EXPECTED_ACCURACY * 1000000)))) {
         nsk_jvmti_setFailStatus();
-        printf("waitedThreadCpuTime: %" LL "d, waitThreadCpuTime: %" LL "d, waitedThreadCpuTime - waitThreadCpuTime: %" LL "d\n",
+        printf("waitedThreadCpuTime: " JLONG_FORMAT ", waitThreadCpuTime: " JLONG_FORMAT ", waitedThreadCpuTime - waitThreadCpuTime: " JLONG_FORMAT "\n",
                 waitedThreadCpuTime, waitThreadCpuTime, waitedThreadCpuTime - waitThreadCpuTime);
     }
 

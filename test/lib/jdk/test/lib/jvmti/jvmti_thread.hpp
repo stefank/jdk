@@ -24,6 +24,7 @@
 #ifndef JVMTI_THREAD_HPP
 #define JVMTI_THREAD_HPP
 
+#include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
@@ -33,17 +34,15 @@
 
 #ifdef _WIN32
 
-#define LL "I64"
 #include <STDDEF.H>
 
 #else // !_WIN32
 
 #include <stdint.h>
 
-#define LL "ll"
-
 #endif // !_WIN32
 
+#define JLONG_FORMAT "%" PRId64
 
 extern "C" {
 
@@ -126,7 +125,7 @@ int agent_wait_for_sync(jlong timeout) {
   }
 
   if (agent_data.thread_state == WAITING) {
-      COMPLAIN("No status sync occured for timeout: %" LL "d ms\n", timeout);
+      COMPLAIN("No status sync occured for timeout: " JLONG_FORMAT " ms\n", timeout);
     set_agent_fail_status();
     result = JNI_FALSE;
   }
