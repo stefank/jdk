@@ -2235,7 +2235,7 @@ C2V_VMENTRY_NULL(jobjectArray, getDeclaredFieldsInfo, (JNIEnv* env, jobject, ARG
   return array.as_jobject();
 C2V_END
 
-static jobject read_field_value(Handle obj, long displacement, jchar type_char, bool is_static, Thread* THREAD, JVMCIEnv* JVMCIENV) {
+static jobject read_field_value(Handle obj, jlong displacement, jchar type_char, bool is_static, Thread* THREAD, JVMCIEnv* JVMCIENV) {
 
   BasicType basic_type = JVMCIENV->typeCharToBasicType(type_char, JVMCI_CHECK_NULL);
   int basic_type_elemsize = type2aelembytes(basic_type);
@@ -2338,13 +2338,13 @@ static jobject read_field_value(Handle obj, long displacement, jchar type_char, 
   return JVMCIENV->get_jobject(result);
 }
 
-C2V_VMENTRY_NULL(jobject, readStaticFieldValue, (JNIEnv* env, jobject, ARGUMENT_PAIR(klass), long displacement, jchar type_char))
+C2V_VMENTRY_NULL(jobject, readStaticFieldValue, (JNIEnv* env, jobject, ARGUMENT_PAIR(klass), jlong displacement, jchar type_char))
   Klass* klass = UNPACK_PAIR(Klass, klass);
   Handle obj(THREAD, klass->java_mirror());
   return read_field_value(obj, displacement, type_char, true, THREAD, JVMCIENV);
 C2V_END
 
-C2V_VMENTRY_NULL(jobject, readFieldValue, (JNIEnv* env, jobject, jobject object, ARGUMENT_PAIR(expected_type), long displacement, jchar type_char))
+C2V_VMENTRY_NULL(jobject, readFieldValue, (JNIEnv* env, jobject, jobject object, ARGUMENT_PAIR(expected_type), jlong displacement, jchar type_char))
   if (object == nullptr) {
     JVMCI_THROW_0(NullPointerException);
   }

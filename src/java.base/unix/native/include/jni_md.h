@@ -55,11 +55,7 @@
 #define JNICALL
 
 typedef int jint;
-#ifdef _LP64
-typedef long jlong;
-#else
 typedef long long jlong;
-#endif
 
 typedef signed char jbyte;
 

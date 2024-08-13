@@ -776,10 +776,10 @@ void JVMCINMethodData::copy(JVMCINMethodData* data) {
 
 void JVMCINMethodData::add_failed_speculation(nmethod* nm, jlong speculation) {
   jlong index = speculation >> JVMCINMethodData::SPECULATION_LENGTH_BITS;
-  guarantee(index >= 0 && index <= max_jint, "Encoded JVMCI speculation index is not a positive Java int: " INTPTR_FORMAT, index);
+  guarantee(index >= 0 && index <= max_jint, "Encoded JVMCI speculation index is not a positive Java int: " JLONG_FORMAT_X, index);
   int length = speculation & JVMCINMethodData::SPECULATION_LENGTH_MASK;
   if (index + length > (uint) nm->speculations_size()) {
-    fatal(INTPTR_FORMAT "[index: " JLONG_FORMAT ", length: %d out of bounds wrt encoded speculations of length %u", speculation, index, length, nm->speculations_size());
+    fatal(JLONG_FORMAT_X "[index: " JLONG_FORMAT ", length: %d out of bounds wrt encoded speculations of length %u", speculation, index, length, nm->speculations_size());
   }
   address data = nm->speculations_begin() + index;
   FailedSpeculation::add_failed_speculation(nm, _failed_speculations, data, length);
@@ -1283,7 +1283,7 @@ JNIEnv* JVMCIRuntime::init_shared_library_javavm(int* create_JavaVM_err, const c
       guarantee(env != nullptr, "missing env");
       _shared_library_javavm_id = javaVM_id;
       _shared_library_javavm = javaVM;
-      JVMCI_event_1("created JavaVM[%ld]@" PTR_FORMAT " for JVMCI runtime %d", javaVM_id, p2i(javaVM), _id);
+      JVMCI_event_1("created JavaVM[" JLONG_FORMAT "]@" PTR_FORMAT " for JVMCI runtime %d", javaVM_id, p2i(javaVM), _id);
       return env;
     } else {
       *create_JavaVM_err = result;

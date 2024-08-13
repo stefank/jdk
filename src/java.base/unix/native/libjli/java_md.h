@@ -45,11 +45,7 @@
 #define MAXNAMELEN           PATH_MAX
 #endif
 
-#ifdef _LP64
-#define JLONG_FORMAT_SPECIFIER "%ld"
-#else
 #define JLONG_FORMAT_SPECIFIER "%lld"
-#endif
 
 int UnsetEnv(char *name);
 char *FindExecName(char *program);

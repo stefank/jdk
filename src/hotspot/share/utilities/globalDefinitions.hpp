@@ -161,6 +161,9 @@ class oopDesc;
 #ifndef JLONG_FORMAT
 #define JLONG_FORMAT             INT64_FORMAT
 #endif
+#ifndef JLONG_FORMAT_X
+#define JLONG_FORMAT_X           INT64_FORMAT_X
+#endif
 #ifndef JLONG_FORMAT_W
 #define JLONG_FORMAT_W(width)    INT64_FORMAT_W(width)
 #endif
@@ -1155,6 +1158,7 @@ static inline julong uabs(julong n) {
   return result;
 }
 static inline julong uabs(jlong n) { return uabs((julong)n); }
+static inline julong uabs(ptrdiff_t n) { return uabs((julong)n); }
 static inline unsigned int uabs(int n) { return uabs((unsigned int)n); }
 
 // "to" should be greater than "from."

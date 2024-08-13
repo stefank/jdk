@@ -135,12 +135,6 @@ inline int g_isfinite(jdouble f)                 { return isfinite(f); }
   return (size_t)(c - space);                           \
 }())
 
-
-#if defined(_LP64) && defined(__APPLE__)
-#define JLONG_FORMAT          "%ld"
-#define JLONG_FORMAT_W(width) "%" #width "ld"
-#endif // _LP64 && __APPLE__
-
 #define THREAD_LOCAL __thread
 
 // Inlining support
