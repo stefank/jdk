@@ -46,11 +46,7 @@
 
 #include <stdint.h>
 
-#ifdef _LP64
-#define LL "l"
-#else
 #define LL "ll"
-#endif
 
 #endif // !_WIN32
 
