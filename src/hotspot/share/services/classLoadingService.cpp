@@ -135,13 +135,13 @@ bool ClassLoadingService::get_verbose() {
     if (ts->contains(LogTag::_class) &&
         ts->contains(LogTag::_load)) {
       LogLevelType l = ts->level_for(LogConfiguration::StdoutLog);
-      if (l == LogLevel::Info || l == LogLevel::Debug || l == LogLevel::Trace) {
-        return true;
+      if (l != LogLevel::Info && l != LogLevel::Debug && l != LogLevel::Trace) {
+        return false;
       }
     }
   }
 
-  return false;
+  return true;
 }
 
 // Caller to this function must own Management_lock
