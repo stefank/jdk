@@ -106,8 +106,8 @@ public:
                      GCCause::Cause cause,
                      bool allMemoryPoolsAffected, const char* notificationMessage = nullptr);
 
-  static bool get_verbose() { return log_is_enabled(Info, gc); }
   static bool set_verbose(bool verbose);
+  static bool get_verbose();
 
   // Create an instance of java/lang/management/MemoryUsage
   static Handle create_MemoryUsage_obj(MemoryUsage usage, TRAPS);

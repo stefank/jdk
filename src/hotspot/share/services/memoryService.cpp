@@ -202,6 +202,21 @@ bool MemoryService::set_verbose(bool verbose) {
   return verbose;
 }
 
+bool MemoryService::get_verbose() {
+  for (LogTagSet* ts = LogTagSet::first(); ts != nullptr; ts = ts->next()) {
+    // set_verbose only sets gc and not gc*, so check for an exact match
+    const bool is_gc_exact_match = ts->contains(LogTag::_gc) && ts->ntags() == 1;
+    if (is_gc_exact_match) {
+      LogLevelType l = ts->level_for(LogConfiguration::StdoutLog);
+      if (l == LogLevel::Info || l == LogLevel::Debug || l == LogLevel::Trace) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
 Handle MemoryService::create_MemoryUsage_obj(MemoryUsage usage, TRAPS) {
   InstanceKlass* ik = Management::java_lang_management_MemoryUsage_klass(CHECK_NH);
 
