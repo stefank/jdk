@@ -142,10 +142,13 @@ ObjArrayKlass::ObjArrayKlass(int n, Klass* element_klass, Symbol* name) : ArrayK
   assert(is_objArray_klass(), "sanity");
 }
 
-size_t ObjArrayKlass::oop_size(oop obj) const {
-  // In this assert, we cannot safely access the Klass* with compact headers.
-  assert(UseCompactObjectHeaders || obj->is_objArray(), "must be object array");
+size_t ObjArrayKlass::oop_size_no_type_check(oop obj) const {
   return objArrayOop(obj)->object_size();
+}
+
+size_t ObjArrayKlass::oop_size(oop obj) const {
+  assert(obj->is_objArray(), "must be object array");
+  return oop_size_no_type_check(obj);
 }
 
 objArrayOop ObjArrayKlass::allocate(int length, TRAPS) {

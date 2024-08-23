@@ -480,6 +480,7 @@ oop G1ParScanThreadState::do_copy_to_survivor_space(G1HeapRegionAttr const regio
       ? old_mark.klass()
       : old->klass();
 
+  assert(klass != nullptr, "Must be");
   const size_t word_sz = old->size_given_klass(klass);
 
   // JNI only allows pinning of typeArrays, so we only need to keep those in place.

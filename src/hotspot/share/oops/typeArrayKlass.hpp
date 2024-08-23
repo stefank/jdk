@@ -61,6 +61,7 @@ class TypeArrayKlass : public ArrayKlass {
     return create_klass(type, external_name(type), THREAD);
   }
 
+  size_t oop_size_no_type_check(oop obj) const;
   size_t oop_size(oop obj) const;
 
   // Allocation

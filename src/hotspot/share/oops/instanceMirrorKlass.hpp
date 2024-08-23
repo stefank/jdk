@@ -65,6 +65,7 @@ class InstanceMirrorKlass: public InstanceKlass {
   }
 
   // Returns the size of the instance including the extra static fields.
+  virtual size_t oop_size_no_type_check(oop obj) const;
   virtual size_t oop_size(oop obj) const;
 
   // Static field offset is an offset into the Heap, should be converted by

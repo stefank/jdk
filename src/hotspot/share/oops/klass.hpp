@@ -626,6 +626,7 @@ protected:
   // These functions describe behavior for the oop not the KLASS.
 
   // actual oop size of obj in memory in word size.
+  virtual size_t oop_size_no_type_check(oop obj) const = 0;
   virtual size_t oop_size(oop obj) const = 0;
 
   // Size of klass in word size.
@@ -710,7 +711,10 @@ protected:
     assert(UseCompactObjectHeaders, "only use with compact object headers");
     return _prototype_header;
   }
-  inline void set_prototype_header(markWord header);
+  inline void set_prototype_header(markWord header) {
+    assert(UseCompactObjectHeaders, "only use with compact object headers");
+    _prototype_header = header;
+  }
   static ByteSize prototype_header_offset() { return in_ByteSize(offset_of(Klass, _prototype_header)); }
 
   JFR_ONLY(DEFINE_TRACE_ID_METHODS;)

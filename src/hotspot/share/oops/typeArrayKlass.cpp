@@ -170,11 +170,14 @@ void TypeArrayKlass::copy_array(arrayOop s, int src_pos, arrayOop d, int dst_pos
   ArrayAccess<ARRAYCOPY_ATOMIC>::arraycopy<void>(s, src_offset, d, dst_offset, (size_t)length << l2es);
 }
 
-size_t TypeArrayKlass::oop_size(oop obj) const {
-  // In this assert, we cannot safely access the Klass* with compact headers.
-  assert(UseCompactObjectHeaders || obj->is_typeArray(),"must be a type array");
+size_t TypeArrayKlass::oop_size_no_type_check(oop obj) const {
   typeArrayOop t = typeArrayOop(obj);
   return t->object_size(this);
+}
+
+size_t TypeArrayKlass::oop_size(oop obj) const {
+  assert(obj->is_typeArray(),"must be a type array");
+  return oop_size_no_type_check(obj);
 }
 
 void TypeArrayKlass::initialize(TRAPS) {

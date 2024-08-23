@@ -72,6 +72,7 @@ class ObjArrayKlass : public ArrayKlass {
   GrowableArray<Klass*>* compute_secondary_supers(int num_extra_slots,
                                                   Array<InstanceKlass*>* transitive_interfaces);
   DEBUG_ONLY(bool is_objArray_klass_slow()  const  { return true; })
+  size_t oop_size_no_type_check(oop obj) const;
   size_t oop_size(oop obj) const;
 
   // Allocation

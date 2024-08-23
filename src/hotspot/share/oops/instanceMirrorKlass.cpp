@@ -61,8 +61,12 @@ instanceOop InstanceMirrorKlass::allocate_instance(Klass* k, TRAPS) {
   return (instanceOop)Universe::heap()->class_allocate(this, size, THREAD);
 }
 
-size_t InstanceMirrorKlass::oop_size(oop obj) const {
+size_t InstanceMirrorKlass::oop_size_no_type_check(oop obj) const {
   return java_lang_Class::oop_size(obj);
+}
+
+size_t InstanceMirrorKlass::oop_size(oop obj) const {
+  return oop_size_no_type_check(obj);
 }
 
 int InstanceMirrorKlass::compute_static_oop_field_count(oop obj) {

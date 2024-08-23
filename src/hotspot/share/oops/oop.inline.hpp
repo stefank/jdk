@@ -195,7 +195,7 @@ size_t oopDesc::size_given_klass(Klass* klass)  {
     if (!Klass::layout_helper_needs_slow_path(lh)) {
       s = lh >> LogHeapWordSize;  // deliver size scaled by wordSize
     } else {
-      s = klass->oop_size(this);
+      s = klass->oop_size_no_type_check(this);
     }
   } else if (lh <= Klass::_lh_neutral_value) {
     // The most common case is instances; fall through if so.
@@ -213,10 +213,10 @@ size_t oopDesc::size_given_klass(Klass* klass)  {
       // skipping the intermediate round to HeapWordSize.
       s = align_up(size_in_bytes, MinObjAlignmentInBytes) / HeapWordSize;
 
-      assert(s == klass->oop_size(this) || size_might_change(klass), "wrong array object size");
+      assert(s == klass->oop_size_no_type_check(this) || size_might_change(klass), "wrong array object size");
     } else {
       // Must be zero, so bite the bullet and take the virtual call.
-      s = klass->oop_size(this);
+      s = klass->oop_size_no_type_check(this);
     }
   }
 
@@ -448,8 +448,7 @@ void oopDesc::oop_iterate_backwards(OopClosureType* cl) {
 
 template <typename OopClosureType>
 void oopDesc::oop_iterate_backwards(OopClosureType* cl, Klass* k) {
-  // In this assert, we cannot safely access the Klass* with compact headers.
-  assert(UseCompactObjectHeaders || k == klass(), "wrong klass");
+  assert(k == klass(), "wrong klass");
   OopIteratorClosureDispatch::oop_oop_iterate_backwards(cl, this, k);
 }
 
