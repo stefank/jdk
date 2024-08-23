@@ -475,6 +475,7 @@ oop G1ParScanThreadState::do_copy_to_survivor_space(G1HeapRegionAttr const regio
   // may not yet have completed copying. Therefore we must load the Klass* from
   // the mark-word that we have already loaded. This is safe, because we have checked
   // that this is not yet forwarded in the caller.
+  assert(!old_mark.is_forwarded(), "precondition");
   Klass* klass = UseCompactObjectHeaders
       ? old_mark.klass()
       : old->klass();
