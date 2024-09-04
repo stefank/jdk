@@ -206,7 +206,7 @@ void ArchiveHeapWriter::copy_roots_to_buffer(GrowableArrayCHeap<oop, mtClassShar
   {
     // This is copied from MemAllocator::finish
     if (UseCompactObjectHeaders) {
-      oopDesc::release_set_mark(mem, k->prototype_header());
+      oopDesc::release_set_mark(mem, markWord::prototype().set_klass(k));
     } else {
       oopDesc::set_mark(mem, markWord::prototype());
       oopDesc::release_set_klass(mem, k);

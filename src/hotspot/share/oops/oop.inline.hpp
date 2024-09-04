@@ -82,16 +82,12 @@ markWord oopDesc::cas_set_mark(markWord new_mark, markWord old_mark, atomic_memo
   return Atomic::cmpxchg(&_mark, old_mark, new_mark, order);
 }
 
-markWord oopDesc::prototype_mark() const {
-  if (UseCompactObjectHeaders) {
-    return klass()->prototype_header();
-  } else {
-    return markWord::prototype();
-  }
-}
-
 void oopDesc::init_mark() {
-  set_mark(prototype_mark());
+  if (UseCompactObjectHeaders) {
+    set_mark(markWord::prototype().set_klass(klass()));
+  } else {
+    set_mark(markWord::prototype());
+  }
 }
 
 Klass* oopDesc::klass() const {
