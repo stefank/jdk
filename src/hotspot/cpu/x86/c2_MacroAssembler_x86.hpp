@@ -507,4 +507,7 @@ public:
 
   void load_nklass_compact_c2(Register dst, Address src);
 
+  void encode_and_store_compact_object_header_c2(Address dst, Register nklass, Register tmp);
+  void encode_and_store_compact_object_header_c2(Address dst, Klass* klass, Register tmp);
+
 #endif // CPU_X86_C2_MACROASSEMBLER_X86_HPP

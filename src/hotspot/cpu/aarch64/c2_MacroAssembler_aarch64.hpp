@@ -181,4 +181,7 @@
 
   void load_nklass_compact_c2(Register dst, Register obj, Register index, int scale, int disp);
 
+  void encode_and_store_compact_object_header_c2(Address dst, Register nklass, Register tmp);
+  void encode_and_store_compact_object_header_c2(Address dst, Klass* klass, Register tmp);
+
 #endif // CPU_AARCH64_C2_MACROASSEMBLER_AARCH64_HPP

@@ -423,6 +423,10 @@ class MacroAssembler: public Assembler {
   void cmp_narrow_klass(Register dst, Klass* k);
   void cmp_narrow_klass(Address dst, Klass* k);
 
+  void encode_and_store_compact_object_header(Address dst, Klass* k, Register tmp);
+  void encode_and_store_compact_object_header(Address dst, Register klass, Register tmp);
+  void encode_and_store_compact_object_header_from_nklass(Address dst, Register nklass, Register tmp);
+
   // if heap base register is used - reinit it with the correct value
   void reinit_heapbase();
 

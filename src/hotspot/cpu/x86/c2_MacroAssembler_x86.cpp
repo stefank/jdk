@@ -6517,4 +6517,14 @@ void C2_MacroAssembler::load_nklass_compact_c2(Register dst, Address src) {
   movq(dst, src.plus_disp(-oopDesc::klass_offset_in_bytes()));
   shrq(dst, markWord::klass_shift);
 }
+
+void C2_MacroAssembler::encode_and_store_compact_object_header_c2(Address dst, Register nklass, Register tmp) {
+  encode_and_store_compact_object_header_from_nklass(dst, nklass, tmp);
+}
+
+void C2_MacroAssembler::encode_and_store_compact_object_header_c2(Address dst, Klass* klass, Register tmp) {
+  assert(klass != nullptr, "Unexpected null pointer");
+  encode_and_store_compact_object_header(dst, klass, tmp);
+}
+
 #endif

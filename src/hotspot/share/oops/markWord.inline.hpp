@@ -79,4 +79,16 @@ Klass* markWord::klass_without_asserts() const {
 #endif
 }
 
+markWord markWord::set_klass(Klass* klass) const {
+#ifdef _LP64
+  assert(UseCompactObjectHeaders, "only used with compact object headers");
+  assert(UseCompressedClassPointers, "expect compressed klass pointers");
+  narrowKlass nklass = CompressedKlassPointers::encode(const_cast<Klass*>(klass));
+  return set_narrow_klass(nklass);
+#else
+  ShouldNotReachHere();
+  return markWord();
+#endif
+}
+
 #endif // SHARE_OOPS_MARKWORD_INLINE_HPP

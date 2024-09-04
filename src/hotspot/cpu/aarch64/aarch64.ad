@@ -6909,13 +6909,31 @@ instruct storeD(vRegD src, memory mem)
 // Store Compressed Klass Pointer
 instruct storeNKlass(iRegN src, memory mem)
 %{
-  predicate(!needs_releasing_store(n));
+  predicate(!needs_releasing_store(n) && !UseCompactObjectHeaders);
   match(Set mem (StoreNKlass mem src));
 
   ins_cost(INSN_COST);
   format %{ "strw  $src, $mem\t# compressed klass ptr" %}
 
   ins_encode(aarch64_enc_strw(src, mem));
+
+  ins_pipe(istore_reg_mem);
+%}
+
+// Store Compact Object Header
+instruct storeNKlassCompactObjectHeadersReg(iRegN src, memory mem, iRegPNoSp tmp, rFlagsReg cr)
+%{
+  predicate(!needs_releasing_store(n) && UseCompactObjectHeaders);
+  match(Set mem (StoreNKlass mem src));
+  effect(TEMP tmp, KILL cr);
+
+  ins_cost(INSN_COST);
+  format %{ "strw  $src, $mem\t# compressed klass ptr" %}
+
+  ins_encode %{
+    Address addr = mem2address($mem->opcode(), $mem$$base$$Register, $mem$$index, $mem$$scale, $mem$$disp);
+    __ encode_and_store_compact_object_header_c2(addr, $src$$Register, $tmp$$Register);
+  %}
 
   ins_pipe(istore_reg_mem);
 %}

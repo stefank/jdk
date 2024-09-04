@@ -3654,8 +3654,7 @@ void TemplateTable::_new() {
     // initialize object header only.
     __ bind(initialize_header);
     if (UseCompactObjectHeaders) {
-      __ ldr(rscratch1, Address(r4, Klass::prototype_header_offset()));
-      __ str(rscratch1, Address(r0, oopDesc::mark_offset_in_bytes()));
+      __ encode_and_store_compact_object_header(Address(r0, oopDesc::mark_offset_in_bytes()), r4, rscratch1);
     } else {
       __ mov(rscratch1, (intptr_t)markWord::prototype().value());
       __ str(rscratch1, Address(r0, oopDesc::mark_offset_in_bytes()));

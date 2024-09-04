@@ -188,7 +188,7 @@ objArrayOop ArchiveHeapWriter::allocate_root_segment(size_t offset, int element_
 
   // The initialization code is copied from MemAllocator::finish and ObjArrayAllocator::initialize.
   if (UseCompactObjectHeaders) {
-    oopDesc::release_set_mark(mem, Universe::objectArrayKlass()->prototype_header());
+    oopDesc::release_set_mark(mem, markWord::prototype().set_klass(Universe::objectArrayKlass()));
   } else {
     oopDesc::set_mark(mem, markWord::prototype());
     oopDesc::release_set_klass(mem, Universe::objectArrayKlass());
