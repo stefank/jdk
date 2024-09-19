@@ -5252,6 +5252,7 @@ void  MacroAssembler::set_narrow_klass(Register dst, Klass* k) {
 
 void MacroAssembler::encode_and_store_compact_object_header(Address dst, Klass* k, Register tmp) {
   assert (UseCompressedClassPointers, "should only be used for compressed headers");
+  assert (UseCompactObjectHeaders, "should only be used for compact object headers");
   assert (oop_recorder() != nullptr, "this assembler needs an OopRecorder");
   int index = oop_recorder()->find_index(k);
   assert(! Universe::heap()->is_in(k), "should not be an oop");
@@ -5260,18 +5261,8 @@ void MacroAssembler::encode_and_store_compact_object_header(Address dst, Klass* 
   RelocationHolder rspec = metadata_Relocation::spec(index);
   code_section()->relocate(inst_mark(), rspec);
 
-  narrowKlass nk = CompressedKlassPointers::encode(k);
-  STATIC_ASSERT(markWord::klass_bits == 22);
-  STATIC_ASSERT(markWord::klass_shift == 42);
-
-  // Not wired up (should we?)
-  fatal("Catch me!");
-
-  const int lower_bits = markWord::klass_bits - 16;
-
-  movz(tmp, (nk >> lower_bits), 48);
-  movk(tmp, (nk & right_n_bits(lower_bits)) << (16 - lower_bits), 32);
-  orr(tmp, tmp, markWord::prototype().value());
+  const uint64_t header = markWord::prototype().set_klass(k).value();
+  mov_immediate64(tmp, header);
   str(tmp, dst);
 }
 
