@@ -4126,8 +4126,10 @@ void TemplateTable::_new() {
     // initialize object header only.
     __ bind(initialize_header);
     if (UseCompactObjectHeaders) {
+#ifdef _LP64
       __ pop(rcx);   // get saved klass back in the register.
       __ encode_and_store_compact_object_header(Address(rax, oopDesc::mark_offset_in_bytes()), rcx, rscratch1);
+#endif
     } else {
       __ movptr(Address(rax, oopDesc::mark_offset_in_bytes()),
                 (intptr_t)markWord::prototype().value()); // header
