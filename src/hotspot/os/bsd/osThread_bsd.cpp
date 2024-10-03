@@ -29,15 +29,15 @@
 
 #include <signal.h>
 
-OSThread::OSThread()
-  : _thread_id(
+OSThread::OSThread(int thread_type, ThreadState thread_state)
+  : OSThreadBase(thread_type, thread_state),
+    _thread_id(
 #ifdef __APPLE__
         0
 #else
         nullptr
 #endif
     ),
-    _thread_type(),
     _pthread_id(nullptr),
     _unique_thread_id(0),
     _caller_sigmask(),

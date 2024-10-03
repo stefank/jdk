@@ -35,7 +35,6 @@ class OSThread : public OSThreadBase {
   typedef pid_t thread_id_t;
 
   thread_id_t _thread_id;
-  int _thread_type;
 
   // _pthread_id is the pthread id, which is used by library calls
   // (e.g. pthread_kill).
@@ -44,15 +43,8 @@ class OSThread : public OSThreadBase {
   sigset_t _caller_sigmask; // Caller's signal mask
 
  public:
-  OSThread();
+  OSThread(int thread_type, ThreadState thread_state);
   ~OSThread();
-
-  int thread_type() const {
-    return _thread_type;
-  }
-  void set_thread_type(int type) {
-    _thread_type = type;
-  }
 
   // Methods to save/restore caller's signal mask
   sigset_t  caller_sigmask() const       { return _caller_sigmask; }

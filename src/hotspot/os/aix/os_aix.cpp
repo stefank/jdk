@@ -692,17 +692,11 @@ bool os::create_thread(Thread* thread, ThreadType thr_type,
 
   assert(thread->osthread() == nullptr, "caller responsible");
 
-  // Allocate the OSThread object.
-  OSThread* osthread = new (std::nothrow) OSThread();
+  // Allocate the OSThread object - Initial state is ALLOCATED but not INITIALIZED
+  OSThread* osthread = new (std::nothrow) OSThread(thr_type, ALLOCATED);
   if (osthread == nullptr) {
     return false;
   }
-
-  // Set the correct thread state.
-  osthread->set_thread_type(thr_type);
-
-  // Initial state is ALLOCATED but not INITIALIZED
-  osthread->set_state(ALLOCATED);
 
   thread->set_osthread(osthread);
 
@@ -807,8 +801,8 @@ bool os::create_attached_thread(JavaThread* thread) {
     thread->verify_not_published();
 #endif
 
-  // Allocate the OSThread object
-  OSThread* osthread = new (std::nothrow) OSThread();
+  // Allocate the OSThread object - Initial thread state is RUNNABLE
+  OSThread* osthread = new (std::nothrow) OSThread(os::attached_thread, RUNNABLE);
 
   if (osthread == nullptr) {
     return false;
@@ -825,9 +819,6 @@ bool os::create_attached_thread(JavaThread* thread) {
 
   // initialize floating point control register
   os::Aix::init_thread_fpu_state();
-
-  // Initial thread state is RUNNABLE
-  osthread->set_state(RUNNABLE);
 
   thread->set_osthread(osthread);
 

@@ -570,9 +570,9 @@ static unsigned __stdcall thread_native_entry(void* t) {
 }
 
 static OSThread* create_os_thread(Thread* thread, HANDLE thread_handle,
-                                  int thread_id) {
-  // Allocate the OSThread object
-  OSThread* osthread = new (std::nothrow) OSThread();
+                                  ThreadType thr_type, int thread_id) {
+  // Allocate the OSThread object -  Initial thread state is INITIALIZED, not SUSPENDED
+  OSThread* osthread = new (std::nothrow) OSThread(thr_type, INITIALIZED);
   if (osthread == nullptr) return nullptr;
 
   // Initialize the JDK library's interrupt event.
@@ -597,9 +597,6 @@ static OSThread* create_os_thread(Thread* thread, HANDLE thread_handle,
     }
   }
 
-  // Initial thread state is INITIALIZED, not SUSPENDED
-  osthread->set_state(INITIALIZED);
-
   return osthread;
 }
 
@@ -613,7 +610,7 @@ bool os::create_attached_thread(JavaThread* thread) {
                        &thread_h, THREAD_ALL_ACCESS, false, 0)) {
     fatal("DuplicateHandle failed\n");
   }
-  OSThread* osthread = create_os_thread(thread, thread_h,
+  OSThread* osthread = create_os_thread(thread, thread_h, os::attached_thread,
                                         (int)current_thread_id());
   if (osthread == nullptr) {
     return false;
@@ -637,7 +634,7 @@ bool os::create_main_thread(JavaThread* thread) {
   thread->verify_not_published();
 #endif
   if (_starting_thread == nullptr) {
-    _starting_thread = create_os_thread(thread, main_thread, main_thread_id);
+    _starting_thread = create_os_thread(thread, main_thread, os::attached_thread, main_thread_id);
     if (_starting_thread == nullptr) {
       return false;
     }
@@ -676,14 +673,11 @@ bool os::create_thread(Thread* thread, ThreadType thr_type,
                        size_t stack_size) {
   unsigned thread_id;
 
-  // Allocate the OSThread object
-  OSThread* osthread = new (std::nothrow) OSThread();
+  // Allocate the OSThread object -  Thread state now is INITIALIZED, not SUSPENDED
+  OSThread* osthread = new (std::nothrow) OSThread(thr_type, INITIALIZED);
   if (osthread == nullptr) {
     return false;
   }
-
-  // Initial state is ALLOCATED but not INITIALIZED
-  osthread->set_state(ALLOCATED);
 
   // Initialize the JDK library's interrupt event.
   // This should really be done when OSThread is constructed,
@@ -784,9 +778,6 @@ bool os::create_thread(Thread* thread, ThreadType thr_type,
   // Store info on the Win32 thread into the OSThread
   osthread->set_thread_handle(thread_handle);
   osthread->set_thread_id(thread_id);
-
-  // Thread state now is INITIALIZED, not SUSPENDED
-  osthread->set_state(INITIALIZED);
 
   // The thread is returned suspended (in state INITIALIZED), and is started higher up in the call chain
   return true;

@@ -57,17 +57,21 @@ class OSThreadBase: public CHeapObj<mtThread> {
   friend class VMStructs;
   friend class JVMCIVMStructs;
  private:
-  volatile ThreadState _state;    // Thread state *hint*
+  const int            _thread_type; // os::ThreadType
+  volatile ThreadState _state;       // Thread state *hint*
 
   // Methods
  public:
-  OSThreadBase() {}
+  OSThreadBase(int thread_type, ThreadState thread_state)
+    : _thread_type(thread_type),
+      _state(thread_state) {}
   virtual ~OSThreadBase() {}
   NONCOPYABLE(OSThreadBase);
 
-  void set_state(ThreadState state)                { _state = state; }
-  ThreadState get_state()                          { return _state; }
+  int thread_type() const                          { return _thread_type; }
 
+  void set_state(ThreadState state)                { _state = state; }
+  ThreadState get_state() const                    { return _state; }
 
   virtual uintx thread_id_for_printing() const = 0;
 

@@ -42,7 +42,7 @@ class OSThread : public OSThreadBase {
                                 // Process.waitFor().
 
  public:
-  OSThread();
+  OSThread(int thread_type, ThreadState thread_state);
   ~OSThread();
 
   thread_id_t thread_id() const                    { return _thread_id; }

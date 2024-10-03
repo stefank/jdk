@@ -27,8 +27,9 @@
 
 #include <Windows.h>
 
-OSThread::OSThread()
-  : _thread_id(0),
+OSThread::OSThread(int thread_type, ThreadState thread_state)
+  : OSThreadBase(thread_type, thread_state),
+    _thread_id(0),
     _thread_handle(nullptr),
     _interrupt_event(nullptr) {}
 

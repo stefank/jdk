@@ -555,6 +555,7 @@ class os: AllStatic {
   // threads
 
   enum ThreadType {
+    attached_thread,
     vm_thread,
     gc_thread,         // GC thread
     java_thread,       // Java, JVMTIAgent and Service threads.
