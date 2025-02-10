@@ -952,7 +952,7 @@ address nmethod::continuation_for_implicit_exception(address pc, bool for_div0_c
     // Keep tty output consistent. To avoid ttyLocker, we buffer in stream, and print all at once.
     stringStream ss;
     ss.print_cr("implicit exception happened at " INTPTR_FORMAT, p2i(pc));
-    print_on(&ss);
+    print_on_v(&ss);
     method()->print_codes_on(&ss);
     print_code_on(&ss);
     print_pcs_on(&ss);

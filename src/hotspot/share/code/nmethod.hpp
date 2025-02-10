@@ -922,7 +922,7 @@ public:
   void print_pcs_on(outputStream* st);
   void print_scopes() { print_scopes_on(tty); }
   void print_scopes_on(outputStream* st)          PRODUCT_RETURN;
-  void print_value_on(outputStream* st) const override;
+  void print_value_on(outputStream* st) const;
   void print_handler_table();
   void print_nul_chk_table();
   void print_recorded_oop(int log_n, int index);
@@ -941,8 +941,6 @@ public:
   void maybe_print_nmethod(const DirectiveSet* directive);
   void print_nmethod(bool print_code);
 
-  // need to re-define this from CodeBlob else the overload hides it
-  void print_on(outputStream* st) const override { CodeBlob::print_on(st); }
   void print_on(outputStream* st, const char* msg) const;
 
   // Logging
@@ -995,6 +993,13 @@ public:
 
   void make_deoptimized();
   void finalize_relocations();
+
+  struct Vptr : public CodeBlob::Vptr {
+    void print_value_on(const CodeBlob* instance, outputStream* st) const override {
+      ((const nmethod*)instance)->print_value_on(st);
+    }
+  };
+  static const Vptr _vptr;
 };
 
 #endif // SHARE_CODE_NMETHOD_HPP

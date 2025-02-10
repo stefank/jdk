@@ -78,7 +78,7 @@ void DependencyContext::mark_dependent_nmethods(DeoptimizationScope* deopt_scope
         LogStream ls(&lt);
         ls.print_cr("Marked for deoptimization");
         changes.print_on(&ls);
-        nm->print_on(&ls);
+        nm->print_on_v(&ls);
         nm->print_dependencies_on(&ls);
       }
       deopt_scope->mark(nm, !changes.is_call_site_change());

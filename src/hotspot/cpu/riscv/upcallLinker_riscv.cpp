@@ -356,7 +356,7 @@ address UpcallLinker::make_upcall_stub(jobject receiver, Symbol* signature,
   if (lt.is_enabled()) {
     ResourceMark rm;
     LogStream ls(lt);
-    blob->print_on(&ls);
+    blob->print_on_v(&ls);
   }
 #endif
 

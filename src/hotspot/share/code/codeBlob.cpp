@@ -53,6 +53,31 @@
 #include "c1/c1_Runtime1.hpp"
 #endif
 
+const BufferBlob::Vptr         BufferBlob::_vptr;
+const DeoptimizationBlob::Vptr DeoptimizationBlob::_vptr;
+const nmethod::Vptr            nmethod::_vptr;
+const RuntimeStub::Vptr        RuntimeStub::_vptr;
+const SingletonBlob::Vptr      SingletonBlob::_vptr;
+const UpcallStub::Vptr         UpcallStub::_vptr;
+
+const CodeBlob::Vptr* CodeBlob::vptr() const {
+  constexpr const CodeBlob::Vptr* array[(size_t)CodeBlobKind::Number_Of_Kinds] = {
+      nullptr/* None */,
+      &nmethod::_vptr,
+      &BufferBlob::_vptr,
+      &AdapterBlob::_vptr,
+      &VtableBlob::_vptr,
+      &MethodHandlesAdapterBlob::_vptr,
+      &RuntimeStub::_vptr,
+      &DeoptimizationBlob::_vptr,
+      &ExceptionBlob::_vptr,
+      &SafepointBlob::_vptr,
+      &UncommonTrapBlob::_vptr,
+      &UpcallStub::_vptr
+  };
+
+  return array[(size_t)_kind];
+}
 
 unsigned int CodeBlob::align_code_offset(int offset) {
   // align the size to CodeEntryAlignment
@@ -644,14 +669,22 @@ void UpcallStub::free(UpcallStub* blob) {
 //----------------------------------------------------------------------------------------------------
 // Verification and printing
 
-void CodeBlob::print_on(outputStream* st) const {
+void CodeBlob::print_on_v(outputStream* st) const {
+  vptr()->print_on(this, st);
+}
+
+void CodeBlob::print_on_nv(outputStream* st) const {
   st->print_cr("[CodeBlob (" INTPTR_FORMAT ")]", p2i(this));
   st->print_cr("Framesize: %d", _frame_size);
 }
 
-void CodeBlob::print() const { print_on(tty); }
+void CodeBlob::print() const { print_on_v(tty); }
 
-void CodeBlob::print_value_on(outputStream* st) const {
+void CodeBlob::print_value_on_v(outputStream* st) const {
+  vptr()->print_value_on(this, st);
+}
+
+void CodeBlob::print_value_on_nv(outputStream* st) const {
   st->print_cr("[CodeBlob]");
 }
 
@@ -713,7 +746,7 @@ void CodeBlob::dump_for_addr(address addr, outputStream* st, bool verbose) const
     return;
   }
   st->print_cr(INTPTR_FORMAT " is at code_begin+%d in ", p2i(addr), (int)(addr - code_begin()));
-  print_on(st);
+  print_on_v(st);
 }
 
 void BufferBlob::verify() {
@@ -721,7 +754,7 @@ void BufferBlob::verify() {
 }
 
 void BufferBlob::print_on(outputStream* st) const {
-  RuntimeBlob::print_on(st);
+  RuntimeBlob::print_on_nv(st);
   print_value_on(st);
 }
 
@@ -735,7 +768,7 @@ void RuntimeStub::verify() {
 
 void RuntimeStub::print_on(outputStream* st) const {
   ttyLocker ttyl;
-  RuntimeBlob::print_on(st);
+  RuntimeBlob::print_on_nv(st);
   st->print("Runtime Stub (" INTPTR_FORMAT "): ", p2i(this));
   st->print_cr("%s", name());
   Disassembler::decode((RuntimeBlob*)this, st);
@@ -751,7 +784,7 @@ void SingletonBlob::verify() {
 
 void SingletonBlob::print_on(outputStream* st) const {
   ttyLocker ttyl;
-  RuntimeBlob::print_on(st);
+  RuntimeBlob::print_on_nv(st);
   st->print_cr("%s", name());
   Disassembler::decode((RuntimeBlob*)this, st);
 }
@@ -769,7 +802,7 @@ void UpcallStub::verify() {
 }
 
 void UpcallStub::print_on(outputStream* st) const {
-  RuntimeBlob::print_on(st);
+  RuntimeBlob::print_on_nv(st);
   print_value_on(st);
   st->print_cr("Frame data offset: %d", (int) _frame_data_offset);
   oop recv = JNIHandles::resolve(_receiver);

@@ -537,7 +537,7 @@ void frame::print_value_on(outputStream* st) const {
 #ifndef PRODUCT
   if (_cb != nullptr) {
     st->print("     ");
-    _cb->print_value_on(st);
+    _cb->print_value_on_v(st);
     if (end == nullptr) {
       begin = _cb->code_begin();
       end   = _cb->code_end();
