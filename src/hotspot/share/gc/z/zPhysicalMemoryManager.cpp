@@ -301,6 +301,15 @@ void ZPhysicalMemoryManager::unmap(const ZVirtualMemory& vmem) const {
   const zaddress_unsafe addr = ZOffset::address_unsafe(vmem.start());
   const size_t size = vmem.size();
   _backing.unmap(addr, size);
+
+  const zbacking_index* const pmem = _physical_mappings.addr(vmem.start());
+  size_t unmapped = 0;
+
+  for_each_segment_apply(pmem, size, [&](zbacking_offset segment_start, size_t segment_size) {
+    _backing.unmap_segment(addr + unmapped, segment_size, segment_start);
+    unmapped += segment_size;
+  });
+  postcond(unmapped == size);
 }
 
 void ZPhysicalMemoryManager::copy_physical_segments(const ZVirtualMemory& to, const ZVirtualMemory& from) {
