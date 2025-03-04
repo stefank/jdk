@@ -33,22 +33,11 @@
 
 void ZNUMA::pd_initialize() {
   _enabled = UseNUMA;
+  _count = UseNUMA
+    ? os::Linux::numa_max_node() + 1
+    : 1;
 
   NOT_PRODUCT(ZFakeNUMA = UseNUMA ? 1 : ZFakeNUMA;)
-}
-
-uint32_t ZNUMA::count() {
-  if (is_faked()) {
-    // ZFakeNUMA testing, ignores _enabled
-    return ZFakeNUMA;
-  }
-
-  if (!_enabled) {
-    // NUMA support not enabled
-    return 1;
-  }
-
-  return os::Linux::numa_max_node() + 1;
 }
 
 uint32_t ZNUMA::id() {
@@ -78,7 +67,7 @@ uint32_t ZNUMA::memory_id(uintptr_t addr) {
     fatal("Failed to get NUMA id for memory at " PTR_FORMAT " (%s)", addr, err.to_string());
   }
 
-  assert(id < count(), "Invalid NUMA id");
+  assert(id < _count, "Invalid NUMA id");
 
   return id;
 }

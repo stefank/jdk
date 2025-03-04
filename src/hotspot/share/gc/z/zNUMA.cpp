@@ -27,13 +27,14 @@
 #include "gc/z/zNUMA.inline.hpp"
 
 bool ZNUMA::_enabled;
+uint32_t ZNUMA::_count;
 
 void ZNUMA::initialize() {
   pd_initialize();
 
   log_info_p(gc, init)("NUMA Support: %s", to_string());
   if (_enabled) {
-    log_info_p(gc, init)("NUMA Nodes: %u", count());
+    log_info_p(gc, init)("NUMA Nodes: %u", _count);
   }
 
   if (is_faked()) {

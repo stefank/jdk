@@ -38,6 +38,14 @@ inline bool ZNUMA::is_enabled() {
   return _enabled;
 }
 
+inline uint32_t ZNUMA::count() {
+  if (is_faked()) {
+    return ZFakeNUMA;
+  }
+
+  return _count;
+}
+
 inline size_t ZNUMA::calculate_share(uint32_t numa_id, size_t total) {
   const uint32_t num_nodes = count();
   const size_t base_share = align_down(total / num_nodes, ZGranuleSize);
