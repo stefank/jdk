@@ -38,6 +38,7 @@ public class ZPageAllocator extends VMObject {
 
     private static CIntegerField maxCapacityField;
     private static long cacheStateFieldOffset;
+    private static long numaCount;
 
     static {
         VM.registerVMInitializedObserver((o, d) -> initialize(VM.getVM().getTypeDataBase()));
@@ -48,6 +49,7 @@ public class ZPageAllocator extends VMObject {
 
         maxCapacityField = type.getCIntegerField("_max_capacity");
         cacheStateFieldOffset = type.getAddressField("_states").getOffset();
+        numaCount = (new ZNUMA()).count();
     }
 
     private ZPerNUMACacheState states() {
@@ -60,11 +62,19 @@ public class ZPageAllocator extends VMObject {
     }
 
     public long capacity() {
-        return states().value().capacity();
+        long total_capacity = 0;
+        for (int id = 0; id < numaCount; id++) {
+          total_capacity += states().value(id).capacity();
+        }
+        return total_capacity;
     }
 
     public long used() {
-        return states().value().used();
+        long total_used = 0;
+        for (int id = 0; id < numaCount; id++) {
+          total_used += states().value(id).used();
+        }
+        return total_used;
     }
 
     public ZPageAllocator(Address addr) {

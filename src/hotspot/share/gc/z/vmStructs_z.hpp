@@ -29,6 +29,7 @@
 #include "gc/z/zForwarding.hpp"
 #include "gc/z/zGranuleMap.hpp"
 #include "gc/z/zHeap.hpp"
+#include "gc/z/zNUMA.hpp"
 #include "gc/z/zPageAllocator.hpp"
 #include "gc/z/zPageType.hpp"
 #include "gc/z/zValue.hpp"
@@ -91,6 +92,7 @@ typedef ZValue<ZPerNUMAStorage, ZCacheState> ZPerNUMACacheState;
   nonstatic_field(ZPageAllocator,               _max_capacity,        const size_t)                  \
   nonstatic_field(ZPageAllocator,               _states,              ZPerNUMACacheState)            \
                                                                                                      \
+  static_field(ZNUMA,                           _count,               uint32_t)                      \
   nonstatic_field(ZPerNUMACacheState,           _addr,                const uintptr_t)               \
                                                                                                      \
   volatile_nonstatic_field(ZCacheState,         _capacity,            size_t)                        \
@@ -140,6 +142,7 @@ typedef ZValue<ZPerNUMAStorage, ZCacheState> ZPerNUMACacheState;
   declare_toplevel_type(ZPage)                                                                       \
   declare_toplevel_type(ZPageType)                                                                   \
   declare_toplevel_type(ZPageAllocator)                                                              \
+  declare_toplevel_type(ZNUMA)                                                                       \
   declare_toplevel_type(ZPerNUMACacheState)                                                          \
   declare_toplevel_type(ZCacheState)                                                                 \
   declare_toplevel_type(ZPageTable)                                                                  \

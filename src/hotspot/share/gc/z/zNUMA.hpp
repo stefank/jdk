@@ -24,10 +24,13 @@
 #ifndef SHARE_GC_Z_ZNUMA_HPP
 #define SHARE_GC_Z_ZNUMA_HPP
 
+#include "gc/z/vmStructs_z.hpp"
 #include "memory/allStatic.hpp"
 #include "utilities/globalDefinitions.hpp"
 
 class ZNUMA : public AllStatic {
+  friend class VMStructs;
+
 private:
   static bool     _enabled;
   static uint32_t _count;

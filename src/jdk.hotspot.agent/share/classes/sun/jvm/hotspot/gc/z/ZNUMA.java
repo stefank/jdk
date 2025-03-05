@@ -24,37 +24,26 @@
 
 package sun.jvm.hotspot.gc.z;
 
-import sun.jvm.hotspot.debugger.Address;
 import sun.jvm.hotspot.runtime.VM;
-import sun.jvm.hotspot.runtime.VMObject;
-import sun.jvm.hotspot.runtime.VMObjectFactory;
-import sun.jvm.hotspot.types.AddressField;
+import sun.jvm.hotspot.types.CIntegerField;
 import sun.jvm.hotspot.types.Type;
 import sun.jvm.hotspot.types.TypeDataBase;
 
-// Mirror class for ZPerNUMA<ZCacheState>
+public class ZNUMA {
 
-public class ZPerNUMACacheState extends VMObject {
-
-    private static AddressField addrField;
-    private static long valueOffset = 4 * 1024; // 4K
+    private static CIntegerField countField;
 
     static {
         VM.registerVMInitializedObserver((o, d) -> initialize(VM.getVM().getTypeDataBase()));
     }
 
     private static synchronized void initialize(TypeDataBase db) {
-        Type type = db.lookupType("ZPerNUMACacheState");
-        addrField = type.getAddressField("_addr");
+        Type type = db.lookupType("ZNUMA");
+
+        countField = type.getCIntegerField("_count");
     }
 
-    public ZCacheState value(long id) {
-        Address valueArrayAddr = addrField.getValue(addr);
-        Address cacheStateAddr = valueArrayAddr.addOffsetTo(id * valueOffset);
-        return VMObjectFactory.newObject(ZCacheState.class, cacheStateAddr);
-    }
-
-    public ZPerNUMACacheState(Address addr) {
-        super(addr);
+    public long count() {
+        return countField.getValue();
     }
 }
