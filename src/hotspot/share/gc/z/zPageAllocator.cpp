@@ -418,22 +418,22 @@ void ZMemoryAllocationData::remove_last_multi_numa_allocation() {
   _multi_numa_allocations.pop();
 }
 
-
-void ZCacheState::initialize(size_t max_capacity) {
-  _current_max_capacity = max_capacity;
-  _capacity = 0;
-  _claimed = 0;
-  _used = 0;
-
-  for (int i = 0; i < 2; i++) {
-    _used_generations[i] = 0;
-    _collection_stats[i] = {0, 0};
-  }
-
-  _last_commit = 0.0;
-  _last_uncommit = 0.0;
-  _to_uncommit = 0;
-}
+ZCacheState::ZCacheState(uint32_t numa_id, ZPageAllocator* page_allocator)
+  : _page_allocator(page_allocator),
+    _cache(),
+    _min_capacity(ZNUMA::calculate_share(numa_id, page_allocator->min_capacity())),
+    _initial_capacity(ZNUMA::calculate_share(numa_id, page_allocator->initial_capacity())),
+    _max_capacity(ZNUMA::calculate_share(numa_id, page_allocator->max_capacity())),
+    _current_max_capacity(_max_capacity),
+    _capacity(0),
+    _claimed(0),
+    _used(0),
+    _used_generations{0,0},
+    _collection_stats{{0, 0},{0, 0}},
+    _last_commit(0.0),
+    _last_uncommit(0.0),
+    _to_uncommit(0),
+    _numa_id(numa_id) {}
 
 size_t ZCacheState::available_capacity() const {
   return _current_max_capacity - _used - _claimed;
@@ -738,8 +738,8 @@ ZPageAllocator::ZPageAllocator(size_t min_capacity,
     _min_capacity(min_capacity),
     _initial_capacity(initial_capacity),
     _max_capacity(max_capacity),
-    _states(),
-    _uncommitters(),
+    _states(ZValueIdTagType{}, this),
+    _uncommitters(ZValueIdTagType{}, this),
     _stalled(),
     _safe_destroy(),
     _initialized(false) {
@@ -747,11 +747,6 @@ ZPageAllocator::ZPageAllocator(size_t min_capacity,
   if (!_virtual.is_initialized() || !_physical.is_initialized()) {
     return;
   }
-
-  ZNUMA::divide_resource(max_capacity, [&](uint32_t id, size_t capacity) {
-    _uncommitters.set(new ZUncommitter(id, this), id);
-    _states.get(id).initialize(capacity);
-  });
 
   log_info_p(gc, init)("Min Capacity: %zuM", min_capacity / M);
   log_info_p(gc, init)("Initial Capacity: %zuM", initial_capacity / M);
@@ -2050,6 +2045,6 @@ void ZPageAllocator::handle_alloc_stalling_for_old(bool cleared_all_soft_refs) {
 void ZPageAllocator::threads_do(ThreadClosure* tc) const {
   const int numa_nodes = ZNUMA::count();
   for (int numa_id = 0; numa_id < numa_nodes; ++numa_id) {
-    tc->do_thread(_uncommitters.get(numa_id));
+    tc->do_thread(const_cast<ZUncommitter*>(&_uncommitters.get(numa_id)));
   }
 }

@@ -54,8 +54,12 @@ class ZCacheState {
   friend class ZPageAllocator;
 
 private:
+  ZPageAllocator* const      _page_allocator;
   ZMappedCache               _cache;
-  volatile size_t            _current_max_capacity;
+  const size_t               _min_capacity;
+  const size_t               _initial_capacity;
+  const size_t               _max_capacity;
+  size_t                     _current_max_capacity;
   volatile size_t            _capacity;
   volatile size_t            _claimed;
   volatile size_t            _used;
@@ -67,9 +71,10 @@ private:
   double                     _last_commit;
   double                     _last_uncommit;
   size_t                     _to_uncommit;
+  const int                  _numa_id;
 
 public:
-  void initialize(size_t max_capacity);
+  ZCacheState(uint32_t numa_id, ZPageAllocator* page_allocator);
 
   size_t available_capacity() const;
   size_t soft_max_capacity() const;
@@ -105,7 +110,7 @@ private:
   const size_t                _initial_capacity;
   const size_t                _max_capacity;
   ZPerNUMA<ZCacheState>       _states;
-  ZPerNUMA<ZUncommitter*>     _uncommitters;
+  ZPerNUMA<ZUncommitter>      _uncommitters;
   ZList<ZPageAllocation>      _stalled;
   mutable ZSafeDelete<ZPage>  _safe_destroy;
   bool                        _initialized;

@@ -76,6 +76,8 @@ public:
 // Value
 //
 
+struct ZValueIdTagType {};
+
 template <typename S, typename T>
 class ZValue : public CHeapObj<mtGC> {
   friend class VMStructs;
@@ -88,6 +90,8 @@ private:
 public:
   ZValue();
   ZValue(const T& value);
+  template <typename... Args>
+  ZValue(ZValueIdTagType, Args&&... args);
 
   const T* addr(uint32_t value_id = S::id()) const;
   T* addr(uint32_t value_id = S::id());
@@ -118,6 +122,7 @@ public:
   ZValueIterator(ZValue<S, T>* value);
 
   bool next(T** value);
+  bool next(T** value, uint32_t* value_id);
 };
 
 template <typename T> using ZPerCPUIterator = ZValueIterator<ZPerCPUStorage, T>;

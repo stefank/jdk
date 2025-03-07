@@ -25,6 +25,7 @@
 #define SHARE_GC_Z_ZNUMA_HPP
 
 #include "gc/z/vmStructs_z.hpp"
+#include "gc/z/zGlobals.hpp"
 #include "memory/allStatic.hpp"
 #include "utilities/globalDefinitions.hpp"
 
@@ -47,10 +48,7 @@ public:
 
   static uint32_t memory_id(uintptr_t addr);
 
-  static size_t calculate_share(uint32_t numa_id, size_t total);
-
-  template <typename Function>
-  static void divide_resource(size_t resource, Function function);
+  static size_t calculate_share(uint32_t numa_id, size_t total, size_t granule = ZGranuleSize);
 
   static const char* to_string();
 };
