@@ -691,8 +691,8 @@ public:
         ZCacheState& state = allocator->state_from_numa_id(numa_id);
 
         // Update accounting
-        state.decrease_used(numa_data._mapped);
-        state.decrease_used_generation(id, numa_data._mapped);
+        state.decrease_used(numa_data._mapped + numa_data._uncommitted);
+        state.decrease_used_generation(id, numa_data._mapped + numa_data._uncommitted);
         state.decrease_capacity(numa_data._uncommitted, false /* set_max_capacity */);
 
         // Reinsert mappings
