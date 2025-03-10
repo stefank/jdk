@@ -65,13 +65,13 @@ public:
   int shuffle_vmem_to_low_addresses(const ZMemoryRange& vmem, ZArray<ZMemoryRange>* out);
   void shuffle_vmem_to_low_addresses_contiguous(size_t size, ZArray<ZMemoryRange>* mappings);
 
-  size_t alloc_low_address_many_at_most(size_t size, int numa_id, ZArray<ZMemoryRange>* out);
-  ZMemoryRange alloc(size_t size, int numa_id, bool force_low_address);
+  size_t alloc_low_address_many_at_most(size_t size, uint32_t numa_id, ZArray<ZMemoryRange>* out);
+  ZMemoryRange alloc(size_t size, uint32_t numa_id, bool force_low_address);
   void free(const ZMemoryRange& vmem);
-  void free(const ZMemoryRange& vmem, int numa_id);
+  void free(const ZMemoryRange& vmem, uint32_t numa_id);
 
-  int get_numa_id(const ZMemoryRange& vmem) const;
-  zoffset lowest_available_address(int numa_id) const;
+  uint32_t get_numa_id(const ZMemoryRange& vmem) const;
+  zoffset lowest_available_address(uint32_t numa_id) const;
 };
 
 #endif // SHARE_GC_Z_ZVIRTUALMEMORYMANAGER_HPP

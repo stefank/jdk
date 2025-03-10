@@ -627,9 +627,9 @@ retry:
   return true;
 }
 
-size_t ZPhysicalMemoryBacking::commit_numa_preferred(zbacking_offset offset, size_t length, int numa_id) const {
+size_t ZPhysicalMemoryBacking::commit_numa_preferred(zbacking_offset offset, size_t length, uint32_t numa_id) const {
   // Setup NUMA policy to allocate memory from a preferred node
-  os::Linux::numa_set_preferred(numa_id);
+  os::Linux::numa_set_preferred((int)numa_id);
 
   size_t committed = commit_default(offset, length);
 
@@ -667,7 +667,7 @@ size_t ZPhysicalMemoryBacking::commit_default(zbacking_offset offset, size_t len
   }
 }
 
-size_t ZPhysicalMemoryBacking::commit(zbacking_offset offset, size_t length, int numa_id) const {
+size_t ZPhysicalMemoryBacking::commit(zbacking_offset offset, size_t length, uint32_t numa_id) const {
   if (ZNUMA::is_enabled() && !ZLargePages::is_explicit()) {
     // The memory is required to be preferred at the time it is paged in. As a
     // consequence we must prefer the memory when committing non-large pages

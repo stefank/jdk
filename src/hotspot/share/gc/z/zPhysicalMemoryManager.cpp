@@ -109,7 +109,7 @@ void ZPhysicalMemoryManager::try_enable_uncommit(size_t min_capacity, size_t max
   log_info_p(gc, init)("Uncommit Delay: %zus", ZUncommitDelay);
 }
 
-void ZPhysicalMemoryManager::alloc(zbacking_index* pmem, size_t size, int numa_id) {
+void ZPhysicalMemoryManager::alloc(zbacking_index* pmem, size_t size, uint32_t numa_id) {
   assert(is_aligned(size, ZGranuleSize), "Invalid size");
 
   size_t current_segment = 0;
@@ -181,7 +181,7 @@ bool for_each_segment_apply(const zbacking_index* pmem, size_t size, Function fu
   return true;
 }
 
-void ZPhysicalMemoryManager::free(const zbacking_index* pmem, size_t size, int numa_id) {
+void ZPhysicalMemoryManager::free(const zbacking_index* pmem, size_t size, uint32_t numa_id) {
   // Free segments
   for_each_segment_apply(pmem, size, [&](zbacking_offset segment_start, size_t segment_size) {
     const size_t num_segments = segment_size >> ZGranuleSizeShift;
@@ -192,7 +192,7 @@ void ZPhysicalMemoryManager::free(const zbacking_index* pmem, size_t size, int n
   });
 }
 
-size_t ZPhysicalMemoryManager::commit(const zbacking_index* pmem, size_t size, int numa_id) {
+size_t ZPhysicalMemoryManager::commit(const zbacking_index* pmem, size_t size, uint32_t numa_id) {
   size_t total_committed = 0;
   // Commit segments
   for_each_segment_apply(pmem, size, [&](zbacking_offset segment_start, size_t segment_size) {
@@ -232,7 +232,7 @@ size_t ZPhysicalMemoryManager::uncommit(const zbacking_index* pmem, size_t size)
 }
 
 // Map virtual memory to physical memory
-void ZPhysicalMemoryManager::map(zoffset offset, const zbacking_index* pmem, size_t size, int numa_id) const {
+void ZPhysicalMemoryManager::map(zoffset offset, const zbacking_index* pmem, size_t size, uint32_t numa_id) const {
   const zaddress_unsafe addr = ZOffset::address_unsafe(offset);
 
   size_t mapped = 0;
@@ -244,7 +244,7 @@ void ZPhysicalMemoryManager::map(zoffset offset, const zbacking_index* pmem, siz
 
   // Setup NUMA preferred for large pages
   if (ZNUMA::is_enabled() && ZLargePages::is_explicit()) {
-    os::numa_make_local((char*)addr, size, numa_id);
+    os::numa_make_local((char*)addr, size, (int)numa_id);
   }
 }
 

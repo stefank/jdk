@@ -120,22 +120,22 @@ private:
   mutable ZSafeDelete<ZPage>  _safe_destroy;
   bool                        _initialized;
 
-  ZCacheState& state_from_numa_id(int numa_id);
+  ZCacheState& state_from_numa_id(uint32_t numa_id);
   ZCacheState& state_from_vmem(const ZMemoryRange& vmem);
 
   size_t count_segments_physical(const ZMemoryRange& vmem);
   void sort_segments_physical(const ZMemoryRange& vmem);
 
-  void alloc_physical(const ZMemoryRange& vmem, int numa_id);
-  void free_physical(const ZMemoryRange& vmem, int numa_id);
-  size_t commit_physical(const ZMemoryRange& vmem, int numa_id);
+  void alloc_physical(const ZMemoryRange& vmem, uint32_t numa_id);
+  void free_physical(const ZMemoryRange& vmem, uint32_t numa_id);
+  size_t commit_physical(const ZMemoryRange& vmem, uint32_t numa_id);
   void uncommit_physical(const ZMemoryRange& vmem);
 
-  void map_virtual_to_physical(const ZMemoryRange& vmem, int numa_id);
+  void map_virtual_to_physical(const ZMemoryRange& vmem, uint32_t numa_id);
 
   void unmap_virtual(const ZMemoryRange& vmem);
   void free_virtual(const ZMemoryRange& vmem);
-  void free_virtual(const ZMemoryRange& vmem, int numa_id);
+  void free_virtual(const ZMemoryRange& vmem, uint32_t numa_id);
 
   void remap_and_defragment_mapping(const ZMemoryRange& mapping, ZArray<ZMemoryRange>* entries);
   void prepare_memory_for_free(ZPage* page, ZArray<ZMemoryRange>* entries, bool allow_defragment);
@@ -182,7 +182,7 @@ private:
   void notify_out_of_memory();
   void restart_gc() const;
 
-  bool prime_state_cache(ZWorkers* workers, int numa_id, size_t size);
+  bool prime_state_cache(ZWorkers* workers, uint32_t numa_id, size_t size);
 
 public:
   ZPageAllocator(size_t min_capacity,
