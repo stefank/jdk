@@ -421,6 +421,7 @@ void ZMemoryAllocationData::remove_last_multi_numa_allocation() {
 ZCacheState::ZCacheState(uint32_t numa_id, ZPageAllocator* page_allocator)
   : _page_allocator(page_allocator),
     _cache(),
+    _uncommitter(numa_id, page_allocator),
     _min_capacity(ZNUMA::calculate_share(numa_id, page_allocator->min_capacity())),
     _initial_capacity(ZNUMA::calculate_share(numa_id, page_allocator->initial_capacity())),
     _max_capacity(ZNUMA::calculate_share(numa_id, page_allocator->max_capacity())),
@@ -577,6 +578,19 @@ bool ZCacheState::claim_physical(ZMemoryAllocation* allocation) {
 
 ZMappedCache* ZCacheState::cache() {
   return &_cache;
+}
+
+
+const ZUncommitter& ZCacheState::uncommitter() const {
+  return _uncommitter;
+}
+
+ZUncommitter& ZCacheState::uncommitter() {
+  return _uncommitter;
+}
+
+void ZCacheState::threads_do(ThreadClosure* tc) const {
+  tc->do_thread(const_cast<ZUncommitter*>(&_uncommitter));
 }
 
 class MultiNUMATracker : CHeapObj<mtGC> {
@@ -739,7 +753,6 @@ ZPageAllocator::ZPageAllocator(size_t min_capacity,
     _initial_capacity(initial_capacity),
     _max_capacity(max_capacity),
     _states(ZValueIdTagType{}, this),
-    _uncommitters(ZValueIdTagType{}, this),
     _stalled(),
     _safe_destroy(),
     _initialized(false) {
@@ -2043,8 +2056,8 @@ void ZPageAllocator::handle_alloc_stalling_for_old(bool cleared_all_soft_refs) {
 }
 
 void ZPageAllocator::threads_do(ThreadClosure* tc) const {
-  const int numa_nodes = ZNUMA::count();
-  for (int numa_id = 0; numa_id < numa_nodes; ++numa_id) {
-    tc->do_thread(const_cast<ZUncommitter*>(&_uncommitters.get(numa_id)));
+  ZPerNUMAConstIterator<ZCacheState> iter(&_states);
+  for (const ZCacheState* state; iter.next(&state);) {
+    state->threads_do(tc);
   }
 }

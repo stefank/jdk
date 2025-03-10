@@ -36,6 +36,7 @@
 #include "gc/z/zPageType.hpp"
 #include "gc/z/zPhysicalMemoryManager.hpp"
 #include "gc/z/zSafeDelete.hpp"
+#include "gc/z/zUncommitter.hpp"
 #include "gc/z/zValue.hpp"
 #include "gc/z/zVirtualMemoryManager.hpp"
 
@@ -46,7 +47,6 @@ class ZPageAllocation;
 class ZPageAllocator;
 class ZPageAllocatorStats;
 class ZSegmentStash;
-class ZUncommitter;
 class ZWorkers;
 
 class ZCacheState {
@@ -56,6 +56,7 @@ class ZCacheState {
 private:
   ZPageAllocator* const      _page_allocator;
   ZMappedCache               _cache;
+  ZUncommitter               _uncommitter;
   const size_t               _min_capacity;
   const size_t               _initial_capacity;
   const size_t               _max_capacity;
@@ -94,6 +95,11 @@ public:
   bool claim_physical(ZMemoryAllocation* allocation);
 
   ZMappedCache* cache();
+
+  const ZUncommitter& uncommitter() const;
+  ZUncommitter& uncommitter();
+
+  void threads_do(ThreadClosure* tc) const;
 };
 
 class ZPageAllocator {
@@ -110,7 +116,6 @@ private:
   const size_t                _initial_capacity;
   const size_t                _max_capacity;
   ZPerNUMA<ZCacheState>       _states;
-  ZPerNUMA<ZUncommitter>      _uncommitters;
   ZList<ZPageAllocation>      _stalled;
   mutable ZSafeDelete<ZPage>  _safe_destroy;
   bool                        _initialized;
