@@ -30,7 +30,7 @@
 #include "gc/shared/workerThread.hpp"
 #include "gc/z/zCPU.inline.hpp"
 #include "gc/z/zGlobals.hpp"
-#include "gc/z/zNUMA.hpp"
+#include "gc/z/zNUMA.inline.hpp"
 #include "gc/z/zUtils.inline.hpp"
 #include "runtime/globals.hpp"
 #include "utilities/align.hpp"
