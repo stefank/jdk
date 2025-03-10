@@ -1117,7 +1117,6 @@ bool ZPageAllocator::alloc_page_stall(ZPageAllocation* allocation) {
 
 
 bool ZPageAllocator::claim_physical_multi_numa(ZPageAllocation* allocation) {
-  // Start at the allocating thread's affinity
   const uint32_t start_node = allocation->initiating_numa_id();
   const uint32_t numa_nodes = ZNUMA::count();
 
@@ -1187,7 +1186,6 @@ bool ZPageAllocator::claim_physical_multi_numa(ZPageAllocation* allocation) {
 }
 
 bool ZPageAllocator::claim_physical_round_robin(ZPageAllocation* allocation) {
-  // Start at the allocating thread's affinity
   const uint32_t start_node = allocation->initiating_numa_id();
   const uint32_t numa_nodes = ZNUMA::count();
   size_t total_available = 0;
