@@ -35,7 +35,7 @@
 #include "utilities/debug.hpp"
 
 ZVirtualMemoryManager::ZVirtualMemoryManager(size_t max_capacity)
-  : _reserved_memory(),
+  : _init_manager(),
     _managers(),
     _vmem_ranges(),
     _initialized(false) {
@@ -60,7 +60,7 @@ ZVirtualMemoryManager::ZVirtualMemoryManager(size_t max_capacity)
     ZMemoryManager* manager = _managers.addr(id);
 
     // Transfer reserved memory
-    _reserved_memory.transfer_low_address(manager, reserved);
+    _init_manager.transfer_low_address(manager, reserved);
 
     // Store the range for the manager
     _vmem_ranges.set(manager->total_range(), id);
@@ -165,7 +165,7 @@ bool ZVirtualMemoryManager::reserve_contiguous(zoffset start, size_t size) {
   // Register address views with native memory tracker
   ZNMT::reserve(addr, size);
 
-  _reserved_memory.free(start, size);
+  _init_manager.free(start, size);
 
   return true;
 }
@@ -208,7 +208,7 @@ size_t ZVirtualMemoryManager::reserve(size_t max_capacity) {
 
   const size_t reserved = do_reserve();
 
-  const bool contiguous_reservation = _reserved_memory.free_is_contiguous();
+  const bool contiguous_reservation = _init_manager.free_is_contiguous();
 
   log_info_p(gc, init)("Address Space Type: %s/%s/%s",
                        (contiguous_reservation ? "Contiguous" : "Discontiguous"),

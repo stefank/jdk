@@ -38,7 +38,7 @@ public:
 private:
   static size_t calculate_min_range(size_t size);
 
-  ZMemoryManager           _reserved_memory;
+  ZMemoryManager           _init_manager;
   ZPerNUMA<ZMemoryManager> _managers;
   ZPerNUMA<ZMemoryRange>   _vmem_ranges;
   bool                     _initialized;
