@@ -575,6 +575,11 @@ bool ZCacheState::claim_physical(ZMemoryAllocation* allocation) {
   return true;
 }
 
+void ZCacheState::promote_used(size_t size) {
+  decrease_used_generation(ZGenerationId::young, size);
+  increase_used_generation(ZGenerationId::old, size);
+}
+
 ZMappedCache* ZCacheState::cache() {
   return &_cache;
 }
@@ -607,6 +612,7 @@ private:
   const ZArray<Element>* map() const {
     return &_map;
   }
+
 public:
   static void install_tracker(const ZPageAllocation* allocation, ZPage* page) {
     if (!allocation->is_multi_numa_allocation()) {
@@ -729,13 +735,11 @@ public:
     assert(tracker == to->multi_numa_tracker(), "should have the same tracker");
 
     ZArrayIterator<Element> iter(tracker->map());
-    for (Element partial_allocation{}; iter.next(&partial_allocation);) {
+    for (Element partial_allocation; iter.next(&partial_allocation);) {
       const size_t size = partial_allocation._range.size();
       const uint32_t numa_id = partial_allocation._numa_id;
       ZCacheState& state = allocator->state_from_numa_id(numa_id);
-
-      state.decrease_used_generation(ZGenerationId::young, size);
-      state.increase_used_generation(ZGenerationId::old, size);
+      state.promote_used(size);
     }
   }
 };
@@ -985,14 +989,14 @@ ZCacheState& ZPageAllocator::state_from_vmem(const ZMemoryRange& vmem) {
 
 void ZPageAllocator::promote_used(const ZPage* from, const ZPage* to) {
   assert(from->size() == to->size(), "pages are the same size");
-  const size_t size = from->size();
+  assert(from->start() == to->start(), "pages start at same offset");
+
   if (from->is_multi_numa()) {
     MultiNUMATracker::promote(this, from, to);
   } else {
-    // TODO: virtual_memory are the same, this is only used for inplace and flip promotion
-    //       for relocation promotions these counters are accounted for in alloc and free
-    state_from_vmem(from->virtual_memory()).decrease_used_generation(ZGenerationId::young, size);
-    state_from_vmem(to->virtual_memory()).increase_used_generation(ZGenerationId::old, size);
+    const size_t size = from->size();
+    ZCacheState &state = state_from_vmem(from->virtual_memory());
+    state.promote_used(size);
   }
 }
 

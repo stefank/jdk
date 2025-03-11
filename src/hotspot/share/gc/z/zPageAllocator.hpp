@@ -94,6 +94,8 @@ public:
   bool claim_mapped_or_increase_capacity(ZMemoryAllocation* allocation);
   bool claim_physical(ZMemoryAllocation* allocation);
 
+  void promote_used(size_t size);
+
   ZMappedCache* cache();
 
   const ZUncommitter& uncommitter() const;
