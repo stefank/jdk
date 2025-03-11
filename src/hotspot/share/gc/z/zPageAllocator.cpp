@@ -545,9 +545,8 @@ bool ZCacheState::claim_mapped_or_increase_capacity(ZMemoryAllocation* allocatio
     return true;
   }
 
-  // TODO: We do not recover capicity if we fail here, this should be guaranteed
-  //       by available_capacity() and our locking. But I'd would like to go check
-  //       this. And maybe this can be reorganized so that this is more obvious.
+  // We do not recover capacity if we fail here, which should not occur since
+  // available_capacity() should be checked before claiming physical memory.
   assert(increased == 0, "should not have failed");
 
   // Could not claim enough memory from the cache or increase capacity to
