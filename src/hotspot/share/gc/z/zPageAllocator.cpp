@@ -1211,14 +1211,12 @@ bool ZPageAllocator::claim_physical_round_robin(ZPageAllocation* allocation) {
   }
 
   if (numa_nodes > 1 && total_available >= allocation->size()) {
-    if (!claim_physical_multi_numa(allocation)) {
-      // May have partially succeeded, undo any partial allocations
-      free_memory_alloc_failed_multi_numa(allocation);
-
-      return false;
+    if (claim_physical_multi_numa(allocation)) {
+      return true;
     }
 
-    return true;
+    // May have partially succeeded, undo any partial allocations
+    free_memory_alloc_failed_multi_numa(allocation);
   }
 
   return false;
