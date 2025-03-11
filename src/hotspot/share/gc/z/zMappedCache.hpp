@@ -64,8 +64,10 @@ private:
 
   template <typename SelectFunction>
   ZMemoryRange remove_mapping(ZMappedCacheEntry* const entry, size_t min_size, SelectFunction select);
+
   template <typename SelectFunction, typename ConsumeFunction>
   void scan_remove_mapping(size_t min_size, SelectFunction select, ConsumeFunction consume);
+
   template <typename SelectFunction, typename ConsumeFunction>
   void scan_remove_mapping(SelectFunction select, ConsumeFunction consume);
 
