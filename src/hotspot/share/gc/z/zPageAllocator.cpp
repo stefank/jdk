@@ -654,9 +654,10 @@ public:
 
     // Remap memory back to original numa node
     ZArrayIterator<Element> iter(tracker->map());
-    for (Element partial_allocation{}; iter.next(&partial_allocation);) {
+    for (Element partial_allocation; iter.next(&partial_allocation);) {
       ZMemoryRange remaining_vmem = partial_allocation._range;
       const uint32_t numa_id = partial_allocation._numa_id;
+
       PerNUMAData& numa_data = per_numa_mappings[numa_id];
       ZArray<ZMemoryRange>* const numa_memory_mappings = &numa_data._mappings;
       const size_t size = remaining_vmem.size();
@@ -1772,7 +1773,6 @@ void ZPageAllocator::free_page(ZPage* page, bool allow_defragment) {
     // Multi numa is handled separately, multi numa allocations are always
     // effectively defragmented
     free_page_multi_numa(page);
-
     return;
   }
 
@@ -1808,9 +1808,9 @@ void ZPageAllocator::free_pages(const ZArray<ZPage*>* pages) {
     if (page->is_multi_numa()) {
       // Multi numa is handled separately
       free_page_multi_numa(page);
-
       continue;
     }
+
     prepare_memory_for_free(page, &to_cache, true /* allow_defragment */);
   }
 
