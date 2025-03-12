@@ -50,7 +50,7 @@ class ZPageAllocatorStats;
 class ZSegmentStash;
 class ZWorkers;
 
-class ZCacheState {
+class ZAllocNode {
   friend class VMStructs;
   friend class ZPageAllocator;
 
@@ -92,7 +92,7 @@ private:
   void verify_memory_allocation_association(const ZMemoryAllocation* allocation) const;
 
 public:
-  ZCacheState(uint32_t numa_id, ZPageAllocator* page_allocator);
+  ZAllocNode(uint32_t numa_id, ZPageAllocator* page_allocator);
 
   size_t available_capacity() const;
 
@@ -148,7 +148,7 @@ public:
 
 class ZPageAllocator {
   friend class VMStructs;
-  friend class ZCacheState;
+  friend class ZAllocNode;
   friend class ZUncommitter;
   friend class MultiNUMATracker;
 
@@ -160,14 +160,14 @@ private:
   const size_t                _min_capacity;
   const size_t                _initial_capacity;
   const size_t                _max_capacity;
-  ZPerNUMA<ZCacheState>       _states;
+  ZPerNUMA<ZAllocNode>        _alloc_nodes;
   ZList<ZPageAllocation>      _stalled;
   mutable ZSafeDelete<ZPage>  _safe_destroy;
   bool                        _initialized;
 
-  const ZCacheState& state_from_numa_id(uint32_t numa_id) const;
-  ZCacheState& state_from_numa_id(uint32_t numa_id);
-  ZCacheState& state_from_vmem(const ZVirtualMemory& vmem);
+  const ZAllocNode& node_from_numa_id(uint32_t numa_id) const;
+  ZAllocNode& node_from_numa_id(uint32_t numa_id);
+  ZAllocNode& node_from_vmem(const ZVirtualMemory& vmem);
 
   size_t count_segments_physical(const ZVirtualMemory& vmem);
   void sort_segments_physical(const ZVirtualMemory& vmem);
@@ -251,8 +251,8 @@ public:
 
   void threads_do(ThreadClosure* tc) const;
 
-  ZPerNUMAConstIterator<ZCacheState> state_iterator() const;
-  ZPerNUMAIterator<ZCacheState> state_iterator();
+  ZPerNUMAConstIterator<ZAllocNode> alloc_node_iterator() const;
+  ZPerNUMAIterator<ZAllocNode> alloc_node_iterator();
 };
 
 class ZPageAllocatorStats {
