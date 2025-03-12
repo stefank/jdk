@@ -78,7 +78,6 @@ public:
   ZCacheState(uint32_t numa_id, ZPageAllocator* page_allocator);
 
   size_t available_capacity() const;
-  size_t soft_max_capacity() const;
 
   size_t increase_capacity(size_t size);
   void decrease_capacity(size_t size, bool set_max_capacity);
