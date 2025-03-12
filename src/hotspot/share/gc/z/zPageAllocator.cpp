@@ -863,6 +863,77 @@ void ZCacheState::shuffle_virtual(size_t size, ZArray<ZVirtualMemory>* vmems_in_
   manager.shuffle_vmem_to_low_addresses_contiguous(size, _numa_id, vmems_in_out);
 }
 
+static void pretouch_memory(zoffset start, size_t size) {
+  // At this point we know that we have a valid zoffset / zaddress.
+  const zaddress zaddr = ZOffset::address(start);
+  const uintptr_t addr = untype(zaddr);
+  const size_t page_size = ZLargePages::is_explicit() ? ZGranuleSize : os::vm_page_size();
+  os::pretouch_memory((void*)addr, (void*)(addr + size), page_size);
+}
+
+class ZPreTouchTask : public ZTask {
+private:
+  volatile uintptr_t _current;
+  const uintptr_t    _end;
+
+public:
+  ZPreTouchTask(zoffset start, zoffset_end end)
+    : ZTask("ZPreTouchTask"),
+      _current(untype(start)),
+      _end(untype(end)) {}
+
+  virtual void work() {
+    const size_t size = ZGranuleSize;
+
+    for (;;) {
+      // Claim an offset for this thread
+      const uintptr_t claimed = Atomic::fetch_then_add(&_current, size);
+      if (claimed >= _end) {
+        // Done
+        break;
+      }
+
+      // At this point we know that we have a valid zoffset / zaddress.
+      const zoffset offset = to_zoffset(claimed);
+
+      // Pre-touch the granule
+      pretouch_memory(offset, size);
+    }
+  }
+};
+
+bool ZCacheState::prime(ZWorkers* workers, size_t to_prime) {
+  if (to_prime == 0) {
+    return true;
+  }
+
+  const ZVirtualMemory vmem = alloc_virtual(to_prime, true /* force_low_address */);
+
+  // Increase capacity, allocate and commit physical memory
+  increase_capacity(to_prime);
+  alloc_physical(vmem);
+  if (commit_physical(vmem) != vmem.size()) {
+    // This is a failure state. We do not cleanup the maybe partially committed memory.
+    return false;
+  }
+
+  map_virtual_to_physical(vmem);
+
+  check_numa_mismatch(vmem, _numa_id);
+
+  if (AlwaysPreTouch) {
+    // Pre-touch memory
+    ZPreTouchTask task(vmem.start(), vmem.end());
+    workers->run_all(&task);
+  }
+
+  // We don't have to take a lock here as no other threads will access the cache
+  // until we're finished
+  _cache.insert(vmem);
+
+  return true;
+}
+
 class MultiNUMATracker : CHeapObj<mtGC> {
 private:
   struct Element {
@@ -1063,83 +1134,13 @@ bool ZPageAllocator::is_initialized() const {
   return _initialized;
 }
 
-static void pretouch_memory(zoffset start, size_t size) {
-  // At this point we know that we have a valid zoffset / zaddress.
-  const zaddress zaddr = ZOffset::address(start);
-  const uintptr_t addr = untype(zaddr);
-  const size_t page_size = ZLargePages::is_explicit() ? ZGranuleSize : os::vm_page_size();
-  os::pretouch_memory((void*)addr, (void*)(addr + size), page_size);
-}
-
-class ZPreTouchTask : public ZTask {
-private:
-  volatile uintptr_t _current;
-  const uintptr_t    _end;
-
-public:
-  ZPreTouchTask(zoffset start, zoffset_end end)
-    : ZTask("ZPreTouchTask"),
-      _current(untype(start)),
-      _end(untype(end)) {}
-
-  virtual void work() {
-    const size_t size = ZGranuleSize;
-
-    for (;;) {
-      // Claim an offset for this thread
-      const uintptr_t claimed = Atomic::fetch_then_add(&_current, size);
-      if (claimed >= _end) {
-        // Done
-        break;
-      }
-
-      // At this point we know that we have a valid zoffset / zaddress.
-      const zoffset offset = to_zoffset(claimed);
-
-      // Pre-touch the granule
-      pretouch_memory(offset, size);
-    }
-  }
-};
-
-bool ZPageAllocator::prime_state_cache(ZWorkers* workers, uint32_t numa_id, size_t to_prime) {
-  if (to_prime == 0) {
-    return true;
-  }
-
-  ZCacheState& state = _states.get(numa_id);
-  const ZVirtualMemory vmem = state.alloc_virtual(to_prime, true /* force_low_address */);
-
-  // Increase capacity, allocate and commit physical memory
-  state.increase_capacity(to_prime);
-  state.alloc_physical(vmem);
-  if (state.commit_physical(vmem) != vmem.size()) {
-    // This is a failure state. We do not cleanup the maybe partially committed memory.
-    return false;
-  }
-
-  state.map_virtual_to_physical(vmem);
-
-  check_numa_mismatch(vmem, numa_id);
-
-  if (AlwaysPreTouch) {
-    // Pre-touch memory
-    ZPreTouchTask task(vmem.start(), vmem.end());
-    workers->run_all(&task);
-  }
-
-  // We don't have to take a lock here as no other threads will access the cache
-  // until we're finished
-  state._cache.insert(vmem);
-
-  return true;
-}
-
 bool ZPageAllocator::prime_cache(ZWorkers* workers, size_t size) {
-  const uint32_t numa_nodes = ZNUMA::count();
-  for (uint32_t numa_id = 0; numa_id < numa_nodes; ++numa_id) {
+  ZPerNUMAIterator<ZCacheState> iter = state_iterator();
+  for (ZCacheState* state; iter.next(&state);) {
+    const uint32_t numa_id = state->numa_id();
     const size_t to_prime = ZNUMA::calculate_share(numa_id, size);
-    if (!prime_state_cache(workers, numa_id, to_prime)) {
+
+    if (!state->prime(workers, to_prime)) {
       return false;
     }
   }

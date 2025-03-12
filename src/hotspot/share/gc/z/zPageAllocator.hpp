@@ -136,6 +136,8 @@ public:
 
   int shuffle_virtual(const ZVirtualMemory& vmem, ZArray<ZVirtualMemory>* vmems_out);
   void shuffle_virtual(size_t size, ZArray<ZVirtualMemory>* vmems_in_out);
+
+  bool prime(ZWorkers* workers, size_t size);
 };
 
 class ZPageAllocator {
@@ -205,8 +207,6 @@ private:
 
   void notify_out_of_memory();
   void restart_gc() const;
-
-  bool prime_state_cache(ZWorkers* workers, uint32_t numa_id, size_t size);
 
 public:
   ZPageAllocator(size_t min_capacity,
