@@ -584,6 +584,9 @@ ZMappedCache* ZCacheState::cache() {
   return &_cache;
 }
 
+uint32_t ZCacheState::numa_id() const {
+  return _numa_id;
+}
 
 const ZUncommitter& ZCacheState::uncommitter() const {
   return _uncommitter;
@@ -710,19 +713,20 @@ public:
     {
       ZLocker<ZLock> locker(&allocator->_lock);
 
-      for (uint32_t numa_id = 0; numa_id < numa_nodes; ++numa_id) {
+      ZPerNUMAIterator<ZCacheState> iter = allocator->state_iterator();
+      for (ZCacheState* state; iter.next(&state);) {
+        const uint32_t numa_id = state->numa_id();
         PerNUMAData& numa_data = per_numa_mappings[numa_id];
-        ZCacheState& state = allocator->state_from_numa_id(numa_id);
 
         // Update accounting
-        state.decrease_used(numa_data._mapped + numa_data._uncommitted);
-        state.decrease_used_generation(id, numa_data._mapped + numa_data._uncommitted);
-        state.decrease_capacity(numa_data._uncommitted, false /* set_max_capacity */);
+        state->decrease_used(numa_data._mapped + numa_data._uncommitted);
+        state->decrease_used_generation(id, numa_data._mapped + numa_data._uncommitted);
+        state->decrease_capacity(numa_data._uncommitted, false /* set_max_capacity */);
 
         // Reinsert mappings
         ZArrayIterator<ZMemoryRange> iter(&numa_data._mappings);
         for (ZMemoryRange mapping; iter.next(&mapping);) {
-          state.cache()->insert(mapping);
+          state->cache()->insert(mapping);
         }
       }
 
@@ -897,19 +901,24 @@ size_t ZPageAllocator::max_capacity() const {
 }
 
 size_t ZPageAllocator::soft_max_capacity() const {
-  size_t current_max_capacity = 0;
-  ZPerNUMAConstIterator<ZCacheState> iter(&_states);
-  for (const ZCacheState* state; iter.next(&state);) {
-    current_max_capacity += Atomic::load(&state->_current_max_capacity);
-  }
-
+  const size_t current_max_capacity = ZPageAllocator::current_max_capacity();
   const size_t soft_max_heapsize = Atomic::load(&SoftMaxHeapSize);
   return MIN2(soft_max_heapsize, current_max_capacity);
 }
 
+size_t ZPageAllocator::current_max_capacity() const {
+  size_t current_max_capacity = 0;
+  ZPerNUMAConstIterator<ZCacheState> iter = state_iterator();
+  for (const ZCacheState* state; iter.next(&state);) {
+    current_max_capacity += Atomic::load(&state->_current_max_capacity);
+  }
+
+  return current_max_capacity;
+}
+
 size_t ZPageAllocator::capacity() const {
   size_t capacity = 0;
-  ZPerNUMAConstIterator<ZCacheState> iter(&_states);
+  ZPerNUMAConstIterator<ZCacheState> iter = state_iterator();
   for (const ZCacheState* state; iter.next(&state);) {
     capacity += Atomic::load(&state->_capacity);
   }
@@ -918,7 +927,7 @@ size_t ZPageAllocator::capacity() const {
 
 size_t ZPageAllocator::used() const {
   size_t used = 0;
-  ZPerNUMAConstIterator<ZCacheState> iter(&_states);
+  ZPerNUMAConstIterator<ZCacheState> iter = state_iterator();
   for (const ZCacheState* state; iter.next(&state);) {
     used += Atomic::load(&state->_used);
   }
@@ -927,7 +936,7 @@ size_t ZPageAllocator::used() const {
 
 size_t ZPageAllocator::used_generation(ZGenerationId id) const {
   size_t used_generation = 0;
-  ZPerNUMAConstIterator<ZCacheState> iter(&_states);
+  ZPerNUMAConstIterator<ZCacheState> iter = state_iterator();
   for (const ZCacheState* state; iter.next(&state);) {
     used_generation += Atomic::load(&state->_used_generations[(int)id]);
   }
@@ -939,7 +948,7 @@ size_t ZPageAllocator::unused() const {
   ssize_t used = 0;
   ssize_t claimed = 0;
 
-  ZPerNUMAConstIterator<ZCacheState> iter(&_states);
+  ZPerNUMAConstIterator<ZCacheState> iter = state_iterator();
   for (const ZCacheState* state; iter.next(&state);) {
     capacity += (ssize_t)Atomic::load(&state->_capacity);
     used += (ssize_t)Atomic::load(&state->_used);
@@ -2064,8 +2073,16 @@ void ZPageAllocator::handle_alloc_stalling_for_old(bool cleared_all_soft_refs) {
 }
 
 void ZPageAllocator::threads_do(ThreadClosure* tc) const {
-  ZPerNUMAConstIterator<ZCacheState> iter(&_states);
+  ZPerNUMAConstIterator<ZCacheState> iter = state_iterator();
   for (const ZCacheState* state; iter.next(&state);) {
     state->threads_do(tc);
   }
+}
+
+ZPerNUMAConstIterator<ZCacheState> ZPageAllocator::state_iterator() const {
+  return ZPerNUMAConstIterator<ZCacheState>(&_states);
+}
+
+ZPerNUMAIterator<ZCacheState> ZPageAllocator::state_iterator() {
+  return ZPerNUMAIterator<ZCacheState>(&_states);
 }

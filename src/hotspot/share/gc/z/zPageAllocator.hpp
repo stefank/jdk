@@ -72,7 +72,7 @@ private:
   double                     _last_commit;
   double                     _last_uncommit;
   size_t                     _to_uncommit;
-  const int                  _numa_id;
+  const uint32_t             _numa_id;
 
 public:
   ZCacheState(uint32_t numa_id, ZPageAllocator* page_allocator);
@@ -97,6 +97,8 @@ public:
   void promote_used(size_t size);
 
   ZMappedCache* cache();
+
+  uint32_t numa_id() const;
 
   const ZUncommitter& uncommitter() const;
   ZUncommitter& uncommitter();
@@ -200,6 +202,7 @@ public:
   size_t min_capacity() const;
   size_t max_capacity() const;
   size_t soft_max_capacity() const;
+  size_t current_max_capacity() const;
   size_t capacity() const;
   size_t used() const;
   size_t used_generation(ZGenerationId id) const;
@@ -226,6 +229,9 @@ public:
   void handle_alloc_stalling_for_old(bool cleared_soft_refs);
 
   void threads_do(ThreadClosure* tc) const;
+
+  ZPerNUMAConstIterator<ZCacheState> state_iterator() const;
+  ZPerNUMAIterator<ZCacheState> state_iterator();
 };
 
 class ZPageAllocatorStats {
