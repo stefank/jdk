@@ -1074,6 +1074,38 @@ bool ZCacheState::commit_and_map_memory(ZMemoryAllocation* allocation, const ZVi
   return true;
 }
 
+void ZCacheState::free_memory_alloc_failed(ZMemoryAllocation* allocation) {
+  verify_memory_allocation_association(allocation);
+
+  // Only decrease the overall used and not the generation used,
+  // since the allocation failed and generation used wasn't bumped.
+  decrease_used(allocation->size());
+
+  size_t freed = 0;
+
+  // Free mapped memory
+  ZArrayIterator<ZVirtualMemory> iter(allocation->claimed_vmems());
+  for (ZVirtualMemory vmem; iter.next(&vmem);) {
+    freed += vmem.size();
+    _cache.insert(vmem);
+  }
+  assert(allocation->harvested() + allocation->committed() == freed, "must have freed all");
+
+  // Adjust capacity to reflect the failed capacity increase
+  const size_t remaining = allocation->size() - freed;
+  if (remaining > 0) {
+    const bool set_max_capacity = allocation->commit_failed();
+    decrease_capacity(remaining, set_max_capacity);
+    if (set_max_capacity) {
+      log_error_p(gc)("Forced to lower max Java heap size from "
+                      "%zuM(%.0f%%) to %zuM(%.0f%%) (NUMA id %d)",
+                      _current_max_capacity / M, percent_of(_current_max_capacity, _max_capacity),
+                      _capacity / M, percent_of(_capacity, _max_capacity),
+                      allocation->numa_id());
+    }
+  }
+}
+
 class MultiNUMATracker : CHeapObj<mtGC> {
 private:
   struct Element {
@@ -2108,7 +2140,10 @@ void ZPageAllocator::free_pages(const ZArray<ZPage*>* pages) {
 void ZPageAllocator::free_memory_alloc_failed_multi_numa(ZPageAllocation* allocation) {
   ZArrayMutableIterator<ZMemoryAllocation> iter(allocation->multi_numa_allocations());
   for (ZMemoryAllocation* partial_allocation; iter.next_addr(&partial_allocation);) {
-    free_memory_alloc_failed(partial_allocation);
+    const uint32_t numa_id = partial_allocation->numa_id();
+    ZCacheState& state = state_from_numa_id(numa_id);
+
+    state.free_memory_alloc_failed(partial_allocation);
   }
 }
 
@@ -2119,7 +2154,11 @@ void ZPageAllocator::free_memory_alloc_failed(ZPageAllocation* allocation) {
     // Free each partial allocation
     free_memory_alloc_failed_multi_numa(allocation);
   } else {
-    free_memory_alloc_failed(allocation->memory_allocation());
+    ZMemoryAllocation* const memory_allocation = allocation->memory_allocation();
+    const uint32_t numa_id = memory_allocation->numa_id();
+    ZCacheState& state = state_from_numa_id(numa_id);
+
+    state.free_memory_alloc_failed(allocation->memory_allocation());
   }
 
   // Reset allocation for a potential retry
@@ -2127,38 +2166,6 @@ void ZPageAllocator::free_memory_alloc_failed(ZPageAllocation* allocation) {
 
   // Try satisfy stalled allocations
   satisfy_stalled();
-}
-
-void ZPageAllocator::free_memory_alloc_failed(ZMemoryAllocation* allocation) {
-  ZCacheState& state = _states.get(allocation->numa_id());
-
-  // Only decrease the overall used and not the generation used,
-  // since the allocation failed and generation used wasn't bumped.
-  state.decrease_used(allocation->size());
-
-  size_t freed = 0;
-
-  // Free mapped memory
-  ZArrayIterator<ZVirtualMemory> iter(allocation->claimed_vmems());
-  for (ZVirtualMemory vmem; iter.next(&vmem);) {
-    freed += vmem.size();
-    state._cache.insert(vmem);
-  }
-  assert(allocation->harvested() + allocation->committed() == freed, "must have freed all");
-
-  // Adjust capacity to reflect the failed capacity increase
-  const size_t remaining = allocation->size() - freed;
-  if (remaining > 0) {
-    const bool set_max_capacity = allocation->commit_failed();
-    state.decrease_capacity(remaining, set_max_capacity);
-    if (set_max_capacity) {
-      log_error_p(gc)("Forced to lower max Java heap size from "
-                      "%zuM(%.0f%%) to %zuM(%.0f%%) (NUMA id %d)",
-                      state._current_max_capacity / M, percent_of(state._current_max_capacity, _max_capacity),
-                      state._capacity / M, percent_of(state._capacity, _max_capacity),
-                      allocation->numa_id());
-    }
-  }
 }
 
 void ZPageAllocator::enable_safe_destroy() const {

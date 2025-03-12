@@ -143,6 +143,7 @@ public:
   void harvest_claimed_physical(ZMemoryAllocation* allocation);
   bool claim_virtual_memory(ZMemoryAllocation* allocation);
   bool commit_and_map_memory(ZMemoryAllocation* allocation, const ZVirtualMemory& vmem);
+  void free_memory_alloc_failed(ZMemoryAllocation* allocation);
 };
 
 class ZPageAllocator {
@@ -202,7 +203,6 @@ private:
 
   void free_memory_alloc_failed_multi_numa(ZPageAllocation* allocation);
   void free_memory_alloc_failed(ZPageAllocation* allocation);
-  void free_memory_alloc_failed(ZMemoryAllocation* allocation);
 
   void satisfy_stalled();
 
