@@ -464,7 +464,16 @@ zbacking_index* ZCacheState::physical_mappings_addr(const ZVirtualMemory& vmem) 
 }
 
 void ZCacheState::verify_virtual_memory_association(const ZVirtualMemory& vmem) const {
-  assert(_numa_id == virtual_memory_manager().get_numa_id(vmem), "Virtual memory must be associated with the current state");
+  const uint32_t vmem_numa_id = virtual_memory_manager().get_numa_id(vmem);
+  assert(_numa_id == vmem_numa_id, "Virtual memory must be associated with the current state "
+                                   "expected: %u, actual: %u", _numa_id, vmem_numa_id);
+}
+
+void ZCacheState::verify_virtual_memory_association(const ZArray<ZVirtualMemory>* vmems) const {
+  ZArrayIterator<ZVirtualMemory> iter(vmems);
+  for (ZVirtualMemory vmem; iter.next(&vmem);) {
+    verify_virtual_memory_association(vmem);
+  }
 }
 
 ZCacheState::ZCacheState(uint32_t numa_id, ZPageAllocator* page_allocator)
@@ -802,6 +811,18 @@ void ZCacheState::map_virtual_to_physical(const ZVirtualMemory& vmem) {
   manager.map(offset, pmem, size, _numa_id);
 }
 
+ZVirtualMemory ZCacheState::alloc_virtual(size_t size, bool force_low_address) {
+  ZVirtualMemoryManager& manager = virtual_memory_manager();
+
+  return manager.alloc(size, _numa_id, force_low_address);
+}
+
+size_t ZCacheState::alloc_virtual(size_t size, ZArray<ZVirtualMemory>* vmems) {
+  ZVirtualMemoryManager& manager = virtual_memory_manager();
+
+  return manager.alloc_low_address_many_at_most(size, _numa_id, vmems);
+}
+
 void ZCacheState::unmap_virtual(const ZVirtualMemory& vmem) {
   verify_virtual_memory_association(vmem);
 
@@ -897,7 +918,7 @@ public:
 
       // Allocate new virtual address ranges
       const int start_index = numa_memory_vmems->length();
-      const size_t allocated = allocator->_virtual.alloc_low_address_many_at_most(remaining_vmem.size(), numa_id, numa_memory_vmems);
+      const size_t allocated = state.alloc_virtual(remaining_vmem.size(), numa_memory_vmems);
 
       // Remap to the newly allocated virtual address ranges
       size_t mapped = 0;
@@ -1067,8 +1088,8 @@ bool ZPageAllocator::prime_state_cache(ZWorkers* workers, uint32_t numa_id, size
     return true;
   }
 
-  const ZVirtualMemory vmem = _virtual.alloc(to_prime, numa_id, true /* force_low_address */);
   ZCacheState& state = _states.get(numa_id);
+  const ZVirtualMemory vmem = state.alloc_virtual(to_prime, true /* force_low_address */);
 
   // Increase capacity, allocate and commit physical memory
   state.increase_capacity(to_prime);
@@ -1539,8 +1560,9 @@ bool ZPageAllocator::claim_virtual_memory_multi_numa(ZPageAllocation* allocation
   const size_t size = allocation->size();
   ZMemoryAllocation* const memory_allocation = allocation->memory_allocation();
 
-  for (uint32_t numa_id = 0; numa_id < numa_nodes; ++numa_id) {
-    ZVirtualMemory vmem = _virtual.alloc(size, numa_id, false /* force_low_address */);
+  ZPerNUMAIterator<ZCacheState> iter = state_iterator();
+  for (ZCacheState* state; iter.next(&state);) {
+    ZVirtualMemory vmem = state->alloc_virtual(size, false /* force_low_address */);
     if (!vmem.is_null()) {
       // Found an address range
       memory_allocation->claimed_vmems()->append(vmem);
@@ -1574,7 +1596,7 @@ bool ZPageAllocator::claim_virtual_memory(ZMemoryAllocation* allocation) {
   } else {
     // If we have not harvested anything, we only increased capacity. Allocate
     // new virtual memory from the manager.
-    const ZVirtualMemory vmem = _virtual.alloc(allocation->size(), allocation->numa_id(), true /* force_low_address */);
+    const ZVirtualMemory vmem = state.alloc_virtual(allocation->size(), true /* force_low_address */);
     if (!vmem.is_null()) {
       allocation->claimed_vmems()->append(vmem);
     }
@@ -1727,7 +1749,7 @@ bool ZPageAllocator::commit_and_map_memory_multi_numa(ZPageAllocation* allocatio
     const int start_index = vmems->length();
 
     // Try to allocated virtual memory for the committed part
-    const size_t to_map = _virtual.alloc_low_address_many_at_most(committed, numa_id, vmems);
+    const size_t to_map = state.alloc_virtual(committed, vmems);
 
     if (to_map != committed) {
       // Uncommit any memory that is unmappable due to no virtual memory

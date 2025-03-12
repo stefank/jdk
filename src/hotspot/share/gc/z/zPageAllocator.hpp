@@ -88,6 +88,7 @@ private:
   zbacking_index* physical_mappings_addr(const ZVirtualMemory& vmem);
 
   void verify_virtual_memory_association(const ZVirtualMemory& vmem) const;
+  void verify_virtual_memory_association(const ZArray<ZVirtualMemory>* vmems) const;
 
 public:
   ZCacheState(uint32_t numa_id, ZPageAllocator* page_allocator);
@@ -127,8 +128,10 @@ public:
   size_t uncommit_physical(const ZVirtualMemory& vmem);
 
   void map_virtual_to_physical(const ZVirtualMemory& vmem);
-
   void unmap_virtual(const ZVirtualMemory& vmem);
+
+  ZVirtualMemory alloc_virtual(size_t size, bool force_low_address);
+  size_t alloc_virtual(size_t size, ZArray<ZVirtualMemory>* vmems);
   void free_virtual(const ZVirtualMemory& vmem);
 };
 
