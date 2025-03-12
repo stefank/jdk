@@ -40,7 +40,6 @@
 
 #include <type_traits>
 
-
 // Offset Operator Macro
 // Used to operators for the offset, offset_end style types
 

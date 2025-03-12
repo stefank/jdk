@@ -91,6 +91,7 @@ inline bool ZArrayIteratorImpl<T, Parallel, IsConst>::next(T* elem) {
 
   return false;
 }
+
 template <typename T, bool Parallel, bool IsConst>
 inline bool ZArrayIteratorImpl<T, Parallel, IsConst>::next_addr(PtrType* elem) {
   size_t index;

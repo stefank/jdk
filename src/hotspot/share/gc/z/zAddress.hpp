@@ -41,6 +41,8 @@ extern size_t    ZAddressOffsetMax;
 
 // Describes the maximal offset inside the backing storage.
 extern size_t    ZBackingOffsetMax;
+
+// Describes the maximal granule index inside the backing storage.
 extern uint32_t  ZBackingIndexMax;
 
 // Layout of metadata bits in colored pointer / zpointer.

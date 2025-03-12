@@ -29,7 +29,7 @@
 #include "utilities/debug.hpp"
 
 ZPage::ZPage(ZPageType type, const ZVirtualMemory& vmem)
-  : ZPage(type, vmem, nullptr) {}
+  : ZPage(type, vmem, nullptr /* multi_numa_tracker */) {}
 
 ZPage::ZPage(ZPageType type, const ZVirtualMemory& vmem, MultiNUMATracker* multi_numa_tracker)
   : _type(type),

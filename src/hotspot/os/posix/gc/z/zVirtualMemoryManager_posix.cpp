@@ -26,7 +26,6 @@
 #include "logging/log.hpp"
 
 #include <sys/mman.h>
-#include <sys/types.h>
 
 void ZVirtualMemoryManager::pd_initialize_before_reserve() {
   // Does nothing

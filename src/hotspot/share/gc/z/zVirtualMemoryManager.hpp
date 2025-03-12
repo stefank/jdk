@@ -67,6 +67,7 @@ public:
 
   size_t alloc_low_address_many_at_most(size_t size, uint32_t numa_id, ZArray<ZVirtualMemory>* vmems_out);
   ZVirtualMemory alloc(size_t size, uint32_t numa_id, bool force_low_address);
+
   void free(const ZVirtualMemory& vmem);
   void free(const ZVirtualMemory& vmem, uint32_t numa_id);
 

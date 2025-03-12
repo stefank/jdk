@@ -78,6 +78,7 @@ template <typename T, typename Comparator>
 inline void ZUtils::sort(T* array, size_t count, Comparator comparator) {
   using SortType = int(const void*, const void*);
   using ComparatorType = int(const T*, const T*);
+
   static constexpr bool IsComparatorCompatible = std::is_assignable<ComparatorType*&, Comparator>::value;
   static_assert(IsComparatorCompatible, "Incompatible Comparator, must decay to plain function pointer");
 

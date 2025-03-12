@@ -134,7 +134,6 @@ typedef ZValue<ZPerNUMAStorage, ZCacheState> ZPerNUMACacheState;
 #define VM_TYPES_Z(declare_type, declare_toplevel_type, declare_integer_type)                        \
   declare_toplevel_type(zoffset)                                                                     \
   declare_toplevel_type(zoffset_end)                                                                 \
-  declare_toplevel_type(ZVirtualMemory)                                                              \
   declare_toplevel_type(ZGlobalsForVMStructs)                                                        \
   declare_type(ZCollectedHeap, CollectedHeap)                                                        \
   declare_toplevel_type(ZHeap)                                                                       \
@@ -149,6 +148,7 @@ typedef ZValue<ZPerNUMAStorage, ZCacheState> ZPerNUMACacheState;
   declare_toplevel_type(ZAttachedArrayForForwarding)                                                 \
   declare_toplevel_type(ZGranuleMapForPageTable)                                                     \
   declare_toplevel_type(ZGranuleMapForForwarding)                                                    \
+  declare_toplevel_type(ZVirtualMemory)                                                              \
   declare_toplevel_type(ZForwardingTable)                                                            \
   declare_toplevel_type(ZForwarding)                                                                 \
   declare_toplevel_type(ZForwardingEntry)                                                            \

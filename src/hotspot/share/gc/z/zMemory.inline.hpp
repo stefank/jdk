@@ -32,7 +32,6 @@
 #include "utilities/align.hpp"
 #include "utilities/debug.hpp"
 
-
 template <typename Start, typename End>
 inline ZRange<Start, End>::ZRange()
   : _start(Start::invalid),

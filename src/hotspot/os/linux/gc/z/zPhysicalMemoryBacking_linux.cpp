@@ -631,7 +631,7 @@ size_t ZPhysicalMemoryBacking::commit_numa_preferred(zbacking_offset offset, siz
   // Setup NUMA policy to allocate memory from a preferred node
   os::Linux::numa_set_preferred((int)numa_id);
 
-  size_t committed = commit_default(offset, length);
+  const size_t committed = commit_default(offset, length);
 
   // Restore NUMA policy
   os::Linux::numa_set_preferred(-1);

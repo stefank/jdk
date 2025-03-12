@@ -31,7 +31,6 @@
 #include "gc/z/zNMT.hpp"
 #include "gc/z/zNUMA.inline.hpp"
 #include "gc/z/zPhysicalMemoryManager.hpp"
-#include "gc/z/zValue.hpp"
 #include "gc/z/zValue.inline.hpp"
 #include "logging/log.hpp"
 #include "runtime/globals.hpp"
@@ -42,7 +41,6 @@
 #include "utilities/debug.hpp"
 #include "utilities/globalDefinitions.hpp"
 #include "utilities/powerOfTwo.hpp"
-#include <cstdint>
 
 ZPhysicalMemoryManager::ZPhysicalMemoryManager(size_t max_capacity)
   : _backing(max_capacity) {

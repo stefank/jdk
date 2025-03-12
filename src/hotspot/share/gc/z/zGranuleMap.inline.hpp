@@ -67,17 +67,6 @@ inline T ZGranuleMap<T>::get(zoffset offset) const {
 }
 
 template <typename T>
-inline const T* ZGranuleMap<T>::get_addr(zoffset offset) const {
-  const size_t index = index_for_offset(offset);
-  return _map + index;
-}
-
-template <typename T>
-inline T* ZGranuleMap<T>::get_addr(zoffset offset) {
-  return const_cast<T*>(const_cast<const ZGranuleMap<T>*>(this)->get_addr(offset));
-}
-
-template <typename T>
 inline void ZGranuleMap<T>::put(zoffset offset, T value) {
   const size_t index = index_for_offset(offset);
   Atomic::store(_map + index, value);
@@ -110,6 +99,17 @@ template <typename T>
 inline void ZGranuleMap<T>::release_put(zoffset offset, size_t size, T value) {
   OrderAccess::release();
   put(offset, size, value);
+}
+
+template <typename T>
+inline const T* ZGranuleMap<T>::addr(zoffset offset) const {
+  const size_t index = index_for_offset(offset);
+  return _map + index;
+}
+
+template <typename T>
+inline T* ZGranuleMap<T>::addr(zoffset offset) {
+  return const_cast<T*>(const_cast<const ZGranuleMap<T>*>(this)->addr(offset));
 }
 
 template <typename T, bool Parallel>

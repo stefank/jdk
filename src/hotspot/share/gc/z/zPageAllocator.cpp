@@ -61,6 +61,8 @@
 
 #include <cmath>
 
+class ZMemoryAllocation;
+
 static const ZStatCounter       ZCounterMutatorAllocationRate("Memory", "Allocation Rate", ZStatUnitBytesPerSecond);
 static const ZStatCounter       ZCounterDefragment("Memory", "Defragment", ZStatUnitOpsPerSecond);
 static const ZStatCriticalPhase ZCriticalPhaseAllocationStall("Allocation Stall");
@@ -92,7 +94,7 @@ private:
 
   void copy_to_stash(int index, const ZVirtualMemory& vmem) {
     zbacking_index* const dest = _stash.adr_at(index);
-    const zbacking_index* const src = _physical_mappings->get_addr(vmem.start());
+    const zbacking_index* const src = _physical_mappings->addr(vmem.start());
     const size_t num_granules = vmem.size_in_granules();
 
     // Copy to stash
@@ -100,7 +102,7 @@ private:
   }
 
   void copy_from_stash(int index, const ZVirtualMemory& vmem) {
-    zbacking_index* const dest = _physical_mappings->get_addr(vmem.start());
+    zbacking_index* const dest = _physical_mappings->addr(vmem.start());
     const zbacking_index* const src = _stash.adr_at(index);
     const size_t num_granules = vmem.size_in_granules();
 
@@ -149,8 +151,6 @@ public:
     }
   };
 };
-
-class ZMemoryAllocation;
 
 class ZMemoryAllocationData : public StackObj {
 private:
@@ -857,7 +857,7 @@ bool ZPageAllocator::prime_state_cache(ZWorkers* workers, uint32_t numa_id, size
 
   // Increase capacity, allocate and commit physical memory
   state.increase_capacity(to_prime);
-  _physical.alloc(_physical_mappings.get_addr(vmem.start()), to_prime, numa_id);
+  _physical.alloc(_physical_mappings.addr(vmem.start()), to_prime, numa_id);
   if (commit_physical(vmem, numa_id) != vmem.size()) {
     // This is a failure state. We do not cleanup the maybe partially committed memory.
     return false;
@@ -1019,42 +1019,42 @@ void ZPageAllocator::promote_used(const ZPage* from, const ZPage* to) {
 }
 
 size_t ZPageAllocator::count_segments_physical(const ZVirtualMemory& vmem) {
-  return _physical.count_segments(_physical_mappings.get_addr(vmem.start()), vmem.size());
+  return _physical.count_segments(_physical_mappings.addr(vmem.start()), vmem.size());
 }
 
 void ZPageAllocator::sort_segments_physical(const ZVirtualMemory& vmem) {
-  sort_zbacking_index_array(_physical_mappings.get_addr(vmem.start()), vmem.size_in_granules());
+  sort_zbacking_index_array(_physical_mappings.addr(vmem.start()), vmem.size_in_granules());
 }
 
 void ZPageAllocator::alloc_physical(const ZVirtualMemory& vmem, uint32_t numa_id) {
-  _physical.alloc(_physical_mappings.get_addr(vmem.start()), vmem.size(), numa_id);
+  _physical.alloc(_physical_mappings.addr(vmem.start()), vmem.size(), numa_id);
 }
 
 void ZPageAllocator::free_physical(const ZVirtualMemory& vmem, uint32_t numa_id) {
   // Free physical memory
-  _physical.free(_physical_mappings.get_addr(vmem.start()), vmem.size(), numa_id);
+  _physical.free(_physical_mappings.addr(vmem.start()), vmem.size(), numa_id);
 }
 
 size_t ZPageAllocator::commit_physical(const ZVirtualMemory& vmem, uint32_t numa_id) {
   // Commit physical memory
-  return _physical.commit(_physical_mappings.get_addr(vmem.start()), vmem.size(), numa_id);
+  return _physical.commit(_physical_mappings.addr(vmem.start()), vmem.size(), numa_id);
 }
 
 void ZPageAllocator::uncommit_physical(const ZVirtualMemory& vmem) {
   precond(ZUncommit);
 
   // Uncommit physical memory
-  _physical.uncommit(_physical_mappings.get_addr(vmem.start()), vmem.size());
+  _physical.uncommit(_physical_mappings.addr(vmem.start()), vmem.size());
 }
 
 void ZPageAllocator::map_virtual_to_physical(const ZVirtualMemory& vmem, uint32_t numa_id) {
   // Map virtual memory to physical memory
-  _physical.map(vmem.start(), _physical_mappings.get_addr(vmem.start()), vmem.size(), numa_id);
+  _physical.map(vmem.start(), _physical_mappings.addr(vmem.start()), vmem.size(), numa_id);
 }
 
 void ZPageAllocator::unmap_virtual(const ZVirtualMemory& vmem) {
   // Unmap virtual memory from physical memory
-  _physical.unmap(vmem.start(), _physical_mappings.get_addr(vmem.start()), vmem.size());
+  _physical.unmap(vmem.start(), _physical_mappings.addr(vmem.start()), vmem.size());
 }
 
 void ZPageAllocator::free_virtual(const ZVirtualMemory& vmem) {
@@ -1320,8 +1320,8 @@ bool ZPageAllocator::is_alloc_satisfied(ZMemoryAllocation* allocation) const {
 }
 
 void ZPageAllocator::copy_physical_segments(zoffset to, const ZVirtualMemory& from) {
-  zbacking_index* const dest = _physical_mappings.get_addr(to);
-  const zbacking_index* const src = _physical_mappings.get_addr(from.start());
+  zbacking_index* const dest = _physical_mappings.addr(to);
+  const zbacking_index* const src = _physical_mappings.addr(from.start());
   const size_t num_granules = from.size_in_granules();
 
   ZUtils::copy_disjoint(dest, src, num_granules);

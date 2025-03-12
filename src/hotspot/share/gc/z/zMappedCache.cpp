@@ -393,6 +393,7 @@ ZVirtualMemory ZMappedCache::remove_contiguous(size_t size) {
   const auto consume_vmem = [&](ZVirtualMemory vmem) {
     assert(result.is_null(), "only consume once");
     assert(vmem.size() == size, "wrong size consumed");
+
     result = vmem;
 
     // Only require one vmem

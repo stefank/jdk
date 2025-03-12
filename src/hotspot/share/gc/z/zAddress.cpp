@@ -37,6 +37,7 @@ uintptr_t  ZAddressOffsetMask;
 size_t     ZAddressOffsetMax;
 
 size_t     ZBackingOffsetMax;
+
 uint32_t   ZBackingIndexMax;
 
 uintptr_t  ZPointerRemapped;

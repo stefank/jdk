@@ -34,8 +34,8 @@
 void ZNUMA::pd_initialize() {
   _enabled = UseNUMA;
   _count = UseNUMA
-    ? os::Linux::numa_max_node() + 1
-    : 1;
+      ? os::Linux::numa_max_node() + 1
+      : 1;
 
   NOT_PRODUCT(ZFakeNUMA = UseNUMA ? 1 : ZFakeNUMA;)
 }

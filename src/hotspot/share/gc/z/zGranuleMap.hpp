@@ -49,14 +49,15 @@ public:
   ~ZGranuleMap();
 
   T get(zoffset offset) const;
-  const T* get_addr(zoffset offset) const;
-  T* get_addr(zoffset offset);
   void put(zoffset offset, T value);
   void put(zoffset offset, size_t size, T value);
 
   T get_acquire(zoffset offset) const;
   void release_put(zoffset offset, T value);
   void release_put(zoffset offset, size_t size, T value);
+
+  const T* addr(zoffset offset) const;
+  T* addr(zoffset offset);
 };
 
 template <typename T, bool Parallel>

@@ -33,9 +33,9 @@
 #include "memory/allocation.hpp"
 #include "oops/oopsHierarchy.hpp"
 
+class MultiNUMATracker;
 class ZGeneration;
 
-class MultiNUMATracker;
 class ZPage : public CHeapObj<mtGC> {
   friend class VMStructs;
   friend class ZForwardingTest;
@@ -93,6 +93,7 @@ public:
   size_t used() const;
 
   const ZVirtualMemory& virtual_memory() const;
+
   bool is_multi_numa() const;
   MultiNUMATracker* multi_numa_tracker() const;
   void set_multi_numa_tracker(MultiNUMATracker* tracker);

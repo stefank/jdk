@@ -166,6 +166,8 @@ bool ZVirtualMemoryManager::reserve_contiguous(zoffset start, size_t size) {
   // Register address views with native memory tracker
   ZNMT::reserve(addr, size);
 
+  // Make the address range free in the initial manager.
+  // This will later be distributed amoung the available NUMA nodes.
   _init_manager.free(start, size);
 
   return true;
@@ -209,10 +211,10 @@ size_t ZVirtualMemoryManager::reserve(size_t max_capacity) {
 
   const size_t reserved = do_reserve();
 
-  const bool contiguous_reservation = _init_manager.free_is_contiguous();
+  const bool is_contiguous = _init_manager.free_is_contiguous();
 
   log_info_p(gc, init)("Address Space Type: %s/%s/%s",
-                       (contiguous_reservation ? "Contiguous" : "Discontiguous"),
+                       (is_contiguous ? "Contiguous" : "Discontiguous"),
                        (limit == ZAddressOffsetMax ? "Unrestricted" : "Restricted"),
                        (reserved == size ? "Complete" : "Degraded"));
   log_info_p(gc, init)("Address Space Size: %zuM", reserved / M);
