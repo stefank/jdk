@@ -136,8 +136,8 @@ public:
   Range alloc_high_address(size_t size);
 
   void transfer_low_address(ZMemoryManagerImpl* other, size_t size);
-  int shuffle_memory_low_addresses(offset start, size_t size, ZArray<Range>* out);
-  void shuffle_memory_low_addresses_contiguous(size_t size, ZArray<Range>* out);
+  void shuffle_memory_low_addresses(offset start, size_t size, ZArray<Range>* out);
+  void shuffle_memory_low_addresses_contiguous(size_t size, ZArray<Range>* in_out);
 
   void free(offset start, size_t size);
   void free(const Range& range);

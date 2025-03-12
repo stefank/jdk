@@ -226,12 +226,12 @@ bool ZVirtualMemoryManager::is_initialized() const {
   return _initialized;
 }
 
-int ZVirtualMemoryManager::shuffle_vmem_to_low_addresses(const ZVirtualMemory& vmem, uint32_t numa_id, ZArray<ZVirtualMemory>* vmems_out) {
-  return _managers.get(numa_id).shuffle_memory_low_addresses(vmem.start(), vmem.size(), vmems_out);
+void ZVirtualMemoryManager::shuffle_vmem_to_low_addresses(const ZVirtualMemory& vmem, uint32_t numa_id, ZArray<ZVirtualMemory>* vmems_out) {
+  _managers.get(numa_id).shuffle_memory_low_addresses(vmem.start(), vmem.size(), vmems_out);
 }
 
-void ZVirtualMemoryManager::shuffle_vmem_to_low_addresses_contiguous(size_t size, uint32_t numa_id, ZArray<ZVirtualMemory>* vmems_out) {
-  _managers.get(numa_id).shuffle_memory_low_addresses_contiguous(size, vmems_out);
+void ZVirtualMemoryManager::shuffle_vmem_to_low_addresses_contiguous(size_t size, uint32_t numa_id, ZArray<ZVirtualMemory>* vmems_in_out) {
+  _managers.get(numa_id).shuffle_memory_low_addresses_contiguous(size, vmems_in_out);
 }
 
 size_t ZVirtualMemoryManager::alloc_low_address_many_at_most(size_t size, uint32_t numa_id, ZArray<ZVirtualMemory>* vmems_out) {

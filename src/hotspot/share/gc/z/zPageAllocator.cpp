@@ -858,18 +858,17 @@ void ZCacheState::free_virtual(const ZVirtualMemory& vmem) {
   manager.free(vmem, _numa_id);
 }
 
-int ZCacheState::shuffle_virtual(const ZVirtualMemory& vmem, ZArray<ZVirtualMemory>* vmems_out) {
+void ZCacheState::shuffle_virtual(const ZVirtualMemory& vmem, ZArray<ZVirtualMemory>* vmems_out) {
   verify_virtual_memory_association(vmem);
 
   ZVirtualMemoryManager& manager = virtual_memory_manager();
 
   // Shuffle virtual memory
-  return manager.shuffle_vmem_to_low_addresses(vmem, _numa_id, vmems_out);
+  manager.shuffle_vmem_to_low_addresses(vmem, _numa_id, vmems_out);
 }
 
 void ZCacheState::shuffle_virtual(size_t size, ZArray<ZVirtualMemory>* vmems_in_out) {
   verify_virtual_memory_association(vmems_in_out);
-
 
   ZVirtualMemoryManager& manager = virtual_memory_manager();
 
@@ -1476,9 +1475,10 @@ void ZPageAllocator::remap_and_defragment(const ZVirtualMemory& vmem, ZArray<ZVi
   ZSegmentStash segments(&_physical_mappings, (int)vmem.size_in_granules());
   segments.stash(vmem);
 
-  // Shuffle vmem
+  // Shuffle vmem - put new vmems in entries
   const int start_index = entries->length();
-  const int num_vmems = state.shuffle_virtual(vmem, entries);
+  state.shuffle_virtual(vmem, entries);
+  const int num_vmems = entries->length() - start_index;
 
   // Restore segments
   segments.pop(entries, num_vmems);
@@ -1660,6 +1660,9 @@ bool ZPageAllocator::claim_physical_or_stall(ZPageAllocation* allocation) {
   return alloc_page_stall(allocation);
 }
 
+  //
+  // If the shuffle couldn't create a contiguous range, then claimed_mappings() contain
+  // the same amount of memory as before the call.
 bool ZPageAllocator::is_alloc_satisfied(const ZPageAllocation* allocation) const {
   return ::is_alloc_satisfied(allocation->memory_allocation());
 }

@@ -356,41 +356,46 @@ void ZMemoryManagerImpl<Range>::transfer_low_address(ZMemoryManagerImpl* other, 
 }
 
 template <typename Range>
-int ZMemoryManagerImpl<Range>::shuffle_memory_low_addresses(offset start, size_t size, ZArray<Range>* out) {
+void ZMemoryManagerImpl<Range>::shuffle_memory_low_addresses(offset start, size_t size, ZArray<Range>* out) {
   ZLocker<ZLock> locker(&_lock);
+
+  // Free the range
   free_inner(start, size);
-  const int length_before = out->length();
-  const size_t shuffled = alloc_low_address_many_at_most_inner(size, out);
-  assert(shuffled == size, "must succeed");
-  return out->length() - length_before;
+
+  // Alloc (hopefully) at a lower address.
+  const size_t allocated = alloc_low_address_many_at_most_inner(size, out);
+
+  // This should always succeed since we freed the same amount.
+  assert(allocated == size, "must succeed");
 }
 
 template <typename Range>
-void ZMemoryManagerImpl<Range>::shuffle_memory_low_addresses_contiguous(size_t size, ZArray<Range>* out) {
+void ZMemoryManagerImpl<Range>::shuffle_memory_low_addresses_contiguous(size_t size, ZArray<Range>* in_out) {
   ZLocker<ZLock> locker(&_lock);
 
   size_t freed = 0;
 
   // Free everything
-  ZArrayIterator<Range> iter(out);
+  ZArrayIterator<Range> iter(in_out);
   for (Range mem; iter.next(&mem);) {
     free_inner(mem.start(), mem.size());
     freed += mem.size();
   }
 
   // Clear stored memory so that we can populate it below
-  out->clear();
+  in_out->clear();
 
   // Try to allocate a contiguous chunk
   Range range = alloc_low_address_inner(size);
   if (!range.is_null()) {
-    out->append(range);
+    in_out->append(range);
     return;
   }
 
   // Failed to allocate a contiguous chunk, split it up into smaller chunks and
-  // only allocate up to as much that has been freed
-  alloc_low_address_many_at_most_inner(freed, out);
+  // only allocate up to as much that has been freed.
+  size_t allocated = alloc_low_address_many_at_most_inner(freed, in_out);
+  assert(allocated == freed, "Should be able to get back as much as we previously freed");
 }
 
 template <typename Range>
