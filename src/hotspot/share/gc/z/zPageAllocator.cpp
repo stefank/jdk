@@ -844,6 +844,25 @@ void ZCacheState::free_virtual(const ZVirtualMemory& vmem) {
   manager.free(vmem, _numa_id);
 }
 
+int ZCacheState::shuffle_virtual(const ZVirtualMemory& vmem, ZArray<ZVirtualMemory>* vmems_out) {
+  verify_virtual_memory_association(vmem);
+
+  ZVirtualMemoryManager& manager = virtual_memory_manager();
+
+  // Shuffle virtual memory
+  return manager.shuffle_vmem_to_low_addresses(vmem, _numa_id, vmems_out);
+}
+
+void ZCacheState::shuffle_virtual(size_t size, ZArray<ZVirtualMemory>* vmems_in_out) {
+  verify_virtual_memory_association(vmems_in_out);
+
+
+  ZVirtualMemoryManager& manager = virtual_memory_manager();
+
+  // Shuffle virtual memory
+  manager.shuffle_vmem_to_low_addresses_contiguous(size, _numa_id, vmems_in_out);
+}
+
 class MultiNUMATracker : CHeapObj<mtGC> {
 private:
   struct Element {
@@ -1282,7 +1301,7 @@ void ZPageAllocator::remap_and_defragment(const ZVirtualMemory& vmem, ZArray<ZVi
 
   // Shuffle vmem
   const int start_index = entries->length();
-  const int num_vmems = _virtual.shuffle_vmem_to_low_addresses(vmem, entries);
+  const int num_vmems = state.shuffle_virtual(vmem, entries);
 
   // Restore segments
   segments.pop(entries, num_vmems);
@@ -1482,7 +1501,7 @@ void ZPageAllocator::harvest_claimed_physical(ZMemoryAllocation* allocation) {
 
   // Shuffle virtual memory. We attempt to allocate enough memory to cover the entire
   // allocation size, not just for the harvested memory.
-  _virtual.shuffle_vmem_to_low_addresses_contiguous(allocation->size(), allocation->claimed_vmems());
+  state.shuffle_virtual(allocation->size(), allocation->claimed_vmems());
 
   // Restore segments
   segments.pop(allocation->claimed_vmems(), allocation->claimed_vmems()->length());
