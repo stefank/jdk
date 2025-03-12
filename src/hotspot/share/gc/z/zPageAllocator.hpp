@@ -138,6 +138,8 @@ public:
   void shuffle_virtual(size_t size, ZArray<ZVirtualMemory>* vmems_in_out);
 
   bool prime(ZWorkers* workers, size_t size);
+
+  void harvest_claimed_physical(ZMemoryAllocation* allocation);
 };
 
 class ZPageAllocator {
@@ -173,8 +175,6 @@ private:
   bool claim_physical_multi_numa(ZPageAllocation* allocation);
   bool claim_physical_round_robin(ZPageAllocation* allocation);
   bool claim_physical_or_stall(ZPageAllocation* allocation);
-
-  void harvest_claimed_physical(ZMemoryAllocation* allocation);
 
   bool is_alloc_satisfied(ZPageAllocation* allocation) const;
   bool is_alloc_satisfied(ZMemoryAllocation* allocation) const;

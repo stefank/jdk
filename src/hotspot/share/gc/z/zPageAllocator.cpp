@@ -934,6 +934,34 @@ bool ZCacheState::prime(ZWorkers* workers, size_t to_prime) {
   return true;
 }
 
+void ZCacheState::harvest_claimed_physical(ZMemoryAllocation* allocation) {
+  const int num_vmems_harvested = allocation->claimed_vmems()->length();
+
+  const int num_granules = (int)(allocation->harvested() >> ZGranuleSizeShift);
+  ZSegmentStash segments(&physical_mappings(), num_granules);
+
+  // Unmap virtual memory
+  ZArrayIterator<ZVirtualMemory> iter(allocation->claimed_vmems());
+  for (ZVirtualMemory vmem; iter.next(&vmem);) {
+    unmap_virtual(vmem);
+  }
+
+  // Stash segments
+  segments.stash(allocation->claimed_vmems());
+
+  // Shuffle virtual memory. We attempt to allocate enough memory to cover the entire
+  // allocation size, not just for the harvested memory.
+  shuffle_virtual(allocation->size(), allocation->claimed_vmems());
+
+  // Restore segments
+  segments.pop(allocation->claimed_vmems(), allocation->claimed_vmems()->length());
+
+  const size_t harvested = allocation->harvested();
+  if (harvested > 0) {
+    log_debug(gc, heap)("Mapped Cache Harvest: %zuM from %d ranges", harvested / M, num_vmems_harvested);
+  }
+}
+
 class MultiNUMATracker : CHeapObj<mtGC> {
 private:
   struct Element {
@@ -1484,35 +1512,6 @@ bool ZPageAllocator::claim_physical_or_stall(ZPageAllocation* allocation) {
   return alloc_page_stall(allocation);
 }
 
-void ZPageAllocator::harvest_claimed_physical(ZMemoryAllocation* allocation) {
-  ZCacheState& state = state_from_numa_id(allocation->numa_id());
-  const int num_vmems_harvested = allocation->claimed_vmems()->length();
-
-  const int num_granules = (int)(allocation->harvested() >> ZGranuleSizeShift);
-  ZSegmentStash segments(&_physical_mappings, num_granules);
-
-  // Unmap virtual memory
-  ZArrayIterator<ZVirtualMemory> iter(allocation->claimed_vmems());
-  for (ZVirtualMemory vmem; iter.next(&vmem);) {
-    state.unmap_virtual(vmem);
-  }
-
-  // Stash segments
-  segments.stash(allocation->claimed_vmems());
-
-  // Shuffle virtual memory. We attempt to allocate enough memory to cover the entire
-  // allocation size, not just for the harvested memory.
-  state.shuffle_virtual(allocation->size(), allocation->claimed_vmems());
-
-  // Restore segments
-  segments.pop(allocation->claimed_vmems(), allocation->claimed_vmems()->length());
-
-  const size_t harvested = allocation->harvested();
-  if (harvested > 0) {
-    log_debug(gc, heap)("Mapped Cache Harvest: %zuM from %d ranges", harvested / M, num_vmems_harvested);
-  }
-}
-
 bool ZPageAllocator::is_alloc_satisfied(ZPageAllocation* allocation) const {
   return is_alloc_satisfied(allocation->memory_allocation());
 }
@@ -1612,7 +1611,7 @@ bool ZPageAllocator::claim_virtual_memory(ZMemoryAllocation* allocation) {
   if (allocation->harvested() > 0) {
     // If we have harvested anything, we claim virtual memory from the harvested
     // vmems, and perhaps also allocate more to match the allocation request.
-    harvest_claimed_physical(allocation);
+    state.harvest_claimed_physical(allocation);
   } else {
     // If we have not harvested anything, we only increased capacity. Allocate
     // new virtual memory from the manager.
