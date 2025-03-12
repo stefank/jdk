@@ -71,6 +71,16 @@ static void sort_zbacking_index_array(zbacking_index* array, size_t count) {
   });
 }
 
+static void check_numa_mismatch(const ZMemoryRange& vmem, uint32_t desired_id) {
+  if (ZNUMA::is_enabled()) {
+    // Check if memory ended up on desired NUMA node or not
+    const uint32_t actual_id = ZNUMA::memory_id(untype(ZOffset::address(vmem.start())));
+    if (actual_id != desired_id) {
+      log_debug(gc, heap)("NUMA Mismatch: desired %d, actual %d", desired_id, actual_id);
+    }
+  }
+}
+
 class ZSegmentStash {
 private:
   ZGranuleMap<zbacking_index>* const _physical_mappings;
@@ -842,7 +852,7 @@ bool ZPageAllocator::prime_state_cache(ZWorkers* workers, uint32_t numa_id, size
     return true;
   }
 
-  ZMemoryRange vmem = _virtual.alloc(to_prime, numa_id, true /* force_low_address */);
+  const ZMemoryRange vmem = _virtual.alloc(to_prime, numa_id, true /* force_low_address */);
   ZCacheState& state = _states.get(numa_id);
 
   // Increase capacity, allocate and commit physical memory
@@ -855,13 +865,7 @@ bool ZPageAllocator::prime_state_cache(ZWorkers* workers, uint32_t numa_id, size
 
   map_virtual_to_physical(vmem, numa_id);
 
-  if (ZNUMA::is_enabled()) {
-    // Check if memory ended up on desired NUMA node or not
-    const uint32_t actual_id = ZNUMA::memory_id(untype(ZOffset::address(vmem.start())));
-    if (actual_id != numa_id) {
-      log_debug(gc, heap)("NUMA Mismatch: desired %d, actual %d", numa_id, actual_id);
-    }
-  }
+  check_numa_mismatch(vmem, numa_id);
 
   if (AlwaysPreTouch) {
     // Pre-touch memory
@@ -1621,13 +1625,7 @@ bool ZPageAllocator::commit_and_map_memory(ZMemoryAllocation* allocation, const 
   map_virtual_to_physical(committed_vmem, allocation->numa_id());
   allocation->claimed_mappings()->append(committed_vmem);
 
-  if (ZNUMA::is_enabled()) {
-    // Check if memory ended up on desired NUMA node or not
-    const uint32_t actual_id = ZNUMA::memory_id(untype(ZOffset::address(vmem.start())));
-    if (actual_id != allocation->numa_id()) {
-      log_debug(gc, heap)("NUMA Mismatch: desired %d, actual %d", allocation->numa_id(), actual_id);
-    }
-  }
+  check_numa_mismatch(vmem, allocation->numa_id());
 
   if (committed_vmem.size() != vmem.size()) {
     log_trace(gc, page)("Split memory [" PTR_FORMAT ", " PTR_FORMAT ", " PTR_FORMAT "]",
