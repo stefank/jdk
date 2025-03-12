@@ -31,7 +31,6 @@
 #include "gc/z/zGeneration.inline.hpp"
 #include "gc/z/zGenerationId.hpp"
 #include "gc/z/zGlobals.hpp"
-#include "gc/z/zGranuleMap.inline.hpp"
 #include "gc/z/zLargePages.inline.hpp"
 #include "gc/z/zLock.inline.hpp"
 #include "gc/z/zMappedCache.hpp"
@@ -41,7 +40,6 @@
 #include "gc/z/zPageAge.hpp"
 #include "gc/z/zPageAllocator.inline.hpp"
 #include "gc/z/zPageType.hpp"
-#include "gc/z/zPhysicalMemoryManager.hpp"
 #include "gc/z/zSafeDelete.inline.hpp"
 #include "gc/z/zStat.hpp"
 #include "gc/z/zTask.hpp"
@@ -791,6 +789,18 @@ size_t ZCacheState::uncommit_physical(const ZVirtualMemory& vmem) {
   return manager.uncommit(pmem, size);
 }
 
+void ZCacheState::map_virtual_to_physical(const ZVirtualMemory& vmem) {
+  verify_virtual_memory_association(vmem);
+
+  ZPhysicalMemoryManager& manager = physical_memory_manager();
+  const zoffset offset = vmem.start();
+  zbacking_index* const pmem = physical_mappings_addr(vmem);
+  const size_t size = vmem.size();
+
+  // Map virtual memory to physical memory
+  manager.map(offset, pmem, size, _numa_id);
+}
+
 class MultiNUMATracker : CHeapObj<mtGC> {
 private:
   struct Element {
@@ -879,7 +889,7 @@ public:
         allocator->unmap_virtual(from_vmem);
 
         // Map to_vmem
-        allocator->map_virtual_to_physical(to_vmem, numa_id);
+        state.map_virtual_to_physical(to_vmem);
 
         mapped += to_vmem.size();
       }
@@ -1045,7 +1055,7 @@ bool ZPageAllocator::prime_state_cache(ZWorkers* workers, uint32_t numa_id, size
     return false;
   }
 
-  map_virtual_to_physical(vmem, numa_id);
+  state.map_virtual_to_physical(vmem);
 
   check_numa_mismatch(vmem, numa_id);
 
@@ -1208,11 +1218,6 @@ void ZPageAllocator::sort_segments_physical(const ZVirtualMemory& vmem) {
   sort_zbacking_index_array(_physical_mappings.addr(vmem.start()), vmem.size_in_granules());
 }
 
-void ZPageAllocator::map_virtual_to_physical(const ZVirtualMemory& vmem, uint32_t numa_id) {
-  // Map virtual memory to physical memory
-  _physical.map(vmem.start(), _physical_mappings.addr(vmem.start()), vmem.size(), numa_id);
-}
-
 void ZPageAllocator::unmap_virtual(const ZVirtualMemory& vmem) {
   // Unmap virtual memory from physical memory
   _physical.unmap(vmem.start(), _physical_mappings.addr(vmem.start()), vmem.size());
@@ -1229,6 +1234,8 @@ void ZPageAllocator::free_virtual(const ZVirtualMemory& vmem, uint32_t numa_id) 
 }
 
 void ZPageAllocator::remap_and_defragment(const ZVirtualMemory& vmem, ZArray<ZVirtualMemory>* entries) {
+  ZCacheState& state = state_from_vmem(vmem);
+
   // If no lower address can be found, don't remap/defrag
   if (_virtual.lowest_available_address(_virtual.get_numa_id(vmem)) > vmem.start()) {
     entries->append(vmem);
@@ -1253,10 +1260,9 @@ void ZPageAllocator::remap_and_defragment(const ZVirtualMemory& vmem, ZArray<ZVi
 
   // The entries array may contain entries from other defragmentations as well,
   // so we only operate on the last ranges that we have just inserted
-  const uint32_t numa_id = _virtual.get_numa_id(vmem);
   ZArrayIterator<ZVirtualMemory> iter(entries, start_index);
   for (ZVirtualMemory v; iter.next(&v);) {
-    map_virtual_to_physical(v, numa_id);
+    state.map_virtual_to_physical(v);
     pretouch_memory(v.start(), v.size());
   }
 }
@@ -1550,6 +1556,8 @@ bool ZPageAllocator::claim_virtual_memory(ZPageAllocation* allocation) {
 }
 
 bool ZPageAllocator::claim_virtual_memory(ZMemoryAllocation* allocation) {
+  ZCacheState& state = state_from_numa_id(allocation->numa_id());
+
   if (allocation->harvested() > 0) {
     // If we have harvested anything, we claim virtual memory from the harvested
     // vmems, and perhaps also allocate more to match the allocation request.
@@ -1572,7 +1580,7 @@ bool ZPageAllocator::claim_virtual_memory(ZMemoryAllocation* allocation) {
   if (allocation->harvested() > 0) {
     ZArrayIterator<ZVirtualMemory> iter(allocation->claimed_vmems());
     for (ZVirtualMemory vmem; iter.next(&vmem);) {
-      map_virtual_to_physical(vmem, allocation->numa_id());
+      state.map_virtual_to_physical(vmem);
     }
   }
 
@@ -1662,6 +1670,7 @@ bool ZPageAllocator::commit_and_map_memory_multi_numa(ZPageAllocation* allocatio
     // All memory has been committed, now unmap the original vmem and create the final vmem
     for_each_partial_vmem([&](ZMemoryAllocation* partial_allocation, ZVirtualMemory partial_vmem) {
       const uint32_t numa_id = partial_allocation->numa_id();
+      ZCacheState& state = state_from_numa_id(numa_id);
       ZArray<ZVirtualMemory>* const vmems = partial_allocation->claimed_vmems();
 
       // Unmap original vmems
@@ -1675,7 +1684,7 @@ bool ZPageAllocator::commit_and_map_memory_multi_numa(ZPageAllocation* allocatio
       sort_segments_physical(partial_vmem);
 
       // Map the partial_allocation to partial_vmem
-      map_virtual_to_physical(partial_vmem, numa_id);
+      state.map_virtual_to_physical(partial_vmem);
     });
 
     // Keep track of the total committed memory
@@ -1730,7 +1739,7 @@ bool ZPageAllocator::commit_and_map_memory_multi_numa(ZPageAllocation* allocatio
       copy_physical_segments(to_map.start(), from);
 
       // Map memory
-      map_virtual_to_physical(to_map, numa_id);
+      state.map_virtual_to_physical(to_map);
     }
 
     assert(partial_vmem.size() == 0, "all memory should be acountted for");
@@ -1786,7 +1795,7 @@ bool ZPageAllocator::commit_and_map_memory(ZMemoryAllocation* allocation, const 
   }
 
   sort_segments_physical(committed_vmem);
-  map_virtual_to_physical(committed_vmem, allocation->numa_id());
+  state.map_virtual_to_physical(committed_vmem);
   allocation->claimed_vmems()->append(committed_vmem);
 
   check_numa_mismatch(vmem, allocation->numa_id());

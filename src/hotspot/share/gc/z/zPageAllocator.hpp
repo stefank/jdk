@@ -125,6 +125,8 @@ public:
   void free_physical(const ZVirtualMemory& vmem);
   size_t commit_physical(const ZVirtualMemory& vmem);
   size_t uncommit_physical(const ZVirtualMemory& vmem);
+
+  void map_virtual_to_physical(const ZVirtualMemory& vmem);
 };
 
 class ZPageAllocator {
@@ -151,8 +153,6 @@ private:
 
   size_t count_segments_physical(const ZVirtualMemory& vmem);
   void sort_segments_physical(const ZVirtualMemory& vmem);
-
-  void map_virtual_to_physical(const ZVirtualMemory& vmem, uint32_t numa_id);
 
   void unmap_virtual(const ZVirtualMemory& vmem);
   void free_virtual(const ZVirtualMemory& vmem);
