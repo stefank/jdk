@@ -864,7 +864,7 @@ void ZCacheState::shuffle_virtual(const ZVirtualMemory& vmem, ZArray<ZVirtualMem
   ZVirtualMemoryManager& manager = virtual_memory_manager();
 
   // Shuffle virtual memory
-  manager.shuffle_vmem_to_low_addresses(vmem, _numa_id, vmems_out);
+  manager.shuffle_to_low_addresses(vmem, _numa_id, vmems_out);
 }
 
 void ZCacheState::shuffle_virtual(size_t size, ZArray<ZVirtualMemory>* vmems_in_out) {
@@ -873,7 +873,7 @@ void ZCacheState::shuffle_virtual(size_t size, ZArray<ZVirtualMemory>* vmems_in_
   ZVirtualMemoryManager& manager = virtual_memory_manager();
 
   // Shuffle virtual memory
-  manager.shuffle_vmem_to_low_addresses_contiguous(size, _numa_id, vmems_in_out);
+  manager.shuffle_to_low_addresses_and_alloc_contiguous(size, _numa_id, vmems_in_out);
 }
 
 static void pretouch_memory(zoffset start, size_t size) {

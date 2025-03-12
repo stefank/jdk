@@ -356,7 +356,7 @@ void ZMemoryManagerImpl<Range>::transfer_low_address(ZMemoryManagerImpl* other, 
 }
 
 template <typename Range>
-void ZMemoryManagerImpl<Range>::shuffle_memory_low_addresses(offset start, size_t size, ZArray<Range>* out) {
+void ZMemoryManagerImpl<Range>::shuffle_to_low_addresses(offset start, size_t size, ZArray<Range>* out) {
   ZLocker<ZLock> locker(&_lock);
 
   // Free the range
@@ -370,7 +370,7 @@ void ZMemoryManagerImpl<Range>::shuffle_memory_low_addresses(offset start, size_
 }
 
 template <typename Range>
-void ZMemoryManagerImpl<Range>::shuffle_memory_low_addresses_contiguous(size_t size, ZArray<Range>* in_out) {
+void ZMemoryManagerImpl<Range>::shuffle_to_low_addresses_and_alloc_contiguous(size_t size, ZArray<Range>* in_out) {
   ZLocker<ZLock> locker(&_lock);
 
   size_t freed = 0;
