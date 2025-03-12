@@ -31,9 +31,9 @@
 
 static const ZStatCounter ZCounterUncommit("Memory", "Uncommit", ZStatUnitBytesPerSecond);
 
-ZUncommitter::ZUncommitter(uint32_t id, ZPageAllocator* page_allocator)
+ZUncommitter::ZUncommitter(uint32_t id, ZCacheState* state)
   : _id(id),
-    _page_allocator(page_allocator),
+    _state(state),
     _lock(),
     _stop(false) {
 
@@ -69,7 +69,7 @@ void ZUncommitter::run_thread() {
 
     while (should_continue()) {
       // Uncommit chunk
-      const size_t flushed = _page_allocator->uncommit(_id, &timeout);
+      const size_t flushed = _state->uncommit(&timeout);
       if (flushed == 0) {
         // Done
         break;

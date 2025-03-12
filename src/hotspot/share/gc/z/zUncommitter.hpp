@@ -27,12 +27,12 @@
 #include "gc/z/zLock.hpp"
 #include "gc/z/zThread.hpp"
 
-class ZPageAllocator;
+class ZCacheState;
 
 class ZUncommitter : public ZThread {
 private:
-  uint32_t               _id;
-  ZPageAllocator* const  _page_allocator;
+  const uint32_t         _id;
+  ZCacheState* const     _state;
   mutable ZConditionLock _lock;
   bool                   _stop;
 
@@ -44,7 +44,7 @@ protected:
   virtual void terminate();
 
 public:
-  ZUncommitter(uint32_t id, ZPageAllocator* page_allocator);
+  ZUncommitter(uint32_t id, ZCacheState* state);
 };
 
 #endif // SHARE_GC_Z_ZUNCOMMITTER_HPP

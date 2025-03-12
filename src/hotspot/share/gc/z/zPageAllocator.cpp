@@ -31,6 +31,7 @@
 #include "gc/z/zGeneration.inline.hpp"
 #include "gc/z/zGenerationId.hpp"
 #include "gc/z/zGlobals.hpp"
+#include "gc/z/zGranuleMap.inline.hpp"
 #include "gc/z/zLargePages.inline.hpp"
 #include "gc/z/zLock.inline.hpp"
 #include "gc/z/zMappedCache.hpp"
@@ -40,6 +41,7 @@
 #include "gc/z/zPageAge.hpp"
 #include "gc/z/zPageAllocator.inline.hpp"
 #include "gc/z/zPageType.hpp"
+#include "gc/z/zPhysicalMemoryManager.hpp"
 #include "gc/z/zSafeDelete.inline.hpp"
 #include "gc/z/zStat.hpp"
 #include "gc/z/zTask.hpp"
@@ -428,10 +430,48 @@ void ZMemoryAllocationData::remove_last_multi_numa_allocation() {
   _multi_numa_allocations.pop();
 }
 
+const ZVirtualMemoryManager& ZCacheState::virtual_memory_manager() const {
+  return _page_allocator->_virtual;
+}
+
+ZVirtualMemoryManager& ZCacheState::virtual_memory_manager() {
+  return _page_allocator->_virtual;
+}
+
+const ZPhysicalMemoryManager& ZCacheState::physical_memory_manager() const {
+  return _page_allocator->_physical;
+}
+
+ZPhysicalMemoryManager& ZCacheState::physical_memory_manager() {
+  return _page_allocator->_physical;
+}
+
+const ZGranuleMap<zbacking_index>& ZCacheState::physical_mappings() const {
+  return _page_allocator->_physical_mappings;
+}
+
+ZGranuleMap<zbacking_index>& ZCacheState::physical_mappings() {
+  return _page_allocator->_physical_mappings;
+}
+
+const zbacking_index* ZCacheState::physical_mappings_addr(const ZVirtualMemory& vmem) const {
+  const ZGranuleMap<zbacking_index>& mappings = physical_mappings();
+  return mappings.addr(vmem.start());
+}
+
+zbacking_index* ZCacheState::physical_mappings_addr(const ZVirtualMemory& vmem) {
+  ZGranuleMap<zbacking_index>& mappings = physical_mappings();
+  return mappings.addr(vmem.start());
+}
+
+void ZCacheState::verify_virtual_memory_association(const ZVirtualMemory& vmem) const {
+  assert(_numa_id == virtual_memory_manager().get_numa_id(vmem), "Virtual memory must be associated with the current state");
+}
+
 ZCacheState::ZCacheState(uint32_t numa_id, ZPageAllocator* page_allocator)
   : _page_allocator(page_allocator),
     _cache(),
-    _uncommitter(numa_id, page_allocator),
+    _uncommitter(numa_id, this),
     _min_capacity(ZNUMA::calculate_share(numa_id, page_allocator->min_capacity())),
     _initial_capacity(ZNUMA::calculate_share(numa_id, page_allocator->initial_capacity())),
     _max_capacity(ZNUMA::calculate_share(numa_id, page_allocator->max_capacity())),
@@ -598,6 +638,94 @@ uint32_t ZCacheState::numa_id() const {
   return _numa_id;
 }
 
+size_t ZCacheState::uncommit(uint64_t* timeout) {
+  ZArray<ZVirtualMemory> flushed_vmems;
+  size_t flushed = 0;
+
+  {
+    // We need to join the suspendible thread set while manipulating capacity and
+    // used, to make sure GC safepoints will have a consistent view.
+    SuspendibleThreadSetJoiner sts_joiner;
+    ZLocker<ZLock> locker(&_page_allocator->_lock);
+
+    const double now = os::elapsedTime();
+    const double time_since_last_commit = std::floor(now - _last_commit);
+    const double time_since_last_uncommit = std::floor(now - _last_uncommit);
+
+    if (time_since_last_commit < double(ZUncommitDelay)) {
+      // We have committed within the delay, stop uncommitting.
+      *timeout = uint64_t(double(ZUncommitDelay) - time_since_last_commit);
+      return 0;
+    }
+
+    // We flush out and uncommit chunks at a time (~0.8% of the max capacity,
+    // but at least one granule and at most 256M), in case demand for memory
+    // increases while we are uncommitting.
+    const size_t limit_upper_bound = MAX2(ZGranuleSize, align_down(256 * M / ZNUMA::count(), ZGranuleSize));
+    const size_t limit = MIN2(align_up(_current_max_capacity >> 7, ZGranuleSize), limit_upper_bound);
+
+    if (time_since_last_uncommit < double(ZUncommitDelay)) {
+      // We are in the uncommit phase
+      const size_t num_uncommits_left = _to_uncommit / limit;
+      const double time_left = double(ZUncommitDelay) - time_since_last_uncommit;
+      if (time_left < *timeout * num_uncommits_left) {
+        // Running out of time, speed up.
+        uint64_t new_timeout = uint64_t(std::floor(time_left / double(num_uncommits_left + 1)));
+        *timeout = new_timeout;
+      }
+    } else {
+      // We are about to start uncommitting
+      _to_uncommit = _cache.reset_min();
+      _last_uncommit = now;
+
+      const size_t split = _to_uncommit / limit + 1;
+      uint64_t new_timeout = ZUncommitDelay / split;
+      *timeout = new_timeout;
+    }
+
+    // Never uncommit below min capacity.
+    const size_t retain = MAX2(_used, _min_capacity);
+    const size_t release = _capacity - retain;
+    const size_t flush = MIN3(release, limit, _to_uncommit);
+
+    if (flush == 0) {
+      // Nothing to flush
+      return 0;
+    }
+
+    // Flush memory from the mapped cache to uncommit
+    flushed = _cache.remove_from_min(&flushed_vmems, flush);
+    if (flushed == 0) {
+      // Nothing flushed
+      return 0;
+    }
+
+    // Record flushed memory as claimed and how much we've flushed for this NUMA node
+    Atomic::add(&_claimed, flushed);
+    _to_uncommit -= flushed;
+  }
+
+  // Unmap and uncommit flushed memory
+  ZArrayIterator<ZVirtualMemory> it(&flushed_vmems);
+  for (ZVirtualMemory vmem; it.next(&vmem);) {
+    _page_allocator->unmap_virtual(vmem);
+    uncommit_physical(vmem);
+    free_physical(vmem);
+    _page_allocator->free_virtual(vmem);
+  }
+
+  {
+    SuspendibleThreadSetJoiner sts_joiner;
+    ZLocker<ZLock> locker(&_page_allocator->_lock);
+
+    // Adjust claimed and capacity to reflect the uncommit
+    Atomic::sub(&_claimed, flushed);
+    decrease_capacity(flushed, false /* set_max_capacity */);
+  }
+
+  return flushed;
+}
+
 const ZUncommitter& ZCacheState::uncommitter() const {
   return _uncommitter;
 }
@@ -608,6 +736,59 @@ ZUncommitter& ZCacheState::uncommitter() {
 
 void ZCacheState::threads_do(ThreadClosure* tc) const {
   tc->do_thread(const_cast<ZUncommitter*>(&_uncommitter));
+}
+
+void ZCacheState::alloc_physical(const ZVirtualMemory& vmem) {
+  // We do not verify the virtual memory association as multi numa allocation
+  // allocates new physical segments directly in the final virtual memory range,
+  // which may not be associated with the current node.
+
+  ZPhysicalMemoryManager& manager = physical_memory_manager();
+  zbacking_index* const pmem = physical_mappings_addr(vmem);
+  const size_t size = vmem.size();
+
+  // Alloc physical memory
+  manager.alloc(pmem, size, _numa_id);
+}
+
+void ZCacheState::free_physical(const ZVirtualMemory& vmem) {
+  // We do not verify the virtual memory association as multi numa allocation
+  // allocates and commits new physical segments directly in the final virtual
+  // memory range, which may not be associated with the current node. If a
+  // commit fails it will also be used to free.
+
+  ZPhysicalMemoryManager& manager = physical_memory_manager();
+  zbacking_index* const pmem = physical_mappings_addr(vmem);
+  const size_t size = vmem.size();
+
+  // Free physical memory
+  manager.free(pmem, size, _numa_id);
+}
+
+size_t ZCacheState::commit_physical(const ZVirtualMemory& vmem) {
+  // We do not verify the virtual memory association as multi numa allocation
+  // commits new physical segments directly in the final virtual memory range,
+  // which may not be associated with the current node.
+
+  ZPhysicalMemoryManager& manager = physical_memory_manager();
+  zbacking_index* const pmem = physical_mappings_addr(vmem);
+  const size_t size = vmem.size();
+
+  // Commit physical memory
+  return manager.commit(pmem, size, _numa_id);
+}
+
+size_t ZCacheState::uncommit_physical(const ZVirtualMemory& vmem) {
+  assert(ZUncommit, "should not uncommit when uncommit is disabled");
+  verify_virtual_memory_association(vmem);
+
+
+  ZPhysicalMemoryManager& manager = physical_memory_manager();
+  zbacking_index* const pmem = physical_mappings_addr(vmem);
+  const size_t size = vmem.size();
+
+  // Uncommit physical memory
+  return manager.uncommit(pmem, size);
 }
 
 class MultiNUMATracker : CHeapObj<mtGC> {
@@ -679,6 +860,7 @@ public:
       PerNUMAData& numa_data = per_numa_vmems[numa_id];
       ZArray<ZVirtualMemory>* const numa_memory_vmems = &numa_data._vmems;
       const size_t size = remaining_vmem.size();
+      ZCacheState& state = allocator->state_from_numa_id(numa_id);
 
       // Allocate new virtual address ranges
       const int start_index = numa_memory_vmems->length();
@@ -708,8 +890,8 @@ public:
       if (remaining_vmem.size() != 0) {
         // Failed to get vmem for all memory, unmap, uncommit and free the remaining
         allocator->unmap_virtual(remaining_vmem);
-        allocator->uncommit_physical(remaining_vmem);
-        allocator->free_physical(remaining_vmem, numa_id);
+        state.uncommit_physical(remaining_vmem);
+        state.free_physical(remaining_vmem);
       }
 
       // Keep track of the per numa data
@@ -857,8 +1039,8 @@ bool ZPageAllocator::prime_state_cache(ZWorkers* workers, uint32_t numa_id, size
 
   // Increase capacity, allocate and commit physical memory
   state.increase_capacity(to_prime);
-  _physical.alloc(_physical_mappings.addr(vmem.start()), to_prime, numa_id);
-  if (commit_physical(vmem, numa_id) != vmem.size()) {
+  state.alloc_physical(vmem);
+  if (state.commit_physical(vmem) != vmem.size()) {
     // This is a failure state. We do not cleanup the maybe partially committed memory.
     return false;
   }
@@ -1024,27 +1206,6 @@ size_t ZPageAllocator::count_segments_physical(const ZVirtualMemory& vmem) {
 
 void ZPageAllocator::sort_segments_physical(const ZVirtualMemory& vmem) {
   sort_zbacking_index_array(_physical_mappings.addr(vmem.start()), vmem.size_in_granules());
-}
-
-void ZPageAllocator::alloc_physical(const ZVirtualMemory& vmem, uint32_t numa_id) {
-  _physical.alloc(_physical_mappings.addr(vmem.start()), vmem.size(), numa_id);
-}
-
-void ZPageAllocator::free_physical(const ZVirtualMemory& vmem, uint32_t numa_id) {
-  // Free physical memory
-  _physical.free(_physical_mappings.addr(vmem.start()), vmem.size(), numa_id);
-}
-
-size_t ZPageAllocator::commit_physical(const ZVirtualMemory& vmem, uint32_t numa_id) {
-  // Commit physical memory
-  return _physical.commit(_physical_mappings.addr(vmem.start()), vmem.size(), numa_id);
-}
-
-void ZPageAllocator::uncommit_physical(const ZVirtualMemory& vmem) {
-  precond(ZUncommit);
-
-  // Uncommit physical memory
-  _physical.uncommit(_physical_mappings.addr(vmem.start()), vmem.size());
 }
 
 void ZPageAllocator::map_virtual_to_physical(const ZVirtualMemory& vmem, uint32_t numa_id) {
@@ -1432,7 +1593,8 @@ void ZPageAllocator::allocate_remaining_physical(ZMemoryAllocation* allocation, 
   const size_t remaining_physical = allocation->size() - allocation->harvested();
   if (remaining_physical > 0) {
     ZVirtualMemory uncommitted_range = ZVirtualMemory(vmem.start() + allocation->harvested(), remaining_physical);
-    alloc_physical(uncommitted_range, allocation->numa_id());
+    ZCacheState& state = state_from_numa_id(allocation->numa_id());
+    state.alloc_physical(uncommitted_range);
   }
 }
 
@@ -1476,9 +1638,9 @@ bool ZPageAllocator::commit_and_map_memory_multi_numa(ZPageAllocation* allocatio
     partial_vmem.shrink_from_front(partial_allocation->harvested());
 
     // Try to commit
-    const uint32_t numa_id = partial_allocation->numa_id();
+    ZCacheState& state = state_from_numa_id(partial_allocation->numa_id());
     const size_t to_commit = partial_vmem.size();
-    const size_t committed = commit_physical(partial_vmem, numa_id);
+    const size_t committed = state.commit_physical(partial_vmem);
 
     // Keep track of the committed amount
     partial_allocation->set_committed(committed);
@@ -1489,7 +1651,7 @@ bool ZPageAllocator::commit_and_map_memory_multi_numa(ZPageAllocation* allocatio
 
       // Free uncommitted physical segments
       const ZVirtualMemory uncommitted = partial_vmem.split_from_back(to_commit - committed);
-      free_physical(uncommitted, numa_id);
+      state.free_physical(uncommitted);
     }
 
     // Account for all committed
@@ -1538,6 +1700,7 @@ bool ZPageAllocator::commit_and_map_memory_multi_numa(ZPageAllocation* allocatio
     partial_vmem.shrink_from_front(partial_allocation->harvested());
 
     const uint32_t numa_id = partial_allocation->numa_id();
+    ZCacheState& state = state_from_numa_id(numa_id);
     ZArray<ZVirtualMemory>* const vmems = partial_allocation->claimed_vmems();
     // Keep track of the start index
     const int start_index = vmems->length();
@@ -1552,8 +1715,8 @@ bool ZPageAllocator::commit_and_map_memory_multi_numa(ZPageAllocation* allocatio
       // current max capacity
 
       const ZVirtualMemory unmappable = partial_vmem.split_from_back(committed - to_map);
-      uncommit_physical(unmappable);
-      free_physical(unmappable, numa_id);
+      state.uncommit_physical(unmappable);
+      state.free_physical(unmappable);
 
       // Keep track of the total committed memory
       total_committed -= unmappable.size();
@@ -1595,13 +1758,14 @@ bool ZPageAllocator::commit_and_map_memory(ZPageAllocation* allocation, const ZV
 }
 
 bool ZPageAllocator::commit_and_map_memory(ZMemoryAllocation* allocation, const ZVirtualMemory& vmem) {
+  ZCacheState& state = state_from_numa_id(allocation->numa_id());
   size_t const committed_size = allocation->harvested();
   ZVirtualMemory to_be_committed_vmem = vmem;
   ZVirtualMemory committed_vmem = to_be_committed_vmem.split_from_front(committed_size);
 
   // Try to commit all physical memory, commit_physical frees both the virtual
   // and physical parts that correspond to the memory that failed to be committed.
-  const size_t committed = commit_physical(to_be_committed_vmem, allocation->numa_id());
+  const size_t committed = state.commit_physical(to_be_committed_vmem);
 
   // Keep track of the committed amount
   allocation->set_committed(committed);
@@ -1609,7 +1773,7 @@ bool ZPageAllocator::commit_and_map_memory(ZMemoryAllocation* allocation, const 
   if (committed != to_be_committed_vmem.size()) {
     // Free the uncommitted memory and update vmem with the committed memory
     ZVirtualMemory not_commited_vmem = to_be_committed_vmem.split_from_back(committed);
-    free_physical(not_commited_vmem, allocation->numa_id());
+    state.free_physical(not_commited_vmem);
     free_virtual(not_commited_vmem);
     allocation->set_commit_failed();
   }
@@ -1903,93 +2067,6 @@ void ZPageAllocator::free_memory_alloc_failed(ZMemoryAllocation* allocation) {
                       allocation->numa_id());
     }
   }
-}
-
-size_t ZPageAllocator::uncommit(uint32_t numa_id, uint64_t* timeout) {
-  ZCacheState& state = _states.get(numa_id);
-  ZArray<ZVirtualMemory> flushed_vmems;
-  size_t flushed = 0;
-
-  {
-    // We need to join the suspendible thread set while manipulating capacity and
-    // used, to make sure GC safepoints will have a consistent view.
-    SuspendibleThreadSetJoiner sts_joiner;
-    ZLocker<ZLock> locker(&_lock);
-
-    const double now = os::elapsedTime();
-    const double time_since_last_commit = std::floor(now - state._last_commit);
-    const double time_since_last_uncommit = std::floor(now - state._last_uncommit);
-
-    if (time_since_last_commit < double(ZUncommitDelay)) {
-      // We have committed within the delay, stop uncommitting.
-      *timeout = uint64_t(double(ZUncommitDelay) - time_since_last_commit);
-      return 0;
-    }
-
-    const size_t limit = MIN2(align_up(state._current_max_capacity >> 7, ZGranuleSize), 256 * M / ZNUMA::count());
-
-    if (time_since_last_uncommit < double(ZUncommitDelay)) {
-      // We are in the uncommit phase
-      const size_t num_uncommits_left = state._to_uncommit / limit;
-      const double time_left = double(ZUncommitDelay) - time_since_last_uncommit;
-      if (time_left < *timeout * num_uncommits_left) {
-        // Running out of time, speed up.
-        uint64_t new_timeout = uint64_t(std::floor(time_left / double(num_uncommits_left + 1)));
-        *timeout = new_timeout;
-      }
-    } else {
-      // We are about to start uncommitting
-      state._to_uncommit = state._cache.reset_min();
-      state._last_uncommit = now;
-
-      const size_t split = state._to_uncommit / limit + 1;
-      uint64_t new_timeout = ZUncommitDelay / split;
-      *timeout = new_timeout;
-    }
-
-    // Never uncommit below min capacity. We flush out and uncommit chunks at
-    // a time (~0.8% of the max capacity, but at least one granule and at most
-    // 256M), in case demand for memory increases while we are uncommitting.
-    const size_t retain = MAX2(state._used, _min_capacity / ZNUMA::count());
-    const size_t release = state._capacity - retain;
-    const size_t flush = MIN3(release, limit, state._to_uncommit);
-
-    if (flush == 0) {
-      // Nothing to flush
-      return 0;
-    }
-
-    // Flush memory from the mapped cache to uncommit
-    flushed = state._cache.remove_from_min(&flushed_vmems, flush);
-    if (flushed == 0) {
-      // Nothing flushed
-      return 0;
-    }
-
-    // Record flushed memory as claimed and how much we've flushed for this NUMA node
-    Atomic::add(&state._claimed, flushed);
-    state._to_uncommit -= flushed;
-  }
-
-  // Unmap and uncommit flushed memory
-  ZArrayIterator<ZVirtualMemory> it(&flushed_vmems);
-  for (ZVirtualMemory vmem; it.next(&vmem);) {
-    unmap_virtual(vmem);
-    uncommit_physical(vmem);
-    free_physical(vmem, numa_id);
-    free_virtual(vmem);
-  }
-
-  {
-    SuspendibleThreadSetJoiner sts_joiner;
-    ZLocker<ZLock> locker(&_lock);
-
-    // Adjust claimed and capacity to reflect the uncommit
-    Atomic::sub(&state._claimed, flushed);
-    state.decrease_capacity(flushed, false /* set_max_capacity */);
-  }
-
-  return flushed;
 }
 
 void ZPageAllocator::enable_safe_destroy() const {

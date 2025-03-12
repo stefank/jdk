@@ -31,6 +31,7 @@
 #include "gc/z/zList.hpp"
 #include "gc/z/zLock.hpp"
 #include "gc/z/zMappedCache.hpp"
+#include "gc/z/zMemory.hpp"
 #include "gc/z/zPage.hpp"
 #include "gc/z/zPageAge.hpp"
 #include "gc/z/zPageType.hpp"
@@ -74,6 +75,20 @@ private:
   size_t                     _to_uncommit;
   const uint32_t             _numa_id;
 
+  const ZVirtualMemoryManager& virtual_memory_manager() const;
+  ZVirtualMemoryManager& virtual_memory_manager();
+
+  const ZPhysicalMemoryManager& physical_memory_manager() const;
+  ZPhysicalMemoryManager& physical_memory_manager();
+
+  const ZGranuleMap<zbacking_index>& physical_mappings() const;
+  ZGranuleMap<zbacking_index>& physical_mappings();
+
+  const zbacking_index* physical_mappings_addr(const ZVirtualMemory& vmem) const;
+  zbacking_index* physical_mappings_addr(const ZVirtualMemory& vmem);
+
+  void verify_virtual_memory_association(const ZVirtualMemory& vmem) const;
+
 public:
   ZCacheState(uint32_t numa_id, ZPageAllocator* page_allocator);
 
@@ -99,14 +114,22 @@ public:
 
   uint32_t numa_id() const;
 
+  size_t uncommit(uint64_t* timeout);
+
   const ZUncommitter& uncommitter() const;
   ZUncommitter& uncommitter();
 
   void threads_do(ThreadClosure* tc) const;
+
+  void alloc_physical(const ZVirtualMemory& vmem);
+  void free_physical(const ZVirtualMemory& vmem);
+  size_t commit_physical(const ZVirtualMemory& vmem);
+  size_t uncommit_physical(const ZVirtualMemory& vmem);
 };
 
 class ZPageAllocator {
   friend class VMStructs;
+  friend class ZCacheState;
   friend class ZUncommitter;
   friend class MultiNUMATracker;
 
@@ -128,11 +151,6 @@ private:
 
   size_t count_segments_physical(const ZVirtualMemory& vmem);
   void sort_segments_physical(const ZVirtualMemory& vmem);
-
-  void alloc_physical(const ZVirtualMemory& vmem, uint32_t numa_id);
-  void free_physical(const ZVirtualMemory& vmem, uint32_t numa_id);
-  size_t commit_physical(const ZVirtualMemory& vmem, uint32_t numa_id);
-  void uncommit_physical(const ZVirtualMemory& vmem);
 
   void map_virtual_to_physical(const ZVirtualMemory& vmem, uint32_t numa_id);
 
@@ -179,8 +197,6 @@ private:
   void free_memory_alloc_failed(ZMemoryAllocation* allocation);
 
   void satisfy_stalled();
-
-  size_t uncommit(uint32_t numa_id, uint64_t* timeout);
 
   void notify_out_of_memory();
   void restart_gc() const;
