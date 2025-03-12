@@ -224,22 +224,22 @@ bool ZVirtualMemoryManager::is_initialized() const {
   return _initialized;
 }
 
-int ZVirtualMemoryManager::shuffle_vmem_to_low_addresses(const ZMemoryRange& vmem, ZArray<ZMemoryRange>* out) {
+int ZVirtualMemoryManager::shuffle_vmem_to_low_addresses(const ZVirtualMemory& vmem, ZArray<ZVirtualMemory>* out) {
   const uint32_t numa_id = get_numa_id(vmem);
   return _managers.get(numa_id).shuffle_memory_low_addresses(vmem.start(), vmem.size(), out);
 }
 
-void ZVirtualMemoryManager::shuffle_vmem_to_low_addresses_contiguous(size_t size, ZArray<ZMemoryRange>* mappings) {
+void ZVirtualMemoryManager::shuffle_vmem_to_low_addresses_contiguous(size_t size, ZArray<ZVirtualMemory>* mappings) {
   const uint32_t numa_id = get_numa_id(mappings->first());
   _managers.get(numa_id).shuffle_memory_low_addresses_contiguous(size, mappings);
 }
 
-size_t ZVirtualMemoryManager::alloc_low_address_many_at_most(size_t size, uint32_t numa_id, ZArray<ZMemoryRange>* mappings) {
+size_t ZVirtualMemoryManager::alloc_low_address_many_at_most(size_t size, uint32_t numa_id, ZArray<ZVirtualMemory>* mappings) {
   return _managers.get(numa_id).alloc_low_address_many_at_most(size, mappings);
 }
 
-ZMemoryRange ZVirtualMemoryManager::alloc(size_t size, uint32_t numa_id, bool force_low_address) {
-  ZMemoryRange range;
+ZVirtualMemory ZVirtualMemoryManager::alloc(size_t size, uint32_t numa_id, bool force_low_address) {
+  ZVirtualMemory range;
 
   // Small/medium pages are allocated at low addresses, while large pages are
   // allocated at high addresses (unless forced to be at a low address).
@@ -252,19 +252,19 @@ ZMemoryRange ZVirtualMemoryManager::alloc(size_t size, uint32_t numa_id, bool fo
   return range;
 }
 
-void ZVirtualMemoryManager::free(const ZMemoryRange& vmem) {
+void ZVirtualMemoryManager::free(const ZVirtualMemory& vmem) {
   const uint32_t numa_id = get_numa_id(vmem);
   _managers.get(numa_id).free(vmem.start(), vmem.size());
 }
 
-void ZVirtualMemoryManager::free(const ZMemoryRange& vmem, uint32_t numa_id) {
+void ZVirtualMemoryManager::free(const ZVirtualMemory& vmem, uint32_t numa_id) {
   assert(numa_id == get_numa_id(vmem), "wrong numa_id for vmem");
   _managers.get(numa_id).free(vmem.start(), vmem.size());
 }
 
-uint32_t ZVirtualMemoryManager::get_numa_id(const ZMemoryRange& vmem) const {
+uint32_t ZVirtualMemoryManager::get_numa_id(const ZVirtualMemory& vmem) const {
   for (uint32_t numa_id = 0; numa_id < ZNUMA::count(); numa_id++) {
-    const ZMemoryRange& range = _vmem_ranges.get(numa_id);
+    const ZVirtualMemory& range = _vmem_ranges.get(numa_id);
     if (vmem.start() >= range.start() && vmem.end() <= range.end()) {
       return numa_id;
     }

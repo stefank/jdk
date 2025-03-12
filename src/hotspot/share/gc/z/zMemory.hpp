@@ -67,11 +67,11 @@ public:
   bool adjacent_to(const ZRange& other) const;
 };
 
-class ZMemoryRange : public ZRange<zoffset, zoffset_end> {
+class ZVirtualMemory : public ZRange<zoffset, zoffset_end> {
 public:
-  ZMemoryRange();
-  ZMemoryRange(zoffset start, size_t size);
-  ZMemoryRange(const ZRange<zoffset, zoffset_end>& range);
+  ZVirtualMemory();
+  ZVirtualMemory(zoffset start, size_t size);
+  ZVirtualMemory(const ZRange<zoffset, zoffset_end>& range);
 
   size_t size_in_granules() const;
 };

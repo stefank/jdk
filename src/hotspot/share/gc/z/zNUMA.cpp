@@ -23,8 +23,8 @@
 
 #include "gc/shared/gc_globals.hpp"
 #include "gc/shared/gcLogPrecious.hpp"
-#include "utilities/macros.hpp"
 #include "gc/z/zNUMA.inline.hpp"
+#include "utilities/macros.hpp"
 
 bool ZNUMA::_enabled;
 uint32_t ZNUMA::_count;

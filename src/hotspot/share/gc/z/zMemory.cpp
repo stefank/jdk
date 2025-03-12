@@ -405,5 +405,5 @@ void ZMemoryManagerImpl<Range>::free(const Range& range) {
 }
 
 // Instantiate the concrete classes
-template class ZMemoryManagerImpl<ZMemoryRange>;
+template class ZMemoryManagerImpl<ZVirtualMemory>;
 template class ZMemoryManagerImpl<ZBackingIndexRange>;

@@ -110,7 +110,7 @@ public:
 
   static void test_alloc_low_address() {
     // Verify that we get placeholder for first granule
-    ZMemoryRange bottom = _va->alloc_low_address(ZGranuleSize);
+    ZVirtualMemory bottom = _va->alloc_low_address(ZGranuleSize);
     EXPECT_ALLOC_OK(bottom);
 
     _va->free(bottom);
@@ -125,7 +125,7 @@ public:
     bottom = _va->alloc_low_address(ZGranuleSize);
     EXPECT_ALLOC_OK(bottom);
 
-    ZMemoryRange next = _va->alloc_low_address(ZGranuleSize);
+    ZVirtualMemory next = _va->alloc_low_address(ZGranuleSize);
     EXPECT_ALLOC_OK(next);
 
     _va->free(bottom);
@@ -134,10 +134,10 @@ public:
 
   static void test_alloc_high_address() {
     // Verify that we get placeholder for last granule
-    ZMemoryRange high = _va->alloc_high_address(ZGranuleSize);
+    ZVirtualMemory high = _va->alloc_high_address(ZGranuleSize);
     EXPECT_ALLOC_OK(high);
 
-    ZMemoryRange prev = _va->alloc_high_address(ZGranuleSize);
+    ZVirtualMemory prev = _va->alloc_high_address(ZGranuleSize);
     EXPECT_ALLOC_OK(prev);
 
     _va->free(high);
@@ -152,14 +152,14 @@ public:
 
   static void test_alloc_whole_area() {
     // Alloc the whole reservation
-    ZMemoryRange bottom = _va->alloc_low_address(ZMapperTestReservationSize);
+    ZVirtualMemory bottom = _va->alloc_low_address(ZMapperTestReservationSize);
     EXPECT_ALLOC_OK(bottom);
 
     // Free two chunks and then allocate them again
     _va->free(bottom.start(), ZGranuleSize * 4);
     _va->free(bottom.start() + ZGranuleSize * 6, ZGranuleSize * 6);
 
-    ZMemoryRange range = _va->alloc_low_address(ZGranuleSize * 4);
+    ZVirtualMemory range = _va->alloc_low_address(ZGranuleSize * 4);
     EXPECT_ALLOC_OK(range);
 
     range = _va->alloc_low_address(ZGranuleSize * 6);

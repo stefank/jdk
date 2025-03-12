@@ -33,14 +33,14 @@ class ZVirtualMemoryManager {
   friend class ZMapperTest;
 
 public:
-  using ZMemoryManager = ZMemoryManagerImpl<ZMemoryRange>;
+  using ZMemoryManager = ZMemoryManagerImpl<ZVirtualMemory>;
 
 private:
   static size_t calculate_min_range(size_t size);
 
   ZMemoryManager           _init_manager;
   ZPerNUMA<ZMemoryManager> _managers;
-  ZPerNUMA<ZMemoryRange>   _vmem_ranges;
+  ZPerNUMA<ZVirtualMemory> _vmem_ranges;
   bool                     _initialized;
 
   // Platform specific implementation
@@ -62,15 +62,15 @@ public:
 
   bool is_initialized() const;
 
-  int shuffle_vmem_to_low_addresses(const ZMemoryRange& vmem, ZArray<ZMemoryRange>* out);
-  void shuffle_vmem_to_low_addresses_contiguous(size_t size, ZArray<ZMemoryRange>* mappings);
+  int shuffle_vmem_to_low_addresses(const ZVirtualMemory& vmem, ZArray<ZVirtualMemory>* out);
+  void shuffle_vmem_to_low_addresses_contiguous(size_t size, ZArray<ZVirtualMemory>* mappings);
 
-  size_t alloc_low_address_many_at_most(size_t size, uint32_t numa_id, ZArray<ZMemoryRange>* out);
-  ZMemoryRange alloc(size_t size, uint32_t numa_id, bool force_low_address);
-  void free(const ZMemoryRange& vmem);
-  void free(const ZMemoryRange& vmem, uint32_t numa_id);
+  size_t alloc_low_address_many_at_most(size_t size, uint32_t numa_id, ZArray<ZVirtualMemory>* out);
+  ZVirtualMemory alloc(size_t size, uint32_t numa_id, bool force_low_address);
+  void free(const ZVirtualMemory& vmem);
+  void free(const ZVirtualMemory& vmem, uint32_t numa_id);
 
-  uint32_t get_numa_id(const ZMemoryRange& vmem) const;
+  uint32_t get_numa_id(const ZVirtualMemory& vmem) const;
   zoffset lowest_available_address(uint32_t numa_id) const;
 };
 

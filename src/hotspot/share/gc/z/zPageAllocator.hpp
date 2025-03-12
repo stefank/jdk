@@ -124,24 +124,24 @@ private:
   bool                        _initialized;
 
   ZCacheState& state_from_numa_id(uint32_t numa_id);
-  ZCacheState& state_from_vmem(const ZMemoryRange& vmem);
+  ZCacheState& state_from_vmem(const ZVirtualMemory& vmem);
 
-  size_t count_segments_physical(const ZMemoryRange& vmem);
-  void sort_segments_physical(const ZMemoryRange& vmem);
+  size_t count_segments_physical(const ZVirtualMemory& vmem);
+  void sort_segments_physical(const ZVirtualMemory& vmem);
 
-  void alloc_physical(const ZMemoryRange& vmem, uint32_t numa_id);
-  void free_physical(const ZMemoryRange& vmem, uint32_t numa_id);
-  size_t commit_physical(const ZMemoryRange& vmem, uint32_t numa_id);
-  void uncommit_physical(const ZMemoryRange& vmem);
+  void alloc_physical(const ZVirtualMemory& vmem, uint32_t numa_id);
+  void free_physical(const ZVirtualMemory& vmem, uint32_t numa_id);
+  size_t commit_physical(const ZVirtualMemory& vmem, uint32_t numa_id);
+  void uncommit_physical(const ZVirtualMemory& vmem);
 
-  void map_virtual_to_physical(const ZMemoryRange& vmem, uint32_t numa_id);
+  void map_virtual_to_physical(const ZVirtualMemory& vmem, uint32_t numa_id);
 
-  void unmap_virtual(const ZMemoryRange& vmem);
-  void free_virtual(const ZMemoryRange& vmem);
-  void free_virtual(const ZMemoryRange& vmem, uint32_t numa_id);
+  void unmap_virtual(const ZVirtualMemory& vmem);
+  void free_virtual(const ZVirtualMemory& vmem);
+  void free_virtual(const ZVirtualMemory& vmem, uint32_t numa_id);
 
-  void remap_and_defragment_mapping(const ZMemoryRange& mapping, ZArray<ZMemoryRange>* entries);
-  void prepare_memory_for_free(ZPage* page, ZArray<ZMemoryRange>* entries, bool allow_defragment);
+  void remap_and_defragment_mapping(const ZVirtualMemory& mapping, ZArray<ZVirtualMemory>* entries);
+  void prepare_memory_for_free(ZPage* page, ZArray<ZVirtualMemory>* entries, bool allow_defragment);
 
   bool alloc_page_stall(ZPageAllocation* allocation);
 
@@ -154,20 +154,20 @@ private:
   bool is_alloc_satisfied(ZPageAllocation* allocation) const;
   bool is_alloc_satisfied(ZMemoryAllocation* allocation) const;
 
-  void copy_physical_segments(zoffset to, const ZMemoryRange& from);
-  void copy_claimed_physical_multi_numa(ZPageAllocation* allocation, const ZMemoryRange& vmem);
+  void copy_physical_segments(zoffset to, const ZVirtualMemory& from);
+  void copy_claimed_physical_multi_numa(ZPageAllocation* allocation, const ZVirtualMemory& vmem);
 
   bool claim_virtual_memory_multi_numa(ZPageAllocation* allocation);
   bool claim_virtual_memory(ZPageAllocation* allocation);
   bool claim_virtual_memory(ZMemoryAllocation* allocation);
 
-  void allocate_remaining_physical_multi_numa(ZPageAllocation* allocation, const ZMemoryRange& vmem);
-  void allocate_remaining_physical(ZPageAllocation* allocation, const ZMemoryRange& vmem);
-  void allocate_remaining_physical(ZMemoryAllocation* allocation, const ZMemoryRange& vmem);
+  void allocate_remaining_physical_multi_numa(ZPageAllocation* allocation, const ZVirtualMemory& vmem);
+  void allocate_remaining_physical(ZPageAllocation* allocation, const ZVirtualMemory& vmem);
+  void allocate_remaining_physical(ZMemoryAllocation* allocation, const ZVirtualMemory& vmem);
 
-  bool commit_and_map_memory_multi_numa(ZPageAllocation* allocation, const ZMemoryRange& vmem);
-  bool commit_and_map_memory(ZPageAllocation* allocation, const ZMemoryRange& vmem);
-  bool commit_and_map_memory(ZMemoryAllocation* allocation, const ZMemoryRange& vmem);
+  bool commit_and_map_memory_multi_numa(ZPageAllocation* allocation, const ZVirtualMemory& vmem);
+  bool commit_and_map_memory(ZPageAllocation* allocation, const ZVirtualMemory& vmem);
+  bool commit_and_map_memory(ZMemoryAllocation* allocation, const ZVirtualMemory& vmem);
 
   ZPage* alloc_page_inner(ZPageAllocation* allocation);
 

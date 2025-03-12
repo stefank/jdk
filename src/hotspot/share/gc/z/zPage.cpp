@@ -28,10 +28,10 @@
 #include "utilities/align.hpp"
 #include "utilities/debug.hpp"
 
-ZPage::ZPage(ZPageType type, const ZMemoryRange& vmem)
+ZPage::ZPage(ZPageType type, const ZVirtualMemory& vmem)
   : ZPage(type, vmem, nullptr) {}
 
-ZPage::ZPage(ZPageType type, const ZMemoryRange& vmem, MultiNUMATracker* multi_numa_tracker)
+ZPage::ZPage(ZPageType type, const ZVirtualMemory& vmem, MultiNUMATracker* multi_numa_tracker)
   : _type(type),
     _generation_id(ZGenerationId::young),
     _age(ZPageAge::eden),

@@ -57,13 +57,13 @@ private:
 
   static size_t get_size_class(size_t index);
 
-  void tree_insert(const Tree::FindCursor& cursor, const ZMemoryRange& vmem);
-  void tree_remove(const Tree::FindCursor& cursor, const ZMemoryRange& vmem);
-  void tree_replace(const Tree::FindCursor& cursor, const ZMemoryRange& vmem);
-  void tree_update(ZMappedCacheEntry* entry, const ZMemoryRange& vmem);
+  void tree_insert(const Tree::FindCursor& cursor, const ZVirtualMemory& vmem);
+  void tree_remove(const Tree::FindCursor& cursor, const ZVirtualMemory& vmem);
+  void tree_replace(const Tree::FindCursor& cursor, const ZVirtualMemory& vmem);
+  void tree_update(ZMappedCacheEntry* entry, const ZVirtualMemory& vmem);
 
   template <typename SelectFunction>
-  ZMemoryRange remove_mapping(ZMappedCacheEntry* const entry, size_t min_size, SelectFunction select);
+  ZVirtualMemory remove_mapping(ZMappedCacheEntry* const entry, size_t min_size, SelectFunction select);
 
   template <typename SelectFunction, typename ConsumeFunction>
   void scan_remove_mapping(size_t min_size, SelectFunction select, ConsumeFunction consume);
@@ -74,13 +74,13 @@ private:
 public:
   ZMappedCache();
 
-  void insert(const ZMemoryRange& vmem);
+  void insert(const ZVirtualMemory& vmem);
 
-  ZMemoryRange remove_contiguous(size_t size);
-  size_t remove_discontiguous(ZArray<ZMemoryRange>* mappings, size_t size);
+  ZVirtualMemory remove_contiguous(size_t size);
+  size_t remove_discontiguous(ZArray<ZVirtualMemory>* mappings, size_t size);
 
   size_t reset_min();
-  size_t remove_from_min(ZArray<ZMemoryRange>* mappings, size_t max_size);
+  size_t remove_from_min(ZArray<ZVirtualMemory>* mappings, size_t max_size);
 
   size_t size() const;
 };

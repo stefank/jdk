@@ -43,10 +43,10 @@ public:
   }
 };
 
-TEST(ZMemoryRange, is_null) {
+TEST(ZVirtualMemory, is_null) {
   ZAddressOffsetMaxSetter setter;
 
-  ZMemoryRange mem;
+  ZVirtualMemory mem;
   EXPECT_TRUE(mem.is_null());
 }
 
@@ -54,7 +54,7 @@ TEST(ZMemoryRange, accessors) {
   ZAddressOffsetMaxSetter setter;
 
   {
-    ZMemoryRange mem(zoffset(0), ZGranuleSize);
+    ZVirtualMemory mem(zoffset(0), ZGranuleSize);
 
     EXPECT_EQ(mem.start(), zoffset(0));
     EXPECT_EQ(mem.end(), zoffset_end(ZGranuleSize));
@@ -63,7 +63,7 @@ TEST(ZMemoryRange, accessors) {
   }
 
   {
-    ZMemoryRange mem(zoffset(ZGranuleSize), ZGranuleSize);
+    ZVirtualMemory mem(zoffset(ZGranuleSize), ZGranuleSize);
 
     EXPECT_EQ(mem.start(), zoffset(ZGranuleSize));
     EXPECT_EQ(mem.end(), zoffset_end(ZGranuleSize + ZGranuleSize));
@@ -73,7 +73,7 @@ TEST(ZMemoryRange, accessors) {
 
   {
     // Max area - check end boundary
-    ZMemoryRange mem(zoffset(0), ZAddressOffsetMax);
+    ZVirtualMemory mem(zoffset(0), ZAddressOffsetMax);
 
     EXPECT_EQ(mem.start(), zoffset(0));
     EXPECT_EQ(mem.end(), zoffset_end(ZAddressOffsetMax));
@@ -85,7 +85,7 @@ TEST(ZMemoryRange, accessors) {
 TEST(ZMemoryRange, resize) {
   ZAddressOffsetMaxSetter setter;
 
-  ZMemoryRange mem(zoffset(ZGranuleSize * 2), ZGranuleSize * 2) ;
+  ZVirtualMemory mem(zoffset(ZGranuleSize * 2), ZGranuleSize * 2) ;
 
   mem.shrink_from_front(ZGranuleSize);
   EXPECT_EQ(mem.start(),   zoffset(ZGranuleSize * 3));
@@ -115,51 +115,51 @@ TEST(ZMemoryRange, resize) {
 TEST(ZMemoryRange, split_front) {
   ZAddressOffsetMaxSetter setter;
 
-  ZMemoryRange mem(zoffset(0), ZGranuleSize * 10);
+  ZVirtualMemory mem(zoffset(0), ZGranuleSize * 10);
 
-  ZMemoryRange mem0 = mem.split_from_front(0);
+  ZVirtualMemory mem0 = mem.split_from_front(0);
   EXPECT_EQ(mem0.size(), 0u);
   EXPECT_EQ(mem.size(), ZGranuleSize * 10);
 
-  ZMemoryRange mem1 = mem.split_from_front(ZGranuleSize * 5);
+  ZVirtualMemory mem1 = mem.split_from_front(ZGranuleSize * 5);
   EXPECT_EQ(mem1.size(), ZGranuleSize * 5);
   EXPECT_EQ(mem.size(), ZGranuleSize * 5);
 
-  ZMemoryRange mem2 = mem.split_from_front(ZGranuleSize * 5);
+  ZVirtualMemory mem2 = mem.split_from_front(ZGranuleSize * 5);
   EXPECT_EQ(mem2.size(), ZGranuleSize * 5);
   EXPECT_EQ(mem.size(), 0u);
 
-  ZMemoryRange mem3 = mem.split_from_front(0);
+  ZVirtualMemory mem3 = mem.split_from_front(0);
   EXPECT_EQ(mem3.size(), 0u);
 }
 
 TEST(ZMemoryRange, split_back) {
   ZAddressOffsetMaxSetter setter;
 
-  ZMemoryRange mem(zoffset(0), ZGranuleSize * 10);
+  ZVirtualMemory mem(zoffset(0), ZGranuleSize * 10);
 
-  ZMemoryRange mem0 = mem.split_from_back(0);
+  ZVirtualMemory mem0 = mem.split_from_back(0);
   EXPECT_EQ(mem0.size(), 0u);
   EXPECT_EQ(mem.size(), ZGranuleSize * 10);
 
-  ZMemoryRange mem1 = mem.split_from_back(ZGranuleSize * 5);
+  ZVirtualMemory mem1 = mem.split_from_back(ZGranuleSize * 5);
   EXPECT_EQ(mem1.size(), ZGranuleSize * 5);
   EXPECT_EQ(mem.size(), ZGranuleSize * 5);
 
-  ZMemoryRange mem2 = mem.split_from_back(ZGranuleSize * 5);
+  ZVirtualMemory mem2 = mem.split_from_back(ZGranuleSize * 5);
   EXPECT_EQ(mem2.size(), ZGranuleSize * 5);
   EXPECT_EQ(mem.size(), 0u);
 
-  ZMemoryRange mem3 = mem.split_from_back(0);
+  ZVirtualMemory mem3 = mem.split_from_back(0);
   EXPECT_EQ(mem3.size(), 0u);
 }
 
 TEST(ZMemoryRange, adjacent_to) {
   ZAddressOffsetMaxSetter setter;
 
-  ZMemoryRange mem0(zoffset(0), ZGranuleSize);
-  ZMemoryRange mem1(zoffset(ZGranuleSize), ZGranuleSize);
-  ZMemoryRange mem2(zoffset(ZGranuleSize * 2), ZGranuleSize);
+  ZVirtualMemory mem0(zoffset(0), ZGranuleSize);
+  ZVirtualMemory mem1(zoffset(ZGranuleSize), ZGranuleSize);
+  ZVirtualMemory mem2(zoffset(ZGranuleSize * 2), ZGranuleSize);
 
   EXPECT_TRUE(mem0.adjacent_to(mem1));
   EXPECT_TRUE(mem1.adjacent_to(mem0));

@@ -46,7 +46,7 @@ private:
   ZPageAge             _age;
   uint32_t             _seqnum;
   uint32_t             _seqnum_other;
-  ZMemoryRange         _virtual;
+  ZVirtualMemory       _virtual;
   volatile zoffset_end _top;
   ZLiveMap             _livemap;
   ZRememberedSet       _remembered_set;
@@ -67,8 +67,8 @@ private:
   void reset_seqnum();
 
 public:
-  ZPage(ZPageType type, const ZMemoryRange& vmem);
-  ZPage(ZPageType type, const ZMemoryRange& vmem, MultiNUMATracker* multi_numa_tracker);
+  ZPage(ZPageType type, const ZVirtualMemory& vmem);
+  ZPage(ZPageType type, const ZVirtualMemory& vmem, MultiNUMATracker* multi_numa_tracker);
 
   ZPage* clone_limited() const;
 
@@ -92,7 +92,7 @@ public:
   size_t remaining() const;
   size_t used() const;
 
-  const ZMemoryRange& virtual_memory() const;
+  const ZVirtualMemory& virtual_memory() const;
   bool is_multi_numa() const;
   MultiNUMATracker* multi_numa_tracker() const;
   void set_multi_numa_tracker(MultiNUMATracker* tracker);

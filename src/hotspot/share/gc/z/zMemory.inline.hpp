@@ -103,20 +103,20 @@ inline bool ZRange<Start, End>::adjacent_to(const ZRange<Start, End>& other) con
   return end() == other.start() || other.end() == start();
 }
 
-inline ZMemoryRange::ZMemoryRange()
+inline ZVirtualMemory::ZVirtualMemory()
   : ZRange() {}
 
-inline ZMemoryRange::ZMemoryRange(zoffset start, size_t size)
+inline ZVirtualMemory::ZVirtualMemory(zoffset start, size_t size)
   : ZRange(start, size) {
-  // ZMemoryRange is only used for ZGranuleSize multiple ranges
+  // ZVirtualMemory is only used for ZGranuleSize multiple ranges
   assert(is_aligned(untype(start), ZGranuleSize), "must be multiple of ZGranuleSize");
   assert(is_aligned(size, ZGranuleSize), "must be multiple of ZGranuleSize");
 }
 
-inline ZMemoryRange::ZMemoryRange(const ZRange<zoffset, zoffset_end>& range)
-  : ZMemoryRange(range.start(), range.size()) {}
+inline ZVirtualMemory::ZVirtualMemory(const ZRange<zoffset, zoffset_end>& range)
+  : ZVirtualMemory(range.start(), range.size()) {}
 
-inline size_t ZMemoryRange::size_in_granules() const {
+inline size_t ZVirtualMemory::size_in_granules() const {
   return size() >> ZGranuleSizeShift;
 }
 
