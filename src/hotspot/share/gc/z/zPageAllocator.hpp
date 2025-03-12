@@ -127,6 +127,9 @@ public:
   size_t uncommit_physical(const ZVirtualMemory& vmem);
 
   void map_virtual_to_physical(const ZVirtualMemory& vmem);
+
+  void unmap_virtual(const ZVirtualMemory& vmem);
+  void free_virtual(const ZVirtualMemory& vmem);
 };
 
 class ZPageAllocator {
@@ -153,10 +156,6 @@ private:
 
   size_t count_segments_physical(const ZVirtualMemory& vmem);
   void sort_segments_physical(const ZVirtualMemory& vmem);
-
-  void unmap_virtual(const ZVirtualMemory& vmem);
-  void free_virtual(const ZVirtualMemory& vmem);
-  void free_virtual(const ZVirtualMemory& vmem, uint32_t numa_id);
 
   void remap_and_defragment(const ZVirtualMemory& vmem, ZArray<ZVirtualMemory>* entries);
   void prepare_memory_for_free(ZPage* page, ZArray<ZVirtualMemory>* entries, bool allow_defragment);
