@@ -268,6 +268,10 @@ public:
   ZArray<ZVirtualMemory>* claimed_vmems() {
     return _claimed_vmems;
   }
+
+  const ZArray<ZVirtualMemory>* claimed_vmems() const {
+    return _claimed_vmems;
+  }
 };
 
 class ZPageAllocation : public StackObj {
@@ -328,6 +332,10 @@ public:
   }
 
   ZMemoryAllocation* memory_allocation() {
+    return &_allocation;
+  }
+
+  const ZMemoryAllocation* memory_allocation() const {
     return &_allocation;
   }
 
@@ -474,6 +482,12 @@ void ZCacheState::verify_virtual_memory_association(const ZArray<ZVirtualMemory>
   for (ZVirtualMemory vmem; iter.next(&vmem);) {
     verify_virtual_memory_association(vmem);
   }
+}
+
+void ZCacheState::verify_memory_allocation_association(const ZMemoryAllocation* allocation) const {
+  const uint32_t allocation_numa_id = allocation->numa_id();
+  assert(_numa_id == allocation_numa_id, "Memory allocation must be associated with the current state "
+                                   "expected: %u, actual: %u", _numa_id, allocation_numa_id);
 }
 
 ZCacheState::ZCacheState(uint32_t numa_id, ZPageAllocator* page_allocator)
@@ -935,6 +949,8 @@ bool ZCacheState::prime(ZWorkers* workers, size_t to_prime) {
 }
 
 void ZCacheState::harvest_claimed_physical(ZMemoryAllocation* allocation) {
+  verify_memory_allocation_association(allocation);
+
   const int num_vmems_harvested = allocation->claimed_vmems()->length();
 
   const int num_granules = (int)(allocation->harvested() >> ZGranuleSizeShift);
@@ -960,6 +976,58 @@ void ZCacheState::harvest_claimed_physical(ZMemoryAllocation* allocation) {
   if (harvested > 0) {
     log_debug(gc, heap)("Mapped Cache Harvest: %zuM from %d ranges", harvested / M, num_vmems_harvested);
   }
+}
+
+static bool is_alloc_satisfied(const ZMemoryAllocation* allocation) {
+  // The allocation is immediately satisfied if the list of vmems contains
+  // exactly one vmem and is of the correct size.
+
+  if (allocation->claimed_vmems()->length() != 1) {
+    // List is empty or contains more than one vmem
+    return false;
+  }
+
+  const ZVirtualMemory& vmem = allocation->claimed_vmems()->first();
+  if (vmem.size() != allocation->size()) {
+    // Not correct size
+    return false;
+  }
+
+  // Allocation immediately satisfied
+  return true;
+}
+
+bool ZCacheState::claim_virtual_memory(ZMemoryAllocation* allocation) {
+  verify_memory_allocation_association(allocation);
+
+  if (allocation->harvested() > 0) {
+    // If we have harvested anything, we claim virtual memory from the harvested
+    // vmems, and perhaps also allocate more to match the allocation request.
+    harvest_claimed_physical(allocation);
+  } else {
+    // If we have not harvested anything, we only increased capacity. Allocate
+    // new virtual memory from the manager.
+    const ZVirtualMemory vmem = alloc_virtual(allocation->size(), true /* force_low_address */);
+    if (!vmem.is_null()) {
+      allocation->claimed_vmems()->append(vmem);
+    }
+  }
+
+  // If the virtual memory covers the allocation request, we're done.
+  if (is_alloc_satisfied(allocation)) {
+    return true;
+  }
+
+  // Before returning harvested memory to the cache it must be mapped.
+  if (allocation->harvested() > 0) {
+    ZArrayIterator<ZVirtualMemory> iter(allocation->claimed_vmems());
+    for (ZVirtualMemory vmem; iter.next(&vmem);) {
+      map_virtual_to_physical(vmem);
+    }
+  }
+
+  // Failed to allocate enough to virtual memory from the manager.
+  return false;
 }
 
 class MultiNUMATracker : CHeapObj<mtGC> {
@@ -1281,6 +1349,10 @@ void ZPageAllocator::reset_statistics(ZGenerationId id) {
   }
 }
 
+const ZCacheState& ZPageAllocator::state_from_numa_id(uint32_t numa_id) const {
+  return _states.get(numa_id);
+}
+
 ZCacheState& ZPageAllocator::state_from_numa_id(uint32_t numa_id) {
   return _states.get(numa_id);
 }
@@ -1512,27 +1584,8 @@ bool ZPageAllocator::claim_physical_or_stall(ZPageAllocation* allocation) {
   return alloc_page_stall(allocation);
 }
 
-bool ZPageAllocator::is_alloc_satisfied(ZPageAllocation* allocation) const {
-  return is_alloc_satisfied(allocation->memory_allocation());
-}
-
-bool ZPageAllocator::is_alloc_satisfied(ZMemoryAllocation* allocation) const {
-  // The allocation is immediately satisfied if the list of vmems contains
-  // exactly one vmem and is of the correct size.
-
-  if (allocation->claimed_vmems()->length() != 1) {
-    // List is empty or contains more than one vmem
-    return false;
-  }
-
-  const ZVirtualMemory& vmem = allocation->claimed_vmems()->first();
-  if (vmem.size() != allocation->size()) {
-    // Not correct size
-    return false;
-  }
-
-  // Allocation immediately satisfied
-  return true;
+bool ZPageAllocator::is_alloc_satisfied(const ZPageAllocation* allocation) const {
+  return ::is_alloc_satisfied(allocation->memory_allocation());
 }
 
 void ZPageAllocator::copy_physical_segments(zoffset to, const ZVirtualMemory& from) {
@@ -1586,6 +1639,9 @@ bool ZPageAllocator::claim_virtual_memory_multi_numa(ZPageAllocation* allocation
       // Found an address range
       memory_allocation->claimed_vmems()->append(vmem);
 
+      // Associate the final virtual memory allocation with its virtual node
+      memory_allocation->set_numa_id(state->numa_id());
+
       // Copy claimed multi numa vmems, we leave the old vmems mapped until after
       // we have committed. In case committing fails we can simply reinsert the
       // inital vmems.
@@ -1602,40 +1658,11 @@ bool ZPageAllocator::claim_virtual_memory(ZPageAllocation* allocation) {
     return claim_virtual_memory_multi_numa(allocation);
   }
 
-  return claim_virtual_memory(allocation->memory_allocation());
-}
+  ZMemoryAllocation* const memory_allocation = allocation->memory_allocation();
+  const uint32_t numa_id = memory_allocation->numa_id();
+  ZCacheState& state = state_from_numa_id(numa_id);
 
-bool ZPageAllocator::claim_virtual_memory(ZMemoryAllocation* allocation) {
-  ZCacheState& state = state_from_numa_id(allocation->numa_id());
-
-  if (allocation->harvested() > 0) {
-    // If we have harvested anything, we claim virtual memory from the harvested
-    // vmems, and perhaps also allocate more to match the allocation request.
-    state.harvest_claimed_physical(allocation);
-  } else {
-    // If we have not harvested anything, we only increased capacity. Allocate
-    // new virtual memory from the manager.
-    const ZVirtualMemory vmem = state.alloc_virtual(allocation->size(), true /* force_low_address */);
-    if (!vmem.is_null()) {
-      allocation->claimed_vmems()->append(vmem);
-    }
-  }
-
-  // If the virtual memory covers the allocation request, we're done.
-  if (is_alloc_satisfied(allocation)) {
-    return true;
-  }
-
-  // Before returning harvested memory to the cache it must be mapped.
-  if (allocation->harvested() > 0) {
-    ZArrayIterator<ZVirtualMemory> iter(allocation->claimed_vmems());
-    for (ZVirtualMemory vmem; iter.next(&vmem);) {
-      state.map_virtual_to_physical(vmem);
-    }
-  }
-
-  // Failed to allocate enough to virtual memory from the manager.
-  return false;
+  return state.claim_virtual_memory(memory_allocation);
 }
 
 void ZPageAllocator::allocate_remaining_physical_multi_numa(ZPageAllocation* allocation, const ZVirtualMemory& vmem) {

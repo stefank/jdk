@@ -89,6 +89,7 @@ private:
 
   void verify_virtual_memory_association(const ZVirtualMemory& vmem) const;
   void verify_virtual_memory_association(const ZArray<ZVirtualMemory>* vmems) const;
+  void verify_memory_allocation_association(const ZMemoryAllocation* allocation) const;
 
 public:
   ZCacheState(uint32_t numa_id, ZPageAllocator* page_allocator);
@@ -140,6 +141,7 @@ public:
   bool prime(ZWorkers* workers, size_t size);
 
   void harvest_claimed_physical(ZMemoryAllocation* allocation);
+  bool claim_virtual_memory(ZMemoryAllocation* allocation);
 };
 
 class ZPageAllocator {
@@ -161,6 +163,7 @@ private:
   mutable ZSafeDelete<ZPage>  _safe_destroy;
   bool                        _initialized;
 
+  const ZCacheState& state_from_numa_id(uint32_t numa_id) const;
   ZCacheState& state_from_numa_id(uint32_t numa_id);
   ZCacheState& state_from_vmem(const ZVirtualMemory& vmem);
 
@@ -176,15 +179,13 @@ private:
   bool claim_physical_round_robin(ZPageAllocation* allocation);
   bool claim_physical_or_stall(ZPageAllocation* allocation);
 
-  bool is_alloc_satisfied(ZPageAllocation* allocation) const;
-  bool is_alloc_satisfied(ZMemoryAllocation* allocation) const;
+  bool is_alloc_satisfied(const ZPageAllocation* allocation) const;
 
   void copy_physical_segments(zoffset to, const ZVirtualMemory& from);
   void copy_claimed_physical_multi_numa(ZPageAllocation* allocation, const ZVirtualMemory& vmem);
 
   bool claim_virtual_memory_multi_numa(ZPageAllocation* allocation);
   bool claim_virtual_memory(ZPageAllocation* allocation);
-  bool claim_virtual_memory(ZMemoryAllocation* allocation);
 
   void allocate_remaining_physical_multi_numa(ZPageAllocation* allocation, const ZVirtualMemory& vmem);
   void allocate_remaining_physical(ZPageAllocation* allocation, const ZVirtualMemory& vmem);
