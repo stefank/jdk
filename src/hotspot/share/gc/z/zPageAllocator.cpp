@@ -1127,7 +1127,7 @@ bool ZPageAllocator::claim_physical_multi_numa(ZPageAllocation* allocation) {
   size_t remaining = size;
   const size_t split_size = align_up(size / numa_nodes, ZGranuleSize);
 
-  // Flip allocation to multi numa allocation
+  // Flip allocation to multi NUMA allocation
   allocation->set_multi_numa_allocation();
 
   // Loops over every node and allocates get_alloc_size per node
@@ -1138,31 +1138,34 @@ bool ZPageAllocator::claim_physical_multi_numa(ZPageAllocation* allocation) {
       size_t alloc_size = get_alloc_size(state);
 
       // Skip over empty allocations
-      if (alloc_size != 0) {
-        ZMemoryAllocation* partial_allocation = allocation->get_next_multi_numa_allocation(alloc_size);
+      if (alloc_size == 0) {
+        continue;
+      }
 
-        if (!state.claim_physical(partial_allocation)) {
-          // Claiming failed
-          allocation->remove_last_multi_numa_allocation();
-          return false;
-        }
+      ZMemoryAllocation* partial_allocation = allocation->get_next_multi_numa_allocation(alloc_size);
 
-        // Record which state the allocation was made on
-        partial_allocation->set_numa_id(current_node);
+      if (!state.claim_physical(partial_allocation)) {
+        // Claiming failed
+        allocation->remove_last_multi_numa_allocation();
+        return false;
+      }
 
-        // Update remaining
-        remaining -= alloc_size;
+      // Record which state the allocation was made on
+      partial_allocation->set_numa_id(current_node);
 
-        if (remaining == 0) {
-          // All memory claimed
-          return true;
-        }
+      // Update remaining
+      remaining -= alloc_size;
+
+      if (remaining == 0) {
+        // All memory claimed
+        return true;
       }
     }
+
     return true;
   };
 
-  // Try to claim upto split_size on each node
+  // Try to claim up to split_size on each node
   const auto get_even_alloc_size = [&](ZCacheState& state) {
     return MIN3(split_size, state.available_capacity(), remaining);
   };
@@ -1191,6 +1194,7 @@ bool ZPageAllocator::claim_physical_multi_numa(ZPageAllocation* allocation) {
 bool ZPageAllocator::claim_physical_round_robin(ZPageAllocation* allocation) {
   const uint32_t start_node = allocation->initiating_numa_id();
   const uint32_t numa_nodes = ZNUMA::count();
+
   size_t total_available = 0;
   uint32_t current_node = start_node;
 
