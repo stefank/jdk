@@ -142,6 +142,7 @@ public:
 
   void harvest_claimed_physical(ZMemoryAllocation* allocation);
   bool claim_virtual_memory(ZMemoryAllocation* allocation);
+  bool commit_and_map_memory(ZMemoryAllocation* allocation, const ZVirtualMemory& vmem);
 };
 
 class ZPageAllocator {
@@ -193,7 +194,6 @@ private:
 
   bool commit_and_map_memory_multi_numa(ZPageAllocation* allocation, const ZVirtualMemory& vmem);
   bool commit_and_map_memory(ZPageAllocation* allocation, const ZVirtualMemory& vmem);
-  bool commit_and_map_memory(ZMemoryAllocation* allocation, const ZVirtualMemory& vmem);
 
   ZPage* alloc_page_inner(ZPageAllocation* allocation);
 

@@ -1030,6 +1030,50 @@ bool ZCacheState::claim_virtual_memory(ZMemoryAllocation* allocation) {
   return false;
 }
 
+bool ZCacheState::commit_and_map_memory(ZMemoryAllocation* allocation, const ZVirtualMemory& vmem) {
+  size_t const committed_size = allocation->harvested();
+  ZVirtualMemory to_be_committed_vmem = vmem;
+  ZVirtualMemory committed_vmem = to_be_committed_vmem.split_from_front(committed_size);
+
+  // Try to commit all physical memory, commit_physical frees both the virtual
+  // and physical parts that correspond to the memory that failed to be committed.
+  const size_t committed = commit_physical(to_be_committed_vmem);
+
+  // Keep track of the committed amount
+  allocation->set_committed(committed);
+
+  if (committed != to_be_committed_vmem.size()) {
+    // Free the uncommitted memory and update vmem with the committed memory
+    ZVirtualMemory not_commited_vmem = to_be_committed_vmem.split_from_back(committed);
+    free_physical(not_commited_vmem);
+    free_virtual(not_commited_vmem);
+    allocation->set_commit_failed();
+  }
+  committed_vmem.grow_from_back(committed);
+
+  // We have not managed to get any committed memory at all, meaning this allocation
+  // failed to commit memory on capacity increase alone and nothing harvested.
+  if (committed_vmem.size() == 0)  {
+    return false;
+  }
+
+  _page_allocator->sort_segments_physical(committed_vmem);
+  map_virtual_to_physical(committed_vmem);
+  allocation->claimed_vmems()->append(committed_vmem);
+
+  check_numa_mismatch(vmem, allocation->numa_id());
+
+  if (committed_vmem.size() != vmem.size()) {
+    log_trace(gc, page)("Split memory [" PTR_FORMAT ", " PTR_FORMAT ", " PTR_FORMAT "]",
+        untype(committed_vmem.start()),
+        untype(committed_vmem.end()),
+        untype(vmem.end()));
+    return false;
+  }
+
+  return true;
+}
+
 class MultiNUMATracker : CHeapObj<mtGC> {
 private:
   struct Element {
@@ -1841,54 +1885,13 @@ bool ZPageAllocator::commit_and_map_memory(ZPageAllocation* allocation, const ZV
 
   if (allocation->is_multi_numa_allocation()) {
     return commit_and_map_memory_multi_numa(allocation, vmem);
-  } else {
-    return commit_and_map_memory(allocation->memory_allocation(), vmem);
-  }
-}
-
-bool ZPageAllocator::commit_and_map_memory(ZMemoryAllocation* allocation, const ZVirtualMemory& vmem) {
-  ZCacheState& state = state_from_numa_id(allocation->numa_id());
-  size_t const committed_size = allocation->harvested();
-  ZVirtualMemory to_be_committed_vmem = vmem;
-  ZVirtualMemory committed_vmem = to_be_committed_vmem.split_from_front(committed_size);
-
-  // Try to commit all physical memory, commit_physical frees both the virtual
-  // and physical parts that correspond to the memory that failed to be committed.
-  const size_t committed = state.commit_physical(to_be_committed_vmem);
-
-  // Keep track of the committed amount
-  allocation->set_committed(committed);
-
-  if (committed != to_be_committed_vmem.size()) {
-    // Free the uncommitted memory and update vmem with the committed memory
-    ZVirtualMemory not_commited_vmem = to_be_committed_vmem.split_from_back(committed);
-    state.free_physical(not_commited_vmem);
-    state.free_virtual(not_commited_vmem);
-    allocation->set_commit_failed();
-  }
-  committed_vmem.grow_from_back(committed);
-
-  // We have not managed to get any committed memory at all, meaning this allocation
-  // failed to commit memory on capacity increase alone and nothing harvested.
-  if (committed_vmem.size() == 0)  {
-    return false;
   }
 
-  sort_segments_physical(committed_vmem);
-  state.map_virtual_to_physical(committed_vmem);
-  allocation->claimed_vmems()->append(committed_vmem);
+  ZMemoryAllocation* const memory_allocation = allocation->memory_allocation();
+  const uint32_t numa_id = memory_allocation->numa_id();
+  ZCacheState& state = state_from_numa_id(numa_id);
 
-  check_numa_mismatch(vmem, allocation->numa_id());
-
-  if (committed_vmem.size() != vmem.size()) {
-    log_trace(gc, page)("Split memory [" PTR_FORMAT ", " PTR_FORMAT ", " PTR_FORMAT "]",
-        untype(committed_vmem.start()),
-        untype(committed_vmem.end()),
-        untype(vmem.end()));
-    return false;
-  }
-
-  return true;
+  return state.commit_and_map_memory(memory_allocation, vmem);
 }
 
 ZPage* ZPageAllocator::alloc_page_inner(ZPageAllocation* allocation) {
