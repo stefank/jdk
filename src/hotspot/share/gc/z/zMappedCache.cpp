@@ -231,7 +231,7 @@ void ZMappedCache::tree_update(ZMappedCacheEntry* entry, const ZVirtualMemory& v
 }
 
 template <typename SelectFunction>
-ZVirtualMemory ZMappedCache::remove_mapping(ZMappedCacheEntry* const entry, size_t min_size, SelectFunction select) {
+ZVirtualMemory ZMappedCache::remove_vmem(ZMappedCacheEntry* const entry, size_t min_size, SelectFunction select) {
   ZVirtualMemory vmem = entry->vmem();
   const size_t size = vmem.size();
 
@@ -270,7 +270,7 @@ ZVirtualMemory ZMappedCache::remove_mapping(ZMappedCacheEntry* const entry, size
 }
 
 template <typename SelectFunction, typename ConsumeFunction>
-void ZMappedCache::scan_remove_mapping(size_t min_size, SelectFunction select, ConsumeFunction consume) {
+void ZMappedCache::scan_remove_vmem(size_t min_size, SelectFunction select, ConsumeFunction consume) {
   // TODO: Maybe start on best fit size class first, and only then go from large to small.
 
   // Scan size classes
@@ -282,9 +282,9 @@ void ZMappedCache::scan_remove_mapping(size_t min_size, SelectFunction select, C
     ZListIterator<ZSizeClassListNode> iter(&_size_class_lists[index]);
     for (ZSizeClassListNode* list_node; iter.next(&list_node);) {
       ZMappedCacheEntry* const entry = ZMappedCacheEntry::cast_to_entry(list_node, index);
-      const ZVirtualMemory vmem = remove_mapping(entry, min_size, select);
+      const ZVirtualMemory vmem = remove_vmem(entry, min_size, select);
       if (!vmem.is_null() && consume(vmem)) {
-        // Found a mapping and consume is satisfied.
+        // Found a vmem and consume is satisfied.
         return;
       }
     }
@@ -298,18 +298,18 @@ void ZMappedCache::scan_remove_mapping(size_t min_size, SelectFunction select, C
   // Scan whole tree
   for (ZIntrusiveRBTreeNode* node = _tree.first(); node != nullptr; node = node->next()) {
     ZMappedCacheEntry* const entry = ZMappedCacheEntry::cast_to_entry(node);
-    const ZVirtualMemory vmem = remove_mapping(entry, min_size, select);
+    const ZVirtualMemory vmem = remove_vmem(entry, min_size, select);
     if (!vmem.is_null() && consume(vmem)) {
-      // Found a mapping and consume is satisfied.
+      // Found a vmem and consume is satisfied.
       return;
     }
   }
 }
 
 template <typename SelectFunction, typename ConsumeFunction>
-void ZMappedCache::scan_remove_mapping(SelectFunction select, ConsumeFunction consume) {
+void ZMappedCache::scan_remove_vmem(SelectFunction select, ConsumeFunction consume) {
   // Scan without a min_size
-  scan_remove_mapping(0, select, consume);
+  scan_remove_vmem(0, select, consume);
 }
 
 ZMappedCache::ZMappedCache()
@@ -385,38 +385,38 @@ ZVirtualMemory ZMappedCache::remove_contiguous(size_t size) {
 
   ZVirtualMemory result;
 
-  const auto select_mapping = [&](size_t) {
+  const auto select_vmem = [&](size_t) {
     // We always select the size
     return size;
   };
 
-  const auto consume_mapping = [&](ZVirtualMemory vmem) {
+  const auto consume_vmem = [&](ZVirtualMemory vmem) {
     assert(result.is_null(), "only consume once");
     assert(vmem.size() == size, "wrong size consumed");
     result = vmem;
 
-    // Only require one mapping
+    // Only require one vmem
     return true;
   };
 
-  scan_remove_mapping(size, select_mapping, consume_mapping);
+  scan_remove_vmem(size, select_vmem, consume_vmem);
 
   return result;
 }
 
-size_t ZMappedCache::remove_discontiguous(ZArray<ZVirtualMemory>* mappings, size_t size) {
+size_t ZMappedCache::remove_discontiguous(ZArray<ZVirtualMemory>* vmems, size_t size) {
   precond(size > 0);
   precond(size % ZGranuleSize == 0);
 
   size_t remaining = size;
-  const auto select_mapping = [&](size_t mapping_size) {
+  const auto select_vmem = [&](size_t vmem_size) {
     // Select at most remaining
-    return MIN2(remaining, mapping_size);
+    return MIN2(remaining, vmem_size);
   };
 
-  const auto consume_mapping = [&](ZVirtualMemory vmem) {
+  const auto consume_vmem = [&](ZVirtualMemory vmem) {
     const size_t vmem_size = vmem.size();
-    mappings->append(vmem);
+    vmems->append(vmem);
 
     assert(vmem_size <= remaining, "consumed to much");
 
@@ -425,7 +425,7 @@ size_t ZMappedCache::remove_discontiguous(ZArray<ZVirtualMemory>* mappings, size
     return remaining == 0;
   };
 
-  scan_remove_mapping(select_mapping, consume_mapping);
+  scan_remove_vmem(select_vmem, consume_vmem);
 
   return size - remaining;
 }
@@ -437,13 +437,13 @@ size_t ZMappedCache::reset_min() {
   return old_min;
 }
 
-size_t ZMappedCache::remove_from_min(ZArray<ZVirtualMemory>* mappings, size_t max_size) {
+size_t ZMappedCache::remove_from_min(ZArray<ZVirtualMemory>* vmems, size_t max_size) {
   const size_t size = MIN2(_min, max_size);
   if (size == 0) {
     return 0;
   }
 
-  return remove_discontiguous(mappings, size);
+  return remove_discontiguous(vmems, size);
 }
 
 size_t ZMappedCache::size() const {

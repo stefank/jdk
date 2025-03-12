@@ -140,7 +140,7 @@ private:
   void free_virtual(const ZVirtualMemory& vmem);
   void free_virtual(const ZVirtualMemory& vmem, uint32_t numa_id);
 
-  void remap_and_defragment_mapping(const ZVirtualMemory& mapping, ZArray<ZVirtualMemory>* entries);
+  void remap_and_defragment(const ZVirtualMemory& vmem, ZArray<ZVirtualMemory>* entries);
   void prepare_memory_for_free(ZPage* page, ZArray<ZVirtualMemory>* entries, bool allow_defragment);
 
   bool alloc_page_stall(ZPageAllocation* allocation);

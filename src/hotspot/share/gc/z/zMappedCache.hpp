@@ -63,13 +63,13 @@ private:
   void tree_update(ZMappedCacheEntry* entry, const ZVirtualMemory& vmem);
 
   template <typename SelectFunction>
-  ZVirtualMemory remove_mapping(ZMappedCacheEntry* const entry, size_t min_size, SelectFunction select);
+  ZVirtualMemory remove_vmem(ZMappedCacheEntry* const entry, size_t min_size, SelectFunction select);
 
   template <typename SelectFunction, typename ConsumeFunction>
-  void scan_remove_mapping(size_t min_size, SelectFunction select, ConsumeFunction consume);
+  void scan_remove_vmem(size_t min_size, SelectFunction select, ConsumeFunction consume);
 
   template <typename SelectFunction, typename ConsumeFunction>
-  void scan_remove_mapping(SelectFunction select, ConsumeFunction consume);
+  void scan_remove_vmem(SelectFunction select, ConsumeFunction consume);
 
 public:
   ZMappedCache();
@@ -77,10 +77,10 @@ public:
   void insert(const ZVirtualMemory& vmem);
 
   ZVirtualMemory remove_contiguous(size_t size);
-  size_t remove_discontiguous(ZArray<ZVirtualMemory>* mappings, size_t size);
+  size_t remove_discontiguous(ZArray<ZVirtualMemory>* vmems, size_t size);
 
   size_t reset_min();
-  size_t remove_from_min(ZArray<ZVirtualMemory>* mappings, size_t max_size);
+  size_t remove_from_min(ZArray<ZVirtualMemory>* vmems, size_t max_size);
 
   size_t size() const;
 };
