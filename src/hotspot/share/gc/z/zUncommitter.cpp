@@ -37,7 +37,7 @@ ZUncommitter::ZUncommitter(uint32_t id, ZPageAllocator* page_allocator)
     _lock(),
     _stop(false) {
 
-  set_name("ZUncommitter#%d", id);
+  set_name("ZUncommitter#%u", id);
   create_and_start();
 }
 
@@ -48,7 +48,7 @@ bool ZUncommitter::wait(uint64_t timeout) const {
   }
 
   if (!_stop && timeout > 0) {
-    log_debug(gc, heap)("Uncommitter (%d) Timeout: " UINT64_FORMAT "s", _id, timeout);
+    log_debug(gc, heap)("Uncommitter (%u) Timeout: " UINT64_FORMAT "s", _id, timeout);
     _lock.wait(timeout * MILLIUNITS);
   }
 
@@ -81,8 +81,8 @@ void ZUncommitter::run_thread() {
     if (uncommitted > 0) {
       // Update statistics
       ZStatInc(ZCounterUncommit, uncommitted);
-      log_info(gc, heap)("Uncommitted: %zuM(%.0f%%)",
-                         uncommitted / M, percent_of(uncommitted, ZHeap::heap()->max_capacity()));
+      log_info(gc, heap)("Uncommitter (%u) Uncommitted: %zuM(%.0f%%)",
+                         _id, uncommitted / M, percent_of(uncommitted, ZHeap::heap()->max_capacity()));
 
       // Send event
       event.commit(uncommitted);
