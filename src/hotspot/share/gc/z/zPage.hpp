@@ -94,7 +94,7 @@ public:
 
   const ZVirtualMemory& virtual_memory() const;
 
-  bool is_multi_numa() const;
+  bool is_multi_node() const;
   MultiNUMATracker* multi_numa_tracker() const;
   void set_multi_numa_tracker(MultiNUMATracker* tracker);
 

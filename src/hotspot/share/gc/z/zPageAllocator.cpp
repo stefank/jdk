@@ -156,51 +156,51 @@ public:
 class ZMemoryAllocationData : public StackObj {
 private:
   ZArray<ZVirtualMemory>    _claimed_vmems;
-  ZArray<ZVirtualMemory>*   _multi_numa_claimed_vmems;
-  ZArray<ZMemoryAllocation> _multi_numa_allocations;
-  bool                      _is_multi_numa_allocation;
+  ZArray<ZVirtualMemory>*   _multi_node_claimed_vmems;
+  ZArray<ZMemoryAllocation> _multi_node_allocations;
+  bool                      _is_multi_node;
 
-  static int get_multi_numa_count() {
+  static int max_multi_node_allocations_count() {
     // We may have two allocations per NUMA node
     return ZNUMA::count() * 2;
   }
 
   ZArrayMutableIterator<ZArray<ZVirtualMemory>> claimed_vmems_iter() {
-    const size_t count = _multi_numa_claimed_vmems == nullptr ? 0 : get_multi_numa_count();
-    return ZArrayMutableIterator<ZArray<ZVirtualMemory>>(_multi_numa_claimed_vmems, count);
+    const size_t count = _multi_node_claimed_vmems == nullptr ? 0 : max_multi_node_allocations_count();
+    return ZArrayMutableIterator<ZArray<ZVirtualMemory>>(_multi_node_claimed_vmems, count);
   }
 
 public:
   ZMemoryAllocationData()
     : _claimed_vmems(1),
-      _multi_numa_claimed_vmems(nullptr),
-      _multi_numa_allocations(0),
-      _is_multi_numa_allocation(false) {}
+      _multi_node_claimed_vmems(nullptr),
+      _multi_node_allocations(0),
+      _is_multi_node(false) {}
 
   ZArray<ZVirtualMemory>* claimed_vmems() {
     return &_claimed_vmems;
   }
 
-  bool is_multi_numa_allocation() const {
-    return _is_multi_numa_allocation;
+  bool is_multi_node() const {
+    return _is_multi_node;
   }
 
-  ZArray<ZMemoryAllocation>* multi_numa_allocations() {
-    return &_multi_numa_allocations;
+  ZArray<ZMemoryAllocation>* multi_node_allocations() {
+    return &_multi_node_allocations;
   }
 
-  const ZArray<ZMemoryAllocation>* multi_numa_allocations() const {
-    return &_multi_numa_allocations;
+  const ZArray<ZMemoryAllocation>* multi_node_allocations() const {
+    return &_multi_node_allocations;
   }
 
   ~ZMemoryAllocationData();
 
   void reset_for_retry();
 
-  void set_multi_numa_allocation();
+  void set_multi_node();
 
-  ZMemoryAllocation* get_next_multi_numa_allocation(size_t size);
-  void remove_last_multi_numa_allocation();
+  ZMemoryAllocation* get_next_multi_node_allocation(size_t size);
+  void remove_last_multi_node_allocation();
 };
 
 class ZMemoryAllocation {
@@ -339,28 +339,28 @@ public:
     return &_allocation;
   }
 
-  bool is_multi_numa_allocation() const {
-    return _allocation_data.is_multi_numa_allocation();
+  bool is_multi_node() const {
+    return _allocation_data.is_multi_node();
   }
 
-  void set_multi_numa_allocation() {
-    _allocation_data.set_multi_numa_allocation();
+  void set_multi_node_allocation() {
+    _allocation_data.set_multi_node();
   }
 
-  ZMemoryAllocation* get_next_multi_numa_allocation(size_t size) {
-    return _allocation_data.get_next_multi_numa_allocation(size);
+  ZMemoryAllocation* get_next_multi_node_allocation(size_t size) {
+    return _allocation_data.get_next_multi_node_allocation(size);
   }
 
   void remove_last_multi_numa_allocation() {
-    return _allocation_data.remove_last_multi_numa_allocation();
+    return _allocation_data.remove_last_multi_node_allocation();
   }
 
-  ZArray<ZMemoryAllocation>* multi_numa_allocations() {
-    return _allocation_data.multi_numa_allocations();
+  ZArray<ZMemoryAllocation>* multi_node_allocations() {
+    return _allocation_data.multi_node_allocations();
   }
 
-  const ZArray<ZMemoryAllocation>* multi_numa_allocations() const {
-    return _allocation_data.multi_numa_allocations();
+  const ZArray<ZMemoryAllocation>* multi_node_allocations() const {
+    return _allocation_data.multi_node_allocations();
   }
 
   ZVirtualMemory pop_final_vmem() {
@@ -391,50 +391,50 @@ ZMemoryAllocationData::~ZMemoryAllocationData() {
   for (const ZArray<ZVirtualMemory>* claimed_vmems; iter.next_addr(&claimed_vmems);) {
     claimed_vmems->~ZArray<ZVirtualMemory>();
   }
-  FREE_C_HEAP_ARRAY(ZArray<ZVirtualMemory>, _multi_numa_claimed_vmems);
+  FREE_C_HEAP_ARRAY(ZArray<ZVirtualMemory>, _multi_node_claimed_vmems);
 }
 
 void ZMemoryAllocationData::reset_for_retry() {
   // Clear vmems
   _claimed_vmems.clear();
 
-  // Clear multi numa allocations and vmems, but do not deallocate, it will
+  // Clear multi numa node allocations and vmems, but do not deallocate, it will
   // more than likely be a multi numa allocation the next time around
-  _multi_numa_allocations.clear();
+  _multi_node_allocations.clear();
   ZArrayMutableIterator<ZArray<ZVirtualMemory>> iter = claimed_vmems_iter();
   for (ZArray<ZVirtualMemory>* claimed_vmems; iter.next_addr(&claimed_vmems);) {
     claimed_vmems->clear();
   }
-  _is_multi_numa_allocation = false;
+  _is_multi_node = false;
 }
 
-void ZMemoryAllocationData::set_multi_numa_allocation() {
-  _is_multi_numa_allocation = true;
+void ZMemoryAllocationData::set_multi_node() {
+  _is_multi_node = true;
 
   // Allocate storage for multi numa allocations and vmems
-  const int length = get_multi_numa_count();
-  _multi_numa_allocations.reserve(length);
+  const int length = max_multi_node_allocations_count();
+  _multi_node_allocations.reserve(length);
 
-  if (_multi_numa_claimed_vmems == nullptr) {
-    // ZArray<ZVirtualMemory> _multi_numa_claimed_vmems[length];
-    void* const multi_numa_claimed_vmems_memory = NEW_C_HEAP_ARRAY(ZArray<ZVirtualMemory>, length, mtGC);
-    _multi_numa_claimed_vmems = ::new (multi_numa_claimed_vmems_memory) ZArray<ZVirtualMemory>[length];
+  if (_multi_node_claimed_vmems == nullptr) {
+    // ZArray<ZVirtualMemory> _multi_node_claimed_vmems[length];
+    void* const mem = NEW_C_HEAP_ARRAY(ZArray<ZVirtualMemory>, length, mtGC);
+    _multi_node_claimed_vmems = ::new (mem) ZArray<ZVirtualMemory>[length];
   }
 }
 
-ZMemoryAllocation* ZMemoryAllocationData::get_next_multi_numa_allocation(size_t size) {
-  assert(_is_multi_numa_allocation, "not flipped to multi numa allocation");
-  const int next_index = _multi_numa_allocations.length();
+ZMemoryAllocation* ZMemoryAllocationData::get_next_multi_node_allocation(size_t size) {
+  assert(_is_multi_node, "not flipped to multi numa node allocation");
+  const int next_index = _multi_node_allocations.length();
 
-  assert(next_index < get_multi_numa_count(), "to many partial allocations");
+  assert(next_index < max_multi_node_allocations_count(), "to many partial allocations");
 
-  ZArray<ZVirtualMemory>* const claimed_vmems = &_multi_numa_claimed_vmems[next_index];
-  _multi_numa_allocations.push(ZMemoryAllocation(claimed_vmems, size));
-  return &_multi_numa_allocations.last();
+  ZArray<ZVirtualMemory>* const claimed_vmems = &_multi_node_claimed_vmems[next_index];
+  _multi_node_allocations.push(ZMemoryAllocation(claimed_vmems, size));
+  return &_multi_node_allocations.last();
 }
 
-void ZMemoryAllocationData::remove_last_multi_numa_allocation() {
-  _multi_numa_allocations.pop();
+void ZMemoryAllocationData::remove_last_multi_node_allocation() {
+  _multi_node_allocations.pop();
 }
 
 const ZVirtualMemoryManager& ZAllocNode::virtual_memory_manager() const {
@@ -1127,11 +1127,11 @@ private:
 
 public:
   static void install_tracker(const ZPageAllocation* allocation, ZPage* page) {
-    if (!allocation->is_multi_numa_allocation()) {
+    if (!allocation->is_multi_node()) {
       return;
     }
 
-    const ZArray<ZMemoryAllocation>* const partial_allocations = allocation->multi_numa_allocations();
+    const ZArray<ZMemoryAllocation>* const partial_allocations = allocation->multi_node_allocations();
     MultiNUMATracker* const tracker = new MultiNUMATracker(partial_allocations->length());
 
     // Each partial allocation is mapped to the virtual memory in order
@@ -1440,7 +1440,7 @@ void ZPageAllocator::promote_used(const ZPage* from, const ZPage* to) {
   assert(from->size() == to->size(), "pages are the same size");
   assert(from->start() == to->start(), "pages start at same offset");
 
-  if (from->is_multi_numa()) {
+  if (from->is_multi_node()) {
     MultiNUMATracker::promote(this, from, to);
   } else {
     const size_t size = from->size();
@@ -1530,7 +1530,7 @@ bool ZPageAllocator::alloc_page_stall(ZPageAllocation* allocation) {
 }
 
 
-bool ZPageAllocator::claim_physical_multi_numa(ZPageAllocation* allocation) {
+bool ZPageAllocator::claim_physical_multi_node(ZPageAllocation* allocation) {
   const uint32_t start_node = allocation->initiating_numa_id();
   const uint32_t numa_nodes = ZNUMA::count();
 
@@ -1539,7 +1539,7 @@ bool ZPageAllocator::claim_physical_multi_numa(ZPageAllocation* allocation) {
   const size_t split_size = align_up(size / numa_nodes, ZGranuleSize);
 
   // Flip allocation to multi NUMA allocation
-  allocation->set_multi_numa_allocation();
+  allocation->set_multi_node_allocation();
 
   // Loops over every node and allocates get_alloc_size per node
   const auto do_claim_each_node = [&](auto get_alloc_size) {
@@ -1553,7 +1553,7 @@ bool ZPageAllocator::claim_physical_multi_numa(ZPageAllocation* allocation) {
         continue;
       }
 
-      ZMemoryAllocation* partial_allocation = allocation->get_next_multi_numa_allocation(alloc_size);
+      ZMemoryAllocation* partial_allocation = allocation->get_next_multi_node_allocation(alloc_size);
 
       if (!node.claim_physical(partial_allocation)) {
         // Claiming failed
@@ -1625,12 +1625,12 @@ bool ZPageAllocator::claim_physical_round_robin(ZPageAllocation* allocation) {
   }
 
   if (numa_nodes > 1 && total_available >= allocation->size()) {
-    if (claim_physical_multi_numa(allocation)) {
+    if (claim_physical_multi_node(allocation)) {
       return true;
     }
 
     // May have partially succeeded, undo any partial allocations
-    free_memory_alloc_failed_multi_numa(allocation);
+    free_memory_alloc_failed_multi_node(allocation);
   }
 
   return false;
@@ -1674,12 +1674,12 @@ void ZPageAllocator::copy_physical_segments(zoffset to, const ZVirtualMemory& fr
   ZUtils::copy_disjoint(dest, src, num_granules);
 }
 
-void ZPageAllocator::copy_claimed_physical_multi_numa(ZPageAllocation* allocation, const ZVirtualMemory& vmem) {
+void ZPageAllocator::copy_claimed_physical_multi_node(ZPageAllocation* allocation, const ZVirtualMemory& vmem) {
   // Start at the new dest offset
   zoffset allocation_destination_offset = vmem.start();
   size_t total_harvested = 0;
 
-  ZArrayMutableIterator<ZMemoryAllocation> allocation_iter(allocation->multi_numa_allocations());
+  ZArrayMutableIterator<ZMemoryAllocation> allocation_iter(allocation->multi_node_allocations());
   for (ZMemoryAllocation* partial_allocation; allocation_iter.next_addr(&partial_allocation);) {
     zoffset partial_vmem_destination_offset = allocation_destination_offset;
     size_t harvested = 0;
@@ -1705,7 +1705,7 @@ void ZPageAllocator::copy_claimed_physical_multi_numa(ZPageAllocation* allocatio
   allocation->memory_allocation()->set_harvested(total_harvested);
 }
 
-bool ZPageAllocator::claim_virtual_memory_multi_numa(ZPageAllocation* allocation) {
+bool ZPageAllocator::claim_virtual_memory_multi_node(ZPageAllocation* allocation) {
   const uint32_t numa_nodes = ZNUMA::count();
   const size_t size = allocation->size();
   ZMemoryAllocation* const memory_allocation = allocation->memory_allocation();
@@ -1720,10 +1720,10 @@ bool ZPageAllocator::claim_virtual_memory_multi_numa(ZPageAllocation* allocation
       // Associate the final virtual memory allocation with its virtual node
       memory_allocation->set_numa_id(node->numa_id());
 
-      // Copy claimed multi numa vmems, we leave the old vmems mapped until after
+      // Copy claimed multi numa node vmems, we leave the old vmems mapped until after
       // we have committed. In case committing fails we can simply reinsert the
       // inital vmems.
-      copy_claimed_physical_multi_numa(allocation, vmem);
+      copy_claimed_physical_multi_node(allocation, vmem);
 
       return true;
     }
@@ -1732,8 +1732,8 @@ bool ZPageAllocator::claim_virtual_memory_multi_numa(ZPageAllocation* allocation
 }
 
 bool ZPageAllocator::claim_virtual_memory(ZPageAllocation* allocation) {
-  if (allocation->is_multi_numa_allocation()) {
-    return claim_virtual_memory_multi_numa(allocation);
+  if (allocation->is_multi_node()) {
+    return claim_virtual_memory_multi_node(allocation);
   }
 
   ZMemoryAllocation* const memory_allocation = allocation->memory_allocation();
@@ -1743,9 +1743,9 @@ bool ZPageAllocator::claim_virtual_memory(ZPageAllocation* allocation) {
   return node.claim_virtual_memory(memory_allocation);
 }
 
-void ZPageAllocator::allocate_remaining_physical_multi_numa(ZPageAllocation* allocation, const ZVirtualMemory& vmem) {
+void ZPageAllocator::allocate_remaining_physical_multi_node(ZPageAllocation* allocation, const ZVirtualMemory& vmem) {
   ZVirtualMemory remaining_vmem = vmem;
-  ZArrayMutableIterator<ZMemoryAllocation> allocation_iter(allocation->multi_numa_allocations());
+  ZArrayMutableIterator<ZMemoryAllocation> allocation_iter(allocation->multi_node_allocations());
   for (ZMemoryAllocation* partial_allocation; allocation_iter.next_addr(&partial_allocation);) {
     ZVirtualMemory partial_allocation_vmem = remaining_vmem.split_from_front(partial_allocation->size());
     allocate_remaining_physical(partial_allocation, partial_allocation_vmem);
@@ -1764,19 +1764,19 @@ void ZPageAllocator::allocate_remaining_physical(ZMemoryAllocation* allocation, 
 void ZPageAllocator::allocate_remaining_physical(ZPageAllocation* allocation, const ZVirtualMemory& vmem) {
   assert(allocation->size() == vmem.size(), "vmem should be the final entry");
 
-  if (allocation->is_multi_numa_allocation()) {
-    allocate_remaining_physical_multi_numa(allocation, vmem);
+  if (allocation->is_multi_node()) {
+    allocate_remaining_physical_multi_node(allocation, vmem);
   } else {
     allocate_remaining_physical(allocation->memory_allocation(), vmem);
   }
 }
 
-bool ZPageAllocator::commit_and_map_memory_multi_numa(ZPageAllocation* allocation, const ZVirtualMemory& vmem) {
+bool ZPageAllocator::commit_and_map_memory_multi_node(ZPageAllocation* allocation, const ZVirtualMemory& vmem) {
   // Helper to loop over each ZMemoryAllocation and its associated partial_vmem
   const auto for_each_partial_vmem = [&](auto body_fn) {
     ZVirtualMemory remaining_vmem = vmem;
 
-    ZArrayMutableIterator<ZMemoryAllocation> allocation_iter(allocation->multi_numa_allocations());
+    ZArrayMutableIterator<ZMemoryAllocation> allocation_iter(allocation->multi_node_allocations());
     for (ZMemoryAllocation* partial_allocation; allocation_iter.next_addr(&partial_allocation);) {
       // Split of partial allocation's memory range
       ZVirtualMemory partial_vmem = remaining_vmem.split_from_front(partial_allocation->size());
@@ -1917,8 +1917,8 @@ bool ZPageAllocator::commit_and_map_memory_multi_numa(ZPageAllocation* allocatio
 bool ZPageAllocator::commit_and_map_memory(ZPageAllocation* allocation, const ZVirtualMemory& vmem) {
   assert(allocation->size() == vmem.size(), "vmem should be the final entry");
 
-  if (allocation->is_multi_numa_allocation()) {
-    return commit_and_map_memory_multi_numa(allocation, vmem);
+  if (allocation->is_multi_node()) {
+    return commit_and_map_memory_multi_node(allocation, vmem);
   }
 
   ZMemoryAllocation* const memory_allocation = allocation->memory_allocation();
@@ -1979,8 +1979,8 @@ void ZPageAllocator::alloc_page_age_update(ZPageAllocation* allocation, ZPage* p
   // to the allocating thread. The overall heap "used" is tracked in
   // the lower-level allocation code.
   const ZGenerationId id = age == ZPageAge::old ? ZGenerationId::old : ZGenerationId::young;
-  if (allocation->is_multi_numa_allocation()) {
-    ZArrayIterator<ZMemoryAllocation> allocation_iter(allocation->multi_numa_allocations());
+  if (allocation->is_multi_node()) {
+    ZArrayIterator<ZMemoryAllocation> allocation_iter(allocation->multi_node_allocations());
     for (const ZMemoryAllocation* partial_allocation; allocation_iter.next_addr(&partial_allocation);) {
       increase_used_generation(partial_allocation, id);
     }
@@ -2067,16 +2067,16 @@ void ZPageAllocator::prepare_memory_for_free(ZPage* page, ZArray<ZVirtualMemory>
   }
 }
 
-void ZPageAllocator::free_page_multi_numa(ZPage* page) {
-  assert(page->is_multi_numa(), "only used for multi numa pages");
+void ZPageAllocator::free_page_multi_node(ZPage* page) {
+  assert(page->is_multi_node(), "only used for multi numa pages");
   MultiNUMATracker::free_and_destroy(this, page);
 }
 
 void ZPageAllocator::free_page(ZPage* page, bool allow_defragment) {
-  if (page->is_multi_numa()) {
+  if (page->is_multi_node()) {
     // Multi numa is handled separately, multi numa allocations are always
     // effectively defragmented
-    free_page_multi_numa(page);
+    free_page_multi_node(page);
     return;
   }
 
@@ -2109,9 +2109,9 @@ void ZPageAllocator::free_pages(const ZArray<ZPage*>* pages) {
   // Prepare memory from pages to be cached before taking the lock
   ZArrayIterator<ZPage*> pages_iter(pages);
   for (ZPage* page; pages_iter.next(&page);) {
-    if (page->is_multi_numa()) {
+    if (page->is_multi_node()) {
       // Multi numa is handled separately
-      free_page_multi_numa(page);
+      free_page_multi_node(page);
       continue;
     }
 
@@ -2139,8 +2139,8 @@ void ZPageAllocator::free_pages(const ZArray<ZPage*>* pages) {
   satisfy_stalled();
 }
 
-void ZPageAllocator::free_memory_alloc_failed_multi_numa(ZPageAllocation* allocation) {
-  ZArrayMutableIterator<ZMemoryAllocation> iter(allocation->multi_numa_allocations());
+void ZPageAllocator::free_memory_alloc_failed_multi_node(ZPageAllocation* allocation) {
+  ZArrayMutableIterator<ZMemoryAllocation> iter(allocation->multi_node_allocations());
   for (ZMemoryAllocation* partial_allocation; iter.next_addr(&partial_allocation);) {
     const uint32_t numa_id = partial_allocation->numa_id();
     ZAllocNode& node = node_from_numa_id(numa_id);
@@ -2152,9 +2152,9 @@ void ZPageAllocator::free_memory_alloc_failed_multi_numa(ZPageAllocation* alloca
 void ZPageAllocator::free_memory_alloc_failed(ZPageAllocation* allocation) {
   ZLocker<ZLock> locker(&_lock);
 
-  if (allocation->is_multi_numa_allocation()) {
+  if (allocation->is_multi_node()) {
     // Free each partial allocation
-    free_memory_alloc_failed_multi_numa(allocation);
+    free_memory_alloc_failed_multi_node(allocation);
   } else {
     ZMemoryAllocation* const memory_allocation = allocation->memory_allocation();
     const uint32_t numa_id = memory_allocation->numa_id();

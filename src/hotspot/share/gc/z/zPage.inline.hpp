@@ -156,7 +156,7 @@ inline const ZVirtualMemory& ZPage::virtual_memory() const {
   return _virtual;
 }
 
-inline bool ZPage::is_multi_numa() const {
+inline bool ZPage::is_multi_node() const {
   return _multi_numa_tracker != nullptr;
 }
 
