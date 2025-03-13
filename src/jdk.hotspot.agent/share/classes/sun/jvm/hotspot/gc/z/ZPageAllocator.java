@@ -27,7 +27,6 @@ package sun.jvm.hotspot.gc.z;
 import sun.jvm.hotspot.debugger.Address;
 import sun.jvm.hotspot.runtime.VM;
 import sun.jvm.hotspot.runtime.VMObject;
-import sun.jvm.hotspot.runtime.VMObjectFactory;
 import sun.jvm.hotspot.types.CIntegerField;
 import sun.jvm.hotspot.types.Type;
 import sun.jvm.hotspot.types.TypeDataBase;
@@ -37,8 +36,6 @@ import sun.jvm.hotspot.types.TypeDataBase;
 public class ZPageAllocator extends VMObject {
 
     private static CIntegerField maxCapacityField;
-    private static long cacheStateFieldOffset;
-    private static long numaCount;
 
     static {
         VM.registerVMInitializedObserver((o, d) -> initialize(VM.getVM().getTypeDataBase()));
@@ -48,13 +45,6 @@ public class ZPageAllocator extends VMObject {
         Type type = db.lookupType("ZPageAllocator");
 
         maxCapacityField = type.getCIntegerField("_max_capacity");
-        cacheStateFieldOffset = type.getAddressField("_states").getOffset();
-        numaCount = (new ZNUMA()).count();
-    }
-
-    private ZPerNUMACacheState states() {
-        Address cacheStatesAddr = addr.addOffsetTo(cacheStateFieldOffset);
-        return VMObjectFactory.newObject(ZPerNUMACacheState.class, cacheStatesAddr);
     }
 
     public long maxCapacity() {
@@ -62,19 +52,11 @@ public class ZPageAllocator extends VMObject {
     }
 
     public long capacity() {
-        long total_capacity = 0;
-        for (int id = 0; id < numaCount; id++) {
-          total_capacity += states().value(id).capacity();
-        }
-        return total_capacity;
+        return 0;
     }
 
     public long used() {
-        long total_used = 0;
-        for (int id = 0; id < numaCount; id++) {
-          total_used += states().value(id).used();
-        }
-        return total_used;
+        return 0;
     }
 
     public ZPageAllocator(Address addr) {

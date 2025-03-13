@@ -29,10 +29,8 @@
 #include "gc/z/zForwarding.hpp"
 #include "gc/z/zGranuleMap.hpp"
 #include "gc/z/zHeap.hpp"
-#include "gc/z/zNUMA.hpp"
 #include "gc/z/zPageAllocator.hpp"
 #include "gc/z/zPageType.hpp"
-#include "gc/z/zValue.hpp"
 #include "utilities/macros.hpp"
 
 // Expose some ZGC globals to the SA agent.
@@ -63,7 +61,6 @@ public:
 typedef ZGranuleMap<ZPage*> ZGranuleMapForPageTable;
 typedef ZGranuleMap<ZForwarding*> ZGranuleMapForForwarding;
 typedef ZAttachedArray<ZForwarding, ZForwardingEntry> ZAttachedArrayForForwarding;
-typedef ZValue<ZPerNUMAStorage, ZAllocNode> ZPerNUMACacheState;
 
 #define VM_STRUCTS_Z(nonstatic_field, volatile_nonstatic_field, static_field)                        \
   static_field(ZGlobalsForVMStructs,            _instance_p,          ZGlobalsForVMStructs*)         \
@@ -90,13 +87,6 @@ typedef ZValue<ZPerNUMAStorage, ZAllocNode> ZPerNUMACacheState;
   volatile_nonstatic_field(ZPage,               _top,                 zoffset_end)                   \
                                                                                                      \
   nonstatic_field(ZPageAllocator,               _max_capacity,        const size_t)                  \
-  nonstatic_field(ZPageAllocator,               _alloc_nodes,         ZPerNUMACacheState)            \
-                                                                                                     \
-  static_field(ZNUMA,                           _count,               uint32_t)                      \
-  nonstatic_field(ZPerNUMACacheState,           _addr,                const uintptr_t)               \
-                                                                                                     \
-  volatile_nonstatic_field(ZAllocNode,          _capacity,            size_t)                        \
-  volatile_nonstatic_field(ZAllocNode,          _used,                size_t)                        \
                                                                                                      \
   nonstatic_field(ZPageTable,                   _map,                 ZGranuleMapForPageTable)       \
                                                                                                      \
@@ -141,9 +131,6 @@ typedef ZValue<ZPerNUMAStorage, ZAllocNode> ZPerNUMACacheState;
   declare_toplevel_type(ZPage)                                                                       \
   declare_toplevel_type(ZPageType)                                                                   \
   declare_toplevel_type(ZPageAllocator)                                                              \
-  declare_toplevel_type(ZNUMA)                                                                       \
-  declare_toplevel_type(ZPerNUMACacheState)                                                          \
-  declare_toplevel_type(ZAllocNode)                                                                  \
   declare_toplevel_type(ZPageTable)                                                                  \
   declare_toplevel_type(ZAttachedArrayForForwarding)                                                 \
   declare_toplevel_type(ZGranuleMapForPageTable)                                                     \
