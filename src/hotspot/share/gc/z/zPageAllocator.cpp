@@ -1019,15 +1019,7 @@ bool ZAllocNode::commit_and_map_memory(ZMemoryAllocation* allocation, const ZVir
 
   check_numa_mismatch(vmem, allocation->numa_id());
 
-  if (committed_vmem.size() != vmem.size()) {
-    log_trace(gc, page)("Split memory [" PTR_FORMAT ", " PTR_FORMAT ", " PTR_FORMAT "]",
-        untype(committed_vmem.start()),
-        untype(committed_vmem.end()),
-        untype(vmem.end()));
-    return false;
-  }
-
-  return true;
+  return committed_vmem.size() == vmem.size();
 }
 
 void ZAllocNode::free_memory_alloc_failed(ZMemoryAllocation* allocation) {
