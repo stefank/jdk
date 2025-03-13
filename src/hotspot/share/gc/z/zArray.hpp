@@ -25,7 +25,6 @@
 #define SHARE_GC_Z_ZARRAY_HPP
 
 #include "memory/allocation.hpp"
-#include "metaprogramming/enableIf.hpp"
 #include "runtime/atomic.hpp"
 #include "runtime/os.hpp"
 #include "runtime/thread.hpp"
@@ -37,42 +36,28 @@ class ZLock;
 
 template <typename T> using ZArray = GrowableArrayCHeap<T, mtGC>;
 
-template <typename T, bool Parallel, bool IsConst>
+template <typename T, bool Parallel>
 class ZArrayIteratorImpl : public StackObj {
-  friend class ZArrayIteratorImpl<T, Parallel, true>;
-
 private:
-  using ZArrayType = std::conditional_t<IsConst, const ZArray<T>, ZArray<T>>;
-  using RefType = std::conditional_t<IsConst, const T&, T&>;
-  using PtrType = std::conditional_t<IsConst, const T*, T*>;
-
-  size_t        _next;
-  const size_t  _end;
-  PtrType const _array;
+  size_t         _next;
+  const size_t   _end;
+  const T* const _array;
 
   bool next_serial(size_t* index);
   bool next_parallel(size_t* index);
 
 public:
-  ZArrayIteratorImpl(PtrType array, size_t length, size_t start_index = 0);
-  ZArrayIteratorImpl(ZArrayType* array, int start_index = 0);
-  template <bool Enable = !Parallel, ENABLE_IF(Enable)>
-  ZArrayIteratorImpl(const ZArrayIteratorImpl<T, Parallel, false>& other);
-  template <bool Enable = !Parallel && IsConst, ENABLE_IF(Enable)>
-  ZArrayIteratorImpl(const ZArrayIteratorImpl<T, Parallel, true>& other);
+  ZArrayIteratorImpl(const T* array, size_t length, size_t start_index = 0);
+  ZArrayIteratorImpl(const ZArray<T>* array, int start_index = 0);
 
-
-  template <bool Enable = IsConst, ENABLE_IF(Enable)>
   bool next(T* elem);
-  bool next_addr(PtrType* elem);
   bool next_index(size_t* index);
 
-  RefType index_to_elem(size_t index);
+  T index_to_elem(size_t index);
 };
 
-template <typename T> using ZArrayMutableIterator = ZArrayIteratorImpl<T, false /* Parallel */, false /* IsConst */>;
-template <typename T> using ZArrayIterator = ZArrayIteratorImpl<T, false /* Parallel */, true /* IsConst */>;
-template <typename T> using ZArrayParallelIterator = ZArrayIteratorImpl<T, true /* Parallel */, true /* IsConst */>;
+template <typename T> using ZArrayIterator = ZArrayIteratorImpl<T, false /* Parallel */>;
+template <typename T> using ZArrayParallelIterator = ZArrayIteratorImpl<T, true /* Parallel */>;
 
 template <typename T>
 class ZActivatedArray {

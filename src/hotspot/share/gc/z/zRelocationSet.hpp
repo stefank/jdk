@@ -62,7 +62,7 @@ public:
 };
 
 template <bool Parallel>
-class ZRelocationSetIteratorImpl : public ZArrayIteratorImpl<ZForwarding*, Parallel, true /* IsConst */> {
+class ZRelocationSetIteratorImpl : public ZArrayIteratorImpl<ZForwarding*, Parallel> {
 public:
   ZRelocationSetIteratorImpl(ZRelocationSet* relocation_set);
 };
