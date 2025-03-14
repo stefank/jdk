@@ -133,6 +133,25 @@ int ZMappedCache::EntryCompare::operator()(zoffset key, ZIntrusiveRBTreeNode* no
   return 0; // Containing
 }
 
+size_t ZMappedCache::start_index_plus_one(size_t size) {
+  // No size means take whatever. Start at the largest size class.
+  if (size == 0) {
+    return NumSizeClasses;
+  }
+
+  // Try to find best-fit size class
+  for (size_t index_plus_one = NumSizeClasses; index_plus_one > 0; index_plus_one--) {
+    const size_t size_class = get_size_class(index_plus_one - 1);
+    if (size >= size_class) {
+      return index_plus_one;
+    }
+  }
+
+  // If the size is less than the smallest size class, there is no need to scan
+  // size-class(es)
+  return 0;
+}
+
 size_t ZMappedCache::get_size_class(size_t index) {
   if (index == 0 && ZPageSizeMedium > ZPageSizeSmall) {
     return ZPageSizeMedium;
@@ -271,10 +290,9 @@ ZVirtualMemory ZMappedCache::remove_vmem(ZMappedCacheEntry* const entry, size_t 
 
 template <typename SelectFunction, typename ConsumeFunction>
 void ZMappedCache::scan_remove_vmem(size_t min_size, SelectFunction select, ConsumeFunction consume) {
-  // TODO: Maybe start on best fit size class first, and only then go from large to small.
-
   // Scan size classes
-  for (size_t index_plus_one = NumSizeClasses; index_plus_one > 0; index_plus_one--) {
+  const size_t start = start_index_plus_one(min_size);
+  for (size_t index_plus_one = start; index_plus_one > 0; index_plus_one--) {
     const size_t index = index_plus_one - 1;
     const size_t size_class = get_size_class(index);
 
