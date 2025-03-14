@@ -190,4 +190,9 @@ public:
   void fatal_msg(const char* msg) const;
 };
 
+class ZPageClosure {
+public:
+  virtual void do_page(const ZPage* page) = 0;
+};
+
 #endif // SHARE_GC_Z_ZPAGE_HPP
