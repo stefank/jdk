@@ -44,10 +44,12 @@
 class ThreadClosure;
 class ZGeneration;
 class ZMemoryAllocation;
+class ZMultiNodeAllocation;
 class ZPageAllocation;
 class ZPageAllocator;
 class ZPageAllocatorStats;
 class ZSegmentStash;
+class ZSingleNodeAllocation;
 class ZWorkers;
 
 class ZAllocNode {
@@ -107,7 +109,7 @@ public:
 
   void reset_statistics(ZGenerationId id);
 
-  bool claim_mapped_or_increase_capacity(ZMemoryAllocation* allocation);
+  void claim_mapped_or_increase_capacity(ZMemoryAllocation* allocation);
   bool claim_physical(ZMemoryAllocation* allocation);
 
   void promote_used(size_t size);
@@ -142,6 +144,10 @@ public:
 
   void harvest_claimed_physical(ZMemoryAllocation* allocation);
   bool claim_virtual_memory(ZMemoryAllocation* allocation);
+
+  ZVirtualMemory commit_increased_capacity(ZMemoryAllocation* allocation, const ZVirtualMemory& vmem);
+  void map_memory(ZMemoryAllocation* allocation, const ZVirtualMemory& vmem);
+
   bool commit_and_map_memory(ZMemoryAllocation* allocation, const ZVirtualMemory& vmem);
   void free_memory_alloc_failed(ZMemoryAllocation* allocation);
 };
@@ -177,32 +183,49 @@ private:
 
   bool alloc_page_stall(ZPageAllocation* allocation);
 
-  bool claim_physical_multi_node(ZPageAllocation* allocation);
-  bool claim_physical_round_robin(ZPageAllocation* allocation);
+  size_t sum_available_capacity() const;
+
+  bool claim_physical_multi_node(ZMultiNodeAllocation* multi_node_allocation, uint32_t start_node);
+  bool claim_physical_single_node(ZSingleNodeAllocation* single_node_allocation, uint32_t numa_id);
+  bool claim_physical(ZPageAllocation* allocation);
+
   bool claim_physical_or_stall(ZPageAllocation* allocation);
 
+  bool is_alloc_satisfied_multi_node(const ZMultiNodeAllocation* multi_node_allocation) const;
+  bool is_alloc_satisfied_single_node(const ZSingleNodeAllocation* single_node_allocation) const;
   bool is_alloc_satisfied(const ZPageAllocation* allocation) const;
 
   void copy_physical_segments(zoffset to, const ZVirtualMemory& from);
-  void copy_claimed_physical_multi_node(ZPageAllocation* allocation, const ZVirtualMemory& vmem);
+  void copy_claimed_physical_multi_node(ZMultiNodeAllocation* multi_node_allocation, const ZVirtualMemory& vmem);
 
-  bool claim_virtual_memory_multi_node(ZPageAllocation* allocation);
+  bool claim_virtual_memory_multi_node(ZMultiNodeAllocation* multi_node_allocation);
+  bool claim_virtual_memory_single_node(ZSingleNodeAllocation* single_node_allocation);
   bool claim_virtual_memory(ZPageAllocation* allocation);
 
-  void allocate_remaining_physical_multi_node(ZPageAllocation* allocation, const ZVirtualMemory& vmem);
-  void allocate_remaining_physical(ZPageAllocation* allocation, const ZVirtualMemory& vmem);
   void allocate_remaining_physical(ZMemoryAllocation* allocation, const ZVirtualMemory& vmem);
+  void allocate_remaining_physical_multi_node(const ZMultiNodeAllocation* multi_node_allocation, const ZVirtualMemory& vmem);
+  void allocate_remaining_physical_single_node(ZSingleNodeAllocation* allocation, const ZVirtualMemory& vmem);
+  void allocate_remaining_physical(ZPageAllocation* allocation, const ZVirtualMemory& vmem);
 
-  bool commit_and_map_memory_multi_node(ZPageAllocation* allocation, const ZVirtualMemory& vmem);
+  bool commit_and_map_memory_multi_node(ZMultiNodeAllocation* multi_node_allocation, const ZVirtualMemory& vmem);
+  bool commit_and_map_memory_single_node(ZSingleNodeAllocation* single_node_allocation, const ZVirtualMemory& vmem);
   bool commit_and_map_memory(ZPageAllocation* allocation, const ZVirtualMemory& vmem);
 
   ZPage* alloc_page_inner(ZPageAllocation* allocation);
 
   void increase_used_generation(const ZMemoryAllocation* allocation, ZGenerationId id);
+  void increase_used_generation_multi_node(const ZMultiNodeAllocation* multi_node_allocation, ZGenerationId id);
+  void increase_used_generation_single_node(const ZSingleNodeAllocation* single_mode_allocation, ZGenerationId id);
+  void increase_used_generation(const ZPageAllocation* allocation, ZGenerationId id);
+
   void alloc_page_age_update(ZPageAllocation* allocation, ZPage* page, ZPageAge age);
 
-  void free_memory_alloc_failed_multi_node(ZPageAllocation* allocation);
+  void free_memory_alloc_failed(ZMemoryAllocation* allocation);
+  void free_memory_alloc_failed_multi_node(ZMultiNodeAllocation* multi_node_allocation);
+  void free_memory_alloc_failed_single_node(ZSingleNodeAllocation* single_node_allocation);
   void free_memory_alloc_failed(ZPageAllocation* allocation);
+
+  void free_after_alloc_page_failed(ZPageAllocation* allocation);
 
   void satisfy_stalled();
 

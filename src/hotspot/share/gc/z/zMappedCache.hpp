@@ -88,7 +88,7 @@ private:
   void scan_remove_vmem(SelectFunction select, ConsumeFunction consume);
 
   template <RemovalStrategy strategy>
-  size_t remove_discontiguous_with_strategy(ZArray<ZVirtualMemory>* vmems, size_t size);
+  size_t remove_discontiguous_with_strategy(size_t size, ZArray<ZVirtualMemory>* out);
 
 public:
   ZMappedCache();
@@ -96,10 +96,10 @@ public:
   void insert(const ZVirtualMemory& vmem);
 
   ZVirtualMemory remove_contiguous(size_t size);
-  size_t remove_discontiguous(ZArray<ZVirtualMemory>* vmems, size_t size);
+  size_t remove_discontiguous(size_t size, ZArray<ZVirtualMemory>* out);
 
   size_t reset_min();
-  size_t remove_from_min(ZArray<ZVirtualMemory>* vmems, size_t max_size);
+  size_t remove_from_min(size_t max_size, ZArray<ZVirtualMemory>* out);
 
   size_t size() const;
 };

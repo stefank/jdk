@@ -64,6 +64,10 @@ public:
   ZRange split_from_front(size_t size);
   ZRange split_from_back(size_t size);
 
+  ZRange partition(size_t offset, size_t partition_size) const;
+  ZRange first_part(size_t split_offset) const;
+  ZRange last_part(size_t split_offset) const;
+
   bool adjacent_to(const ZRange& other) const;
 };
 

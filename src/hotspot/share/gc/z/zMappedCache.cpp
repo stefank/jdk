@@ -306,7 +306,7 @@ new_max_size:
     return false;
   }
 
-  // Start scaning from max_size guaranteed size class to the largest size class
+  // Start scanning from max_size guaranteed size class to the largest size class
   const int guaranteed_index = guaranteed_size_class_index(max_size);
   for (int index = guaranteed_index; index != -1 && index < NumSizeClasses; ++index) {
     ZList<ZSizeClassListNode>& list = _size_class_lists[index];
@@ -394,20 +394,20 @@ void ZMappedCache::scan_remove_vmem(SelectFunction select, ConsumeFunction consu
 }
 
 template <ZMappedCache::RemovalStrategy strategy>
-size_t ZMappedCache::remove_discontiguous_with_strategy(ZArray<ZVirtualMemory>* vmems, size_t size) {
+size_t ZMappedCache::remove_discontiguous_with_strategy(size_t size, ZArray<ZVirtualMemory>* out) {
   precond(size > 0);
   precond(size % ZGranuleSize == 0);
 
   size_t remaining = size;
 
-  const auto select_vmem = [&](size_t vmem_size) {
+  const auto select_size_fn = [&](size_t vmem_size) {
     // Select at most remaining
     return MIN2(remaining, vmem_size);
   };
 
-  const auto consume_vmem = [&](ZVirtualMemory vmem) {
+  const auto consume_vmem_fn = [&](ZVirtualMemory vmem) {
     const size_t vmem_size = vmem.size();
-    vmems->append(vmem);
+    out->append(vmem);
 
     assert(vmem_size <= remaining, "consumed to much");
 
@@ -416,7 +416,7 @@ size_t ZMappedCache::remove_discontiguous_with_strategy(ZArray<ZVirtualMemory>* 
     return remaining == 0;
   };
 
-  scan_remove_vmem<strategy>(select_vmem, consume_vmem);
+  scan_remove_vmem<strategy>(select_size_fn, consume_vmem_fn);
 
   return size - remaining;
 }
@@ -494,12 +494,12 @@ ZVirtualMemory ZMappedCache::remove_contiguous(size_t size) {
 
   ZVirtualMemory result;
 
-  const auto select_vmem = [&](size_t) {
+  const auto select_size_fn = [&](size_t) {
     // We always select the size
     return size;
   };
 
-  const auto consume_vmem = [&](ZVirtualMemory vmem) {
+  const auto consume_vmem_fn = [&](ZVirtualMemory vmem) {
     assert(result.is_null(), "only consume once");
     assert(vmem.size() == size, "wrong size consumed");
 
@@ -511,17 +511,17 @@ ZVirtualMemory ZMappedCache::remove_contiguous(size_t size) {
 
   if (size == ZPageSizeSmall) {
     // For small page allocation allocate at the lowest address
-    scan_remove_vmem<RemovalStrategy::LowestAddress>(size, select_vmem, consume_vmem);
+    scan_remove_vmem<RemovalStrategy::LowestAddress>(size, select_size_fn, consume_vmem_fn);
   } else {
     // Other sizes uses approximate best fit size classes first
-    scan_remove_vmem<RemovalStrategy::SizeClasses>(size, select_vmem, consume_vmem);
+    scan_remove_vmem<RemovalStrategy::SizeClasses>(size, select_size_fn, consume_vmem_fn);
   }
 
   return result;
 }
 
-size_t ZMappedCache::remove_discontiguous(ZArray<ZVirtualMemory>* vmems, size_t size) {
-  return remove_discontiguous_with_strategy<RemovalStrategy::SizeClasses>(vmems, size);
+size_t ZMappedCache::remove_discontiguous(size_t size, ZArray<ZVirtualMemory>* out) {
+  return remove_discontiguous_with_strategy<RemovalStrategy::SizeClasses>(size, out);
 }
 
 size_t ZMappedCache::reset_min() {
@@ -531,13 +531,13 @@ size_t ZMappedCache::reset_min() {
   return old_min;
 }
 
-size_t ZMappedCache::remove_from_min(ZArray<ZVirtualMemory>* vmems, size_t max_size) {
+size_t ZMappedCache::remove_from_min(size_t max_size, ZArray<ZVirtualMemory>* out) {
   const size_t size = MIN2(_min, max_size);
   if (size == 0) {
     return 0;
   }
 
-  return remove_discontiguous_with_strategy<RemovalStrategy::HighestAddress>(vmems, size);
+  return remove_discontiguous_with_strategy<RemovalStrategy::HighestAddress>(size, out);
 }
 
 size_t ZMappedCache::size() const {

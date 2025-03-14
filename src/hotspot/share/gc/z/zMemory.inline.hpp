@@ -98,6 +98,25 @@ inline ZRange<Start, End> ZRange<Start, End>::split_from_back(size_t size) {
 }
 
 template <typename Start, typename End>
+inline ZRange<Start, End> ZRange<Start, End>::partition(size_t offset, size_t partition_size) const {
+  precond(offset < size());
+  precond(size() - offset >= partition_size);
+
+  return ZRange(_start + offset, partition_size);
+}
+
+template <typename Start, typename End>
+inline ZRange<Start, End> ZRange<Start, End>::first_part(size_t split_offset) const {
+  return partition(0, split_offset);
+}
+
+template <typename Start, typename End>
+inline ZRange<Start, End> ZRange<Start, End>::last_part(size_t split_offset) const {
+  return partition(split_offset, size() - split_offset);
+}
+
+
+template <typename Start, typename End>
 inline bool ZRange<Start, End>::adjacent_to(const ZRange<Start, End>& other) const {
   return end() == other.start() || other.end() == start();
 }
