@@ -444,7 +444,7 @@ void ZAllocNode::verify_virtual_memory_association(const ZArray<ZVirtualMemory>*
 void ZAllocNode::verify_memory_allocation_association(const ZMemoryAllocation* allocation) const {
   const uint32_t allocation_numa_id = allocation->numa_id();
   assert(_numa_id == allocation_numa_id, "Memory allocation must be associated with the current node "
-                                   "expected: %u, actual: %u", _numa_id, allocation_numa_id);
+                                         "expected: %u, actual: %u", _numa_id, allocation_numa_id);
 }
 
 ZAllocNode::ZAllocNode(uint32_t numa_id, ZPageAllocator* page_allocator)
@@ -760,7 +760,6 @@ size_t ZAllocNode::commit_physical(const ZVirtualMemory& vmem) {
 size_t ZAllocNode::uncommit_physical(const ZVirtualMemory& vmem) {
   assert(ZUncommit, "should not uncommit when uncommit is disabled");
   verify_virtual_memory_association(vmem);
-
 
   ZPhysicalMemoryManager& manager = physical_memory_manager();
   zbacking_index* const pmem = physical_mappings_addr(vmem);
