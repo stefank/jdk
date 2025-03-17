@@ -163,6 +163,29 @@ private:
   bool                   _commit_failed;
 
 public:
+  explicit ZMemoryAllocation(const ZMemoryAllocation& other)
+  : _size(other._size),
+    _numa_id(other._numa_id),
+    _claimed_vmems(other._claimed_vmems.length()),
+    _harvested(other._harvested),
+    _committed(other._committed),
+    _commit_failed(other._commit_failed) {
+    _claimed_vmems.appendAll(&other._claimed_vmems);
+  }
+
+  ZMemoryAllocation(const ZMemoryAllocation& a1, const ZMemoryAllocation& a2)
+  : _size(a1._size + a2._size),
+    _numa_id(a1._numa_id),
+    _claimed_vmems(a1._claimed_vmems.length() + a2._claimed_vmems.length()),
+    _harvested(a1._harvested + a2._harvested),
+    _committed(a1._committed + a2._committed),
+    _commit_failed(a1._commit_failed || a2._commit_failed) {
+    assert(a1._numa_id == a2._numa_id, "only merge with same numa_id");
+    _claimed_vmems.appendAll(&a1._claimed_vmems);
+    _claimed_vmems.appendAll(&a2._claimed_vmems);
+
+  }
+
   explicit ZMemoryAllocation(size_t size, uint32_t numa_id = -1)
     : _size(size),
       _numa_id(numa_id),
@@ -226,6 +249,7 @@ class ZMultiNodeAllocation : public StackObj {
 private:
   ZArray<ZMemoryAllocation*> _allocations;
 
+  ZMemoryAllocation*& get_or_create_allocation(uint32_t numa_id);
 public:
   ZMultiNodeAllocation()
     : _allocations(0) {}
@@ -248,8 +272,7 @@ public:
 
   void reset_for_retry();
 
-  ZMemoryAllocation* create_allocation(size_t size, uint32_t numa_id);
-  void destroy_last_created_allocation();
+  void register_allocation(const ZMemoryAllocation& allocation);
 };
 
 class ZPageAllocation : public StackObj {
@@ -367,8 +390,8 @@ public:
 void ZMultiNodeAllocation::initialize() {
   precond(_allocations.is_empty());
 
-  // The multi node allocation may allocate from each NUMA node twice.
-  const int length = (int)ZNUMA::count() * 2;
+  // The multi node allocation creates at most one allocation per node.
+  const int length = (int)ZNUMA::count();
 
   _allocations.reserve(length);
 }
@@ -380,18 +403,35 @@ void ZMultiNodeAllocation::reset_for_retry() {
   _allocations.clear();
 }
 
-ZMemoryAllocation* ZMultiNodeAllocation::create_allocation(size_t size, uint32_t numa_id) {
-  ZMemoryAllocation* const allocation = new ZMemoryAllocation(size, numa_id);
+ZMemoryAllocation*& ZMultiNodeAllocation::get_or_create_allocation(uint32_t numa_id) {
+  // Try to find an existing allocation for numa_id
+  for (int i = 0; i < _allocations.length(); ++i) {
+    ZMemoryAllocation*& allocation_ptr = _allocations.at(i);
+    if (allocation_ptr->numa_id() == numa_id) {
+      // Found an existing slot
+      return allocation_ptr;
+    }
+  }
 
-  _allocations.push(allocation);
-
-  return allocation;
+  // Push an empty slot for the numa_id
+  _allocations.push(nullptr);
+  return _allocations.last();
 }
 
-void ZMultiNodeAllocation::destroy_last_created_allocation() {
-  ZMemoryAllocation* const allocation = _allocations.pop();
+void ZMultiNodeAllocation::register_allocation(const ZMemoryAllocation& allocation) {
+  ZMemoryAllocation*& allocation_ptr = get_or_create_allocation(allocation.numa_id());
 
-  delete allocation;
+  if (allocation_ptr == nullptr) {
+    // First allocation for this node_id
+    allocation_ptr = new ZMemoryAllocation(allocation);
+  } else {
+    // Allocation already exists for this node_id, merge allocations
+    ZMemoryAllocation* old_allocation_ptr = allocation_ptr;
+    allocation_ptr = new ZMemoryAllocation(allocation, *old_allocation_ptr);
+
+    // Delete old allocation
+    delete old_allocation_ptr;
+  }
 }
 
 const ZVirtualMemoryManager& ZAllocNode::virtual_memory_manager() const {
@@ -1503,14 +1543,15 @@ bool ZPageAllocator::claim_physical_multi_node(ZPageAllocation* allocation) {
         continue;
       }
 
-      ZMemoryAllocation* partial_allocation = multi_node->create_allocation(alloc_size, numa_id);
+      ZMemoryAllocation partial_allocation(alloc_size, numa_id);
 
-      if (!node.claim_physical(partial_allocation)) {
+      if (!node.claim_physical(&partial_allocation)) {
         // Claiming failed
-        multi_node->destroy_last_created_allocation();
-
         return false;
       }
+
+      // Register allocation
+      multi_node->register_allocation(partial_allocation);
 
       // Update remaining
       remaining -= alloc_size;
