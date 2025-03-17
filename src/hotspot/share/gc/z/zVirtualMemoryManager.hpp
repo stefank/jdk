@@ -38,8 +38,8 @@ public:
 private:
   static size_t calculate_min_range(size_t size);
 
-  ZMemoryManager           _init_manager;
-  ZPerNUMA<ZMemoryManager> _managers;
+  ZMemoryManager           _init_node;
+  ZPerNUMA<ZMemoryManager> _nodes;
   ZPerNUMA<ZVirtualMemory> _vmem_ranges;
   bool                     _initialized;
 

@@ -53,7 +53,7 @@ ZPhysicalMemoryManager::ZPhysicalMemoryManager(size_t max_capacity)
   // Install capacity into manager(s)
   zbacking_index_end next_index = zbacking_index_end::zero;
   uint32_t numa_id;
-  ZPerNUMAIterator<ZMemoryManager> iter(&_managers);
+  ZPerNUMAIterator<ZMemoryManager> iter(&_nodes);
   for (ZMemoryManager* manager; iter.next(&manager, &numa_id);) {
     const size_t capacity = ZNUMA::calculate_share(numa_id, max_capacity);
     const size_t num_segments = capacity >> ZGranuleSizeShift;
@@ -115,7 +115,7 @@ void ZPhysicalMemoryManager::alloc(zbacking_index* pmem, size_t size, uint32_t n
 
   while (remaining_segments != 0) {
     // Allocate a range of backing segment indices
-    const ZBackingIndexRange range = _managers.get(numa_id).alloc_low_address_at_most(remaining_segments);
+    const ZBackingIndexRange range = _nodes.get(numa_id).alloc_low_address_at_most(remaining_segments);
     assert(!range.is_null(), "Allocation should never fail");
 
     // Insert backing segment indices in pmem
@@ -186,7 +186,7 @@ void ZPhysicalMemoryManager::free(const zbacking_index* pmem, size_t size, uint3
     const zbacking_index index = to_zbacking_index(segment_start);
 
     // Insert the free segment indices
-    _managers.get(numa_id).free(index, num_segments);
+    _nodes.get(numa_id).free(index, num_segments);
   });
 }
 

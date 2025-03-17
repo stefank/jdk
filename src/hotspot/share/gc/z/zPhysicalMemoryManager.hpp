@@ -36,7 +36,7 @@ private:
   using ZMemoryManager = ZMemoryManagerImpl<ZBackingIndexRange>;
 
   ZPhysicalMemoryBacking   _backing;
-  ZPerNUMA<ZMemoryManager> _managers;
+  ZPerNUMA<ZMemoryManager> _nodes;
 
 public:
   ZPhysicalMemoryManager(size_t max_capacity);
