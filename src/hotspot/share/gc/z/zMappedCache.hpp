@@ -55,7 +55,6 @@ private:
   size_t                    _size;
   size_t                    _min;
 
-  static size_t start_index_plus_one(size_t min_size);
   static size_t get_size_class(size_t index);
 
   void tree_insert(const Tree::FindCursor& cursor, const ZVirtualMemory& vmem);
