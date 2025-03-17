@@ -1674,6 +1674,7 @@ void ZPageAllocator::copy_claimed_physical_multi_node(ZPageAllocation* allocatio
   // Start at the new dest offset
   zoffset allocation_destination_offset = vmem.start();
   size_t total_harvested = 0;
+  int num_vmems_harvested = 0;
 
   ZArrayIterator<ZMemoryAllocation*> allocation_iter(allocation->multi_node_allocation()->allocations());
   for (ZMemoryAllocation* partial_allocation; allocation_iter.next(&partial_allocation);) {
@@ -1690,6 +1691,7 @@ void ZPageAllocator::copy_claimed_physical_multi_node(ZPageAllocation* allocatio
       // Keep track of amount harvested and advance to next partial_vmem's offset
       harvested += partial_vmem.size();
       partial_vmem_destination_offset += partial_vmem.size();
+      num_vmems_harvested += 1;
     }
 
     // Register amount harvested and advance to next allocation's offset
@@ -1698,6 +1700,9 @@ void ZPageAllocator::copy_claimed_physical_multi_node(ZPageAllocation* allocatio
     allocation_destination_offset += partial_allocation->size();
   }
 
+  if (total_harvested > 0) {
+    log_debug(gc, heap)("Mapped Cache Harvest: %zuM from %d ranges", total_harvested / M, num_vmems_harvested);
+  }
   allocation->memory_allocation()->set_harvested(total_harvested);
 }
 
