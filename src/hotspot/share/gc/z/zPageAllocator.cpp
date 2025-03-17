@@ -683,6 +683,13 @@ size_t ZAllocNode::uncommit(uint64_t* timeout) {
     const size_t limit_upper_bound = MAX2(ZGranuleSize, align_down(256 * M / ZNUMA::count(), ZGranuleSize));
     const size_t limit = MIN2(align_up(_current_max_capacity >> 7, ZGranuleSize), limit_upper_bound);
 
+    if (limit == 0) {
+      // This may occur if the current max capacity for this node is 0
+      // Set timeout to ZUncommitDelay
+      *timeout = ZUncommitDelay;
+      return 0;
+    }
+
     if (time_since_last_uncommit < double(ZUncommitDelay)) {
       // We are in the uncommit phase
       const size_t num_uncommits_left = _to_uncommit / limit;

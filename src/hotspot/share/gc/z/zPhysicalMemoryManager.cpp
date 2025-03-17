@@ -51,12 +51,19 @@ ZPhysicalMemoryManager::ZPhysicalMemoryManager(size_t max_capacity)
   ZBackingIndexMax = checked_cast<uint32_t>(max_capacity >> ZGranuleSizeShift);
 
   // Install capacity into manager(s)
+  const size_t num_segments_total = max_capacity >> ZGranuleSizeShift;
   zbacking_index_end next_index = zbacking_index_end::zero;
   uint32_t numa_id;
   ZPerNUMAIterator<ZMemoryManager> iter(&_nodes);
   for (ZMemoryManager* manager; iter.next(&manager, &numa_id);) {
-    const size_t capacity = ZNUMA::calculate_share(numa_id, max_capacity);
-    const size_t num_segments = capacity >> ZGranuleSizeShift;
+    const size_t num_segments = ZNUMA::calculate_share(numa_id, num_segments_total, 1 /* granule */);
+
+    if (num_segments == 0) {
+      // If the capacity consist of less granules than the number of nodes some
+      // nodes will be empty.
+      break;
+    }
+
     const zbacking_index index = to_zbacking_index(next_index);
 
     // Insert the next number of segment indicies into id's manager

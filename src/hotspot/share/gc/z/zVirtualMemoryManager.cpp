@@ -55,17 +55,28 @@ ZVirtualMemoryManager::ZVirtualMemoryManager(size_t max_capacity)
   // Initialize platform specific parts after reserving address space
   pd_initialize_after_reserve();
 
+  // If the capacity consist of less granules than the number of nodes some
+  // nodes will be empty. Distribute these shares on the none empty nodes
+  const uint32_t first_empty_numa_id = MIN2(static_cast<uint32_t>(max_capacity >> ZGranuleSizeShift), ZNUMA::count());
+  const uint32_t ignore_count = ZNUMA::count() - first_empty_numa_id;
+
   // Install reserved memory into manager(s)
   uint32_t numa_id;
   ZPerNUMAIterator<ZMemoryManager> iter(&_nodes);
   for (ZMemoryManager* manager; iter.next(&manager, &numa_id);) {
-    const size_t reserved = ZNUMA::calculate_share(numa_id, reserved_total);
+    if (numa_id == first_empty_numa_id) {
+      // The remaining nodes are all empty
+      break;
+    }
+
+    const size_t reserved = ZNUMA::calculate_share(numa_id, reserved_total, ZGranuleSize, ignore_count);
     // Transfer reserved memory
     _init_node.transfer_low_address(manager, reserved);
 
     // Store the range for the manager
     _vmem_ranges.set(manager->total_range(), numa_id);
   }
+  assert(_init_node.total_range().is_null(), "must insert all reserved");
 
   // Successfully initialized
   _initialized = true;
@@ -265,7 +276,7 @@ void ZVirtualMemoryManager::free(const ZVirtualMemory& vmem, uint32_t numa_id) {
 uint32_t ZVirtualMemoryManager::get_numa_id(const ZVirtualMemory& vmem) const {
   for (uint32_t numa_id = 0; numa_id < ZNUMA::count(); numa_id++) {
     const ZVirtualMemory& range = _vmem_ranges.get(numa_id);
-    if (vmem.start() >= range.start() && vmem.end() <= range.end()) {
+    if (!vmem.is_null() && vmem.start() >= range.start() && vmem.end() <= range.end()) {
       return numa_id;
     }
   }

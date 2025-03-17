@@ -46,9 +46,12 @@ inline uint32_t ZNUMA::count() {
   return _count;
 }
 
-inline size_t ZNUMA::calculate_share(uint32_t numa_id, size_t total, size_t granule) {
+inline size_t ZNUMA::calculate_share(uint32_t numa_id, size_t total, size_t granule, uint32_t ignore_count) {
   assert(total % granule == 0, "total must be divisible by granule");
-  const uint32_t num_nodes = count();
+  assert(ignore_count < count(), "must not ignore all nodes");
+  assert(numa_id < count() - ignore_count, "numa_id must be in bounds");
+
+  const uint32_t num_nodes = count() - ignore_count;
   const size_t base_share = ((total / num_nodes) / granule) * granule;
 
   const size_t extra_share_nodes = (total - base_share * num_nodes) / granule;

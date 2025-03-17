@@ -45,7 +45,7 @@ public:
 
   static uint32_t memory_id(uintptr_t addr);
 
-  static size_t calculate_share(uint32_t numa_id, size_t total, size_t granule = ZGranuleSize);
+  static size_t calculate_share(uint32_t numa_id, size_t total, size_t granule = ZGranuleSize, uint32_t ignore_count = 0);
 
   static const char* to_string();
 };
