@@ -25,6 +25,7 @@
 #define SHARE_GC_Z_ZMAPPEDCACHE_HPP
 
 #include "gc/z/zArray.hpp"
+#include "gc/z/zGlobals.hpp"
 #include "gc/z/zIntrusiveRBTree.hpp"
 #include "gc/z/zMemory.hpp"
 #include "utilities/globalDefinitions.hpp"
@@ -40,36 +41,70 @@ private:
     int operator()(zoffset key, ZIntrusiveRBTreeNode* node);
   };
 
-  using Tree = ZIntrusiveRBTree<zoffset, EntryCompare>;
-  using Node = ZIntrusiveRBTreeNode;
-
   struct ZSizeClassListNode {
     ZListNode<ZSizeClassListNode> _node;
   };
 
-  static constexpr size_t SizeClasses[] = {32 * M, 512 * M};
-  static constexpr size_t NumSizeClasses = ARRAY_SIZE(SizeClasses);
+  using Tree              = ZIntrusiveRBTree<zoffset, EntryCompare>;
+  using TreeNode          = ZIntrusiveRBTreeNode;
+  using SizeClassList     = ZList<ZSizeClassListNode>;
+  using SizeClassListNode = ZSizeClassListNode;
 
-  Tree                      _tree;
-  ZList<ZSizeClassListNode> _size_class_lists[NumSizeClasses];
-  size_t                    _size;
-  size_t                    _min;
+  // Maintain size class lists from 4MB to 16GB
+  static constexpr int MaxLongArraySizeClassShift = 3 /* 8 byte */ + 31 /* max length */;
+  static constexpr int MinSizeClassShift = 1;
+  static constexpr int MaxSizeClassShift = MaxLongArraySizeClassShift - ZGranuleSizeShift;
+  static constexpr int NumSizeClasses = MaxSizeClassShift - MinSizeClassShift + 1;
+  static constexpr size_t SizeClasses[NumSizeClasses] = {
+    ZGranuleSize * (1u << (MinSizeClassShift + 0)),
+    ZGranuleSize * (1u << (MinSizeClassShift + 1)),
+    ZGranuleSize * (1u << (MinSizeClassShift + 2)),
+    ZGranuleSize * (1u << (MinSizeClassShift + 3)),
+    ZGranuleSize * (1u << (MinSizeClassShift + 4)),
+    ZGranuleSize * (1u << (MinSizeClassShift + 5)),
+    ZGranuleSize * (1u << (MinSizeClassShift + 6)),
+    ZGranuleSize * (1u << (MinSizeClassShift + 7)),
+    ZGranuleSize * (1u << (MinSizeClassShift + 8)),
+    ZGranuleSize * (1u << (MinSizeClassShift + 9)),
+    ZGranuleSize * (1u << (MinSizeClassShift + 10)),
+    ZGranuleSize * (1u << (MinSizeClassShift + 11)),
+    ZGranuleSize * (1u << (MinSizeClassShift + 12)),
+  };
+  static_assert(SizeClasses[NumSizeClasses - 1] == ZGranuleSize * (1u << MaxSizeClassShift), "All size classes must be initalized");
 
-  static size_t get_size_class(size_t index);
+  Tree          _tree;
+  SizeClassList _size_class_lists[NumSizeClasses];
+  size_t        _size;
+  size_t        _min;
+
+  static int size_class_index(size_t size);
+  static int guaranteed_size_class_index(size_t size);
 
   void tree_insert(const Tree::FindCursor& cursor, const ZVirtualMemory& vmem);
   void tree_remove(const Tree::FindCursor& cursor, const ZVirtualMemory& vmem);
   void tree_replace(const Tree::FindCursor& cursor, const ZVirtualMemory& vmem);
   void tree_update(ZMappedCacheEntry* entry, const ZVirtualMemory& vmem);
 
-  template <typename SelectFunction>
+  enum class RemovalStrategy {
+    LowestAddress,
+    HighestAddress,
+    SizeClasses,
+  };
+
+  template <RemovalStrategy strategy, typename SelectFunction>
   ZVirtualMemory remove_vmem(ZMappedCacheEntry* const entry, size_t min_size, SelectFunction select);
 
-  template <typename SelectFunction, typename ConsumeFunction>
-  void scan_remove_vmem(size_t min_size, SelectFunction select, ConsumeFunction consume);
+  template <typename MaxSelectFunction, typename SelectFunction, typename ConsumeFunction>
+  bool try_remove_vmem_size_class(size_t min_size, MaxSelectFunction max_select, SelectFunction select, ConsumeFunction consume);
 
-  template <typename SelectFunction, typename ConsumeFunction>
-  void scan_remove_vmem(SelectFunction select, ConsumeFunction consume);
+  template <RemovalStrategy strategy, typename MaxSelectFunction, typename SelectFunction, typename ConsumeFunction>
+  void scan_remove_vmem(size_t min_size, MaxSelectFunction max_select, SelectFunction select, ConsumeFunction consume);
+
+  template <RemovalStrategy strategy, typename MaxSelectFunction, typename SelectFunction, typename ConsumeFunction>
+  void scan_remove_vmem(MaxSelectFunction max_select, SelectFunction select, ConsumeFunction consume);
+
+  template <RemovalStrategy strategy>
+  size_t remove_discontiguous_with_strategy(ZArray<ZVirtualMemory>* vmems, size_t size);
 
 public:
   ZMappedCache();
