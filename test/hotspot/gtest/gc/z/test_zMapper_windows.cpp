@@ -82,8 +82,8 @@ public:
 
     // Fake a ZVirtualMemoryManager
     _vmm = (ZVirtualMemoryManager*)os::malloc(sizeof(ZVirtualMemoryManager), mtTest);
-    _vas = ::new (&_vmm->_managers) ZPerNUMA<ZMemoryManager>();
-    _va = _vmm->_managers.addr(0);
+    _vas = ::new (&_vmm->_nodes) ZPerNUMA<ZMemoryManager>();
+    _va = _vmm->_nodes.addr(0);
 
     // Reserve address space for the test
     if (!reserve_for_test()) {
