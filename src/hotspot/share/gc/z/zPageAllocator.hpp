@@ -134,7 +134,7 @@ public:
   void unmap_virtual(const ZVirtualMemory& vmem);
 
   ZVirtualMemory alloc_virtual(size_t size, bool force_low_address);
-  size_t alloc_virtual(size_t size, ZArray<ZVirtualMemory>* vmems);
+  size_t alloc_virtual(size_t size, ZArray<ZVirtualMemory>* vmems_out);
   void free_virtual(const ZVirtualMemory& vmem);
 
   void shuffle_virtual(const ZVirtualMemory& vmem, ZArray<ZVirtualMemory>* vmems_out);
@@ -207,6 +207,7 @@ private:
   void allocate_remaining_physical_single_node(ZSingleNodeAllocation* allocation, const ZVirtualMemory& vmem);
   void allocate_remaining_physical(ZPageAllocation* allocation, const ZVirtualMemory& vmem);
 
+  bool commit_and_increase_capacity_multi_node(ZMultiNodeAllocation* multi_node_allocation, const ZVirtualMemory& vmem);
   bool commit_and_map_memory_multi_node(ZMultiNodeAllocation* multi_node_allocation, const ZVirtualMemory& vmem);
   bool commit_and_map_memory_single_node(ZSingleNodeAllocation* single_node_allocation, const ZVirtualMemory& vmem);
   bool commit_and_map_memory(ZPageAllocation* allocation, const ZVirtualMemory& vmem);
