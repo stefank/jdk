@@ -150,7 +150,11 @@ public:
       copy_from_stash(stash_index, vmem);
       stash_index += (int)num_granules;
     }
-  };
+  }
+
+  void pop_all(ZArray<ZVirtualMemory>* vmems) {
+    pop(vmems, vmems->length());
+  }
 };
 
 class ZMemoryAllocation : public CHeapObj<mtGC> {
@@ -158,6 +162,7 @@ private:
   const size_t           _size;
   uint32_t               _numa_id;
   ZArray<ZVirtualMemory> _claimed_vmems;
+  int                    _num_harvested;
   size_t                 _harvested;
   size_t                 _committed_increased_capacity;
   bool                   _commit_failed;
@@ -167,6 +172,7 @@ public:
     : _size(other._size),
       _numa_id(other._numa_id),
       _claimed_vmems(other._claimed_vmems.length()),
+      _num_harvested(other._num_harvested),
       _harvested(other._harvested),
       _committed_increased_capacity(other._committed_increased_capacity),
       _commit_failed(other._commit_failed) {
@@ -177,6 +183,7 @@ public:
     : _size(a1._size + a2._size),
       _numa_id(a1._numa_id),
       _claimed_vmems(a1._claimed_vmems.length() + a2._claimed_vmems.length()),
+      _num_harvested(a1._num_harvested + a2._num_harvested),
       _harvested(a1._harvested + a2._harvested),
       _committed_increased_capacity(a1._committed_increased_capacity + a2._committed_increased_capacity),
       _commit_failed(a1._commit_failed || a2._commit_failed) {
@@ -189,6 +196,7 @@ public:
     : _size(size),
       _numa_id(-1),
       _claimed_vmems(1),
+      _num_harvested(0),
       _harvested(0),
       _committed_increased_capacity(0),
       _commit_failed(false) {}
@@ -203,11 +211,16 @@ public:
     return _size;
   }
 
+  int num_harvested() const {
+    return _num_harvested;
+  }
+
   size_t harvested() const {
     return _harvested;
   }
 
-  void set_harvested(size_t harvested) {
+  void set_harvested(int num_harvested, size_t harvested) {
+    _num_harvested = harvested;
     _harvested = harvested;
   }
 
@@ -275,7 +288,6 @@ class ZMultiNodeAllocation : public StackObj {
 private:
   const size_t               _size;
   ZArray<ZMemoryAllocation*> _allocations;
-  size_t                     _total_harvested;
   ZVirtualMemory             _final_vmem;
   uint32_t                   _final_vmem_numa_id;
 
@@ -283,7 +295,6 @@ public:
   ZMultiNodeAllocation(size_t size)
     : _size(size),
       _allocations(0),
-      _total_harvested(0),
       _final_vmem(),
       _final_vmem_numa_id(-1) {}
 
@@ -308,7 +319,6 @@ public:
     }
     _allocations.clear();
 
-    _total_harvested = 0;
     _final_vmem = {};
     _final_vmem_numa_id = -1;
   }
@@ -359,12 +369,24 @@ public:
     return &_allocations.last();
   }
 
-  void set_total_harvested(size_t total_harvested) {
-    _total_harvested = total_harvested;
+  int sum_num_harvested_vmems() const {
+    int total = 0;
+
+    for (const ZMemoryAllocation* allocation : _allocations) {
+      total += allocation->num_harvested();
+    }
+
+    return total;
   }
 
-  size_t total_harvested() const {
-    return _total_harvested;
+  size_t sum_harvested() const {
+    size_t total = 0;
+
+    for (const ZMemoryAllocation* allocation : _allocations) {
+      total += allocation->harvested();
+    }
+
+    return total;
   }
 
   size_t sum_committed_increased_capacity() const {
@@ -394,6 +416,17 @@ public:
     _final_vmem = {};
     return vmem;
   }
+};
+
+struct ZPageAllocationStats {
+  int    _num_harvested_vmems;
+  size_t _total_harvested;
+  size_t _total_committed_capacity;
+
+  ZPageAllocationStats(int num_harvested_vmems, size_t total_harvested, size_t total_committed_capacity)
+    : _num_harvested_vmems(num_harvested_vmems),
+      _total_harvested(total_harvested),
+      _total_committed_capacity(total_committed_capacity) {}
 };
 
 class ZPageAllocation : public StackObj {
@@ -521,6 +554,20 @@ public:
 
   bool gc_relocation() const {
     return _flags.gc_relocation();
+  }
+
+  ZPageAllocationStats stats() const {
+    if (_is_multi_node) {
+      return ZPageAllocationStats(
+          _multi_node_allocation.sum_num_harvested_vmems(),
+          _multi_node_allocation.sum_harvested(),
+          _multi_node_allocation.sum_committed_increased_capacity());
+    } else {
+      return ZPageAllocationStats(
+          _single_node_allocation.allocation()->num_harvested(),
+          _single_node_allocation.allocation()->harvested(),
+          _single_node_allocation.allocation()->committed_increased_capacity());
+    }
   }
 };
 
@@ -700,7 +747,8 @@ void ZAllocNode::claim_mapped_or_increase_capacity(ZMemoryAllocation* allocation
   // cache has enough remaining to cover the request.
   const size_t remaining = size - increased_capacity;
   const size_t harvested = _cache.remove_discontiguous(remaining, out);
-  allocation->set_harvested(harvested);
+  const int num_harvested = out->length();
+  allocation->set_harvested(num_harvested, harvested);
 
   assert(harvested + increased_capacity == size, "Mismatch harvested: %zu increased_capacity: %zu size: %zu",
          harvested, increased_capacity, size);
@@ -1035,8 +1083,6 @@ bool ZAllocNode::prime(ZWorkers* workers, size_t to_prime) {
 void ZAllocNode::harvest_claimed_physical(ZMemoryAllocation* allocation) {
   verify_memory_allocation_association(allocation);
 
-  const int num_vmems_harvested = allocation->claimed_vmems()->length();
-
   const int num_granules = (int)(allocation->harvested() >> ZGranuleSizeShift);
   ZSegmentStash segments(&physical_mappings(), num_granules);
 
@@ -1054,12 +1100,7 @@ void ZAllocNode::harvest_claimed_physical(ZMemoryAllocation* allocation) {
   shuffle_virtual(allocation->size(), allocation->claimed_vmems());
 
   // Restore segments
-  segments.pop(allocation->claimed_vmems(), allocation->claimed_vmems()->length());
-
-  const size_t harvested = allocation->harvested();
-  if (harvested > 0) {
-    log_debug(gc, heap)("Mapped Cache Harvest: %zuM from %d ranges", harvested / M, num_vmems_harvested);
-  }
+  segments.pop_all(allocation->claimed_vmems());
 }
 
 static bool is_alloc_satisfied(const ZMemoryAllocation* allocation) {
@@ -1802,39 +1843,27 @@ void ZPageAllocator::copy_physical_segments(zoffset to, const ZVirtualMemory& fr
 
 void ZPageAllocator::copy_claimed_physical_multi_node(ZMultiNodeAllocation* multi_node_allocation, const ZVirtualMemory& vmem) {
   // Start at the new dest offset
-  zoffset allocation_destination_offset = vmem.start();
-  size_t total_harvested = 0;
-  int num_vmems_harvested = 0;
+  zoffset_end offset = to_zoffset_end(vmem.start());
 
-  ZArrayIterator<ZMemoryAllocation*> allocation_iter(multi_node_allocation->allocations());
-  for (ZMemoryAllocation* partial_allocation; allocation_iter.next(&partial_allocation);) {
-    zoffset partial_vmem_destination_offset = allocation_destination_offset;
-    size_t harvested = 0;
-
+  for (const ZMemoryAllocation* partial_allocation : *multi_node_allocation->allocations()) {
     // Iterate over all claimed vmems and copy physical segments into the partial_allocations
     // destination offset
-    ZArrayIterator<ZVirtualMemory> iter(partial_allocation->claimed_vmems());
-    for (ZVirtualMemory partial_vmem; iter.next(&partial_vmem);) {
+    for (const ZVirtualMemory partial_vmem : *partial_allocation->claimed_vmems()) {
       // Copy physical segments
-      copy_physical_segments(partial_vmem_destination_offset, partial_vmem);
+      copy_physical_segments(to_zoffset(offset), partial_vmem);
 
-      // Keep track of amount harvested and advance to next partial_vmem's offset
-      harvested += partial_vmem.size();
-      partial_vmem_destination_offset += partial_vmem.size();
-      num_vmems_harvested += 1;
+      // Advance to next partial_vmem's offset
+      offset += partial_vmem.size();
     }
 
-    // Register amount harvested and advance to next allocation's offset
-    total_harvested += harvested;
-    partial_allocation->set_harvested(harvested);
-    allocation_destination_offset += partial_allocation->size();
+    // Skip the part that will be committed at a later stage
+    const size_t increased_capacity = partial_allocation->size() - partial_allocation->harvested();
+    offset += increased_capacity;
   }
 
-  if (total_harvested > 0) {
-    log_debug(gc, heap)("Mapped Cache Harvest: %zuM from %d ranges", total_harvested / M, num_vmems_harvested);
-  }
-
-  multi_node_allocation->set_total_harvested(total_harvested);
+  assert(offset == vmem.end(), "All memory should have been accounted for "
+                               "offset: " PTR_FORMAT " vmem.end(): " PTR_FORMAT,
+                               untype(offset), untype(vmem.end()));
 }
 
 bool ZPageAllocator::claim_virtual_memory_multi_node(ZMultiNodeAllocation* multi_node_allocation) {
@@ -2187,18 +2216,19 @@ ZPage* ZPageAllocator::alloc_page(ZPageType type, size_t size, ZAllocationFlags 
     ZStatMutatorAllocRate::sample_allocation(size);
   }
 
+  const ZPageAllocationStats stats = allocation.stats();
+  const int num_harvested_vmems = stats._num_harvested_vmems;
+  const size_t harvested = stats._total_harvested;
+  const size_t committed = stats._total_committed_capacity;
 
-  const size_t harvested = allocation.is_multi_node()
-      ? allocation.multi_node_allocation()->total_harvested()
-      : allocation.single_node_allocation()->allocation()->harvested();
-
-  const size_t committed = allocation.is_multi_node()
-      ? allocation.multi_node_allocation()->sum_committed_increased_capacity()
-      : allocation.single_node_allocation()->allocation()->committed_increased_capacity();
 
   assert(harvested + committed == size || (harvested == 0 && committed == 0),
          "Mismatch harvested: %zu committed: %zu size: %zu",
          harvested, committed, size);
+
+  if (harvested > 0) {
+    log_debug(gc, heap)("Mapped Cache Harvest: %zuM from %d ranges", harvested / M, num_harvested_vmems);
+  }
 
   // Send event
   event.commit((u8)type, size, harvested, committed,
