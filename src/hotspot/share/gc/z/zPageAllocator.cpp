@@ -220,7 +220,7 @@ public:
   }
 
   void set_harvested(int num_harvested, size_t harvested) {
-    _num_harvested = harvested;
+    _num_harvested = num_harvested;
     _harvested = harvested;
   }
 
@@ -229,6 +229,7 @@ public:
   }
 
   void set_committed_increased_capacity(size_t committed_increased_capacity) {
+    assert(_committed_increased_capacity == 0, "Should this only be set once?");
     _committed_increased_capacity = committed_increased_capacity;
   }
 
@@ -1849,15 +1850,24 @@ void ZPageAllocator::copy_claimed_physical_multi_node(ZMultiNodeAllocation* mult
   for (const ZMemoryAllocation* partial_allocation : *multi_node_allocation->allocations()) {
     // Iterate over all claimed vmems and copy physical segments into the partial_allocations
     // destination offset
-    for (const ZVirtualMemory partial_vmem : *partial_allocation->claimed_vmems()) {
+    for (const ZVirtualMemory claimed_vmem : *partial_allocation->claimed_vmems()) {
       // Copy physical segments
-      copy_physical_segments(to_zoffset(offset), partial_vmem);
+      copy_physical_segments(to_zoffset(offset), claimed_vmem);
 
       // Advance to next partial_vmem's offset
-      offset += partial_vmem.size();
+      offset += claimed_vmem.size();
     }
 
     // Skip the part that will be committed at a later stage
+    if (partial_allocation->harvested() == 0 && partial_allocation->claimed_vmems()->length() == 1) {
+      // We found a matching vmem without needing to harvest
+
+      assert(partial_allocation->claimed_vmems()->at(0).size() == partial_allocation->size(), "Should have a matching vmem");
+
+      // Already accounted for when iterating over the claimed vmems.
+      continue;
+    }
+
     const size_t increased_capacity = partial_allocation->size() - partial_allocation->harvested();
     offset += increased_capacity;
   }
@@ -1914,6 +1924,12 @@ void ZPageAllocator::allocate_remaining_physical(ZMemoryAllocation* allocation, 
   // The previously harvested memory is memory that has already been committed
   // and mapped. The rest of the vmem gets physical memory assigned here and
   // will be committed in a subsequent function.
+
+  if (allocation->harvested() == 0 && allocation->claimed_vmems()->length() == 1) {
+    // We managed to claim a matching vmem for this node. Nothing more to claim here.
+    assert(allocation->claimed_vmems()->at(0).size() == allocation->size(), "Must be a perfect match");
+    return;
+  }
 
   const size_t committed  = allocation->harvested();
   const size_t uncomitted = allocation->size() - committed;
