@@ -329,34 +329,37 @@ public:
   }
 
   void register_allocation(const ZMemoryAllocation& allocation) {
-    ZMemoryAllocation*& allocation_ptr = get_or_create_allocation(allocation.numa_id());
+    ZMemoryAllocation** const slot = allocation_slot(allocation.numa_id());
 
-    if (allocation_ptr == nullptr) {
+    if (*slot == nullptr) {
       // First allocation for this node_id
-      allocation_ptr = new ZMemoryAllocation(allocation);
+      *slot = new ZMemoryAllocation(allocation);
     } else {
       // Allocation already exists for this node_id, merge allocations
-      ZMemoryAllocation* old_allocation_ptr = allocation_ptr;
-      allocation_ptr = new ZMemoryAllocation(allocation, *old_allocation_ptr);
+      ZMemoryAllocation* const old_allocation = *slot;
+      *slot = new ZMemoryAllocation(allocation, *old_allocation);
 
       // Delete old allocation
-      delete old_allocation_ptr;
+      delete old_allocation;
     }
   }
 
-  ZMemoryAllocation*& get_or_create_allocation(uint32_t numa_id) {
+  ZMemoryAllocation** allocation_slot(uint32_t numa_id) {
     // Try to find an existing allocation for numa_id
     for (int i = 0; i < _allocations.length(); ++i) {
-      ZMemoryAllocation*& allocation_ptr = _allocations.at(i);
-      if (allocation_ptr->numa_id() == numa_id) {
+      ZMemoryAllocation** const slot_addr = _allocations.adr_at(i);
+      ZMemoryAllocation* const allocation = *slot_addr;
+      if (allocation->numa_id() == numa_id) {
         // Found an existing slot
-        return allocation_ptr;
+        return slot_addr;
       }
     }
 
     // Push an empty slot for the numa_id
     _allocations.push(nullptr);
-    return _allocations.last();
+
+    // Return the address of the slot
+    return &_allocations.last();
   }
 
   void set_total_harvested(size_t total_harvested) {
