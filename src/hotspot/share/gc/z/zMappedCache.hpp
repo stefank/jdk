@@ -55,22 +55,6 @@ private:
   static constexpr int MinSizeClassShift = 1;
   static constexpr int MaxSizeClassShift = MaxLongArraySizeClassShift - ZGranuleSizeShift;
   static constexpr int NumSizeClasses = MaxSizeClassShift - MinSizeClassShift + 1;
-  static constexpr size_t SizeClasses[NumSizeClasses] = {
-    ZGranuleSize * (1u << (MinSizeClassShift + 0)),
-    ZGranuleSize * (1u << (MinSizeClassShift + 1)),
-    ZGranuleSize * (1u << (MinSizeClassShift + 2)),
-    ZGranuleSize * (1u << (MinSizeClassShift + 3)),
-    ZGranuleSize * (1u << (MinSizeClassShift + 4)),
-    ZGranuleSize * (1u << (MinSizeClassShift + 5)),
-    ZGranuleSize * (1u << (MinSizeClassShift + 6)),
-    ZGranuleSize * (1u << (MinSizeClassShift + 7)),
-    ZGranuleSize * (1u << (MinSizeClassShift + 8)),
-    ZGranuleSize * (1u << (MinSizeClassShift + 9)),
-    ZGranuleSize * (1u << (MinSizeClassShift + 10)),
-    ZGranuleSize * (1u << (MinSizeClassShift + 11)),
-    ZGranuleSize * (1u << (MinSizeClassShift + 12)),
-  };
-  static_assert(SizeClasses[NumSizeClasses - 1] == ZGranuleSize * (1u << MaxSizeClassShift), "All size classes must be initalized");
 
   Tree          _tree;
   SizeClassList _size_class_lists[NumSizeClasses];
@@ -94,14 +78,14 @@ private:
   template <RemovalStrategy strategy, typename SelectFunction>
   ZVirtualMemory remove_vmem(ZMappedCacheEntry* const entry, size_t min_size, SelectFunction select);
 
-  template <typename MaxSelectFunction, typename SelectFunction, typename ConsumeFunction>
-  bool try_remove_vmem_size_class(size_t min_size, MaxSelectFunction max_select, SelectFunction select, ConsumeFunction consume);
+  template <typename SelectFunction, typename ConsumeFunction>
+  bool try_remove_vmem_size_class(size_t min_size, SelectFunction select, ConsumeFunction consume);
 
-  template <RemovalStrategy strategy, typename MaxSelectFunction, typename SelectFunction, typename ConsumeFunction>
-  void scan_remove_vmem(size_t min_size, MaxSelectFunction max_select, SelectFunction select, ConsumeFunction consume);
+  template <RemovalStrategy strategy, typename SelectFunction, typename ConsumeFunction>
+  void scan_remove_vmem(size_t min_size, SelectFunction select, ConsumeFunction consume);
 
-  template <RemovalStrategy strategy, typename MaxSelectFunction, typename SelectFunction, typename ConsumeFunction>
-  void scan_remove_vmem(MaxSelectFunction max_select, SelectFunction select, ConsumeFunction consume);
+  template <RemovalStrategy strategy, typename SelectFunction, typename ConsumeFunction>
+  void scan_remove_vmem(SelectFunction select, ConsumeFunction consume);
 
   template <RemovalStrategy strategy>
   size_t remove_discontiguous_with_strategy(ZArray<ZVirtualMemory>* vmems, size_t size);

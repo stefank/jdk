@@ -32,8 +32,6 @@
 #include "utilities/globalDefinitions.hpp"
 #include "utilities/powerOfTwo.hpp"
 
-constexpr size_t ZMappedCache::SizeClasses[];
-
 class ZMappedCacheEntry {
 private:
   zoffset                         _start;
@@ -297,35 +295,37 @@ ZVirtualMemory ZMappedCache::remove_vmem(ZMappedCacheEntry* const entry, size_t 
   return vmem;
 }
 
-template <typename MaxSelectFunction, typename SelectFunction, typename ConsumeFunction>
-bool ZMappedCache::try_remove_vmem_size_class(size_t min_size, MaxSelectFunction max_select, SelectFunction select, ConsumeFunction consume) {
-  // Start scanning lists using the max remaining size
-  for (size_t last_max_size = 0, max_size = max_select();
-       max_size != last_max_size;
-       last_max_size = max_size, max_size = max_select()) {
-    assert(min_size <= max_size, "must be %zu <= %zu", min_size, max_size);
-    // Start scaning from max_size guaranteed size class to the largest size class
-    const int guaranteed_index = guaranteed_size_class_index(max_size);
-    for (int index = guaranteed_index; index != -1 && index < NumSizeClasses; ++index) {
-      ZList<ZSizeClassListNode>& list = _size_class_lists[index];
-      if (!list.is_empty()) {
-        // Because this is guaranteed, select should always succeed
-        ZMappedCacheEntry* const entry = ZMappedCacheEntry::cast_to_entry(list.first());
-        const ZVirtualMemory vmem = remove_vmem<RemovalStrategy::LowestAddress>(entry, min_size, select);
-        assert(!vmem.is_null(), "select must succeed");
-        if (consume(vmem)) {
-          // consume  is satisfied
-          return true;
-        }
+template <typename SelectFunction, typename ConsumeFunction>
+bool ZMappedCache::try_remove_vmem_size_class(size_t min_size, SelectFunction select, ConsumeFunction consume) {
+new_max_size:
+  // Query the max select size possible given the size of the cache
+  const size_t max_size = select(_size);
 
-        // Continue with new max remaining size
-        break;
+  if (max_size < min_size) {
+    // Never select less than min_size
+    return false;
+  }
+
+  // Start scaning from max_size guaranteed size class to the largest size class
+  const int guaranteed_index = guaranteed_size_class_index(max_size);
+  for (int index = guaranteed_index; index != -1 && index < NumSizeClasses; ++index) {
+    ZList<ZSizeClassListNode>& list = _size_class_lists[index];
+    if (!list.is_empty()) {
+      // Because this is guaranteed, select should always succeed
+      ZMappedCacheEntry* const entry = ZMappedCacheEntry::cast_to_entry(list.first());
+      const ZVirtualMemory vmem = remove_vmem<RemovalStrategy::LowestAddress>(entry, min_size, select);
+      assert(!vmem.is_null(), "select must succeed");
+      if (consume(vmem)) {
+        // consume  is satisfied
+        return true;
       }
+
+      // Continue with a new max_size
+      goto new_max_size;
     }
   }
 
   // Consume the rest starting at max_size's size class to min_size's size class
-  const size_t max_size = max_select();
   const int max_size_index = size_class_index(max_size);
   const int min_size_index = size_class_index(min_size);
   const int lowest_index = MAX2(min_size_index, 0);
@@ -346,10 +346,10 @@ bool ZMappedCache::try_remove_vmem_size_class(size_t min_size, MaxSelectFunction
   return false;
 }
 
-template <ZMappedCache::RemovalStrategy strategy, typename MaxSelectFunction, typename SelectFunction, typename ConsumeFunction>
-void ZMappedCache::scan_remove_vmem(size_t min_size, MaxSelectFunction max_select, SelectFunction select, ConsumeFunction consume) {
+template <ZMappedCache::RemovalStrategy strategy, typename SelectFunction, typename ConsumeFunction>
+void ZMappedCache::scan_remove_vmem(size_t min_size, SelectFunction select, ConsumeFunction consume) {
   if (strategy == RemovalStrategy::SizeClasses) {
-    if (try_remove_vmem_size_class(min_size, max_select, select, consume)) {
+    if (try_remove_vmem_size_class(min_size, select, consume)) {
       // Satisfied using size classes
       return;
     } else if (size_class_index(min_size) != -1) {
@@ -387,10 +387,10 @@ void ZMappedCache::scan_remove_vmem(size_t min_size, MaxSelectFunction max_selec
 
 }
 
-template <ZMappedCache::RemovalStrategy strategy, typename MaxSelectFunction, typename SelectFunction, typename ConsumeFunction>
-void ZMappedCache::scan_remove_vmem(MaxSelectFunction max_select, SelectFunction select, ConsumeFunction consume) {
+template <ZMappedCache::RemovalStrategy strategy, typename SelectFunction, typename ConsumeFunction>
+void ZMappedCache::scan_remove_vmem(SelectFunction select, ConsumeFunction consume) {
   // Scan without a min_size
-  scan_remove_vmem<strategy>(0, max_select, select, consume);
+  scan_remove_vmem<strategy>(0, select, consume);
 }
 
 template <ZMappedCache::RemovalStrategy strategy>
@@ -399,10 +399,6 @@ size_t ZMappedCache::remove_discontiguous_with_strategy(ZArray<ZVirtualMemory>* 
   precond(size % ZGranuleSize == 0);
 
   size_t remaining = size;
-  const auto max_select = [&]() {
-    // Select at most remaining
-    return remaining;
-  };
 
   const auto select_vmem = [&](size_t vmem_size) {
     // Select at most remaining
@@ -420,7 +416,7 @@ size_t ZMappedCache::remove_discontiguous_with_strategy(ZArray<ZVirtualMemory>* 
     return remaining == 0;
   };
 
-  scan_remove_vmem<strategy>(max_select, select_vmem, consume_vmem);
+  scan_remove_vmem<strategy>(select_vmem, consume_vmem);
 
   return size - remaining;
 }
@@ -498,11 +494,6 @@ ZVirtualMemory ZMappedCache::remove_contiguous(size_t size) {
 
   ZVirtualMemory result;
 
-  const auto max_select = [&]() {
-    // We always select the size
-    return size;
-  };
-
   const auto select_vmem = [&](size_t) {
     // We always select the size
     return size;
@@ -520,10 +511,10 @@ ZVirtualMemory ZMappedCache::remove_contiguous(size_t size) {
 
   if (size == ZPageSizeSmall) {
     // For small page allocation allocate at the lowest address
-    scan_remove_vmem<RemovalStrategy::LowestAddress>(size, max_select, select_vmem, consume_vmem);
+    scan_remove_vmem<RemovalStrategy::LowestAddress>(size, select_vmem, consume_vmem);
   } else {
     // Other sizes uses approximate best fit size classes first
-    scan_remove_vmem<RemovalStrategy::SizeClasses>(size, max_select, select_vmem, consume_vmem);
+    scan_remove_vmem<RemovalStrategy::SizeClasses>(size, select_vmem, consume_vmem);
   }
 
   return result;
