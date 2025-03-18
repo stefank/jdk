@@ -164,26 +164,25 @@ private:
 
 public:
   explicit ZMemoryAllocation(const ZMemoryAllocation& other)
-  : _size(other._size),
-    _numa_id(other._numa_id),
-    _claimed_vmems(other._claimed_vmems.length()),
-    _harvested(other._harvested),
-    _committed(other._committed),
-    _commit_failed(other._commit_failed) {
+    : _size(other._size),
+      _numa_id(other._numa_id),
+      _claimed_vmems(other._claimed_vmems.length()),
+      _harvested(other._harvested),
+      _committed(other._committed),
+      _commit_failed(other._commit_failed) {
     _claimed_vmems.appendAll(&other._claimed_vmems);
   }
 
   ZMemoryAllocation(const ZMemoryAllocation& a1, const ZMemoryAllocation& a2)
-  : _size(a1._size + a2._size),
-    _numa_id(a1._numa_id),
-    _claimed_vmems(a1._claimed_vmems.length() + a2._claimed_vmems.length()),
-    _harvested(a1._harvested + a2._harvested),
-    _committed(a1._committed + a2._committed),
-    _commit_failed(a1._commit_failed || a2._commit_failed) {
+    : _size(a1._size + a2._size),
+      _numa_id(a1._numa_id),
+      _claimed_vmems(a1._claimed_vmems.length() + a2._claimed_vmems.length()),
+      _harvested(a1._harvested + a2._harvested),
+      _committed(a1._committed + a2._committed),
+      _commit_failed(a1._commit_failed || a2._commit_failed) {
     assert(a1._numa_id == a2._numa_id, "only merge with same numa_id");
     _claimed_vmems.appendAll(&a1._claimed_vmems);
     _claimed_vmems.appendAll(&a2._claimed_vmems);
-
   }
 
   explicit ZMemoryAllocation(size_t size, uint32_t numa_id = -1)
@@ -250,6 +249,7 @@ private:
   ZArray<ZMemoryAllocation*> _allocations;
 
   ZMemoryAllocation*& get_or_create_allocation(uint32_t numa_id);
+
 public:
   ZMultiNodeAllocation()
     : _allocations(0) {}
@@ -685,6 +685,7 @@ size_t ZAllocNode::uncommit(uint64_t* timeout) {
 
     if (limit == 0) {
       // This may occur if the current max capacity for this node is 0
+
       // Set timeout to ZUncommitDelay
       *timeout = ZUncommitDelay;
       return 0;
@@ -1703,6 +1704,7 @@ void ZPageAllocator::copy_claimed_physical_multi_node(ZPageAllocation* allocatio
   if (total_harvested > 0) {
     log_debug(gc, heap)("Mapped Cache Harvest: %zuM from %d ranges", total_harvested / M, num_vmems_harvested);
   }
+
   allocation->memory_allocation()->set_harvested(total_harvested);
 }
 

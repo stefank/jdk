@@ -56,7 +56,7 @@ ZVirtualMemoryManager::ZVirtualMemoryManager(size_t max_capacity)
   pd_initialize_after_reserve();
 
   // If the capacity consist of less granules than the number of nodes some
-  // nodes will be empty. Distribute these shares on the none empty nodes
+  // nodes will be empty. Distribute these shares on the none empty nodes.
   const uint32_t first_empty_numa_id = MIN2(static_cast<uint32_t>(max_capacity >> ZGranuleSizeShift), ZNUMA::count());
   const uint32_t ignore_count = ZNUMA::count() - first_empty_numa_id;
 
