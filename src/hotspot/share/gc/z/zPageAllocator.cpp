@@ -1968,7 +1968,7 @@ bool ZPageAllocator::commit_and_map_memory_multi_node(ZMultiNodeAllocation* mult
       commit_failed = true;
       allocation->set_commit_failed();
 
-      // Free uncommitted physical segments
+      // Free physical segments for part that we failed to commit
       const ZVirtualMemory non_committed_vmem = to_commit_vmem.last_part(committed);
       node.free_physical(non_committed_vmem);
     }
@@ -2025,12 +2025,13 @@ bool ZPageAllocator::commit_and_map_memory_multi_node(ZMultiNodeAllocation* mult
     // Remove the harvested part
     const ZVirtualMemory non_harvest_vmem = partial_vmem.last_part(allocation->harvested());
 
-    // Limit the range to match the committed amount
-    const ZVirtualMemory committed_vmem = non_harvest_vmem.last_part(committed);
+    // Committed part
+    const ZVirtualMemory committed_vmem = non_harvest_vmem.first_part(committed);
 
     const uint32_t numa_id = allocation->numa_id();
     ZAllocNode& node = node_from_numa_id(numa_id);
     ZArray<ZVirtualMemory>* const vmems = allocation->claimed_vmems();
+
     // Keep track of the start index
     const int start_index = vmems->length();
 
