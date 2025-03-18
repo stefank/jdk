@@ -748,6 +748,7 @@ void ZAllocNode::claim_mapped_or_increase_capacity(ZMemoryAllocation* allocation
   const size_t remaining = size - increased_capacity;
   const size_t harvested = _cache.remove_discontiguous(remaining, out);
   const int num_harvested = out->length();
+
   allocation->set_harvested(num_harvested, harvested);
 
   assert(harvested + increased_capacity == size, "Mismatch harvested: %zu increased_capacity: %zu size: %zu",
@@ -2028,7 +2029,7 @@ void ZPageAllocator::cleanup_failed_commit_multi_node(ZMultiNodeAllocation* mult
       continue;
     }
 
-    // Partition off partial allocation's memory range
+    // Partition off the partial allocation's memory range
     const ZVirtualMemory partial_vmem = vmem.partition(offset, allocation->size());
 
     // Remove the harvested part
@@ -2048,10 +2049,14 @@ void ZPageAllocator::cleanup_failed_commit_multi_node(ZMultiNodeAllocation* mult
     const size_t claimed_virtual = node.alloc_virtual(committed, vmems);
 
     if (claimed_virtual != committed) {
-      // Uncommit any memory that is unmappable due to no virtual memory
-      // We do not track this, so if the partial_allocation failed to commit,
-      // the unmappable memory will also count toward the reduction in
-      // current max capacity
+      // We failed to claim enough memory to map all our committed memory.
+      //
+      // We currenty have no facility to track committed but unmapped memory,
+      // so this path uncommits the unmappable memory here.
+      //
+      // Note that this failure path is only present in multi-node allocations.
+      // The single-node allocations claims virtual memory before it tries to
+      // commit memory.
 
       const ZVirtualMemory unmappable = committed_vmem.last_part(claimed_virtual);
       vmem_node.uncommit_physical(unmappable);
@@ -2085,12 +2090,12 @@ bool ZPageAllocator::commit_and_map_memory_multi_node(ZMultiNodeAllocation* mult
     map_memory_multi_node(multi_node_allocation, vmem);
 
     return true;
-  } else {
-    // Commit failed
-    cleanup_failed_commit_multi_node(multi_node_allocation, vmem);
-
-    return false;
   }
+
+  // Commit failed
+  cleanup_failed_commit_multi_node(multi_node_allocation, vmem);
+
+  return false;
 }
 
 bool ZPageAllocator::commit_and_map_memory_single_node(ZSingleNodeAllocation* single_node_allocation, const ZVirtualMemory& vmem) {
