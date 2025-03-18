@@ -207,7 +207,10 @@ private:
   void allocate_remaining_physical_single_node(ZSingleNodeAllocation* allocation, const ZVirtualMemory& vmem);
   void allocate_remaining_physical(ZPageAllocation* allocation, const ZVirtualMemory& vmem);
 
-  bool commit_and_increase_capacity_multi_node(ZMultiNodeAllocation* multi_node_allocation, const ZVirtualMemory& vmem);
+  bool commit_memory_multi_node(ZMultiNodeAllocation* multi_node_allocation, const ZVirtualMemory& vmem);
+  void map_memory_multi_node(ZMultiNodeAllocation* multi_node_allocation, const ZVirtualMemory& vmem);
+  void cleanup_failed_commit_multi_node(ZMultiNodeAllocation* multi_node_allocation, const ZVirtualMemory& vmem);
+
   bool commit_and_map_memory_multi_node(ZMultiNodeAllocation* multi_node_allocation, const ZVirtualMemory& vmem);
   bool commit_and_map_memory_single_node(ZSingleNodeAllocation* single_node_allocation, const ZVirtualMemory& vmem);
   bool commit_and_map_memory(ZPageAllocation* allocation, const ZVirtualMemory& vmem);
