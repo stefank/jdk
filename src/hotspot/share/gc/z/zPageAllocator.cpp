@@ -1141,7 +1141,6 @@ void ZAllocNode::map_memory(ZMemoryAllocation* allocation, const ZVirtualMemory&
   check_numa_mismatch(vmem, allocation->numa_id());
 }
 
-
 bool ZAllocNode::commit_and_map_memory(ZMemoryAllocation* allocation, const ZVirtualMemory& vmem) {
   const size_t already_committed = allocation->harvested();
 
@@ -1632,7 +1631,6 @@ bool ZPageAllocator::alloc_page_stall(ZPageAllocation* allocation) {
   return result;
 }
 
-
 bool ZPageAllocator::claim_physical_multi_node(ZMultiNodeAllocation* multi_node_allocation, uint32_t start_node) {
   const size_t size = multi_node_allocation->size();
   const uint32_t numa_nodes = ZNUMA::count();
@@ -1708,7 +1706,7 @@ size_t ZPageAllocator::sum_available_capacity() const {
 
   size_t total = 0;
 
-  for (uint32_t i = 0; i < ZNUMA::count(); ++i) {
+  for (uint32_t i = 0; i < numa_nodes; ++i) {
     total += _alloc_nodes.get(i).available_capacity();
   }
 
@@ -1850,7 +1848,7 @@ bool ZPageAllocator::claim_virtual_memory_multi_node(ZMultiNodeAllocation* multi
   for (ZAllocNode* node; iter.next(&node);) {
     ZVirtualMemory vmem = node->alloc_virtual(size, false /* force_low_address */);
     if (!vmem.is_null()) {
-      // Found a matching virtual memory area
+      // Found a large enough contiguous range
       multi_node_allocation->set_final_vmem(vmem, node->numa_id());
 
       // Copy claimed multi numa node vmems, we leave the old vmems mapped until after
@@ -1874,8 +1872,8 @@ bool ZPageAllocator::claim_virtual_memory_single_node(ZSingleNodeAllocation* sin
 
 bool ZPageAllocator::claim_virtual_memory(ZPageAllocation* allocation) {
   // Note: that the single-node performs "shuffling" of already harvested
-  // pages, while the multi-node searches for available virtual memory area
-  // without shuffling.
+  // vmem(s), while the multi-node searches for available virtual memory
+  // area without shuffling.
 
   if (allocation->is_multi_node()) {
     return claim_virtual_memory_multi_node(allocation->multi_node_allocation());
@@ -1886,15 +1884,15 @@ bool ZPageAllocator::claim_virtual_memory(ZPageAllocation* allocation) {
 
 void ZPageAllocator::allocate_remaining_physical(ZMemoryAllocation* allocation, const ZVirtualMemory& vmem) {
   // The previously harvested memory is memory that has already been committed
-  // and mapped. The rest of the vmem gets physical memory assigned at here
-  // and will be committed in a subsequent function.
+  // and mapped. The rest of the vmem gets physical memory assigned here and
+  // will be committed in a subsequent function.
 
   const size_t committed  = allocation->harvested();
   const size_t uncomitted = allocation->size() - committed;
 
   if (uncomitted > 0) {
     ZAllocNode& node = node_from_numa_id(allocation->numa_id());
-    ZVirtualMemory uncommitted_vmem = ZVirtualMemory(vmem.start() + committed, uncomitted);
+    ZVirtualMemory uncommitted_vmem = vmem.last_part(committed);
     node.alloc_physical(uncommitted_vmem);
   }
 }
@@ -2202,7 +2200,6 @@ ZPage* ZPageAllocator::alloc_page(ZPageType type, size_t size, ZAllocationFlags 
     ZStatMutatorAllocRate::sample_allocation(size);
   }
 
-  // Send event
 
   const size_t harvested = allocation.is_multi_node()
       ? allocation.multi_node_allocation()->total_harvested()
@@ -2216,6 +2213,7 @@ ZPage* ZPageAllocator::alloc_page(ZPageType type, size_t size, ZAllocationFlags 
          "Mismatch harvested: %zu committed: %zu size: %zu",
          harvested, committed, size);
 
+  // Send event
   event.commit((u8)type, size, harvested, committed,
                (unsigned int)count_segments_physical(page->virtual_memory()), flags.non_blocking());
 
