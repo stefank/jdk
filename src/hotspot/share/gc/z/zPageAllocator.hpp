@@ -156,7 +156,7 @@ class ZPageAllocator {
   friend class VMStructs;
   friend class ZAllocNode;
   friend class ZUncommitter;
-  friend class MultiNUMATracker;
+  friend class ZMultiNodeTracker;
 
 private:
   mutable ZLock               _lock;

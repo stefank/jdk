@@ -33,7 +33,7 @@
 #include "memory/allocation.hpp"
 #include "oops/oopsHierarchy.hpp"
 
-class MultiNUMATracker;
+class ZMultiNodeTracker;
 class ZGeneration;
 
 class ZPage : public CHeapObj<mtGC> {
@@ -50,7 +50,7 @@ private:
   volatile zoffset_end _top;
   ZLiveMap             _livemap;
   ZRememberedSet       _remembered_set;
-  MultiNUMATracker*    _multi_numa_tracker;
+  ZMultiNodeTracker*   _multi_node_tracker;
 
   const char* type_to_string() const;
 
@@ -68,7 +68,7 @@ private:
 
 public:
   ZPage(ZPageType type, const ZVirtualMemory& vmem);
-  ZPage(ZPageType type, const ZVirtualMemory& vmem, MultiNUMATracker* multi_numa_tracker);
+  ZPage(ZPageType type, const ZVirtualMemory& vmem, ZMultiNodeTracker* multi_node_tracker);
 
   ZPage* clone_limited() const;
 
@@ -95,8 +95,8 @@ public:
   const ZVirtualMemory& virtual_memory() const;
 
   bool is_multi_node() const;
-  MultiNUMATracker* multi_numa_tracker() const;
-  void set_multi_numa_tracker(MultiNUMATracker* tracker);
+  ZMultiNodeTracker* multi_node_tracker() const;
+  void set_multi_node_tracker(ZMultiNodeTracker* tracker);
 
   ZPageAge age() const;
 

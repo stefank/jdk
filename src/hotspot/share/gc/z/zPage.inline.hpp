@@ -157,16 +157,16 @@ inline const ZVirtualMemory& ZPage::virtual_memory() const {
 }
 
 inline bool ZPage::is_multi_node() const {
-  return _multi_numa_tracker != nullptr;
+  return _multi_node_tracker != nullptr;
 }
 
-inline MultiNUMATracker* ZPage::multi_numa_tracker() const {
-  return _multi_numa_tracker;
+inline ZMultiNodeTracker* ZPage::multi_node_tracker() const {
+  return _multi_node_tracker;
 }
 
-inline void ZPage::set_multi_numa_tracker(MultiNUMATracker* tracker) {
-  assert(_multi_numa_tracker == nullptr, "only set once");
-  _multi_numa_tracker = tracker;
+inline void ZPage::set_multi_node_tracker(ZMultiNodeTracker* tracker) {
+  assert(_multi_node_tracker == nullptr, "only set once");
+  _multi_node_tracker = tracker;
 }
 
 inline ZPageAge ZPage::age() const {

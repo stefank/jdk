@@ -848,7 +848,7 @@ void ZAllocNode::threads_do(ThreadClosure* tc) const {
 }
 
 void ZAllocNode::alloc_physical(const ZVirtualMemory& vmem) {
-  // We do not verify the virtual memory association as multi numa allocation
+  // We do not verify the virtual memory association as multi-node allocation
   // allocates new physical segments directly in the final virtual memory range,
   // which may not be associated with the current node.
 
@@ -861,7 +861,7 @@ void ZAllocNode::alloc_physical(const ZVirtualMemory& vmem) {
 }
 
 void ZAllocNode::free_physical(const ZVirtualMemory& vmem) {
-  // We do not verify the virtual memory association as multi numa allocation
+  // We do not verify the virtual memory association as multi-node allocation
   // allocates and commits new physical segments directly in the final virtual
   // memory range, which may not be associated with the current node. If a
   // commit fails it will also be used to free.
@@ -875,7 +875,7 @@ void ZAllocNode::free_physical(const ZVirtualMemory& vmem) {
 }
 
 size_t ZAllocNode::commit_physical(const ZVirtualMemory& vmem) {
-  // We do not verify the virtual memory association as multi numa allocation
+  // We do not verify the virtual memory association as multi-node allocation
   // commits new physical segments directly in the final virtual memory range,
   // which may not be associated with the current node.
 
@@ -1207,7 +1207,7 @@ void ZAllocNode::free_memory_alloc_failed(ZMemoryAllocation* allocation) {
   }
 }
 
-class MultiNUMATracker : CHeapObj<mtGC> {
+class ZMultiNodeTracker : CHeapObj<mtGC> {
 private:
   struct Element {
     ZVirtualMemory _vmem;
@@ -1216,7 +1216,7 @@ private:
 
   ZArray<Element> _map;
 
-  MultiNUMATracker(int capacity)
+  ZMultiNodeTracker(int capacity)
     : _map(capacity) {}
 
   const ZArray<Element>* map() const {
@@ -1232,7 +1232,7 @@ public:
     precond(allocation->is_multi_node());
 
     const ZArray<ZMemoryAllocation*>* const partial_allocations = allocation->multi_node_allocation()->allocations();
-    MultiNUMATracker* const tracker = new MultiNUMATracker(partial_allocations->length());
+    ZMultiNodeTracker* const tracker = new ZMultiNodeTracker(partial_allocations->length());
 
     // Each partial allocation is mapped to the virtual memory in order
     ZVirtualMemory vmem = page->virtual_memory();
@@ -1245,7 +1245,7 @@ public:
     }
 
     // Install the tracker
-    page->set_multi_numa_tracker(tracker);
+    page->set_multi_node_tracker(tracker);
   }
 
   static void free_and_destroy(ZPageAllocator* allocator, ZPage* page) {
@@ -1254,7 +1254,7 @@ public:
     // Extract data and destroy page
     const ZVirtualMemory vmem = page->virtual_memory();
     const ZGenerationId id = page->generation_id();
-    const MultiNUMATracker* const tracker = page->multi_numa_tracker();
+    const ZMultiNodeTracker* const tracker = page->multi_node_tracker();
     allocator->safe_destroy_page(page);
 
     // Keep track of to be inserted vmems
@@ -1347,8 +1347,8 @@ public:
   }
 
   static void promote(ZPageAllocator* allocator, const ZPage* from, const ZPage* to) {
-    MultiNUMATracker* const tracker = from->multi_numa_tracker();
-    assert(tracker == to->multi_numa_tracker(), "should have the same tracker");
+    ZMultiNodeTracker* const tracker = from->multi_node_tracker();
+    assert(tracker == to->multi_node_tracker(), "should have the same tracker");
 
     ZArrayIterator<Element> iter(tracker->map());
     for (Element partial_allocation; iter.next(&partial_allocation);) {
@@ -1541,7 +1541,7 @@ void ZPageAllocator::promote_used(const ZPage* from, const ZPage* to) {
   assert(from->start() == to->start(), "pages start at same offset");
 
   if (from->is_multi_node()) {
-    MultiNUMATracker::promote(this, from, to);
+    ZMultiNodeTracker::promote(this, from, to);
   } else {
     const size_t size = from->size();
     ZAllocNode &node = node_from_vmem(from->virtual_memory());
@@ -1849,7 +1849,7 @@ bool ZPageAllocator::claim_virtual_memory_multi_node(ZMultiNodeAllocation* multi
       // Found a large enough contiguous range
       multi_node_allocation->set_final_vmem(vmem, node->numa_id());
 
-      // Copy claimed multi numa node vmems, we leave the old vmems mapped until after
+      // Copy claimed multi-node vmems, we leave the old vmems mapped until after
       // we have committed. In case committing fails we can simply reinsert the
       // inital vmems.
       copy_claimed_physical_multi_node(multi_node_allocation, vmem);
@@ -2194,7 +2194,7 @@ ZPage* ZPageAllocator::alloc_page(ZPageType type, size_t size, ZAllocationFlags 
   alloc_page_age_update(&allocation, page, age);
 
   if (allocation.is_multi_node()) {
-    MultiNUMATracker::install_tracker(&allocation, page);
+    ZMultiNodeTracker::install_tracker(&allocation, page);
   }
 
   // Update allocation statistics. Exclude gc relocations to avoid
@@ -2267,13 +2267,13 @@ void ZPageAllocator::prepare_memory_for_free(ZPage* page, ZArray<ZVirtualMemory>
 }
 
 void ZPageAllocator::free_page_multi_node(ZPage* page) {
-  assert(page->is_multi_node(), "only used for multi numa pages");
-  MultiNUMATracker::free_and_destroy(this, page);
+  assert(page->is_multi_node(), "only used for multi-node pages");
+  ZMultiNodeTracker::free_and_destroy(this, page);
 }
 
 void ZPageAllocator::free_page(ZPage* page, bool allow_defragment) {
   if (page->is_multi_node()) {
-    // Multi numa is handled separately, multi numa allocations are always
+    // Multi-node is handled separately, multi-node allocations are always
     // effectively defragmented
     free_page_multi_node(page);
     return;

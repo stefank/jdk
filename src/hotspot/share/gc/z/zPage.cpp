@@ -29,9 +29,9 @@
 #include "utilities/debug.hpp"
 
 ZPage::ZPage(ZPageType type, const ZVirtualMemory& vmem)
-  : ZPage(type, vmem, nullptr /* multi_numa_tracker */) {}
+  : ZPage(type, vmem, nullptr /* multi_node_tracker */) {}
 
-ZPage::ZPage(ZPageType type, const ZVirtualMemory& vmem, MultiNUMATracker* multi_numa_tracker)
+ZPage::ZPage(ZPageType type, const ZVirtualMemory& vmem, ZMultiNodeTracker* multi_node_tracker)
   : _type(type),
     _generation_id(ZGenerationId::young),
     _age(ZPageAge::eden),
@@ -41,7 +41,7 @@ ZPage::ZPage(ZPageType type, const ZVirtualMemory& vmem, MultiNUMATracker* multi
     _top(to_zoffset_end(start())),
     _livemap(object_max_count()),
     _remembered_set(),
-    _multi_numa_tracker(multi_numa_tracker) {
+    _multi_node_tracker(multi_node_tracker) {
   assert(!_virtual.is_null(), "Should not be null");
   assert((_type == ZPageType::small && size() == ZPageSizeSmall) ||
          (_type == ZPageType::medium && size() == ZPageSizeMedium) ||
@@ -52,7 +52,7 @@ ZPage::ZPage(ZPageType type, const ZVirtualMemory& vmem, MultiNUMATracker* multi
 ZPage* ZPage::clone_limited() const {
   // Only copy type and memory layouts, and also update _top. Let the rest be
   // lazily reconstructed when needed.
-  ZPage* const page = new ZPage(_type, _virtual, _multi_numa_tracker);
+  ZPage* const page = new ZPage(_type, _virtual, _multi_node_tracker);
   page->_top = _top;
 
   return page;
