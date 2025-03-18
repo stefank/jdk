@@ -528,7 +528,7 @@ ZVirtualMemory ZMappedCache::remove_contiguous(size_t size) {
   };
 
   if (size == ZPageSizeSmall) {
-    // For small page allocation allocate at the lowest address
+    // Small page allocations allocate at the lowest possible address
     scan_remove_vmem<RemovalStrategy::LowestAddress>(size, select_size_fn, consume_vmem_fn);
   } else {
     // Other sizes uses approximate best fit size classes first
