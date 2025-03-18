@@ -1229,9 +1229,7 @@ private:
 
 public:
   static void install_tracker(const ZPageAllocation* allocation, ZPage* page) {
-    if (!allocation->is_multi_node()) {
-      return;
-    }
+    precond(allocation->is_multi_node());
 
     const ZArray<ZMemoryAllocation*>* const partial_allocations = allocation->multi_node_allocation()->allocations();
     MultiNUMATracker* const tracker = new MultiNUMATracker(partial_allocations->length());
@@ -1859,6 +1857,7 @@ bool ZPageAllocator::claim_virtual_memory_multi_node(ZMultiNodeAllocation* multi
       return true;
     }
   }
+
   return false;
 }
 
@@ -2194,7 +2193,9 @@ ZPage* ZPageAllocator::alloc_page(ZPageType type, size_t size, ZAllocationFlags 
 
   alloc_page_age_update(&allocation, page, age);
 
-  MultiNUMATracker::install_tracker(&allocation, page);
+  if (allocation.is_multi_node()) {
+    MultiNUMATracker::install_tracker(&allocation, page);
+  }
 
   // Update allocation statistics. Exclude gc relocations to avoid
   // artificial inflation of the allocation rate during relocation.
