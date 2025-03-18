@@ -732,7 +732,13 @@ void ZAllocNode::claim_mapped_or_increase_capacity(ZMemoryAllocation* allocation
   // Try to allocate one contiguous vmem
   ZVirtualMemory vmem = _cache.remove_contiguous(size);
   if (!vmem.is_null()) {
+    // Found a matching vmem
     out->append(vmem);
+
+    // Register this as a harvest to handle multi-node allocation merges.
+    allocation->set_harvested(1, vmem.size());
+
+    // Done
     return;
   }
 
@@ -1858,16 +1864,6 @@ void ZPageAllocator::copy_claimed_physical_multi_node(ZMultiNodeAllocation* mult
       offset += claimed_vmem.size();
     }
 
-    // Skip the part that will be committed at a later stage
-    if (partial_allocation->harvested() == 0 && partial_allocation->claimed_vmems()->length() == 1) {
-      // We found a matching vmem without needing to harvest
-
-      assert(partial_allocation->claimed_vmems()->at(0).size() == partial_allocation->size(), "Should have a matching vmem");
-
-      // Already accounted for when iterating over the claimed vmems.
-      continue;
-    }
-
     const size_t increased_capacity = partial_allocation->size() - partial_allocation->harvested();
     offset += increased_capacity;
   }
@@ -1924,12 +1920,6 @@ void ZPageAllocator::allocate_remaining_physical(ZMemoryAllocation* allocation, 
   // The previously harvested memory is memory that has already been committed
   // and mapped. The rest of the vmem gets physical memory assigned here and
   // will be committed in a subsequent function.
-
-  if (allocation->harvested() == 0 && allocation->claimed_vmems()->length() == 1) {
-    // We managed to claim a matching vmem for this node. Nothing more to claim here.
-    assert(allocation->claimed_vmems()->at(0).size() == allocation->size(), "Must be a perfect match");
-    return;
-  }
 
   const size_t committed  = allocation->harvested();
   const size_t uncomitted = allocation->size() - committed;
@@ -2243,7 +2233,7 @@ ZPage* ZPageAllocator::alloc_page(ZPageType type, size_t size, ZAllocationFlags 
   const size_t committed = stats._total_committed_capacity;
 
 
-  assert(harvested + committed == size || (harvested == 0 && committed == 0),
+  assert(harvested + committed == size,
          "Mismatch harvested: %zu committed: %zu size: %zu",
          harvested, committed, size);
 
