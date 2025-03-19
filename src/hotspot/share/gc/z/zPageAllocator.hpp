@@ -142,8 +142,8 @@ public:
 
   bool prime(ZWorkers* workers, size_t size);
 
-  void remap_harvested_and_claim_virtual(ZMemoryAllocation* allocation);
-  bool claim_virtual_memory(ZMemoryAllocation* allocation);
+  ZVirtualMemory remap_harvested_and_claim_virtual(ZMemoryAllocation* allocation);
+  ZVirtualMemory claim_virtual_memory(ZMemoryAllocation* allocation);
 
   ZVirtualMemory commit_increased_capacity(ZMemoryAllocation* allocation, const ZVirtualMemory& vmem);
   void map_memory(ZMemoryAllocation* allocation, const ZVirtualMemory& vmem);
@@ -198,9 +198,9 @@ private:
   void copy_physical_segments(zoffset to, const ZVirtualMemory& from);
   void copy_claimed_physical_multi_node(ZMultiNodeAllocation* multi_node_allocation, const ZVirtualMemory& vmem);
 
-  bool claim_virtual_memory_multi_node(ZMultiNodeAllocation* multi_node_allocation);
-  bool claim_virtual_memory_single_node(ZSingleNodeAllocation* single_node_allocation);
-  bool claim_virtual_memory(ZPageAllocation* allocation);
+  ZVirtualMemory claim_virtual_memory_multi_node(ZMultiNodeAllocation* multi_node_allocation);
+  ZVirtualMemory claim_virtual_memory_single_node(ZSingleNodeAllocation* single_node_allocation);
+  ZVirtualMemory claim_virtual_memory(ZPageAllocation* allocation);
 
   void claim_remaining_physical(ZMemoryAllocation* allocation, const ZVirtualMemory& vmem);
   void claim_remaining_physical_multi_node(const ZMultiNodeAllocation* multi_node_allocation, const ZVirtualMemory& vmem);

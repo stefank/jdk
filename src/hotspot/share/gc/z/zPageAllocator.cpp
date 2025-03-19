@@ -1141,36 +1141,6 @@ bool ZAllocNode::prime(ZWorkers* workers, size_t size) {
   return true;
 }
 
-void ZAllocNode::remap_harvested_and_claim_virtual(ZMemoryAllocation* allocation) {
-  verify_memory_allocation_association(allocation);
-
-  const int num_granules = (int)(allocation->harvested() >> ZGranuleSizeShift);
-  ZSegmentStash segments(&physical_mappings(), num_granules);
-
-  // Unmap virtual memory
-  ZArrayIterator<ZVirtualMemory> iter(allocation->partial_vmems());
-  for (ZVirtualMemory vmem; iter.next(&vmem);) {
-    unmap_virtual(vmem);
-  }
-
-  // Stash segments
-  segments.stash(allocation->partial_vmems());
-
-  // Shuffle virtual memory. We attempt to allocate enough memory to cover the entire
-  // allocation size, not just for the harvested memory.
-  const ZVirtualMemory result = shuffle_virtual(allocation->size(), allocation->partial_vmems());
-
-  // Set result
-  allocation->set_result(result);
-
-  // Restore segments
-  if (!result.is_null()) {
-    segments.pop_all(result);
-  } else {
-    segments.pop_all(allocation->partial_vmems());
-  }
-}
-
 static bool is_alloc_satisfied(const ZMemoryAllocation* allocation) {
   if (!allocation->result().is_null()) {
     assert(allocation->result().size() == allocation->size(), "must be correct size");
@@ -1181,31 +1151,54 @@ static bool is_alloc_satisfied(const ZMemoryAllocation* allocation) {
   return false;
 }
 
-bool ZAllocNode::claim_virtual_memory(ZMemoryAllocation* allocation) {
+ZVirtualMemory ZAllocNode::remap_harvested_and_claim_virtual(ZMemoryAllocation* allocation) {
   verify_memory_allocation_association(allocation);
-  if (allocation->harvested() == 0) {
-    const ZVirtualMemory vmem = claim_virtual(allocation->size(), true /* force_low_address */);
-    allocation->set_result(vmem);
-    return !vmem.is_null();
-  }
 
-  // If we have harvested anything, we claim virtual memory from the harvested
-  // vmems, and perhaps also allocate more to match the allocation request.
-  remap_harvested_and_claim_virtual(allocation);
-
-  // If the virtual memory covers the allocation request, we're done.
-  if (::is_alloc_satisfied(allocation)) {
-    return true;
-  }
-
-  // Before returning harvested memory to the cache it must be mapped.
+  // Unmap virtual memory
   ZArrayIterator<ZVirtualMemory> iter(allocation->partial_vmems());
   for (ZVirtualMemory vmem; iter.next(&vmem);) {
-    map_virtual_to_physical(vmem);
+    unmap_virtual(vmem);
   }
 
-  // Failed to allocate enough to virtual memory from the manager.
-  return false;
+  const int num_granules = (int)(allocation->harvested() >> ZGranuleSizeShift);
+  ZSegmentStash segments(&physical_mappings(), num_granules);
+
+  // Stash segments
+  segments.stash(allocation->partial_vmems());
+
+  // Shuffle virtual memory. We attempt to allocate enough memory to cover the entire
+  // allocation size, not just for the harvested memory.
+  const ZVirtualMemory result = shuffle_virtual(allocation->size(), allocation->partial_vmems());
+
+  // Restore segments
+  if (!result.is_null()) {
+    segments.pop_all(result);
+  } else {
+    segments.pop_all(allocation->partial_vmems());
+  }
+
+  if (result.is_null()) {
+    // Before returning harvested memory to the cache it must be mapped.
+    ZArrayIterator<ZVirtualMemory> iter(allocation->partial_vmems());
+    for (ZVirtualMemory vmem; iter.next(&vmem);) {
+      map_virtual_to_physical(vmem);
+    }
+  }
+
+  return result;
+}
+
+ZVirtualMemory ZAllocNode::claim_virtual_memory(ZMemoryAllocation* allocation) {
+  verify_memory_allocation_association(allocation);
+
+  if (allocation->harvested() > 0) {
+    // If we have harvested anything, we claim virtual memory from the harvested
+    // vmems, and perhaps also allocate more to match the allocation request.
+    return remap_harvested_and_claim_virtual(allocation);
+  } else {
+    // Just try to claim virtual memory
+    return claim_virtual(allocation->size(), true /* force_low_address */);
+  }
 }
 
 ZVirtualMemory ZAllocNode::commit_increased_capacity(ZMemoryAllocation* allocation, const ZVirtualMemory& vmem) {
@@ -1926,7 +1919,7 @@ void ZPageAllocator::copy_claimed_physical_multi_node(ZMultiNodeAllocation* mult
                                untype(offset), untype(vmem.end()));
 }
 
-bool ZPageAllocator::claim_virtual_memory_multi_node(ZMultiNodeAllocation* multi_node_allocation) {
+ZVirtualMemory ZPageAllocator::claim_virtual_memory_multi_node(ZMultiNodeAllocation* multi_node_allocation) {
   const uint32_t numa_nodes = ZNUMA::count();
   const size_t size = multi_node_allocation->size();
 
@@ -1934,22 +1927,19 @@ bool ZPageAllocator::claim_virtual_memory_multi_node(ZMultiNodeAllocation* multi
   for (ZAllocNode* node; iter.next(&node);) {
     ZVirtualMemory vmem = node->claim_virtual(size, false /* force_low_address */);
     if (!vmem.is_null()) {
-      // Found a large enough contiguous range
-      multi_node_allocation->set_final_vmem(vmem, node->numa_id());
-
       // Copy claimed multi-node vmems, we leave the old vmems mapped until after
       // we have committed. In case committing fails we can simply reinsert the
       // inital vmems.
       copy_claimed_physical_multi_node(multi_node_allocation, vmem);
 
-      return true;
+      return vmem;
     }
   }
 
-  return false;
+  return {};
 }
 
-bool ZPageAllocator::claim_virtual_memory_single_node(ZSingleNodeAllocation* single_node_allocation) {
+ZVirtualMemory ZPageAllocator::claim_virtual_memory_single_node(ZSingleNodeAllocation* single_node_allocation) {
   ZMemoryAllocation* const allocation = single_node_allocation->allocation();
   const uint32_t numa_id = allocation->numa_id();
   ZAllocNode& node = node_from_numa_id(numa_id);
@@ -1957,7 +1947,7 @@ bool ZPageAllocator::claim_virtual_memory_single_node(ZSingleNodeAllocation* sin
   return node.claim_virtual_memory(allocation);
 }
 
-bool ZPageAllocator::claim_virtual_memory(ZPageAllocation* allocation) {
+ZVirtualMemory ZPageAllocator::claim_virtual_memory(ZPageAllocation* allocation) {
   // Note: that the single-node performs "shuffling" of already harvested
   // vmem(s), while the multi-node searches for available virtual memory
   // area without shuffling.
@@ -2195,13 +2185,12 @@ retry:
 
   // Claim virtual memory, either from harvested vmems or by claiming from the
   // virtual manager.
-  if (!claim_virtual_memory(allocation)) {
+  const ZVirtualMemory vmem = claim_virtual_memory(allocation);
+  if (vmem.is_null()) {
     log_error(gc)("Out of address space");
     free_after_alloc_page_failed(allocation);
     return nullptr;
   }
-
-  const ZVirtualMemory vmem = allocation->pop_final_vmem();
 
   // Claim any remaining physical memory. Capacity and used has already been
   // adjusted, we just need to claim the memory, which is guaranteed to succeed.
