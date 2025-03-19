@@ -1313,24 +1313,22 @@ private:
   }
 
 public:
-  static void install_tracker(const ZPageAllocation* allocation, ZPage* page) {
-    precond(allocation->is_multi_node());
+  static ZMultiNodeTracker* create(const ZMultiNodeAllocation* multi_node_allocation, const ZVirtualMemory vmem) {
+    const ZArray<ZMemoryAllocation*>* const partial_allocations = multi_node_allocation->allocations();
 
-    const ZArray<ZMemoryAllocation*>* const partial_allocations = allocation->multi_node_allocation()->allocations();
     ZMultiNodeTracker* const tracker = new ZMultiNodeTracker(partial_allocations->length());
 
+    ZVirtualMemory remaining = vmem;
+
     // Each partial allocation is mapped to the virtual memory in order
-    ZVirtualMemory vmem = page->virtual_memory();
-    ZArrayIterator<ZMemoryAllocation*> iter(partial_allocations);
-    for (ZMemoryAllocation* partial_allocation; iter.next(&partial_allocation);) {
+    for (ZMemoryAllocation* partial_allocation : *partial_allocations) {
       // Track each separate vmem's numa node
-      const ZVirtualMemory partial_vmem = vmem.split_from_front(partial_allocation->size());
+      const ZVirtualMemory partial_vmem = remaining.split_from_front(partial_allocation->size());
       const uint32_t numa_id = partial_allocation->numa_id();
       tracker->map()->push({partial_vmem, numa_id});
     }
 
-    // Install the tracker
-    page->set_multi_node_tracker(tracker);
+    return tracker;
   }
 
   static void free_and_destroy(ZPageAllocator* allocator, ZPage* page) {
@@ -2196,7 +2194,12 @@ retry:
     goto retry;
   }
 
-  return new ZPage(allocation->type(), vmem);
+  // We need to keep track of the physical memory's original alloc nodes
+  ZMultiNodeTracker* const tracker = allocation->is_multi_node()
+      ? ZMultiNodeTracker::create(allocation->multi_node_allocation(), vmem)
+      : nullptr;
+
+  return new ZPage(allocation->type(), vmem, tracker);
 }
 
 void ZPageAllocator::increase_used_generation(const ZMemoryAllocation* allocation, ZGenerationId id) {
@@ -2250,10 +2253,6 @@ ZPage* ZPageAllocator::alloc_page(ZPageType type, size_t size, ZAllocationFlags 
   }
 
   alloc_page_age_update(&allocation, page, age);
-
-  if (allocation.is_multi_node()) {
-    ZMultiNodeTracker::install_tracker(&allocation, page);
-  }
 
   // Update allocation statistics. Exclude gc relocations to avoid
   // artificial inflation of the allocation rate during relocation.
