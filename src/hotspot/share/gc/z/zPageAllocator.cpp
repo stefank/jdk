@@ -1878,8 +1878,8 @@ void ZPageAllocator::copy_claimed_physical_multi_node(ZMultiNodeAllocation* mult
   zoffset_end offset = to_zoffset_end(vmem.start());
 
   for (const ZMemoryAllocation* partial_allocation : *multi_node_allocation->allocations()) {
-    // Iterate over all partial vmems and copy physical segments into the partial_allocations
-    // destination offset
+    // Iterate over all partial vmems and copy physical segments into the
+    // partial_allocations' destination offset
     for (const ZVirtualMemory partial_vmem : *partial_allocation->partial_vmems()) {
       // Copy physical segments
       copy_physical_segments(to_zoffset(offset), partial_vmem);
@@ -1889,13 +1889,16 @@ void ZPageAllocator::copy_claimed_physical_multi_node(ZMultiNodeAllocation* mult
     }
 
     offset += partial_allocation->increased_capacity();
+
     assert(partial_allocation->size() == partial_allocation->harvested() + partial_allocation->increased_capacity(),
-          "Must be %zu == %zu + %zu", partial_allocation->size(), partial_allocation->harvested(), partial_allocation->increased_capacity());
+           "Must be %zu == %zu + %zu",
+           partial_allocation->size(), partial_allocation->harvested(), partial_allocation->increased_capacity());
   }
 
-  assert(offset == vmem.end(), "All memory should have been accounted for "
-                               "offset: " PTR_FORMAT " vmem.end(): " PTR_FORMAT,
-                               untype(offset), untype(vmem.end()));
+  assert(offset == vmem.end(),
+         "All memory should have been accounted for "
+         "offset: " PTR_FORMAT " vmem.end(): " PTR_FORMAT,
+         untype(offset), untype(vmem.end()));
 }
 
 ZVirtualMemory ZPageAllocator::claim_virtual_memory_multi_node(ZMultiNodeAllocation* multi_node_allocation) {
@@ -1943,13 +1946,18 @@ void ZPageAllocator::claim_physical_for_increased_capacity(ZMemoryAllocation* al
   // and mapped. The rest of the vmem gets physical memory assigned here and
   // will be committed in a subsequent function.
 
-  const size_t committed  = allocation->harvested();
-  const size_t uncomitted = allocation->size() - committed;
+  const size_t already_committed = allocation->harvested();
+  const size_t non_committed = allocation->size() - already_committed;
+  const size_t increased_capacity = allocation->increased_capacity();
 
-  if (uncomitted > 0) {
+  assert(non_committed == increased_capacity,
+         "Mismatch non_committed: " PTR_FORMAT " increased_capacity: " PTR_FORMAT,
+         non_committed, increased_capacity);
+
+  if (non_committed > 0) {
     ZAllocNode& node = node_from_numa_id(allocation->numa_id());
-    ZVirtualMemory uncommitted_vmem = vmem.last_part(committed);
-    node.claim_physical(uncommitted_vmem);
+    ZVirtualMemory non_committed_vmem = vmem.last_part(already_committed);
+    node.claim_physical(non_committed_vmem);
   }
 }
 
