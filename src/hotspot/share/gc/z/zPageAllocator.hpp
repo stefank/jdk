@@ -191,9 +191,7 @@ private:
 
   bool claim_physical_or_stall(ZPageAllocation* allocation);
 
-  bool is_alloc_satisfied_multi_node(const ZMultiNodeAllocation* multi_node_allocation) const;
-  bool is_alloc_satisfied_single_node(const ZSingleNodeAllocation* single_node_allocation) const;
-  bool is_alloc_satisfied(const ZPageAllocation* allocation) const;
+  ZVirtualMemory satisfied_from_cache_vmem(const ZPageAllocation* allocation) const;
 
   void copy_physical_segments(zoffset to, const ZVirtualMemory& from);
   void copy_claimed_physical_multi_node(ZMultiNodeAllocation* multi_node_allocation, const ZVirtualMemory& vmem);

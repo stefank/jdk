@@ -168,7 +168,7 @@ class ZMemoryAllocation : public CHeapObj<mtGC> {
 private:
   const size_t           _size;
   uint32_t               _numa_id;
-  ZVirtualMemory         _result;
+  ZVirtualMemory         _satisfied_from_cache_vmem;
   ZArray<ZVirtualMemory> _partial_vmems;
   int                    _num_harvested;
   size_t                 _harvested;
@@ -180,7 +180,7 @@ public:
   explicit ZMemoryAllocation(const ZMemoryAllocation& other)
     : _size(other._size),
       _numa_id(other._numa_id),
-      _result(other._result),
+      _satisfied_from_cache_vmem(other._satisfied_from_cache_vmem),
       _partial_vmems(other._partial_vmems.length()),
       _num_harvested(other._num_harvested),
       _harvested(other._harvested),
@@ -193,7 +193,7 @@ public:
   ZMemoryAllocation(const ZMemoryAllocation& a1, const ZMemoryAllocation& a2)
     : _size(a1._size + a2._size),
       _numa_id(a1._numa_id),
-      _result(),
+      _satisfied_from_cache_vmem(),
       _partial_vmems(a1._partial_vmems.length() + a2._partial_vmems.length()),
       _num_harvested(a1._num_harvested + a2._num_harvested),
       _harvested(a1._harvested + a2._harvested),
@@ -201,8 +201,8 @@ public:
       _committed_capacity(a1._committed_capacity + a2._committed_capacity),
       _commit_failed(a1._commit_failed || a2._commit_failed) {
     assert(a1._numa_id == a2._numa_id, "only merge with same numa_id");
-    assert(a1._result.is_null(), "only merge with no result");
-    assert(a2._result.is_null(), "only merge with no result");
+    assert(a1._satisfied_from_cache_vmem.is_null(), "only merge with no result");
+    assert(a2._satisfied_from_cache_vmem.is_null(), "only merge with no result");
     _partial_vmems.appendAll(&a1._partial_vmems);
     _partial_vmems.appendAll(&a2._partial_vmems);
   }
@@ -210,7 +210,7 @@ public:
   explicit ZMemoryAllocation(size_t size)
     : _size(size),
       _numa_id(-1),
-      _result(),
+      _satisfied_from_cache_vmem(),
       _partial_vmems(0),
       _num_harvested(0),
       _harvested(0),
@@ -219,24 +219,25 @@ public:
       _commit_failed(false) {}
 
   void remap_result() {
-    if (!_result.is_null()) {
+    if (!_satisfied_from_cache_vmem.is_null()) {
       precond(_partial_vmems.is_empty());
-      _partial_vmems.push(_result);
+      _partial_vmems.push(_satisfied_from_cache_vmem);
       _num_harvested = 1;
-      _harvested = _result.size();
-      _result = ZVirtualMemory();
+      _harvested = _satisfied_from_cache_vmem.size();
+      _satisfied_from_cache_vmem = {};
     }
   }
 
-  ZVirtualMemory result() const {
-    return _result;
+  ZVirtualMemory satisfied_from_cache_vmem() const {
+    return _satisfied_from_cache_vmem;
   }
 
-  void set_result(ZVirtualMemory result) {
-    precond(_result.is_null());
-    precond(result.size() == size());
+  void set_satisfied_from_cache_vmem(ZVirtualMemory vmem) {
+    precond(_satisfied_from_cache_vmem.is_null());
+    precond(vmem.size() == size());
     precond(_partial_vmems.is_empty());
-    _result = result;
+
+    _satisfied_from_cache_vmem = vmem;
   }
 
   void reset_for_retry() {
@@ -384,7 +385,7 @@ public:
   }
 
   void register_allocation(const ZMemoryAllocation& allocation) {
-    precond(allocation.result().is_null());
+    precond(allocation.satisfied_from_cache_vmem().is_null());
 
     ZMemoryAllocation** const slot = allocation_slot(allocation.numa_id());
 
@@ -573,22 +574,12 @@ public:
     return &_single_node_allocation;
   }
 
-  ZVirtualMemory pop_final_vmem(ZMultiNodeAllocation* multi_node_allocation) {
-    return multi_node_allocation->pop_final_vmem();
-  }
+  ZVirtualMemory satisfied_from_cache_vmem() const {
+    precond(!_is_multi_node);
 
-  ZVirtualMemory pop_final_vmem(ZSingleNodeAllocation* single_node_allocation) {
-    ZMemoryAllocation* const allocation = single_node_allocation->allocation();
+    const ZMemoryAllocation* const allocation = _single_node_allocation.allocation();
 
-    return allocation->result();
-  }
-
-  ZVirtualMemory pop_final_vmem() {
-    if (_is_multi_node) {
-      return pop_final_vmem(multi_node_allocation());
-    } else {
-      return pop_final_vmem(single_node_allocation());
-    }
+    return allocation->satisfied_from_cache_vmem();
   }
 
   bool wait() {
@@ -778,8 +769,8 @@ void ZAllocNode::claim_mapped_or_increase_capacity(ZMemoryAllocation* allocation
   // Try to allocate one contiguous vmem
   ZVirtualMemory vmem = _cache.remove_contiguous(size);
   if (!vmem.is_null()) {
-    // Found a matching vmem
-    allocation->set_result(vmem);
+    // Found a satisfying vmem in the cache
+    allocation->set_satisfied_from_cache_vmem(vmem);
 
     // Done
     return;
@@ -1139,16 +1130,6 @@ bool ZAllocNode::prime(ZWorkers* workers, size_t size) {
   _cache.insert(vmem);
 
   return true;
-}
-
-static bool is_alloc_satisfied(const ZMemoryAllocation* allocation) {
-  if (!allocation->result().is_null()) {
-    assert(allocation->result().size() == allocation->size(), "must be correct size");
-    assert(allocation->partial_vmems()->length() == 0, "should not have any partial vmems left");
-    return true;
-  }
-
-  return false;
 }
 
 ZVirtualMemory ZAllocNode::remap_harvested_and_claim_virtual(ZMemoryAllocation* allocation) {
@@ -1863,27 +1844,14 @@ bool ZPageAllocator::claim_physical_or_stall(ZPageAllocation* allocation) {
   return alloc_page_stall(allocation);
 }
 
-bool ZPageAllocator::is_alloc_satisfied_multi_node(const ZMultiNodeAllocation* multi_node_allocation) const {
-  const ZVirtualMemory vmem = multi_node_allocation->final_vmem();
-  const bool is_satisfied = !vmem.is_null();
-
-  if (is_satisfied) {
-    assert(vmem.size() == multi_node_allocation->size(), "Size mismatch");
-  }
-
-  return is_satisfied;
-}
-
-bool ZPageAllocator::is_alloc_satisfied_single_node(const ZSingleNodeAllocation* single_node_allocation) const {
-  return ::is_alloc_satisfied(single_node_allocation->allocation());
-}
-
-bool ZPageAllocator::is_alloc_satisfied(const ZPageAllocation* allocation) const {
+ZVirtualMemory ZPageAllocator::satisfied_from_cache_vmem(const ZPageAllocation* allocation) const {
   if (allocation->is_multi_node()) {
-    return is_alloc_satisfied_multi_node(allocation->multi_node_allocation());
-  } else {
-    return is_alloc_satisfied_single_node(allocation->single_node_allocation());
+    // Multi-node allocations are always harvested and/or committed, so there's never a
+    // satisfying vmem from the caches.
+    return {};
   }
+
+  return allocation->satisfied_from_cache_vmem();
 }
 
 void ZPageAllocator::copy_physical_segments(zoffset to, const ZVirtualMemory& from) {
@@ -2176,12 +2144,14 @@ retry:
     return nullptr;
   }
 
-  // If we have claimed a large enough contiguous vmem from the cache,
+  // If we have claimed a large enough contiguous vmem from the mapped cache,
   // we're done.
-  if (is_alloc_satisfied(allocation)) {
-    const ZVirtualMemory vmem = allocation->pop_final_vmem();
-    return new ZPage(allocation->type(), vmem);
+  const ZVirtualMemory cached_vmem = satisfied_from_cache_vmem(allocation);
+  if (!cached_vmem.is_null()) {
+    return new ZPage(allocation->type(), cached_vmem);
   }
+
+  // We couldn't find a satisfying vmem in the cache, so we need to build one.
 
   // Claim virtual memory, either from harvested vmems or by claiming from the
   // virtual manager.
@@ -2197,7 +2167,6 @@ retry:
   claim_remaining_physical(allocation, vmem);
 
   // Commit the remaining non-committed memory and map it.
-  // FIXME: Check that we don't double map.
   if (!commit_and_map_memory(allocation, vmem)) {
     free_after_alloc_page_failed(allocation);
     goto retry;
