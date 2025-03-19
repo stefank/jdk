@@ -948,7 +948,7 @@ void ZAllocNode::threads_do(ThreadClosure* tc) const {
   tc->do_thread(const_cast<ZUncommitter*>(&_uncommitter));
 }
 
-void ZAllocNode::alloc_physical(const ZVirtualMemory& vmem) {
+void ZAllocNode::claim_physical(const ZVirtualMemory& vmem) {
   // We do not verify the virtual memory association as multi-node allocation
   // allocates new physical segments directly in the final virtual memory range,
   // which may not be associated with the current node.
@@ -1102,17 +1102,24 @@ public:
   }
 };
 
-bool ZAllocNode::prime(ZWorkers* workers, size_t to_prime) {
-  if (to_prime == 0) {
+bool ZAllocNode::prime(ZWorkers* workers, size_t size) {
+  if (size == 0) {
     return true;
   }
 
-  const ZVirtualMemory vmem = claim_virtual(to_prime, true /* force_low_address */);
+  // Claim virtual memory
+  const ZVirtualMemory vmem = claim_virtual(size, true /* force_low_address */);
 
-  // Increase capacity, allocate and commit physical memory
-  increase_capacity(to_prime);
-  alloc_physical(vmem);
-  if (commit_physical(vmem) != vmem.size()) {
+  // Increase capacity
+  increase_capacity(size);
+
+  // Claim the backing physical memory
+  claim_physical(vmem);
+
+  // Commit the claimed physical memory
+  const size_t committed = commit_physical(vmem);
+
+  if (committed != vmem.size()) {
     // This is a failure state. We do not cleanup the maybe partially committed memory.
     return false;
   }
@@ -1962,7 +1969,7 @@ bool ZPageAllocator::claim_virtual_memory(ZPageAllocation* allocation) {
   }
 }
 
-void ZPageAllocator::allocate_remaining_physical(ZMemoryAllocation* allocation, const ZVirtualMemory& vmem) {
+void ZPageAllocator::claim_remaining_physical(ZMemoryAllocation* allocation, const ZVirtualMemory& vmem) {
   // The previously harvested memory is memory that has already been committed
   // and mapped. The rest of the vmem gets physical memory assigned here and
   // will be committed in a subsequent function.
@@ -1973,30 +1980,30 @@ void ZPageAllocator::allocate_remaining_physical(ZMemoryAllocation* allocation, 
   if (uncomitted > 0) {
     ZAllocNode& node = node_from_numa_id(allocation->numa_id());
     ZVirtualMemory uncommitted_vmem = vmem.last_part(committed);
-    node.alloc_physical(uncommitted_vmem);
+    node.claim_physical(uncommitted_vmem);
   }
 }
 
-void ZPageAllocator::allocate_remaining_physical_multi_node(const ZMultiNodeAllocation* multi_node_allocation, const ZVirtualMemory& vmem) {
+void ZPageAllocator::claim_remaining_physical_multi_node(const ZMultiNodeAllocation* multi_node_allocation, const ZVirtualMemory& vmem) {
   ZVirtualMemory remaining = vmem;
 
   for (ZMemoryAllocation* allocation : *multi_node_allocation->allocations()) {
     const ZVirtualMemory partial = remaining.split_from_front(allocation->size());
-    allocate_remaining_physical(allocation, partial);
+    claim_remaining_physical(allocation, partial);
   }
 }
 
-void ZPageAllocator::allocate_remaining_physical_single_node(ZSingleNodeAllocation* single_node_allocation, const ZVirtualMemory& vmem) {
-  allocate_remaining_physical(single_node_allocation->allocation(), vmem);
+void ZPageAllocator::claim_remaining_physical_single_node(ZSingleNodeAllocation* single_node_allocation, const ZVirtualMemory& vmem) {
+  claim_remaining_physical(single_node_allocation->allocation(), vmem);
 }
 
-void ZPageAllocator::allocate_remaining_physical(ZPageAllocation* allocation, const ZVirtualMemory& vmem) {
+void ZPageAllocator::claim_remaining_physical(ZPageAllocation* allocation, const ZVirtualMemory& vmem) {
   assert(allocation->size() == vmem.size(), "vmem should be the final entry");
 
   if (allocation->is_multi_node()) {
-    allocate_remaining_physical_multi_node(allocation->multi_node_allocation(), vmem);
+    claim_remaining_physical_multi_node(allocation->multi_node_allocation(), vmem);
   } else {
-    allocate_remaining_physical_single_node(allocation->single_node_allocation(), vmem);
+    claim_remaining_physical_single_node(allocation->single_node_allocation(), vmem);
   }
 }
 
@@ -2186,7 +2193,7 @@ retry:
     return new ZPage(allocation->type(), vmem);
   }
 
-  // Claim virtual memory, either by harvesting or by allocating from the
+  // Claim virtual memory, either from harvested vmems or by claiming from the
   // virtual manager.
   if (!claim_virtual_memory(allocation)) {
     log_error(gc)("Out of address space");
@@ -2196,10 +2203,12 @@ retry:
 
   const ZVirtualMemory vmem = allocation->pop_final_vmem();
 
-  // Allocate any remaining physical memory. Capacity and used has already been
-  // adjusted, we just need to fetch the memory, which is guaranteed to succeed.
-  allocate_remaining_physical(allocation, vmem);
+  // Claim any remaining physical memory. Capacity and used has already been
+  // adjusted, we just need to claim the memory, which is guaranteed to succeed.
+  claim_remaining_physical(allocation, vmem);
 
+  // Commit the remaining non-committed memory and map it.
+  // FIXME: Check that we don't double map.
   if (!commit_and_map_memory(allocation, vmem)) {
     free_after_alloc_page_failed(allocation);
     goto retry;

@@ -125,7 +125,7 @@ public:
 
   void threads_do(ThreadClosure* tc) const;
 
-  void alloc_physical(const ZVirtualMemory& vmem);
+  void claim_physical(const ZVirtualMemory& vmem);
   void free_physical(const ZVirtualMemory& vmem);
   size_t commit_physical(const ZVirtualMemory& vmem);
   size_t uncommit_physical(const ZVirtualMemory& vmem);
@@ -202,10 +202,10 @@ private:
   bool claim_virtual_memory_single_node(ZSingleNodeAllocation* single_node_allocation);
   bool claim_virtual_memory(ZPageAllocation* allocation);
 
-  void allocate_remaining_physical(ZMemoryAllocation* allocation, const ZVirtualMemory& vmem);
-  void allocate_remaining_physical_multi_node(const ZMultiNodeAllocation* multi_node_allocation, const ZVirtualMemory& vmem);
-  void allocate_remaining_physical_single_node(ZSingleNodeAllocation* allocation, const ZVirtualMemory& vmem);
-  void allocate_remaining_physical(ZPageAllocation* allocation, const ZVirtualMemory& vmem);
+  void claim_remaining_physical(ZMemoryAllocation* allocation, const ZVirtualMemory& vmem);
+  void claim_remaining_physical_multi_node(const ZMultiNodeAllocation* multi_node_allocation, const ZVirtualMemory& vmem);
+  void claim_remaining_physical_single_node(ZSingleNodeAllocation* allocation, const ZVirtualMemory& vmem);
+  void claim_remaining_physical(ZPageAllocation* allocation, const ZVirtualMemory& vmem);
 
   bool commit_memory_multi_node(ZMultiNodeAllocation* multi_node_allocation, const ZVirtualMemory& vmem);
   void map_memory_multi_node(ZMultiNodeAllocation* multi_node_allocation, const ZVirtualMemory& vmem);
