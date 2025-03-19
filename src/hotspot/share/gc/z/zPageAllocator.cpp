@@ -176,37 +176,55 @@ private:
   size_t                 _committed_capacity;
   bool                   _commit_failed;
 
-public:
   explicit ZMemoryAllocation(const ZMemoryAllocation& other)
-    : _size(other._size),
-      _numa_id(other._numa_id),
-      _satisfied_from_cache_vmem(other._satisfied_from_cache_vmem),
-      _partial_vmems(other._partial_vmems.length()),
-      _num_harvested(other._num_harvested),
-      _harvested(other._harvested),
-      _increased_capacity(other._increased_capacity),
-      _committed_capacity(other._committed_capacity),
-      _commit_failed(other._commit_failed) {
-    _partial_vmems.appendAll(&other._partial_vmems);
+    : ZMemoryAllocation(other._size) {
+      // Transfer the numa id
+    set_numa_id(other._numa_id);
+
+    // Reserve space for the partial vmems
+    _partial_vmems.reserve(other._partial_vmems.length() + (other._satisfied_from_cache_vmem.is_null() ? 1 : 0));
+
+    // Transfer the claimed capacity
+    transfer_claimed_capacity(other);
   }
 
   ZMemoryAllocation(const ZMemoryAllocation& a1, const ZMemoryAllocation& a2)
-    : _size(a1._size + a2._size),
-      _numa_id(a1._numa_id),
-      _satisfied_from_cache_vmem(),
-      _partial_vmems(a1._partial_vmems.length() + a2._partial_vmems.length()),
-      _num_harvested(a1._num_harvested + a2._num_harvested),
-      _harvested(a1._harvested + a2._harvested),
-      _increased_capacity(a1._increased_capacity + a2._increased_capacity),
-      _committed_capacity(a1._committed_capacity + a2._committed_capacity),
-      _commit_failed(a1._commit_failed || a2._commit_failed) {
+    : ZMemoryAllocation(a1._size + a2._size) {
+    // Transfer the numa id
     assert(a1._numa_id == a2._numa_id, "only merge with same numa_id");
-    assert(a1._satisfied_from_cache_vmem.is_null(), "only merge with no result");
-    assert(a2._satisfied_from_cache_vmem.is_null(), "only merge with no result");
-    _partial_vmems.appendAll(&a1._partial_vmems);
-    _partial_vmems.appendAll(&a2._partial_vmems);
+    set_numa_id(a1._numa_id);
+
+    // Reserve space for the partial vmems
+    const size_t num_vmems_a1 = a1._partial_vmems.length() + (a1._satisfied_from_cache_vmem.is_null() ? 1 : 0);
+    const size_t num_vmems_a2 = a2._partial_vmems.length() + (a2._satisfied_from_cache_vmem.is_null() ? 1 : 0);
+    _partial_vmems.reserve(num_vmems_a1 + num_vmems_a2);
+
+    // Transfer the claimed capacity
+    transfer_claimed_capacity(a1);
+    transfer_claimed_capacity(a2);
   }
 
+  void transfer_claimed_capacity(const ZMemoryAllocation& from) {
+    assert(from._committed_capacity == 0, "Unexpected value %zu", from._committed_capacity);
+    assert(!from._commit_failed, "Unexpected value");
+    // Transfer increased capacity
+    _increased_capacity += from._increased_capacity;
+
+    // Transfer satisfying vmem or partial mappings
+    const ZVirtualMemory vmem = from._satisfied_from_cache_vmem;
+    if (!vmem.is_null()) {
+      assert(_partial_vmems.is_empty(), "Must either have result or partial vmems");
+      _partial_vmems.push(vmem);
+      _num_harvested += 1;
+      _harvested += vmem.size();
+    } else {
+      _partial_vmems.appendAll(&from._partial_vmems);
+      _num_harvested += from._num_harvested;
+      _harvested += from._harvested;
+    }
+  }
+
+public:
   explicit ZMemoryAllocation(size_t size)
     : _size(size),
       _numa_id(-1),
@@ -217,16 +235,6 @@ public:
       _increased_capacity(0),
       _committed_capacity(0),
       _commit_failed(false) {}
-
-  void remap_result() {
-    if (!_satisfied_from_cache_vmem.is_null()) {
-      precond(_partial_vmems.is_empty());
-      _partial_vmems.push(_satisfied_from_cache_vmem);
-      _num_harvested = 1;
-      _harvested = _satisfied_from_cache_vmem.size();
-      _satisfied_from_cache_vmem = {};
-    }
-  }
 
   ZVirtualMemory satisfied_from_cache_vmem() const {
     return _satisfied_from_cache_vmem;
@@ -306,6 +314,24 @@ public:
   const ZArray<ZVirtualMemory>* partial_vmems() const {
     return &_partial_vmems;
   }
+
+  static void destroy(ZMemoryAllocation* allocation) {
+    delete allocation;
+  }
+
+  static void merge(const ZMemoryAllocation& allocation, ZMemoryAllocation** merge_location) {
+    ZMemoryAllocation* const other_allocation = *merge_location;
+    if (other_allocation == nullptr) {
+      // First allocation, allocate new node
+      *merge_location = new ZMemoryAllocation(allocation);
+    } else {
+      // Merge with other allocation
+      *merge_location = new ZMemoryAllocation(allocation, *other_allocation);
+
+      // Delete old allocation
+      delete other_allocation;
+    }
+  }
 };
 
 class ZSingleNodeAllocation {
@@ -349,7 +375,7 @@ public:
 
   ~ZMultiNodeAllocation() {
     for (ZMemoryAllocation* allocation : _allocations) {
-      delete allocation;
+      ZMemoryAllocation::destroy(allocation);
     }
   }
 
@@ -385,21 +411,9 @@ public:
   }
 
   void register_allocation(const ZMemoryAllocation& allocation) {
-    precond(allocation.satisfied_from_cache_vmem().is_null());
-
     ZMemoryAllocation** const slot = allocation_slot(allocation.numa_id());
 
-    if (*slot == nullptr) {
-      // First allocation for this node_id
-      *slot = new ZMemoryAllocation(allocation);
-    } else {
-      // Allocation already exists for this node_id, merge allocations
-      ZMemoryAllocation* const old_allocation = *slot;
-      *slot = new ZMemoryAllocation(allocation, *old_allocation);
-
-      // Delete old allocation
-      delete old_allocation;
-    }
+    ZMemoryAllocation::merge(allocation, slot);
   }
 
   ZMemoryAllocation** allocation_slot(uint32_t numa_id) {
@@ -1729,9 +1743,6 @@ bool ZPageAllocator::claim_capacity_multi_node(ZMultiNodeAllocation* multi_node_
     // Claim capacity for this allocation - this should succeed
     const bool result = node.claim_capacity(&partial_allocation);
     assert(result, "Should have succeeded");
-
-    // Remap the result
-    partial_allocation.remap_result();
 
     // Register allocation
     multi_node_allocation->register_allocation(partial_allocation);
