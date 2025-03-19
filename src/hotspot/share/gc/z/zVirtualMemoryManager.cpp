@@ -177,9 +177,9 @@ bool ZVirtualMemoryManager::reserve_contiguous(zoffset start, size_t size) {
   // Register address views with native memory tracker
   ZNMT::reserve(addr, size);
 
-  // Make the address range free in the initial manager.
-  // This will later be distributed amoung the available NUMA nodes.
-  _init_node.free(start, size);
+  // Insert the address range in the initial manager.
+  // This will later be distributed among the available NUMA nodes.
+  _init_node.insert(start, size);
 
   return true;
 }
@@ -222,7 +222,7 @@ size_t ZVirtualMemoryManager::reserve(size_t max_capacity) {
 
   const size_t reserved = do_reserve();
 
-  const bool is_contiguous = _init_node.free_is_contiguous();
+  const bool is_contiguous = _init_node.is_contiguous();
 
   log_info_p(gc, init)("Address Space Type: %s/%s/%s",
                        (is_contiguous ? "Contiguous" : "Discontiguous"),
@@ -241,36 +241,36 @@ void ZVirtualMemoryManager::shuffle_to_low_addresses(const ZVirtualMemory& vmem,
   _nodes.get(numa_id).shuffle_to_low_addresses(vmem.start(), vmem.size(), vmems_out);
 }
 
-void ZVirtualMemoryManager::shuffle_to_low_addresses_and_alloc_contiguous(size_t size, uint32_t numa_id, ZArray<ZVirtualMemory>* vmems_in_out) {
-  _nodes.get(numa_id).shuffle_to_low_addresses_and_alloc_contiguous(size, vmems_in_out);
+void ZVirtualMemoryManager::shuffle_to_low_addresses_and_remove_contiguous(size_t size, uint32_t numa_id, ZArray<ZVirtualMemory>* vmems_in_out) {
+  _nodes.get(numa_id).shuffle_to_low_addresses_and_remove_contiguous(size, vmems_in_out);
 }
 
-size_t ZVirtualMemoryManager::alloc_low_address_many_at_most(size_t size, uint32_t numa_id, ZArray<ZVirtualMemory>* vmems_out) {
-  return _nodes.get(numa_id).alloc_low_address_many_at_most(size, vmems_out);
+size_t ZVirtualMemoryManager::remove_low_address_many_at_most(size_t size, uint32_t numa_id, ZArray<ZVirtualMemory>* vmems_out) {
+  return _nodes.get(numa_id).remove_low_address_many_at_most(size, vmems_out);
 }
 
-ZVirtualMemory ZVirtualMemoryManager::alloc(size_t size, uint32_t numa_id, bool force_low_address) {
+ZVirtualMemory ZVirtualMemoryManager::remove(size_t size, uint32_t numa_id, bool force_low_address) {
   ZVirtualMemory range;
 
   // Small/medium pages are allocated at low addresses, while large pages are
   // allocated at high addresses (unless forced to be at a low address).
   if (force_low_address || size <= ZPageSizeSmall || size <= ZPageSizeMedium) {
-    range = _nodes.get(numa_id).alloc_low_address(size);
+    range = _nodes.get(numa_id).remove_low_address(size);
   } else {
-    range = _nodes.get(numa_id).alloc_high_address(size);
+    range = _nodes.get(numa_id).remove_high_address(size);
   }
 
   return range;
 }
 
-void ZVirtualMemoryManager::free(const ZVirtualMemory& vmem) {
+void ZVirtualMemoryManager::insert(const ZVirtualMemory& vmem) {
   const uint32_t numa_id = get_numa_id(vmem);
-  _nodes.get(numa_id).free(vmem.start(), vmem.size());
+  _nodes.get(numa_id).insert(vmem.start(), vmem.size());
 }
 
-void ZVirtualMemoryManager::free(const ZVirtualMemory& vmem, uint32_t numa_id) {
+void ZVirtualMemoryManager::insert(const ZVirtualMemory& vmem, uint32_t numa_id) {
   assert(numa_id == get_numa_id(vmem), "wrong numa_id for vmem");
-  _nodes.get(numa_id).free(vmem.start(), vmem.size());
+  _nodes.get(numa_id).insert(vmem.start(), vmem.size());
 }
 
 uint32_t ZVirtualMemoryManager::get_numa_id(const ZVirtualMemory& vmem) const {

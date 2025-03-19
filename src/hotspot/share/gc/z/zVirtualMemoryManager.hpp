@@ -63,13 +63,13 @@ public:
   bool is_initialized() const;
 
   void shuffle_to_low_addresses(const ZVirtualMemory& vmem, uint32_t numa_id, ZArray<ZVirtualMemory>* vmems_out);
-  void shuffle_to_low_addresses_and_alloc_contiguous(size_t size, uint32_t numa_id, ZArray<ZVirtualMemory>* vmems_in_out);
+  void shuffle_to_low_addresses_and_remove_contiguous(size_t size, uint32_t numa_id, ZArray<ZVirtualMemory>* vmems_in_out);
 
-  size_t alloc_low_address_many_at_most(size_t size, uint32_t numa_id, ZArray<ZVirtualMemory>* vmems_out);
-  ZVirtualMemory alloc(size_t size, uint32_t numa_id, bool force_low_address);
+  size_t remove_low_address_many_at_most(size_t size, uint32_t numa_id, ZArray<ZVirtualMemory>* vmems_out);
+  ZVirtualMemory remove(size_t size, uint32_t numa_id, bool force_low_address);
 
-  void free(const ZVirtualMemory& vmem);
-  void free(const ZVirtualMemory& vmem, uint32_t numa_id);
+  void insert(const ZVirtualMemory& vmem);
+  void insert(const ZVirtualMemory& vmem, uint32_t numa_id);
 
   uint32_t get_numa_id(const ZVirtualMemory& vmem) const;
   zoffset lowest_available_address(uint32_t numa_id) const;

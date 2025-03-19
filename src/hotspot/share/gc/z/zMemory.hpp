@@ -106,7 +106,7 @@ public:
 
 private:
   mutable ZLock  _lock;
-  ZList<ZMemory> _freelist;
+  ZList<ZMemory> _list;
   Callbacks      _callbacks;
 
   ZMemory* create(offset start, size_t size);
@@ -118,33 +118,33 @@ private:
   Range split_from_front(ZMemory* area, size_t size);
   Range split_from_back(ZMemory* area, size_t size);
 
-  Range alloc_low_address_inner(size_t size);
-  Range alloc_low_address_at_most_inner(size_t size);
-  void free_inner(offset start, size_t size);
+  Range remove_low_address_inner(size_t size);
+  Range remove_low_address_at_most_inner(size_t size);
+  void insert_inner(offset start, size_t size);
 
-  size_t alloc_low_address_many_at_most_inner(size_t size, ZArray<Range>* out);
+  size_t remove_low_address_many_at_most_inner(size_t size, ZArray<Range>* out);
 
 public:
   ZMemoryManagerImpl();
 
-  bool free_is_contiguous() const;
+  bool is_contiguous() const;
 
   void register_callbacks(const Callbacks& callbacks);
 
   Range total_range() const;
 
   offset peek_low_address() const;
-  Range alloc_low_address(size_t size);
-  Range alloc_low_address_at_most(size_t size);
-  size_t alloc_low_address_many_at_most(size_t size, ZArray<Range>* out);
-  Range alloc_high_address(size_t size);
+  Range remove_low_address(size_t size);
+  Range remove_low_address_at_most(size_t size);
+  size_t remove_low_address_many_at_most(size_t size, ZArray<Range>* out);
+  Range remove_high_address(size_t size);
 
   void transfer_low_address(ZMemoryManagerImpl* other, size_t size);
   void shuffle_to_low_addresses(offset start, size_t size, ZArray<Range>* out);
-  void shuffle_to_low_addresses_and_alloc_contiguous(size_t size, ZArray<Range>* in_out);
+  void shuffle_to_low_addresses_and_remove_contiguous(size_t size, ZArray<Range>* in_out);
 
-  void free(offset start, size_t size);
-  void free(const Range& range);
+  void insert(offset start, size_t size);
+  void insert(const Range& range);
 };
 
 #endif // SHARE_GC_Z_ZMEMORY_HPP

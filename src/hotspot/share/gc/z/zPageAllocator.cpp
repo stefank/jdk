@@ -969,13 +969,13 @@ void ZAllocNode::map_virtual_to_physical(const ZVirtualMemory& vmem) {
 ZVirtualMemory ZAllocNode::alloc_virtual(size_t size, bool force_low_address) {
   ZVirtualMemoryManager& manager = virtual_memory_manager();
 
-  return manager.alloc(size, _numa_id, force_low_address);
+  return manager.remove(size, _numa_id, force_low_address);
 }
 
 size_t ZAllocNode::alloc_virtual(size_t size, ZArray<ZVirtualMemory>* vmems_out) {
   ZVirtualMemoryManager& manager = virtual_memory_manager();
 
-  return manager.alloc_low_address_many_at_most(size, _numa_id, vmems_out);
+  return manager.remove_low_address_many_at_most(size, _numa_id, vmems_out);
 }
 
 void ZAllocNode::unmap_virtual(const ZVirtualMemory& vmem) {
@@ -996,7 +996,7 @@ void ZAllocNode::free_virtual(const ZVirtualMemory& vmem) {
   ZVirtualMemoryManager& manager = virtual_memory_manager();
 
   // Free virtual memory
-  manager.free(vmem, _numa_id);
+  manager.insert(vmem, _numa_id);
 }
 
 void ZAllocNode::shuffle_virtual(const ZVirtualMemory& vmem, ZArray<ZVirtualMemory>* vmems_out) {
@@ -1014,7 +1014,7 @@ void ZAllocNode::shuffle_virtual(size_t size, ZArray<ZVirtualMemory>* vmems_in_o
   ZVirtualMemoryManager& manager = virtual_memory_manager();
 
   // Shuffle virtual memory
-  manager.shuffle_to_low_addresses_and_alloc_contiguous(size, _numa_id, vmems_in_out);
+  manager.shuffle_to_low_addresses_and_remove_contiguous(size, _numa_id, vmems_in_out);
 }
 
 static void pretouch_memory(zoffset start, size_t size) {
