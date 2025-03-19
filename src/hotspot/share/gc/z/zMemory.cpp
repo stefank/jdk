@@ -370,7 +370,7 @@ void ZMemoryManagerImpl<Range>::shuffle_to_low_addresses(offset start, size_t si
 }
 
 template <typename Range>
-void ZMemoryManagerImpl<Range>::shuffle_to_low_addresses_and_remove_contiguous(size_t size, ZArray<Range>* in_out) {
+Range ZMemoryManagerImpl<Range>::shuffle_to_low_addresses_and_remove_contiguous(size_t size, ZArray<Range>* in_out) {
   ZLocker<ZLock> locker(&_lock);
 
   size_t inserted = 0;
@@ -388,14 +388,14 @@ void ZMemoryManagerImpl<Range>::shuffle_to_low_addresses_and_remove_contiguous(s
   // Try to find and remove a contiguous chunk
   Range range = remove_low_address_inner(size);
   if (!range.is_null()) {
-    in_out->append(range);
-    return;
+    return range;
   }
 
   // Failed to find a contiguous chunk, split it up into smaller chunks and
   // only remove up to as much that has been inserted.
   size_t removed = remove_low_address_many_at_most_inner(inserted, in_out);
   assert(removed == inserted, "Should be able to get back as much as we previously inserted");
+  return Range();
 }
 
 template <typename Range>

@@ -138,7 +138,7 @@ public:
   void free_virtual(const ZVirtualMemory& vmem);
 
   void shuffle_virtual(const ZVirtualMemory& vmem, ZArray<ZVirtualMemory>* vmems_out);
-  void shuffle_virtual(size_t size, ZArray<ZVirtualMemory>* vmems_in_out);
+  ZVirtualMemory shuffle_virtual(size_t size, ZArray<ZVirtualMemory>* vmems_in_out);
 
   bool prime(ZWorkers* workers, size_t size);
 
