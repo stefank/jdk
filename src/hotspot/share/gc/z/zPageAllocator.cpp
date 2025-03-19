@@ -1770,10 +1770,10 @@ bool ZPageAllocator::claim_capacity_multi_node(ZMultiNodeAllocation* multi_node_
   // Try to claim from multiple nodes
 
   // Try to claim up to split_size on each node
-  do_claim_each_node(true  /* use_split_size */);
+  do_claim_each_node(true  /* claim_evenly */);
 
   // Try claim the remaining
-  do_claim_each_node(false /* use_split_size */);
+  do_claim_each_node(false /* claim_evenly */);
 
   return remaining == 0;
 }
