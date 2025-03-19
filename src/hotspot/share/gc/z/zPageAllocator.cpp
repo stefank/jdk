@@ -164,7 +164,8 @@ private:
   ZArray<ZVirtualMemory> _claimed_vmems;
   int                    _num_harvested;
   size_t                 _harvested;
-  size_t                 _committed_increased_capacity;
+  size_t                 _increased_capacity;
+  size_t                 _committed_capacity;
   bool                   _commit_failed;
 
 public:
@@ -174,7 +175,8 @@ public:
       _claimed_vmems(other._claimed_vmems.length()),
       _num_harvested(other._num_harvested),
       _harvested(other._harvested),
-      _committed_increased_capacity(other._committed_increased_capacity),
+      _increased_capacity(other._increased_capacity),
+      _committed_capacity(other._committed_capacity),
       _commit_failed(other._commit_failed) {
     _claimed_vmems.appendAll(&other._claimed_vmems);
   }
@@ -185,7 +187,8 @@ public:
       _claimed_vmems(a1._claimed_vmems.length() + a2._claimed_vmems.length()),
       _num_harvested(a1._num_harvested + a2._num_harvested),
       _harvested(a1._harvested + a2._harvested),
-      _committed_increased_capacity(a1._committed_increased_capacity + a2._committed_increased_capacity),
+      _increased_capacity(a1._increased_capacity + a2._increased_capacity),
+      _committed_capacity(a1._committed_capacity + a2._committed_capacity),
       _commit_failed(a1._commit_failed || a2._commit_failed) {
     assert(a1._numa_id == a2._numa_id, "only merge with same numa_id");
     _claimed_vmems.appendAll(&a1._claimed_vmems);
@@ -198,13 +201,15 @@ public:
       _claimed_vmems(1),
       _num_harvested(0),
       _harvested(0),
-      _committed_increased_capacity(0),
+      _increased_capacity(0),
+      _committed_capacity(0),
       _commit_failed(false) {}
 
   void reset_for_retry() {
     _claimed_vmems.clear();
     _harvested = 0;
-    _committed_increased_capacity = 0;
+    _increased_capacity = 0;
+    _committed_capacity = 0;
   }
 
   size_t size() const {
@@ -224,13 +229,21 @@ public:
     _harvested = harvested;
   }
 
-  size_t committed_increased_capacity() const {
-    return _committed_increased_capacity;
+  size_t increased_capacity() const {
+    return _increased_capacity;
   }
 
-  void set_committed_increased_capacity(size_t committed_increased_capacity) {
-    assert(_committed_increased_capacity == 0, "Should this only be set once?");
-    _committed_increased_capacity = committed_increased_capacity;
+  void set_increased_capacity(size_t increased_capacity) {
+    _increased_capacity = increased_capacity;
+  }
+
+  size_t committed_capacity() const {
+    return _committed_capacity;
+  }
+
+  void set_committed_capacity(size_t committed_capacity) {
+    assert(_committed_capacity == 0, "Should this only be set once?");
+    _committed_capacity = committed_capacity;
   }
 
   uint32_t numa_id() const {
@@ -394,7 +407,7 @@ public:
     size_t total = 0;
 
     for (const ZMemoryAllocation* allocation : _allocations) {
-      total += allocation->committed_increased_capacity();
+      total += allocation->committed_capacity();
     }
 
     return total;
@@ -567,7 +580,7 @@ public:
       return ZPageAllocationStats(
           _single_node_allocation.allocation()->num_harvested(),
           _single_node_allocation.allocation()->harvested(),
-          _single_node_allocation.allocation()->committed_increased_capacity());
+          _single_node_allocation.allocation()->committed_capacity());
     }
   }
 };
@@ -744,6 +757,9 @@ void ZAllocNode::claim_mapped_or_increase_capacity(ZMemoryAllocation* allocation
 
   // Try increase capacity
   const size_t increased_capacity = increase_capacity(size);
+
+  allocation->set_increased_capacity(increased_capacity);
+
   if (increased_capacity == size) {
     // Capacity increase covered the entire request, done.
     return;
@@ -1177,7 +1193,7 @@ ZVirtualMemory ZAllocNode::commit_increased_capacity(ZMemoryAllocation* allocati
   const ZVirtualMemory total_committed_vmem(already_committed_vmem.start(), already_committed_vmem.size() + committed);
 
   // Keep track of the committed amount
-  allocation->set_committed_increased_capacity(committed);
+  allocation->set_committed_capacity(committed);
 
   return total_committed_vmem;
 }
@@ -1238,7 +1254,7 @@ void ZAllocNode::free_memory_alloc_failed(ZMemoryAllocation* allocation) {
     freed += vmem.size();
     _cache.insert(vmem);
   }
-  assert(allocation->harvested() + allocation->committed_increased_capacity() == freed, "must have freed all");
+  assert(allocation->harvested() + allocation->committed_capacity() == freed, "must have freed all");
 
   // Adjust capacity to reflect the failed capacity increase
   const size_t remaining = allocation->size() - freed;
@@ -1864,8 +1880,7 @@ void ZPageAllocator::copy_claimed_physical_multi_node(ZMultiNodeAllocation* mult
       offset += claimed_vmem.size();
     }
 
-    const size_t increased_capacity = partial_allocation->size() - partial_allocation->harvested();
-    offset += increased_capacity;
+    offset += partial_allocation->increased_capacity();
   }
 
   assert(offset == vmem.end(), "All memory should have been accounted for "
@@ -1975,7 +1990,7 @@ bool ZPageAllocator::commit_memory_multi_node(ZMultiNodeAllocation* multi_node_a
     const size_t committed = node.commit_physical(to_commit_vmem);
 
     // Keep track of the committed amount
-    allocation->set_committed_increased_capacity(committed);
+    allocation->set_committed_capacity(committed);
 
     if (committed != to_commit) {
       allocation->set_commit_failed();
@@ -2028,7 +2043,7 @@ void ZPageAllocator::cleanup_failed_commit_multi_node(ZMultiNodeAllocation* mult
   size_t offset = 0;
   ZArrayIterator<ZMemoryAllocation*> iter(multi_node_allocation->allocations());
   for (ZMemoryAllocation* allocation; iter.next(&allocation); offset += allocation->size()) {
-    const size_t committed = allocation->committed_increased_capacity();
+    const size_t committed = allocation->committed_capacity();
 
     if (committed == 0) {
       // Nothing committed, nothing to cleanup
