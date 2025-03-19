@@ -680,7 +680,7 @@ ZAllocNode::ZAllocNode(uint32_t numa_id, ZPageAllocator* page_allocator)
     _to_uncommit(0),
     _numa_id(numa_id) {}
 
-size_t ZAllocNode::available_capacity() const {
+size_t ZAllocNode::available() const {
   return _current_max_capacity - _used - _claimed;
 }
 
@@ -756,12 +756,12 @@ void ZAllocNode::reset_statistics(ZGenerationId id) {
   _collection_stats[(int)id]._used_low = _used;
 }
 
-void ZAllocNode::claim_mapped_or_increase_capacity(ZMemoryAllocation* allocation) {
+void ZAllocNode::claim_from_cache_or_increase_capacity(ZMemoryAllocation* allocation) {
   const size_t size = allocation->size();
   ZArray<ZVirtualMemory>* const out = allocation->partial_vmems();
 
-  // We are guaranteed to succeed the claiming of physical memory here
-  assert(available_capacity() >= size, "Must be");
+  // We are guaranteed to succeed the claiming of capacity here
+  assert(available() >= size, "Must be");
 
   // Associate the allocation with this alloc node.
   allocation->set_numa_id(_numa_id);
@@ -801,15 +801,15 @@ void ZAllocNode::claim_mapped_or_increase_capacity(ZMemoryAllocation* allocation
   return;
 }
 
-bool ZAllocNode::claim_physical(ZMemoryAllocation* allocation) {
+bool ZAllocNode::claim_capacity(ZMemoryAllocation* allocation) {
   const size_t size = allocation->size();
 
-  if (available_capacity() < size) {
+  if (available() < size) {
     // Out of memory
     return false;
   }
 
-  claim_mapped_or_increase_capacity(allocation);
+  claim_from_cache_or_increase_capacity(allocation);
 
   // Updated used statistics
   increase_used(size);
@@ -1700,7 +1700,7 @@ bool ZPageAllocator::alloc_page_stall(ZPageAllocation* allocation) {
   return result;
 }
 
-bool ZPageAllocator::claim_physical_multi_node(ZMultiNodeAllocation* multi_node_allocation, uint32_t start_node) {
+bool ZPageAllocator::claim_capacity_multi_node(ZMultiNodeAllocation* multi_node_allocation, uint32_t start_node) {
   const size_t size = multi_node_allocation->size();
   const uint32_t numa_nodes = ZNUMA::count();
   const size_t split_size = align_up(size / numa_nodes, ZGranuleSize);
@@ -1716,7 +1716,7 @@ bool ZPageAllocator::claim_physical_multi_node(ZMultiNodeAllocation* multi_node_
     const size_t max_alloc_size = claim_evenly ? MIN2(split_size, remaining) : remaining;
 
     // This guarantees that claim_physical below will succeed
-    const size_t alloc_size = MIN2(max_alloc_size, node.available_capacity());
+    const size_t alloc_size = MIN2(max_alloc_size, node.available());
 
     // Skip over empty allocations
     if (alloc_size == 0) {
@@ -1726,8 +1726,8 @@ bool ZPageAllocator::claim_physical_multi_node(ZMultiNodeAllocation* multi_node_
 
     ZMemoryAllocation partial_allocation(alloc_size);
 
-    // Claim physical memory - this should succeed
-    const bool result = node.claim_physical(&partial_allocation);
+    // Claim capacity for this allocation - this should succeed
+    const bool result = node.claim_capacity(&partial_allocation);
     assert(result, "Should have succeeded");
 
     // Remap the result
@@ -1767,25 +1767,25 @@ bool ZPageAllocator::claim_physical_multi_node(ZMultiNodeAllocation* multi_node_
   return remaining == 0;
 }
 
-bool ZPageAllocator::claim_physical_single_node(ZSingleNodeAllocation* single_node_allocation, uint32_t numa_id) {
+bool ZPageAllocator::claim_capacity_single_node(ZSingleNodeAllocation* single_node_allocation, uint32_t numa_id) {
   ZAllocNode& node = _alloc_nodes.get(numa_id);
 
-  return node.claim_physical(single_node_allocation->allocation());
+  return node.claim_capacity(single_node_allocation->allocation());
 }
 
-size_t ZPageAllocator::sum_available_capacity() const {
+size_t ZPageAllocator::sum_available() const {
   const uint32_t numa_nodes = ZNUMA::count();
 
   size_t total = 0;
 
   for (uint32_t i = 0; i < numa_nodes; ++i) {
-    total += _alloc_nodes.get(i).available_capacity();
+    total += _alloc_nodes.get(i).available();
   }
 
   return total;
 }
 
-bool ZPageAllocator::claim_physical(ZPageAllocation* allocation) {
+bool ZPageAllocator::claim_capacity(ZPageAllocation* allocation) {
   const uint32_t start_node = allocation->initiating_numa_id();
   const uint32_t numa_nodes = ZNUMA::count();
 
@@ -1794,12 +1794,12 @@ bool ZPageAllocator::claim_physical(ZPageAllocation* allocation) {
   for (uint32_t i = 0; i < numa_nodes; ++i) {
     const uint32_t numa_id = (start_node + i) % numa_nodes;
 
-    if (claim_physical_single_node(allocation->single_node_allocation(), numa_id)) {
+    if (claim_capacity_single_node(allocation->single_node_allocation(), numa_id)) {
       return true;
     }
   }
 
-  if (numa_nodes <= 1 || sum_available_capacity() < allocation->size()) {
+  if (numa_nodes <= 1 || sum_available() < allocation->size()) {
     // Multi-node claiming is not possible
     return false;
   }
@@ -1811,7 +1811,7 @@ bool ZPageAllocator::claim_physical(ZPageAllocation* allocation) {
 
   ZMultiNodeAllocation* const multi_node_allocation = allocation->multi_node_allocation();
 
-  if (claim_physical_multi_node(multi_node_allocation, start_node)) {
+  if (claim_capacity_multi_node(multi_node_allocation, start_node)) {
     return true;
   }
 
@@ -1821,12 +1821,12 @@ bool ZPageAllocator::claim_physical(ZPageAllocation* allocation) {
   return false;
 }
 
-bool ZPageAllocator::claim_physical_or_stall(ZPageAllocation* allocation) {
+bool ZPageAllocator::claim_capacity_or_stall(ZPageAllocation* allocation) {
   {
     ZLocker<ZLock> locker(&_lock);
 
     // Try to claim memory
-    if (claim_physical(allocation)) {
+    if (claim_capacity(allocation)) {
       return true;
     }
 
@@ -1927,7 +1927,7 @@ ZVirtualMemory ZPageAllocator::claim_virtual_memory(ZPageAllocation* allocation)
   }
 }
 
-void ZPageAllocator::claim_remaining_physical(ZMemoryAllocation* allocation, const ZVirtualMemory& vmem) {
+void ZPageAllocator::claim_physical_for_increased_capacity(ZMemoryAllocation* allocation, const ZVirtualMemory& vmem) {
   // The previously harvested memory is memory that has already been committed
   // and mapped. The rest of the vmem gets physical memory assigned here and
   // will be committed in a subsequent function.
@@ -1942,26 +1942,26 @@ void ZPageAllocator::claim_remaining_physical(ZMemoryAllocation* allocation, con
   }
 }
 
-void ZPageAllocator::claim_remaining_physical_multi_node(const ZMultiNodeAllocation* multi_node_allocation, const ZVirtualMemory& vmem) {
+void ZPageAllocator::claim_physical_for_increased_capacity_multi_node(const ZMultiNodeAllocation* multi_node_allocation, const ZVirtualMemory& vmem) {
   ZVirtualMemory remaining = vmem;
 
   for (ZMemoryAllocation* allocation : *multi_node_allocation->allocations()) {
     const ZVirtualMemory partial = remaining.split_from_front(allocation->size());
-    claim_remaining_physical(allocation, partial);
+    claim_physical_for_increased_capacity(allocation, partial);
   }
 }
 
-void ZPageAllocator::claim_remaining_physical_single_node(ZSingleNodeAllocation* single_node_allocation, const ZVirtualMemory& vmem) {
-  claim_remaining_physical(single_node_allocation->allocation(), vmem);
+void ZPageAllocator::claim_physical_for_increased_capacity_single_node(ZSingleNodeAllocation* single_node_allocation, const ZVirtualMemory& vmem) {
+  claim_physical_for_increased_capacity(single_node_allocation->allocation(), vmem);
 }
 
-void ZPageAllocator::claim_remaining_physical(ZPageAllocation* allocation, const ZVirtualMemory& vmem) {
+void ZPageAllocator::claim_physical_for_increased_capacity(ZPageAllocation* allocation, const ZVirtualMemory& vmem) {
   assert(allocation->size() == vmem.size(), "vmem should be the final entry");
 
   if (allocation->is_multi_node()) {
-    claim_remaining_physical_multi_node(allocation->multi_node_allocation(), vmem);
+    claim_physical_for_increased_capacity_multi_node(allocation->multi_node_allocation(), vmem);
   } else {
-    claim_remaining_physical_single_node(allocation->single_node_allocation(), vmem);
+    claim_physical_for_increased_capacity_single_node(allocation->single_node_allocation(), vmem);
   }
 }
 
@@ -2135,17 +2135,22 @@ bool ZPageAllocator::commit_and_map_memory(ZPageAllocation* allocation, const ZV
 
 ZPage* ZPageAllocator::alloc_page_inner(ZPageAllocation* allocation) {
 retry:
-  // Claim physical memory by taking it from the mapped cache or by increasing
-  // capacity, which allows us to allocate from the underlying memory manager
-  // later on. Note that this call might block in a safepoint if the non-blocking
-  // flag is not set.
-  if (!claim_physical_or_stall(allocation)) {
+
+  // Claim the capacity needed for this allocation.
+  //
+  // The claimed capacity comes from memory already mapped in the cache, or
+  // from increasing the capacity. The increased capacity allows us to allocate
+  // physical memory from the underlying memory manager later on.
+  //
+  // Note that this call might block in a safepoint if the non-blocking flag is
+  // not set.
+  if (!claim_capacity_or_stall(allocation)) {
     // Out of memory
     return nullptr;
   }
 
-  // If we have claimed a large enough contiguous vmem from the mapped cache,
-  // we're done.
+  // If the entire claimed capacity came from claiming a single vmem from the
+  // mapped cache then the allocation has been satisfied and we are done.
   const ZVirtualMemory cached_vmem = satisfied_from_cache_vmem(allocation);
   if (!cached_vmem.is_null()) {
     return new ZPage(allocation->type(), cached_vmem);
@@ -2153,8 +2158,8 @@ retry:
 
   // We couldn't find a satisfying vmem in the cache, so we need to build one.
 
-  // Claim virtual memory, either from harvested vmems or by claiming from the
-  // virtual manager.
+  // Claim virtual memory, either from remapping harvested vmems from the
+  // mapped cache or by claiming it straight from the virtual manager.
   const ZVirtualMemory vmem = claim_virtual_memory(allocation);
   if (vmem.is_null()) {
     log_error(gc)("Out of address space");
@@ -2162,11 +2167,11 @@ retry:
     return nullptr;
   }
 
-  // Claim any remaining physical memory. Capacity and used has already been
-  // adjusted, we just need to claim the memory, which is guaranteed to succeed.
-  claim_remaining_physical(allocation, vmem);
+  // Claim physical memory for the increased capacity. The previous claiming of
+  // capacity guarantees that this will succeed.
+  claim_physical_for_increased_capacity(allocation, vmem);
 
-  // Commit the remaining non-committed memory and map it.
+  // Commit memory for the increased capacity and map the entire vmem.
   if (!commit_and_map_memory(allocation, vmem)) {
     free_after_alloc_page_failed(allocation);
     goto retry;
@@ -2269,7 +2274,7 @@ void ZPageAllocator::satisfy_stalled() {
       return;
     }
 
-    if (!claim_physical(allocation)) {
+    if (!claim_capacity(allocation)) {
       // Allocation could not be satisfied, give up
       return;
     }

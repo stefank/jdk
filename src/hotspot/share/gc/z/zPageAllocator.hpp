@@ -96,7 +96,7 @@ private:
 public:
   ZAllocNode(uint32_t numa_id, ZPageAllocator* page_allocator);
 
-  size_t available_capacity() const;
+  size_t available() const;
 
   size_t increase_capacity(size_t size);
   void decrease_capacity(size_t size, bool set_max_capacity);
@@ -109,8 +109,8 @@ public:
 
   void reset_statistics(ZGenerationId id);
 
-  void claim_mapped_or_increase_capacity(ZMemoryAllocation* allocation);
-  bool claim_physical(ZMemoryAllocation* allocation);
+  void claim_from_cache_or_increase_capacity(ZMemoryAllocation* allocation);
+  bool claim_capacity(ZMemoryAllocation* allocation);
 
   void promote_used(size_t size);
 
@@ -183,13 +183,13 @@ private:
 
   bool alloc_page_stall(ZPageAllocation* allocation);
 
-  size_t sum_available_capacity() const;
+  size_t sum_available() const;
 
-  bool claim_physical_multi_node(ZMultiNodeAllocation* multi_node_allocation, uint32_t start_node);
-  bool claim_physical_single_node(ZSingleNodeAllocation* single_node_allocation, uint32_t numa_id);
-  bool claim_physical(ZPageAllocation* allocation);
+  bool claim_capacity_multi_node(ZMultiNodeAllocation* multi_node_allocation, uint32_t start_node);
+  bool claim_capacity_single_node(ZSingleNodeAllocation* single_node_allocation, uint32_t numa_id);
+  bool claim_capacity(ZPageAllocation* allocation);
 
-  bool claim_physical_or_stall(ZPageAllocation* allocation);
+  bool claim_capacity_or_stall(ZPageAllocation* allocation);
 
   ZVirtualMemory satisfied_from_cache_vmem(const ZPageAllocation* allocation) const;
 
@@ -200,10 +200,10 @@ private:
   ZVirtualMemory claim_virtual_memory_single_node(ZSingleNodeAllocation* single_node_allocation);
   ZVirtualMemory claim_virtual_memory(ZPageAllocation* allocation);
 
-  void claim_remaining_physical(ZMemoryAllocation* allocation, const ZVirtualMemory& vmem);
-  void claim_remaining_physical_multi_node(const ZMultiNodeAllocation* multi_node_allocation, const ZVirtualMemory& vmem);
-  void claim_remaining_physical_single_node(ZSingleNodeAllocation* allocation, const ZVirtualMemory& vmem);
-  void claim_remaining_physical(ZPageAllocation* allocation, const ZVirtualMemory& vmem);
+  void claim_physical_for_increased_capacity(ZMemoryAllocation* allocation, const ZVirtualMemory& vmem);
+  void claim_physical_for_increased_capacity_multi_node(const ZMultiNodeAllocation* multi_node_allocation, const ZVirtualMemory& vmem);
+  void claim_physical_for_increased_capacity_single_node(ZSingleNodeAllocation* allocation, const ZVirtualMemory& vmem);
+  void claim_physical_for_increased_capacity(ZPageAllocation* allocation, const ZVirtualMemory& vmem);
 
   bool commit_memory_multi_node(ZMultiNodeAllocation* multi_node_allocation, const ZVirtualMemory& vmem);
   void map_memory_multi_node(ZMultiNodeAllocation* multi_node_allocation, const ZVirtualMemory& vmem);
