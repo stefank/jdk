@@ -40,6 +40,7 @@
 #include "gc/z/zUncommitter.hpp"
 #include "gc/z/zValue.hpp"
 #include "gc/z/zVirtualMemoryManager.hpp"
+#include "utilities/ostream.hpp"
 
 class ThreadClosure;
 class ZGeneration;
@@ -124,6 +125,9 @@ public:
   ZUncommitter& uncommitter();
 
   void threads_do(ThreadClosure* tc) const;
+
+  void print_on(outputStream* st) const;
+  void print_extended_on(outputStream* st) const;
 
   void claim_physical(const ZVirtualMemory& vmem);
   void free_physical(const ZVirtualMemory& vmem);
@@ -234,6 +238,8 @@ private:
   void notify_out_of_memory();
   void restart_gc() const;
 
+  void print_on_inner(outputStream* st) const;
+
 public:
   ZPageAllocator(size_t min_capacity,
                  size_t initial_capacity,
@@ -275,6 +281,10 @@ public:
   void handle_alloc_stalling_for_old(bool cleared_soft_refs);
 
   void threads_do(ThreadClosure* tc) const;
+
+  void print_on(outputStream* st) const;
+  void print_extended_on(outputStream* st) const;
+  void print_on_error(outputStream* st) const;
 
   ZPerNUMAConstIterator<ZAllocNode> alloc_node_iterator() const;
   ZPerNUMAIterator<ZAllocNode> alloc_node_iterator();

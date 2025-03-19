@@ -29,6 +29,7 @@
 #include "gc/z/zIntrusiveRBTree.hpp"
 #include "gc/z/zMemory.hpp"
 #include "utilities/globalDefinitions.hpp"
+#include "utilities/ostream.hpp"
 
 class ZMappedCacheEntry;
 
@@ -57,6 +58,7 @@ private:
   static constexpr int NumSizeClasses = MaxSizeClassShift - MinSizeClassShift + 1;
 
   Tree          _tree;
+  size_t        _num_treenodes;
   SizeClassList _size_class_lists[NumSizeClasses];
   size_t        _size;
   size_t        _min;
@@ -102,6 +104,9 @@ public:
   size_t remove_from_min(size_t max_size, ZArray<ZVirtualMemory>* out);
 
   size_t size() const;
+
+  void print_on(outputStream* st) const;
+  void print_extended_on(outputStream* st) const;
 };
 
 #endif // SHARE_GC_Z_ZMAPPEDCACHE_HPP

@@ -163,6 +163,8 @@ int ZMappedCache::guaranteed_size_class_index(size_t size) {
 void ZMappedCache::tree_insert(const Tree::FindCursor& cursor, const ZVirtualMemory& vmem) {
   ZMappedCacheEntry* const entry = create_entry(vmem);
 
+  _num_treenodes += 1;
+
   // Insert in tree
   _tree.insert(entry->node_addr(), cursor);
 
@@ -176,6 +178,8 @@ void ZMappedCache::tree_insert(const Tree::FindCursor& cursor, const ZVirtualMem
 
 void ZMappedCache::tree_remove(const Tree::FindCursor& cursor, const ZVirtualMemory& vmem) {
   ZMappedCacheEntry* entry = ZMappedCacheEntry::cast_to_entry(cursor.node());
+
+  _num_treenodes -= 1;
 
   // Remove from tree
   _tree.remove(cursor);
@@ -441,6 +445,7 @@ size_t ZMappedCache::remove_discontiguous_with_strategy(size_t size, ZArray<ZVir
 
 ZMappedCache::ZMappedCache()
   : _tree(),
+    _num_treenodes(0),
     _size_class_lists{},
     _size(0),
     _min(_size) {}
@@ -562,4 +567,32 @@ size_t ZMappedCache::remove_from_min(size_t max_size, ZArray<ZVirtualMemory>* ou
 
 size_t ZMappedCache::size() const {
   return _size;
+}
+
+void ZMappedCache::print_on(outputStream* st) const {
+  st->print_cr("   cache         size: %zuM, nodes: %zu", _size / M, _num_treenodes);
+
+  // Print information on size classes
+  st->print("    size classes");
+  for (int index = 0; index < NumSizeClasses; ++index) {
+    const ZList<ZSizeClassListNode>& list = _size_class_lists[index];
+    if (!list.is_empty()) {
+      const size_t shift = index + MinSizeClassShift + ZGranuleSizeShift;
+      const size_t size = (size_t)1 << shift;
+
+      st->print(" " EXACTFMT ": %zu", EXACTFMTARGS(size), list.size());
+    }
+  }
+
+  st->cr();
+}
+
+void ZMappedCache::print_extended_on(outputStream* st) const {
+  // Print the ranges and size of all nodes in the tree
+  for (ZMappedCache::TreeNode* node = _tree.first(); node != nullptr; node = node->next()) {
+    const ZVirtualMemory vmem = ZMappedCacheEntry::cast_to_entry(node)->vmem();
+
+    st->print_cr("  " PTR_FORMAT " " PTR_FORMAT " " EXACTFMT "",
+                 untype(vmem.start()), untype(vmem.end()), EXACTFMTARGS(vmem.size()));
+  }
 }

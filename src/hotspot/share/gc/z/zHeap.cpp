@@ -319,10 +319,8 @@ ZServiceabilityCounters* ZHeap::serviceability_counters() {
 }
 
 void ZHeap::print_on(outputStream* st) const {
-  st->print_cr(" ZHeap           used %zuM, capacity %zuM, max capacity %zuM",
-               used() / M,
-               capacity() / M,
-               max_capacity() / M);
+  st->print(" ZHeap           ");
+  _page_allocator.print_on(st);
   MetaspaceUtils::print_on(st);
 }
 
@@ -342,6 +340,10 @@ void ZHeap::print_extended_on(outputStream* st) const {
 
   // Allow pages to be deleted
   _page_allocator.disable_safe_destroy();
+
+  st->cr();
+
+  _page_allocator.print_extended_on(st);
 }
 
 bool ZHeap::print_location(outputStream* st, uintptr_t addr) const {
