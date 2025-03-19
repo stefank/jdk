@@ -36,7 +36,7 @@
 
 using namespace testing;
 
-#define EXPECT_ALLOC_OK(range) EXPECT_FALSE(range.is_null())
+#define EXPECT_REMOVAL_OK(range) EXPECT_FALSE(range.is_null())
 
 using ZMemoryManager = ZVirtualMemoryManager::ZMemoryManager;
 
@@ -60,8 +60,8 @@ public:
       return false;
     }
 
-    // Make the address range free before setting up callbacks below
-    _va->free(zoffset(0), ZMapperTestReservationSize);
+    // Insert the address range before setting up callbacks below
+    _va->insert(zoffset(0), ZMapperTestReservationSize);
 
     // Initialize platform specific parts after reserving address space
     _vmm->pd_initialize_after_reserve();
@@ -108,70 +108,70 @@ public:
     os::free(_vmm);
   }
 
-  static void test_alloc_low_address() {
+  static void test_remove_low_address() {
     // Verify that we get placeholder for first granule
-    ZVirtualMemory bottom = _va->alloc_low_address(ZGranuleSize);
-    EXPECT_ALLOC_OK(bottom);
+    ZVirtualMemory bottom = _va->remove_low_address(ZGranuleSize);
+    EXPECT_REMOVAL_OK(bottom);
 
-    _va->free(bottom);
+    _va->insert(bottom);
 
-    // Alloc something larger than a granule and free it
-    bottom = _va->alloc_low_address(ZGranuleSize * 3);
-    EXPECT_ALLOC_OK(bottom);
+    // Remove something larger than a granule and insert it
+    bottom = _va->remove_low_address(ZGranuleSize * 3);
+    EXPECT_REMOVAL_OK(bottom);
 
-    _va->free(bottom);
+    _va->insert(bottom);
 
-    // Free with more memory allocated
-    bottom = _va->alloc_low_address(ZGranuleSize);
-    EXPECT_ALLOC_OK(bottom);
+    // Insert with more memory removed
+    bottom = _va->remove_low_address(ZGranuleSize);
+    EXPECT_REMOVAL_OK(bottom);
 
-    ZVirtualMemory next = _va->alloc_low_address(ZGranuleSize);
-    EXPECT_ALLOC_OK(next);
+    ZVirtualMemory next = _va->remove_low_address(ZGranuleSize);
+    EXPECT_REMOVAL_OK(next);
 
-    _va->free(bottom);
-    _va->free(next);
+    _va->insert(bottom);
+    _va->insert(next);
   }
 
-  static void test_alloc_high_address() {
+  static void test_remove_high_address() {
     // Verify that we get placeholder for last granule
-    ZVirtualMemory high = _va->alloc_high_address(ZGranuleSize);
-    EXPECT_ALLOC_OK(high);
+    ZVirtualMemory high = _va->remove_high_address(ZGranuleSize);
+    EXPECT_REMOVAL_OK(high);
 
-    ZVirtualMemory prev = _va->alloc_high_address(ZGranuleSize);
-    EXPECT_ALLOC_OK(prev);
+    ZVirtualMemory prev = _va->remove_high_address(ZGranuleSize);
+    EXPECT_REMOVAL_OK(prev);
 
-    _va->free(high);
-    _va->free(prev);
+    _va->insert(high);
+    _va->insert(prev);
 
-    // Alloc something larger than a granule and return it
-    high = _va->alloc_high_address(ZGranuleSize * 2);
-    EXPECT_ALLOC_OK(high);
+    // Remove something larger than a granule and return it
+    high = _va->remove_high_address(ZGranuleSize * 2);
+    EXPECT_REMOVAL_OK(high);
 
-    _va->free(high);
+    _va->insert(high);
   }
 
-  static void test_alloc_whole_area() {
-    // Alloc the whole reservation
-    ZVirtualMemory bottom = _va->alloc_low_address(ZMapperTestReservationSize);
-    EXPECT_ALLOC_OK(bottom);
+  static void test_remove_whole_area() {
+    // Remove the whole reservation
+    ZVirtualMemory bottom = _va->remove_low_address(ZMapperTestReservationSize);
+    EXPECT_REMOVAL_OK(bottom);
 
-    // Free two chunks and then allocate them again
-    _va->free(bottom.start(), ZGranuleSize * 4);
-    _va->free(bottom.start() + ZGranuleSize * 6, ZGranuleSize * 6);
+    // Insert two chunks and then remove them again
+    _va->insert(bottom.start(), ZGranuleSize * 4);
+    _va->insert(bottom.start() + ZGranuleSize * 6, ZGranuleSize * 6);
 
-    ZVirtualMemory range = _va->alloc_low_address(ZGranuleSize * 4);
-    EXPECT_ALLOC_OK(range);
+    ZVirtualMemory range = _va->remove_low_address(ZGranuleSize * 4);
+    EXPECT_REMOVAL_OK(range);
 
-    range = _va->alloc_low_address(ZGranuleSize * 6);
-    EXPECT_ALLOC_OK(range);
+    range = _va->remove_low_address(ZGranuleSize * 6);
+    EXPECT_REMOVAL_OK(range);
 
-    // Now free it all, and verify it can be re-allocated
-    _va->free(bottom.start(), ZMapperTestReservationSize);
+    // Now insert it all, and verify it can be removed again
+    _va->insert(bottom.start(), ZMapperTestReservationSize);
 
-    bottom = _va->alloc_low_address(ZMapperTestReservationSize);
-    EXPECT_ALLOC_OK(bottom);
+    bottom = _va->remove_low_address(ZMapperTestReservationSize);
+    EXPECT_REMOVAL_OK(bottom);
 
-    _va->free(bottom.start(), ZMapperTestReservationSize);
+    _va->insert(bottom.start(), ZMapperTestReservationSize);
   }
 };
 
@@ -179,16 +179,16 @@ bool ZMapperTest::_initialized              = false;
 ZPerNUMA<ZMemoryManager>* ZMapperTest::_vas = nullptr;
 ZMemoryManager* ZMapperTest::_va            = nullptr;
 
-TEST_VM_F(ZMapperTest, test_alloc_low_address) {
-  test_alloc_low_address();
+TEST_VM_F(ZMapperTest, test_remove_low_address) {
+  test_remove_low_address();
 }
 
-TEST_VM_F(ZMapperTest, test_alloc_high_address) {
-  test_alloc_high_address();
+TEST_VM_F(ZMapperTest, test_remove_high_address) {
+  test_remove_high_address();
 }
 
-TEST_VM_F(ZMapperTest, test_alloc_whole_area) {
-  test_alloc_whole_area();
+TEST_VM_F(ZMapperTest, test_remove_whole_area) {
+  test_remove_whole_area();
 }
 
 #endif // _WINDOWS
