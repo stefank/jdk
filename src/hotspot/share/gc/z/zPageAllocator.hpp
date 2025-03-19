@@ -133,8 +133,8 @@ public:
   void map_virtual_to_physical(const ZVirtualMemory& vmem);
   void unmap_virtual(const ZVirtualMemory& vmem);
 
-  ZVirtualMemory alloc_virtual(size_t size, bool force_low_address);
-  size_t alloc_virtual(size_t size, ZArray<ZVirtualMemory>* vmems_out);
+  ZVirtualMemory claim_virtual(size_t size, bool force_low_address);
+  size_t claim_virtual(size_t size, ZArray<ZVirtualMemory>* vmems_out);
   void free_virtual(const ZVirtualMemory& vmem);
 
   void shuffle_virtual(const ZVirtualMemory& vmem, ZArray<ZVirtualMemory>* vmems_out);
@@ -142,7 +142,7 @@ public:
 
   bool prime(ZWorkers* workers, size_t size);
 
-  void harvest_claimed_physical(ZMemoryAllocation* allocation);
+  void remap_harvested_and_claim_virtual(ZMemoryAllocation* allocation);
   bool claim_virtual_memory(ZMemoryAllocation* allocation);
 
   ZVirtualMemory commit_increased_capacity(ZMemoryAllocation* allocation, const ZVirtualMemory& vmem);

@@ -544,6 +544,7 @@ public:
   }
 
   void initiate_multi_node_allocation() {
+    assert(!_is_multi_node, "Reinitialization?");
     _is_multi_node = true;
     _multi_node_allocation.initialize();
   }
@@ -1011,13 +1012,13 @@ void ZAllocNode::map_virtual_to_physical(const ZVirtualMemory& vmem) {
   manager.map(offset, pmem, size, _numa_id);
 }
 
-ZVirtualMemory ZAllocNode::alloc_virtual(size_t size, bool force_low_address) {
+ZVirtualMemory ZAllocNode::claim_virtual(size_t size, bool force_low_address) {
   ZVirtualMemoryManager& manager = virtual_memory_manager();
 
   return manager.remove(size, _numa_id, force_low_address);
 }
 
-size_t ZAllocNode::alloc_virtual(size_t size, ZArray<ZVirtualMemory>* vmems_out) {
+size_t ZAllocNode::claim_virtual(size_t size, ZArray<ZVirtualMemory>* vmems_out) {
   ZVirtualMemoryManager& manager = virtual_memory_manager();
 
   return manager.remove_low_address_many_at_most(size, _numa_id, vmems_out);
@@ -1106,7 +1107,7 @@ bool ZAllocNode::prime(ZWorkers* workers, size_t to_prime) {
     return true;
   }
 
-  const ZVirtualMemory vmem = alloc_virtual(to_prime, true /* force_low_address */);
+  const ZVirtualMemory vmem = claim_virtual(to_prime, true /* force_low_address */);
 
   // Increase capacity, allocate and commit physical memory
   increase_capacity(to_prime);
@@ -1133,7 +1134,7 @@ bool ZAllocNode::prime(ZWorkers* workers, size_t to_prime) {
   return true;
 }
 
-void ZAllocNode::harvest_claimed_physical(ZMemoryAllocation* allocation) {
+void ZAllocNode::remap_harvested_and_claim_virtual(ZMemoryAllocation* allocation) {
   verify_memory_allocation_association(allocation);
 
   const int num_granules = (int)(allocation->harvested() >> ZGranuleSizeShift);
@@ -1176,20 +1177,21 @@ static bool is_alloc_satisfied(const ZMemoryAllocation* allocation) {
 bool ZAllocNode::claim_virtual_memory(ZMemoryAllocation* allocation) {
   verify_memory_allocation_association(allocation);
   if (allocation->harvested() == 0) {
-    const ZVirtualMemory vmem = alloc_virtual(allocation->size(), true /* force_low_address */);
+    const ZVirtualMemory vmem = claim_virtual(allocation->size(), true /* force_low_address */);
     allocation->set_result(vmem);
     return !vmem.is_null();
   }
 
   // If we have harvested anything, we claim virtual memory from the harvested
   // vmems, and perhaps also allocate more to match the allocation request.
-  harvest_claimed_physical(allocation);
+  remap_harvested_and_claim_virtual(allocation);
 
   // If the virtual memory covers the allocation request, we're done.
   if (::is_alloc_satisfied(allocation)) {
     return true;
   }
 
+  // Before returning harvested memory to the cache it must be mapped.
   ZArrayIterator<ZVirtualMemory> iter(allocation->claimed_vmems());
   for (ZVirtualMemory vmem; iter.next(&vmem);) {
     map_virtual_to_physical(vmem);
@@ -1367,7 +1369,7 @@ public:
 
       // Allocate new virtual address ranges
       const int start_index = numa_memory_vmems->length();
-      const size_t allocated = original_node.alloc_virtual(remaining_vmem.size(), numa_memory_vmems);
+      const size_t claimed_virtual = original_node.claim_virtual(remaining_vmem.size(), numa_memory_vmems);
 
       // Remap to the newly allocated virtual address ranges
       size_t mapped = 0;
@@ -1387,7 +1389,7 @@ public:
         mapped += to_vmem.size();
       }
 
-      assert(allocated == mapped, "must have mapped all allocated");
+      assert(claimed_virtual == mapped, "must have mapped all claimed virtual memory");
       assert(size == mapped + remaining_vmem.size(), "must cover whole range");
 
       if (remaining_vmem.size() != 0) {
@@ -1923,7 +1925,7 @@ bool ZPageAllocator::claim_virtual_memory_multi_node(ZMultiNodeAllocation* multi
 
   ZPerNUMAIterator<ZAllocNode> iter = alloc_node_iterator();
   for (ZAllocNode* node; iter.next(&node);) {
-    ZVirtualMemory vmem = node->alloc_virtual(size, false /* force_low_address */);
+    ZVirtualMemory vmem = node->claim_virtual(size, false /* force_low_address */);
     if (!vmem.is_null()) {
       // Found a large enough contiguous range
       multi_node_allocation->set_final_vmem(vmem, node->numa_id());
@@ -2095,13 +2097,13 @@ void ZPageAllocator::cleanup_failed_commit_multi_node(ZMultiNodeAllocation* mult
     // Keep track of the start index
     const int start_index = vmems->length();
 
-    // Try to allocated virtual memory for the committed part
-    const size_t claimed_virtual = node.alloc_virtual(committed, vmems);
+    // Try to claim virtual memory for the committed part
+    const size_t claimed_virtual = node.claim_virtual(committed, vmems);
 
     if (claimed_virtual != committed) {
-      // We failed to claim enough memory to map all our committed memory.
+      // We failed to claim enough virtual memory to map all our committed memory.
       //
-      // We currenty have no facility to track committed but unmapped memory,
+      // We currently have no facility to track committed but unmapped memory,
       // so this path uncommits the unmappable memory here.
       //
       // Note that this failure path is only present in multi-node allocations.
