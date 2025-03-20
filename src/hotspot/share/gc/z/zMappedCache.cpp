@@ -137,7 +137,7 @@ int ZMappedCache::EntryCompare::operator()(zoffset key, ZMappedCache::TreeNode* 
 
 int ZMappedCache::size_class_index(size_t size) {
   // Returns the size class index of for size, or -1 if smaller than the smallest size class.
-  const int size_class_power = log2i_graceful(size) - ZGranuleSizeShift;
+  const int size_class_power = log2i_graceful(size) - (int)ZGranuleSizeShift;
 
   if (size_class_power < MinSizeClassShift) {
     // Allocation is smaller than the smallest size class minimum size.
@@ -150,7 +150,7 @@ int ZMappedCache::size_class_index(size_t size) {
 int ZMappedCache::guaranteed_size_class_index(size_t size) {
   // Returns the size class index of the smallest size class which can always
   // accommodate a size allocation, or -1 otherwise.
-  const int size_class_power = log2i_ceil(size) - ZGranuleSizeShift;
+  const int size_class_power = log2i_ceil(size) - (int)ZGranuleSizeShift;
 
   if (size_class_power > MaxSizeClassShift) {
     // Allocation is larger than the largest size class minimum size.
@@ -601,7 +601,7 @@ void ZMappedCache::print_on(outputStream* st) const {
   for (int index = 0; index < NumSizeClasses; ++index) {
     const ZList<ZSizeClassListNode>& list = _size_class_lists[index];
     if (!list.is_empty()) {
-      const size_t shift = index + MinSizeClassShift + ZGranuleSizeShift;
+      const int shift = index + MinSizeClassShift + (int)ZGranuleSizeShift;
       const size_t size = (size_t)1 << shift;
 
       st->print("%s" EXACTFMT " %zu", first ? "" : ", ", EXACTFMTARGS(size), list.size());
