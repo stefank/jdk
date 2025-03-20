@@ -2361,7 +2361,7 @@ void ZPageAllocator::free_page(ZPage* page, bool allow_defragment) {
     // Update used statistics and cache memory
     node.decrease_used(vmem.size());
     node.decrease_used_generation(id, vmem.size());
-    node._cache.insert(vmem);
+    node.cache()->insert(vmem);
   }
 
   // Try satisfy stalled allocations
