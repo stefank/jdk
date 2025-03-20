@@ -138,6 +138,7 @@ public:
   Range remove_from_low_at_most(size_t size);
   size_t remove_from_low_many_at_most(size_t size, ZArray<Range>* out);
   Range remove_from_high(size_t size);
+  void remove_from_high_many(size_t size, ZArray<Range>* out);
 
   void transfer_low_address(ZMemoryManagerImpl* other, size_t size);
   void insert_and_remove_from_low_many(offset start, size_t size, ZArray<Range>* out);

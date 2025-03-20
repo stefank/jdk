@@ -646,7 +646,15 @@ zbacking_index* ZAllocNode::physical_mappings_addr(const ZVirtualMemory& vmem) {
   return mappings.addr(vmem.start());
 }
 
-void ZAllocNode::verify_virtual_memory_association(const ZVirtualMemory& vmem) const {
+void ZAllocNode::verify_virtual_memory_association(const ZVirtualMemory& vmem, bool check_extra_space) const {
+  const ZVirtualMemoryManager& manager = virtual_memory_manager();
+
+  if (check_extra_space && manager.reserved_extra_space()) {
+    // We allow claim/free/commit physical operation in multi-node allocations
+    // to use virtual memory associated with the extra space.
+    return;
+  }
+
   const uint32_t vmem_numa_id = virtual_memory_manager().get_numa_id(vmem);
   assert(_numa_id == vmem_numa_id, "Virtual memory must be associated with the current node "
                                    "expected: %u, actual: %u", _numa_id, vmem_numa_id);
@@ -956,9 +964,7 @@ void ZAllocNode::print_extended_on_error(outputStream* st) const {
 }
 
 void ZAllocNode::claim_physical(const ZVirtualMemory& vmem) {
-  // We do not verify the virtual memory association as multi-node allocation
-  // allocates new physical segments directly in the final virtual memory range,
-  // which may not be associated with the current node.
+  verify_virtual_memory_association(vmem, true /* check_extra_space */);
 
   ZPhysicalMemoryManager& manager = physical_memory_manager();
   zbacking_index* const pmem = physical_mappings_addr(vmem);
@@ -969,10 +975,7 @@ void ZAllocNode::claim_physical(const ZVirtualMemory& vmem) {
 }
 
 void ZAllocNode::free_physical(const ZVirtualMemory& vmem) {
-  // We do not verify the virtual memory association as multi-node allocation
-  // allocates and commits new physical segments directly in the final virtual
-  // memory range, which may not be associated with the current node. If a
-  // commit fails it will also be used to free.
+  verify_virtual_memory_association(vmem, true /* check_extra_space */);
 
   ZPhysicalMemoryManager& manager = physical_memory_manager();
   zbacking_index* const pmem = physical_mappings_addr(vmem);
@@ -983,9 +986,7 @@ void ZAllocNode::free_physical(const ZVirtualMemory& vmem) {
 }
 
 size_t ZAllocNode::commit_physical(const ZVirtualMemory& vmem) {
-  // We do not verify the virtual memory association as multi-node allocation
-  // commits new physical segments directly in the final virtual memory range,
-  // which may not be associated with the current node.
+  verify_virtual_memory_association(vmem, true /* check_extra_space */);
 
   ZPhysicalMemoryManager& manager = physical_memory_manager();
   zbacking_index* const pmem = physical_mappings_addr(vmem);
@@ -1019,10 +1020,10 @@ void ZAllocNode::map_virtual_to_physical(const ZVirtualMemory& vmem) {
   manager.map(offset, pmem, size, _numa_id);
 }
 
-ZVirtualMemory ZAllocNode::claim_virtual(size_t size, bool force_low_address) {
+ZVirtualMemory ZAllocNode::claim_virtual(size_t size) {
   ZVirtualMemoryManager& manager = virtual_memory_manager();
 
-  return manager.remove(size, _numa_id, force_low_address);
+  return manager.remove_low_address(size, _numa_id);
 }
 
 size_t ZAllocNode::claim_virtual(size_t size, ZArray<ZVirtualMemory>* vmems_out) {
@@ -1115,7 +1116,7 @@ bool ZAllocNode::prime(ZWorkers* workers, size_t size) {
   }
 
   // Claim virtual memory
-  const ZVirtualMemory vmem = claim_virtual(size, true /* force_low_address */);
+  const ZVirtualMemory vmem = claim_virtual(size);
 
   // Increase capacity
   increase_capacity(size);
@@ -1328,90 +1329,75 @@ public:
     const ZMultiNodeTracker* const tracker = page->multi_node_tracker();
     allocator->safe_destroy_page(page);
 
-    // Keep track of to be inserted vmems
-    struct PerNUMAData : public CHeapObj<mtGC> {
-      ZArray<ZVirtualMemory> _vmems{};
-      size_t                 _mapped = 0;
-      size_t                 _uncommitted = 0;
-    };
-    PerNUMAData* const per_numa_vmems = new PerNUMAData[numa_nodes];
-    ZAllocNode& vmem_node = allocator->node_from_vmem(vmem);
-
     // Remap memory back to original numa node
+    ZArray<ZVirtualMemory> vmems;
     for (const Element partial_allocation : *tracker->map()) {
       ZVirtualMemory remaining_vmem = partial_allocation._vmem;
       const uint32_t numa_id = partial_allocation._numa_id;
 
-      PerNUMAData& numa_data = per_numa_vmems[numa_id];
-      ZArray<ZVirtualMemory>* const numa_memory_vmems = &numa_data._vmems;
       const size_t size = remaining_vmem.size();
-      ZAllocNode& original_node = allocator->node_from_numa_id(numa_id);
+      ZAllocNode& node = allocator->node_from_numa_id(numa_id);
 
       // Allocate new virtual address ranges
-      const int start_index = numa_memory_vmems->length();
-      const size_t claimed_virtual = original_node.claim_virtual(remaining_vmem.size(), numa_memory_vmems);
+      vmems.clear();
+      const size_t claimed_virtual = node.claim_virtual(remaining_vmem.size(), &vmems);
+
+      // We are holding memory associated with this node, and we do not
+      // overcommit virtual memory claiming. So virtual memory must always
+      // be available.
+      assert(claimed_virtual == size, "must succeed");
 
       // Remap to the newly allocated virtual address ranges
       size_t mapped = 0;
-      ZArrayIterator<ZVirtualMemory> iter(numa_memory_vmems, start_index);
-      for (ZVirtualMemory to_vmem; iter.next(&to_vmem);) {
+      for (const ZVirtualMemory to_vmem : vmems) {
         ZVirtualMemory from_vmem = remaining_vmem.split_from_front(to_vmem.size());
 
         // Copy physical segments
         allocator->copy_physical_segments(to_vmem.start(), from_vmem);
 
         // Unmap from_vmem
-        vmem_node.unmap_virtual(from_vmem);
+        ZPhysicalMemoryManager& manager = allocator->_physical;
+        const zoffset offset = vmem.start();
+        zbacking_index* const pmem = allocator->_physical_mappings.addr(offset);
+        const size_t size = vmem.size();
+
+        // Unmap virtual memory from physical memory
+        manager.unmap(offset, pmem, size);
 
         // Map to_vmem
-        original_node.map_virtual_to_physical(to_vmem);
+        node.map_virtual_to_physical(to_vmem);
 
         mapped += to_vmem.size();
       }
-
       assert(claimed_virtual == mapped, "must have mapped all claimed virtual memory");
-      assert(size == mapped + remaining_vmem.size(), "must cover whole range");
 
-      if (remaining_vmem.size() != 0) {
-        // Failed to get vmem for all memory, unmap, uncommit and free the remaining
-        original_node.unmap_virtual(remaining_vmem);
-        original_node.uncommit_physical(remaining_vmem);
-        original_node.free_physical(remaining_vmem);
+      {
+        ZLocker<ZLock> locker(&allocator->_lock);
+
+        // Update accounting
+        node.decrease_used(size);
+        node.decrease_used_generation(id, size);
+
+        // Reinsert vmems
+        for (const ZVirtualMemory vmem : vmems) {
+          node.cache()->insert(vmem);
+        }
+
+        // Defer satisfying stalled allocations until after the loop
       }
-
-      // Keep track of the per numa data
-      numa_data._mapped += mapped;
-      numa_data._uncommitted += remaining_vmem.size();
     }
 
     // Free the virtual memory
-    vmem_node.free_virtual(vmem);
+    allocator->_virtual.insert_extra_space(vmem);
 
     {
       ZLocker<ZLock> locker(&allocator->_lock);
-
-      ZPerNUMAIterator<ZAllocNode> iter = allocator->alloc_node_iterator();
-      for (ZAllocNode* node; iter.next(&node);) {
-        const uint32_t numa_id = node->numa_id();
-        PerNUMAData& numa_data = per_numa_vmems[numa_id];
-
-        // Update accounting
-        node->decrease_used(numa_data._mapped + numa_data._uncommitted);
-        node->decrease_used_generation(id, numa_data._mapped + numa_data._uncommitted);
-        node->decrease_capacity(numa_data._uncommitted, false /* set_max_capacity */);
-
-        // Reinsert vmems
-        for (const ZVirtualMemory vmem : numa_data._vmems) {
-          node->cache()->insert(vmem);
-        }
-      }
 
       // Try satisfy stalled allocations
       allocator->satisfy_stalled();
     }
 
     // Free up the allocated memory
-    delete[] per_numa_vmems;
     delete tracker;
   }
 
@@ -1592,6 +1578,10 @@ void ZPageAllocator::reset_statistics(ZGenerationId id) {
   for (ZAllocNode* node; iter.next(&node);) {
     node->reset_statistics(id);
   }
+}
+
+bool ZPageAllocator::multi_node_enabled() const {
+  return ZNUMA::count() > 1 && _virtual.reserved_extra_space();
 }
 
 const ZAllocNode& ZPageAllocator::node_from_numa_id(uint32_t numa_id) const {
@@ -1796,7 +1786,7 @@ bool ZPageAllocator::claim_capacity(ZPageAllocation* allocation) {
     }
   }
 
-  if (numa_nodes <= 1 || sum_available() < allocation->size()) {
+  if (!multi_node_enabled() || sum_available() < allocation->size()) {
     // Multi-node claiming is not possible
     return false;
   }
@@ -1891,20 +1881,15 @@ ZVirtualMemory ZPageAllocator::claim_virtual_memory_multi_node(ZMultiNodeAllocat
   const uint32_t numa_nodes = ZNUMA::count();
   const size_t size = multi_node_allocation->size();
 
-  ZPerNUMAIterator<ZAllocNode> iter = alloc_node_iterator();
-  for (ZAllocNode* node; iter.next(&node);) {
-    ZVirtualMemory vmem = node->claim_virtual(size, false /* force_low_address */);
-    if (!vmem.is_null()) {
-      // Copy claimed multi-node vmems, we leave the old vmems mapped until after
-      // we have committed. In case committing fails we can simply reinsert the
-      // initial vmems.
-      copy_claimed_physical_multi_node(multi_node_allocation, vmem);
-
-      return vmem;
-    }
+  ZVirtualMemory vmem = _virtual.remove_from_extra_space(size);
+  if (!vmem.is_null()) {
+    // Copy claimed multi-node vmems, we leave the old vmems mapped until after
+    // we have committed. In case committing fails we can simply reinsert the
+    // initial vmems.
+    copy_claimed_physical_multi_node(multi_node_allocation, vmem);
   }
 
-  return {};
+  return vmem;
 }
 
 ZVirtualMemory ZPageAllocator::claim_virtual_memory_single_node(ZSingleNodeAllocation* single_node_allocation) {
@@ -1918,7 +1903,7 @@ ZVirtualMemory ZPageAllocator::claim_virtual_memory_single_node(ZSingleNodeAlloc
     return node.prepare_harvested_and_claim_virtual(allocation);
   } else {
     // Just try to claim virtual memory
-    return node.claim_virtual(allocation->size(), true /* force_low_address */);
+    return node.claim_virtual(allocation->size());
   }
 }
 
@@ -2017,8 +2002,6 @@ bool ZPageAllocator::commit_memory_multi_node(ZMultiNodeAllocation* multi_node_a
 
 void ZPageAllocator::map_memory_multi_node(ZMultiNodeAllocation* multi_node_allocation, const ZVirtualMemory& vmem) {
   // Node associated with the final virtual memory
-  ZAllocNode& vmem_node = node_from_vmem(vmem);
-
   size_t offset = 0;
   ZArrayIterator<ZMemoryAllocation*> iter(multi_node_allocation->allocations());
   for (ZMemoryAllocation* allocation; iter.next(&allocation); offset += allocation->size()) {
@@ -2040,7 +2023,13 @@ void ZPageAllocator::map_memory_multi_node(ZMultiNodeAllocation* multi_node_allo
     sort_segments_physical(to_vmem);
 
     // Map the partial_allocation to partial_vmem
-    vmem_node.map_virtual_to_physical(to_vmem);
+    ZPhysicalMemoryManager& manager = _physical;
+    const zoffset offset = vmem.start();
+    zbacking_index* const pmem = _physical_mappings.addr(offset);
+    const size_t size = vmem.size();
+
+    // Map virtual memory to physical memory
+    manager.map(offset, pmem, size, numa_id);
   }
 }
 

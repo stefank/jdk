@@ -25,6 +25,7 @@
 #include "gc/shared/gcLogPrecious.hpp"
 #include "gc/z/zAddress.inline.hpp"
 #include "gc/z/zAddressSpaceLimit.hpp"
+#include "gc/z/zArray.hpp"
 #include "gc/z/zGlobals.hpp"
 #include "gc/z/zInitialize.hpp"
 #include "gc/z/zMemory.inline.hpp"
@@ -35,9 +36,10 @@
 #include "utilities/debug.hpp"
 
 ZVirtualMemoryManager::ZVirtualMemoryManager(size_t max_capacity)
-  : _init_node(),
+  : _extra_node(),
     _nodes(),
     _vmem_ranges(),
+    _reserved_extra_space(false),
     _initialized(false) {
 
   assert(max_capacity <= ZAddressOffsetMax, "Too large max_capacity");
@@ -68,6 +70,9 @@ void ZVirtualMemoryManager::initialize_nodes(size_t max_capacity, size_t reserve
   const uint32_t first_empty_numa_id = MIN2(static_cast<uint32_t>(max_capacity >> ZGranuleSizeShift), ZNUMA::count());
   const uint32_t ignore_count = ZNUMA::count() - first_empty_numa_id;
 
+  // Extra reservation size, not installed into node manager(s)
+  const size_t extra_size = _reserved_extra_space ? max_capacity : 0;
+
   // Install reserved memory into manager(s)
   uint32_t numa_id;
   ZPerNUMAIterator<ZMemoryManager> iter(&_nodes);
@@ -78,16 +83,22 @@ void ZVirtualMemoryManager::initialize_nodes(size_t max_capacity, size_t reserve
     }
 
     // Calculate how much reserved memory this node gets
-    const size_t reserved_for_node = ZNUMA::calculate_share(numa_id, reserved, ZGranuleSize, ignore_count);
+    const size_t reserved_for_node = ZNUMA::calculate_share(numa_id, reserved - extra_size, ZGranuleSize, ignore_count);
 
     // Transfer reserved memory
-    _init_node.transfer_low_address(manager, reserved_for_node);
+    _extra_node.transfer_low_address(manager, reserved_for_node);
 
     // Store the range for the manager
     _vmem_ranges.set(manager->total_range(), numa_id);
   }
 
-  assert(_init_node.total_range().is_null(), "must insert all reserved");
+  if (_reserved_extra_space) {
+    assert(!_extra_node.total_range().is_null(), "must have extra space");
+    _extra_space_range = _extra_node.total_range();
+  } else {
+
+  assert(_extra_node.total_range().is_null(), "must insert all reserved");
+  }
 }
 
 #ifdef ASSERT
@@ -185,9 +196,9 @@ bool ZVirtualMemoryManager::reserve_contiguous(zoffset start, size_t size) {
   // Register address views with native memory tracker
   ZNMT::reserve(addr, size);
 
-  // Insert the address range in the initial manager.
+  // Insert the address range in the extra manager.
   // This will later be distributed among the available NUMA nodes.
-  _init_node.insert(start, size);
+  _extra_node.insert(start, size);
 
   return true;
 }
@@ -210,7 +221,10 @@ bool ZVirtualMemoryManager::reserve_contiguous(size_t size) {
 
 size_t ZVirtualMemoryManager::reserve(size_t max_capacity) {
   const size_t limit = MIN2(ZAddressOffsetMax, ZAddressSpaceLimit::heap());
-  const size_t size = MIN2(max_capacity * ZVirtualToPhysicalRatio, limit);
+  const size_t normal_size = max_capacity * ZVirtualToPhysicalRatio;
+  const size_t extended_size = normal_size + max_capacity;
+  const bool reserve_extra_space = ZNUMA::count() > 1 && extended_size <= limit;
+  const size_t size = reserve_extra_space ? extended_size : MIN2(normal_size, limit);
 
   auto do_reserve = [&]() {
 #ifdef ASSERT
@@ -228,21 +242,69 @@ size_t ZVirtualMemoryManager::reserve(size_t max_capacity) {
     return reserve_discontiguous(size);
   };
 
-  const size_t reserved = do_reserve();
+  size_t reserved = do_reserve();
 
-  const bool is_contiguous = _init_node.is_contiguous();
+  if (reserve_extra_space) {
+    // Did we attempt to reserve extra space
+
+    if (reserved == extended_size) {
+      // We successfully reserved the extra space
+
+      _reserved_extra_space = true;
+    } else if (reserved > normal_size) {
+      // We reserved extra space, but not enough
+      ZArray<ZVirtualMemory> to_unreserve;
+      const size_t to_unreserve_size = reserved - normal_size;
+      _extra_node.remove_from_high_many(to_unreserve_size, &to_unreserve);
+
+      for (const ZVirtualMemory vmem : to_unreserve) {
+        // Unreserve address
+        const zaddress_unsafe addr = ZOffset::address_unsafe(vmem.start());
+
+        // Reserve address space
+        pd_unreserve(addr, vmem.size());
+      }
+    }
+  }
+
+  const bool is_contiguous = _extra_node.is_contiguous();
 
   log_info_p(gc, init)("Address Space Type: %s/%s/%s",
                        (is_contiguous ? "Contiguous" : "Discontiguous"),
                        (limit == ZAddressOffsetMax ? "Unrestricted" : "Restricted"),
-                       (reserved == size ? "Complete" : "Degraded"));
+                       (reserved >= normal_size ? "Complete" : "Degraded"));
   log_info_p(gc, init)("Address Space Size: %zuM", reserved / M);
+
+  if (reserve_extra_space) {
+    if (_reserved_extra_space) {
+      log_debug_p(gc, init)("Reserving extra space for NUMA");
+    } else {
+      log_debug_p(gc, init)("Failed to reserve extra space for NUMA");
+    }
+  }
 
   return reserved;
 }
 
 bool ZVirtualMemoryManager::is_initialized() const {
   return _initialized;
+}
+
+bool ZVirtualMemoryManager::reserved_extra_space() const {
+  return _reserved_extra_space;
+}
+
+ZVirtualMemory ZVirtualMemoryManager::remove_from_extra_space(size_t size) {
+  return _extra_node.remove_from_low(size);
+}
+
+void ZVirtualMemoryManager::insert_extra_space(const ZVirtualMemory& vmem) {
+  _extra_node.insert(vmem.start(), vmem.size());
+}
+
+bool ZVirtualMemoryManager::is_in_extra_space(const ZVirtualMemory& vmem) const {
+  const ZVirtualMemory& range = _extra_space_range;
+  return (!vmem.is_null() && vmem.start() >= range.start() && vmem.end() <= range.end());
 }
 
 void ZVirtualMemoryManager::insert_and_remove_from_low_many(const ZVirtualMemory& vmem, uint32_t numa_id, ZArray<ZVirtualMemory>* vmems_out) {
@@ -257,18 +319,8 @@ size_t ZVirtualMemoryManager::remove_from_low_many_at_most(size_t size, uint32_t
   return _nodes.get(numa_id).remove_from_low_many_at_most(size, vmems_out);
 }
 
-ZVirtualMemory ZVirtualMemoryManager::remove(size_t size, uint32_t numa_id, bool force_low_address) {
-  ZVirtualMemory range;
-
-  // Small/medium pages are allocated at low addresses, while large pages are
-  // allocated at high addresses (unless forced to be at a low address).
-  if (force_low_address || size <= ZPageSizeSmall || size <= ZPageSizeMedium) {
-    range = _nodes.get(numa_id).remove_from_low(size);
-  } else {
-    range = _nodes.get(numa_id).remove_from_high(size);
-  }
-
-  return range;
+ZVirtualMemory ZVirtualMemoryManager::remove_low_address(size_t size, uint32_t numa_id) {
+  return _nodes.get(numa_id).remove_from_low(size);
 }
 
 void ZVirtualMemoryManager::insert(const ZVirtualMemory& vmem) {

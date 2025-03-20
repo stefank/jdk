@@ -38,9 +38,11 @@ public:
 private:
   static size_t calculate_min_range(size_t size);
 
-  ZMemoryManager           _init_node;
+  ZMemoryManager           _extra_node;
   ZPerNUMA<ZMemoryManager> _nodes;
   ZPerNUMA<ZVirtualMemory> _vmem_ranges;
+  ZVirtualMemory           _extra_space_range;
+  bool                     _reserved_extra_space;
   bool                     _initialized;
 
   // Platform specific implementation
@@ -64,12 +66,17 @@ public:
 
   bool is_initialized() const;
 
+  bool reserved_extra_space() const;
+  ZVirtualMemory remove_from_extra_space(size_t size);
+  void insert_extra_space(const ZVirtualMemory& vmem);
+  bool is_in_extra_space(const ZVirtualMemory& vmem) const;
+
   void insert_and_remove_from_low_many(const ZVirtualMemory& vmem, uint32_t numa_id, ZArray<ZVirtualMemory>* vmems_out);
 
   ZVirtualMemory insert_and_remove_from_low_exact_or_many(size_t size, uint32_t numa_id, ZArray<ZVirtualMemory>* vmems_in_out);
 
   size_t remove_from_low_many_at_most(size_t size, uint32_t numa_id, ZArray<ZVirtualMemory>* vmems_out);
-  ZVirtualMemory remove(size_t size, uint32_t numa_id, bool force_low_address);
+  ZVirtualMemory remove_low_address(size_t size, uint32_t numa_id);
 
   void insert(const ZVirtualMemory& vmem);
   void insert(const ZVirtualMemory& vmem, uint32_t numa_id);

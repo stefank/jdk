@@ -90,7 +90,7 @@ private:
   const zbacking_index* physical_mappings_addr(const ZVirtualMemory& vmem) const;
   zbacking_index* physical_mappings_addr(const ZVirtualMemory& vmem);
 
-  void verify_virtual_memory_association(const ZVirtualMemory& vmem) const;
+  void verify_virtual_memory_association(const ZVirtualMemory& vmem, bool check_extra_space = false) const;
   void verify_virtual_memory_association(const ZArray<ZVirtualMemory>* vmems) const;
   void verify_memory_allocation_association(const ZMemoryAllocation* allocation) const;
 
@@ -137,7 +137,7 @@ public:
   void map_virtual_to_physical(const ZVirtualMemory& vmem);
   void unmap_virtual(const ZVirtualMemory& vmem);
 
-  ZVirtualMemory claim_virtual(size_t size, bool force_low_address);
+  ZVirtualMemory claim_virtual(size_t size);
   size_t claim_virtual(size_t size, ZArray<ZVirtualMemory>* vmems_out);
   void free_virtual(const ZVirtualMemory& vmem);
 
@@ -173,6 +173,8 @@ private:
   ZList<ZPageAllocation>      _stalled;
   mutable ZSafeDelete<ZPage>  _safe_destroy;
   bool                        _initialized;
+
+  bool multi_node_enabled() const;
 
   const ZAllocNode& node_from_numa_id(uint32_t numa_id) const;
   ZAllocNode& node_from_numa_id(uint32_t numa_id);

@@ -327,6 +327,31 @@ Range ZMemoryManagerImpl<Range>::remove_from_high(size_t size) {
 }
 
 template <typename Range>
+void ZMemoryManagerImpl<Range>::remove_from_high_many(size_t size, ZArray<Range>* out) {
+  ZLocker<ZLock> locker(&_lock);
+
+  size_t remaining = size;
+  ZListReverseIterator<ZMemory> iter(&_list);
+  for (ZMemory* area; iter.next(&area);) {
+    if (area->size() <= remaining) {
+      // Smaller than or equal to requested, remove area
+      remaining -= area->size();
+      const Range range = *area->range();
+      _list.remove(area);
+      destroy(area);
+      out->append(range);
+    } else {
+      // Larger than requested, shrink area
+      const Range range = split_from_back(area, remaining);
+      out->append(range);
+      return;
+    }
+  }
+
+  ShouldNotReachHere();
+}
+
+template <typename Range>
 void ZMemoryManagerImpl<Range>::transfer_low_address(ZMemoryManagerImpl* other, size_t size) {
   assert(other->_list.is_empty(), "Should only be used for initialization");
 
