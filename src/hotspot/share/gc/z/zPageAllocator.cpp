@@ -1519,6 +1519,7 @@ size_t ZPageAllocator::capacity() const {
   for (const ZAllocNode* node; iter.next(&node);) {
     capacity += Atomic::load(&node->_capacity);
   }
+
   return capacity;
 }
 
@@ -1528,6 +1529,7 @@ size_t ZPageAllocator::used() const {
   for (const ZAllocNode* node; iter.next(&node);) {
     used += Atomic::load(&node->_used);
   }
+
   return used;
 }
 
@@ -1537,6 +1539,7 @@ size_t ZPageAllocator::used_generation(ZGenerationId id) const {
   for (const ZAllocNode* node; iter.next(&node);) {
     used_generation += Atomic::load(&node->_used_generations[(int)id]);
   }
+
   return used_generation;
 }
 
