@@ -376,15 +376,11 @@ class ZMultiNodeAllocation : public StackObj {
 private:
   const size_t               _size;
   ZArray<ZMemoryAllocation*> _allocations;
-  ZVirtualMemory             _final_vmem;
-  uint32_t                   _final_vmem_numa_id;
 
 public:
   ZMultiNodeAllocation(size_t size)
     : _size(size),
-      _allocations(0),
-      _final_vmem(),
-      _final_vmem_numa_id(-1) {}
+      _allocations(0) {}
 
   ~ZMultiNodeAllocation() {
     for (ZMemoryAllocation* allocation : _allocations) {
@@ -406,9 +402,6 @@ public:
       ZMemoryAllocation::destroy(allocation);
     }
     _allocations.clear();
-
-    _final_vmem = {};
-    _final_vmem_numa_id = -1;
   }
 
   size_t size() const {
@@ -475,24 +468,6 @@ public:
     }
 
     return total;
-  }
-
-  void set_final_vmem(const ZVirtualMemory& vmem, uint32_t numa_id) {
-    precond(_final_vmem.is_null());
-    precond(_final_vmem_numa_id == (uint32_t)-1);
-
-    _final_vmem = vmem;
-    _final_vmem_numa_id = numa_id;
-  }
-
-  ZVirtualMemory final_vmem() const {
-    return _final_vmem;
-  }
-
-  ZVirtualMemory pop_final_vmem() {
-    const ZVirtualMemory vmem = _final_vmem;
-    _final_vmem = {};
-    return vmem;
   }
 };
 
