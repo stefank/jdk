@@ -269,7 +269,7 @@ public:
 
   ZPage* alloc_page(ZPageType type, size_t size, ZAllocationFlags flags, ZPageAge age);
   void safe_destroy_page(ZPage* page);
-  void free_page_multi_node(ZPage* page);
+  void free_page_multi_node(ZPage* page, bool should_satisfy_stalled);
   void free_page(ZPage* page, bool allow_defragment);
   void free_pages(const ZArray<ZPage*>* pages);
 

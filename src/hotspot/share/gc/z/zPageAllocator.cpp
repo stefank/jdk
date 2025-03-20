@@ -1320,7 +1320,7 @@ public:
     return tracker;
   }
 
-  static void free_and_destroy(ZPageAllocator* allocator, ZPage* page) {
+  static void free_and_destroy(ZPageAllocator* allocator, ZPage* page, bool should_satisfy_stalled) {
     const uint32_t numa_nodes = ZNUMA::count();
 
     // Extract data and destroy page
@@ -1381,14 +1381,14 @@ public:
           node.cache()->insert(vmem);
         }
 
-        // Defer satisfying stalled allocations until after the loop
+        // Defer potentially satisfying stalled allocations until after the loop
       }
     }
 
     // Free the virtual memory
     allocator->_virtual.insert_extra_space(vmem);
 
-    {
+    if (should_satisfy_stalled) {
       ZLocker<ZLock> locker(&allocator->_lock);
 
       // Try satisfy stalled allocations
@@ -2301,16 +2301,16 @@ void ZPageAllocator::prepare_memory_for_free(ZPage* page, ZArray<ZVirtualMemory>
   }
 }
 
-void ZPageAllocator::free_page_multi_node(ZPage* page) {
+void ZPageAllocator::free_page_multi_node(ZPage* page, bool should_satisfy_stalled) {
   assert(page->is_multi_node(), "only used for multi-node pages");
-  ZMultiNodeTracker::free_and_destroy(this, page);
+  ZMultiNodeTracker::free_and_destroy(this, page, should_satisfy_stalled);
 }
 
 void ZPageAllocator::free_page(ZPage* page, bool allow_defragment) {
   if (page->is_multi_node()) {
     // Multi-node is handled separately, multi-node allocations are always
     // effectively defragmented
-    free_page_multi_node(page);
+    free_page_multi_node(page, true /* should_satisfy_stalled */);
     return;
   }
 
@@ -2343,7 +2343,7 @@ void ZPageAllocator::free_pages(const ZArray<ZPage*>* pages) {
   for (ZPage* page : *pages) {
     if (page->is_multi_node()) {
       // Multi-node is handled separately
-      free_page_multi_node(page);
+      free_page_multi_node(page, false /* should_satisfy_stalled */);
       continue;
     }
 
