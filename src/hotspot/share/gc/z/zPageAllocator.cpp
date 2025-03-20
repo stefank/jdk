@@ -1357,11 +1357,9 @@ public:
 
         // Unmap from_vmem
         ZPhysicalMemoryManager& manager = allocator->_physical;
-        const zoffset offset = vmem.start();
+        const zoffset offset = from_vmem.start();
         zbacking_index* const pmem = allocator->_physical_mappings.addr(offset);
-        const size_t size = vmem.size();
-
-        // Unmap virtual memory from physical memory
+        const size_t size = from_vmem.size();
         manager.unmap(offset, pmem, size);
 
         // Map to_vmem
