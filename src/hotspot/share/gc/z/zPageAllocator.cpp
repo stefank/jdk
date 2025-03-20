@@ -798,8 +798,7 @@ void ZAllocNode::claim_from_cache_or_increase_capacity(ZMemoryAllocation* alloca
   }
 
   // Could not increase capacity enough to satisfy the allocation completely.
-  // Try removing multiple vmems from the mapped cache. We only remove if
-  // cache has enough remaining to cover the request.
+  // Try removing multiple vmems from the mapped cache.
   const size_t remaining = size - increased_capacity;
   const size_t harvested = _cache.remove_discontiguous(remaining, out);
   const int num_harvested = out->length();
