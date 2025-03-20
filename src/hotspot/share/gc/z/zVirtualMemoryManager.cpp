@@ -245,8 +245,8 @@ ZVirtualMemory ZVirtualMemoryManager::insert_and_remove_from_low_exact_or_many(s
   return _nodes.get(numa_id).insert_and_remove_from_low_exact_or_many(size, vmems_in_out);
 }
 
-size_t ZVirtualMemoryManager::remove_low_address_many_at_most(size_t size, uint32_t numa_id, ZArray<ZVirtualMemory>* vmems_out) {
-  return _nodes.get(numa_id).remove_low_address_many_at_most(size, vmems_out);
+size_t ZVirtualMemoryManager::remove_from_low_many_at_most(size_t size, uint32_t numa_id, ZArray<ZVirtualMemory>* vmems_out) {
+  return _nodes.get(numa_id).remove_from_low_many_at_most(size, vmems_out);
 }
 
 ZVirtualMemory ZVirtualMemoryManager::remove(size_t size, uint32_t numa_id, bool force_low_address) {
@@ -255,9 +255,9 @@ ZVirtualMemory ZVirtualMemoryManager::remove(size_t size, uint32_t numa_id, bool
   // Small/medium pages are allocated at low addresses, while large pages are
   // allocated at high addresses (unless forced to be at a low address).
   if (force_low_address || size <= ZPageSizeSmall || size <= ZPageSizeMedium) {
-    range = _nodes.get(numa_id).remove_low_address(size);
+    range = _nodes.get(numa_id).remove_from_low(size);
   } else {
-    range = _nodes.get(numa_id).remove_high_address(size);
+    range = _nodes.get(numa_id).remove_from_high(size);
   }
 
   return range;

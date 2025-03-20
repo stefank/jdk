@@ -122,7 +122,7 @@ void ZPhysicalMemoryManager::alloc(zbacking_index* pmem, size_t size, uint32_t n
 
   while (remaining_segments != 0) {
     // Allocate a range of backing segment indices
-    const ZBackingIndexRange range = _nodes.get(numa_id).remove_low_address_at_most(remaining_segments);
+    const ZBackingIndexRange range = _nodes.get(numa_id).remove_from_low_at_most(remaining_segments);
     assert(!range.is_null(), "Allocation should never fail");
 
     // Insert backing segment indices in pmem

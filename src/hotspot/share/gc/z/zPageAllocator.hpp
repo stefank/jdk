@@ -147,7 +147,6 @@ public:
   bool prime(ZWorkers* workers, size_t size);
 
   ZVirtualMemory prepare_harvested_and_claim_virtual(ZMemoryAllocation* allocation);
-  ZVirtualMemory claim_virtual_memory(ZMemoryAllocation* allocation);
 
   ZVirtualMemory commit_increased_capacity(ZMemoryAllocation* allocation, const ZVirtualMemory& vmem);
   void map_memory(ZMemoryAllocation* allocation, const ZVirtualMemory& vmem);

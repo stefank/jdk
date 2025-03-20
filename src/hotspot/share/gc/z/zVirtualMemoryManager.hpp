@@ -63,9 +63,10 @@ public:
   bool is_initialized() const;
 
   void insert_and_remove_from_low_many(const ZVirtualMemory& vmem, uint32_t numa_id, ZArray<ZVirtualMemory>* vmems_out);
+
   ZVirtualMemory insert_and_remove_from_low_exact_or_many(size_t size, uint32_t numa_id, ZArray<ZVirtualMemory>* vmems_in_out);
 
-  size_t remove_low_address_many_at_most(size_t size, uint32_t numa_id, ZArray<ZVirtualMemory>* vmems_out);
+  size_t remove_from_low_many_at_most(size_t size, uint32_t numa_id, ZArray<ZVirtualMemory>* vmems_out);
   ZVirtualMemory remove(size_t size, uint32_t numa_id, bool force_low_address);
 
   void insert(const ZVirtualMemory& vmem);

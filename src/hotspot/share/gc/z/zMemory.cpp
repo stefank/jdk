@@ -126,7 +126,7 @@ Range ZMemoryManagerImpl<Range>::split_from_back(ZMemory* area, size_t size) {
 }
 
 template <typename Range>
-Range ZMemoryManagerImpl<Range>::remove_low_address_inner(size_t size) {
+Range ZMemoryManagerImpl<Range>::remove_from_low_inner(size_t size) {
   ZListIterator<ZMemory> iter(&_list);
   for (ZMemory* area; iter.next(&area);) {
     if (area->size() >= size) {
@@ -148,7 +148,7 @@ Range ZMemoryManagerImpl<Range>::remove_low_address_inner(size_t size) {
 }
 
 template <typename Range>
-Range ZMemoryManagerImpl<Range>::remove_low_address_at_most_inner(size_t size) {
+Range ZMemoryManagerImpl<Range>::remove_from_low_at_most_inner(size_t size) {
   ZMemory* const area = _list.first();
   if (area != nullptr) {
     if (area->size() <= size) {
@@ -213,11 +213,11 @@ void ZMemoryManagerImpl<Range>::insert_inner(offset start, size_t size) {
 }
 
 template <typename Range>
-size_t ZMemoryManagerImpl<Range>::remove_low_address_many_at_most_inner(size_t size, ZArray<Range>* out) {
+size_t ZMemoryManagerImpl<Range>::remove_from_low_many_at_most_inner(size_t size, ZArray<Range>* out) {
   size_t to_remove = size;
 
   while (to_remove > 0) {
-    const Range range = remove_low_address_at_most_inner(to_remove);
+    const Range range = remove_from_low_at_most_inner(to_remove);
 
     if (range.is_null()) {
       // The requested amount is not available
@@ -283,27 +283,27 @@ typename ZMemoryManagerImpl<Range>::offset ZMemoryManagerImpl<Range>::peek_low_a
 }
 
 template <typename Range>
-Range ZMemoryManagerImpl<Range>::remove_low_address(size_t size) {
+Range ZMemoryManagerImpl<Range>::remove_from_low(size_t size) {
   ZLocker<ZLock> locker(&_lock);
-  Range range = remove_low_address_inner(size);
+  Range range = remove_from_low_inner(size);
   return range;
 }
 
 template <typename Range>
-Range ZMemoryManagerImpl<Range>::remove_low_address_at_most(size_t size) {
+Range ZMemoryManagerImpl<Range>::remove_from_low_at_most(size_t size) {
   ZLocker<ZLock> lock(&_lock);
-  Range range = remove_low_address_at_most_inner(size);
+  Range range = remove_from_low_at_most_inner(size);
   return range;
 }
 
 template <typename Range>
-size_t ZMemoryManagerImpl<Range>::remove_low_address_many_at_most(size_t size, ZArray<Range>* out) {
+size_t ZMemoryManagerImpl<Range>::remove_from_low_many_at_most(size_t size, ZArray<Range>* out) {
   ZLocker<ZLock> lock(&_lock);
-  return remove_low_address_many_at_most_inner(size, out);
+  return remove_from_low_many_at_most_inner(size, out);
 }
 
 template <typename Range>
-Range ZMemoryManagerImpl<Range>::remove_high_address(size_t size) {
+Range ZMemoryManagerImpl<Range>::remove_from_high(size_t size) {
   ZLocker<ZLock> locker(&_lock);
 
   ZListReverseIterator<ZMemory> iter(&_list);
@@ -363,7 +363,7 @@ void ZMemoryManagerImpl<Range>::insert_and_remove_from_low_many(offset start, si
   insert_inner(start, size);
 
   // Remove (hopefully) at a lower address
-  const size_t removed = remove_low_address_many_at_most_inner(size, out);
+  const size_t removed = remove_from_low_many_at_most_inner(size, out);
 
   // This should always succeed since we freed the same amount.
   assert(removed == size, "must succeed");
@@ -386,14 +386,14 @@ Range ZMemoryManagerImpl<Range>::insert_and_remove_from_low_exact_or_many(size_t
   in_out->clear();
 
   // Try to find and remove a contiguous chunk
-  Range range = remove_low_address_inner(size);
+  Range range = remove_from_low_inner(size);
   if (!range.is_null()) {
     return range;
   }
 
   // Failed to find a contiguous chunk, split it up into smaller chunks and
   // only remove up to as much that has been inserted.
-  size_t removed = remove_low_address_many_at_most_inner(inserted, in_out);
+  size_t removed = remove_from_low_many_at_most_inner(inserted, in_out);
   assert(removed == inserted, "Should be able to get back as much as we previously inserted");
   return Range();
 }

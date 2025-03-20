@@ -1052,7 +1052,7 @@ ZVirtualMemory ZAllocNode::claim_virtual(size_t size, bool force_low_address) {
 size_t ZAllocNode::claim_virtual(size_t size, ZArray<ZVirtualMemory>* vmems_out) {
   ZVirtualMemoryManager& manager = virtual_memory_manager();
 
-  return manager.remove_low_address_many_at_most(size, _numa_id, vmems_out);
+  return manager.remove_from_low_many_at_most(size, _numa_id, vmems_out);
 }
 
 void ZAllocNode::unmap_virtual(const ZVirtualMemory& vmem) {
@@ -1207,19 +1207,6 @@ ZVirtualMemory ZAllocNode::prepare_harvested_and_claim_virtual(ZMemoryAllocation
   }
 
   return result;
-}
-
-ZVirtualMemory ZAllocNode::claim_virtual_memory(ZMemoryAllocation* allocation) {
-  verify_memory_allocation_association(allocation);
-
-  if (allocation->harvested() > 0) {
-    // If we have harvested anything, we claim virtual memory from the harvested
-    // vmems, and perhaps also allocate more to match the allocation request.
-    return prepare_harvested_and_claim_virtual(allocation);
-  } else {
-    // Just try to claim virtual memory
-    return claim_virtual(allocation->size(), true /* force_low_address */);
-  }
 }
 
 ZVirtualMemory ZAllocNode::commit_increased_capacity(ZMemoryAllocation* allocation, const ZVirtualMemory& vmem) {
@@ -1947,7 +1934,14 @@ ZVirtualMemory ZPageAllocator::claim_virtual_memory_single_node(ZSingleNodeAlloc
   const uint32_t numa_id = allocation->numa_id();
   ZAllocNode& node = node_from_numa_id(numa_id);
 
-  return node.claim_virtual_memory(allocation);
+  if (allocation->harvested() > 0) {
+    // If we have harvested anything, we claim virtual memory from the harvested
+    // vmems, and perhaps also allocate more to match the allocation request.
+    return node.prepare_harvested_and_claim_virtual(allocation);
+  } else {
+    // Just try to claim virtual memory
+    return node.claim_virtual(allocation->size(), true /* force_low_address */);
+  }
 }
 
 ZVirtualMemory ZPageAllocator::claim_virtual_memory(ZPageAllocation* allocation) {

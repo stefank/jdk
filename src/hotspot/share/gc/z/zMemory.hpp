@@ -118,11 +118,11 @@ private:
   Range split_from_front(ZMemory* area, size_t size);
   Range split_from_back(ZMemory* area, size_t size);
 
-  Range remove_low_address_inner(size_t size);
-  Range remove_low_address_at_most_inner(size_t size);
+  Range remove_from_low_inner(size_t size);
+  Range remove_from_low_at_most_inner(size_t size);
   void insert_inner(offset start, size_t size);
 
-  size_t remove_low_address_many_at_most_inner(size_t size, ZArray<Range>* out);
+  size_t remove_from_low_many_at_most_inner(size_t size, ZArray<Range>* out);
 
 public:
   ZMemoryManagerImpl();
@@ -134,10 +134,10 @@ public:
   Range total_range() const;
 
   offset peek_low_address() const;
-  Range remove_low_address(size_t size);
-  Range remove_low_address_at_most(size_t size);
-  size_t remove_low_address_many_at_most(size_t size, ZArray<Range>* out);
-  Range remove_high_address(size_t size);
+  Range remove_from_low(size_t size);
+  Range remove_from_low_at_most(size_t size);
+  size_t remove_from_low_many_at_most(size_t size, ZArray<Range>* out);
+  Range remove_from_high(size_t size);
 
   void transfer_low_address(ZMemoryManagerImpl* other, size_t size);
   void insert_and_remove_from_low_many(offset start, size_t size, ZArray<Range>* out);
