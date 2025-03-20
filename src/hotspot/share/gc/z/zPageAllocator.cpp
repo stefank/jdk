@@ -140,9 +140,9 @@ public:
     sort_stashed_segments();
   }
 
-  void pop(ZArray<ZVirtualMemory>* vmems, size_t num_vmems) {
+  void pop(ZArray<ZVirtualMemory>* vmems, int num_vmems) {
     int stash_index = 0;
-    const int pop_start_index = vmems->length() - (int)num_vmems;
+    const int pop_start_index = vmems->length() - num_vmems;
     ZArrayIterator<ZVirtualMemory> iter(vmems, pop_start_index);
     for (ZVirtualMemory vmem; iter.next(&vmem);) {
       const size_t num_granules = vmem.size_in_granules();
