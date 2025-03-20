@@ -955,13 +955,15 @@ void ZAllocNode::threads_do(ThreadClosure* tc) const {
 }
 
 void ZAllocNode::print_on(outputStream* st) const {
-  st->print_cr("  Node %u         used %zuM, capacity %zuM, max capacity %zuM",
-               _numa_id, _used / M, _capacity / M, _max_capacity / M);
+  st->print("  Node %u", _numa_id);
+  st->fill_to(17 + st->indentation());
+  st->print_cr("used %zuM, capacity %zuM, max capacity %zuM",
+               _used / M, _capacity / M, _max_capacity / M);
 
   _cache.print_on(st);
 }
 
-void ZAllocNode::print_extended_on(outputStream* st) const {
+void ZAllocNode::print_extended_on_error(outputStream* st) const {
   st->print_cr(" Node %u", _numa_id);
   _cache.print_extended_on(st);
 }
@@ -2531,7 +2533,7 @@ void ZPageAllocator::print_on(outputStream* st) const {
   print_on_inner(st);
 }
 
-void ZPageAllocator::print_extended_on(outputStream* st) const {
+void ZPageAllocator::print_extended_on_error(outputStream* st) const {
   if(!_lock.try_lock()) {
     // We can't print without taking the lock since printing the contents of
     // the cache requires iterating over the nodes in the cache's tree, which
@@ -2543,7 +2545,7 @@ void ZPageAllocator::print_extended_on(outputStream* st) const {
   st->print_cr("ZMappedCache:");
   ZPerNUMAConstIterator<ZAllocNode> iter = alloc_node_iterator();
   for (const ZAllocNode* node; iter.next(&node);) {
-    node->print_extended_on(st);
+    node->print_extended_on_error(st);
   }
 
   _lock.unlock();
@@ -2564,7 +2566,7 @@ void ZPageAllocator::print_on_error(outputStream* st) const {
 
 void ZPageAllocator::print_on_inner(outputStream* st) const {
   // Print total usage
-  st->print_cr("used %zuM, capacity %zuM, max capacity %zuM",
+  st->print_cr(" ZHeap           used %zuM, capacity %zuM, max capacity %zuM",
                used() / M, capacity() / M, max_capacity() / M);
 
   // Print per-node

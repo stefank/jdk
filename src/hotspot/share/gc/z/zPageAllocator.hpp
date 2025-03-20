@@ -127,7 +127,7 @@ public:
   void threads_do(ThreadClosure* tc) const;
 
   void print_on(outputStream* st) const;
-  void print_extended_on(outputStream* st) const;
+  void print_extended_on_error(outputStream* st) const;
 
   void claim_physical(const ZVirtualMemory& vmem);
   void free_physical(const ZVirtualMemory& vmem);
@@ -283,7 +283,7 @@ public:
   void threads_do(ThreadClosure* tc) const;
 
   void print_on(outputStream* st) const;
-  void print_extended_on(outputStream* st) const;
+  void print_extended_on_error(outputStream* st) const;
   void print_on_error(outputStream* st) const;
 
   ZPerNUMAConstIterator<ZAllocNode> alloc_node_iterator() const;

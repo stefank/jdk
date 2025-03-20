@@ -388,7 +388,7 @@ void ZCollectedHeap::print_on_error(outputStream* st) const {
 }
 
 void ZCollectedHeap::print_extended_on(outputStream* st) const {
-  _heap.print_extended_on(st);
+  _heap.print_extended_on_error(st);
 }
 
 void ZCollectedHeap::print_tracing_info() const {

@@ -58,7 +58,7 @@ private:
   static constexpr int NumSizeClasses = MaxSizeClassShift - MinSizeClassShift + 1;
 
   Tree          _tree;
-  size_t        _num_treenodes;
+  size_t        _entry_count;
   SizeClassList _size_class_lists[NumSizeClasses];
   size_t        _size;
   size_t        _min;

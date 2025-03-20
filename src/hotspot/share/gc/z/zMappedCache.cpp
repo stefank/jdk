@@ -163,7 +163,8 @@ int ZMappedCache::guaranteed_size_class_index(size_t size) {
 void ZMappedCache::tree_insert(const Tree::FindCursor& cursor, const ZVirtualMemory& vmem) {
   ZMappedCacheEntry* const entry = create_entry(vmem);
 
-  _num_treenodes += 1;
+  // Insert creates a new entry
+  _entry_count += 1;
 
   // Insert in tree
   _tree.insert(entry->node_addr(), cursor);
@@ -179,7 +180,8 @@ void ZMappedCache::tree_insert(const Tree::FindCursor& cursor, const ZVirtualMem
 void ZMappedCache::tree_remove(const Tree::FindCursor& cursor, const ZVirtualMemory& vmem) {
   ZMappedCacheEntry* entry = ZMappedCacheEntry::cast_to_entry(cursor.node());
 
-  _num_treenodes -= 1;
+  // Remove destroys an old entry
+  _entry_count -= 1;
 
   // Remove from tree
   _tree.remove(cursor);
@@ -445,7 +447,7 @@ size_t ZMappedCache::remove_discontiguous_with_strategy(size_t size, ZArray<ZVir
 
 ZMappedCache::ZMappedCache()
   : _tree(),
-    _num_treenodes(0),
+    _entry_count(0),
     _size_class_lists{},
     _size(0),
     _min(_size) {}
@@ -570,17 +572,40 @@ size_t ZMappedCache::size() const {
 }
 
 void ZMappedCache::print_on(outputStream* st) const {
-  st->print_cr("   cache         size: %zuM, nodes: %zu", _size / M, _num_treenodes);
+  st->print_cr("   Cache         size %zuM, entry count %zu", _size / M, _entry_count);
+
+  if (_entry_count == 0) {
+    // Empty cache, skip printing size classes
+    return;
+  }
+
+  // Aggregate the number of size class entries
+  size_t size_class_entry_count = 0;
+  for (int index = 0; index < NumSizeClasses; ++index) {
+    size_class_entry_count += _size_class_lists[index].size();
+  }
 
   // Print information on size classes
+
   st->print("    size classes");
+  st->fill_to(17 + st->indentation());
+
+  // Print the number of entries smaller than the min size class's size
+  const size_t small_entry_size_count = _entry_count - size_class_entry_count;
+  bool first = true;
+  if (small_entry_size_count != 0) {
+    st->print(EXACTFMT " %zu", EXACTFMTARGS(ZGranuleSize), small_entry_size_count);
+    first = false;
+  }
+
   for (int index = 0; index < NumSizeClasses; ++index) {
     const ZList<ZSizeClassListNode>& list = _size_class_lists[index];
     if (!list.is_empty()) {
       const size_t shift = index + MinSizeClassShift + ZGranuleSizeShift;
       const size_t size = (size_t)1 << shift;
 
-      st->print(" " EXACTFMT ": %zu", EXACTFMTARGS(size), list.size());
+      st->print("%s" EXACTFMT " %zu", first ? "" : ", ", EXACTFMTARGS(size), list.size());
+      first = false;
     }
   }
 

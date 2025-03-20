@@ -319,13 +319,17 @@ ZServiceabilityCounters* ZHeap::serviceability_counters() {
 }
 
 void ZHeap::print_on(outputStream* st) const {
-  st->print(" ZHeap           ");
   _page_allocator.print_on(st);
   MetaspaceUtils::print_on(st);
 }
 
-void ZHeap::print_extended_on(outputStream* st) const {
-  print_on(st);
+void ZHeap::print_on_error(outputStream* st) const {
+  _page_allocator.print_on_error(st);
+  MetaspaceUtils::print_on(st);
+}
+
+void ZHeap::print_extended_on_error(outputStream* st) const {
+  print_on_error(st);
   st->cr();
 
   // Do not allow pages to be deleted
@@ -343,7 +347,7 @@ void ZHeap::print_extended_on(outputStream* st) const {
 
   st->cr();
 
-  _page_allocator.print_extended_on(st);
+  _page_allocator.print_extended_on_error(st);
 }
 
 bool ZHeap::print_location(outputStream* st, uintptr_t addr) const {
