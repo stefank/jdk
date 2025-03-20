@@ -2487,6 +2487,14 @@ void ZPageAllocator::handle_alloc_stalling_for_old(bool cleared_all_soft_refs) {
   restart_gc();
 }
 
+ZPerNUMAConstIterator<ZAllocNode> ZPageAllocator::alloc_node_iterator() const {
+  return ZPerNUMAConstIterator<ZAllocNode>(&_alloc_nodes);
+}
+
+ZPerNUMAIterator<ZAllocNode> ZPageAllocator::alloc_node_iterator() {
+  return ZPerNUMAIterator<ZAllocNode>(&_alloc_nodes);
+}
+
 void ZPageAllocator::threads_do(ThreadClosure* tc) const {
   ZPerNUMAConstIterator<ZAllocNode> iter = alloc_node_iterator();
   for (const ZAllocNode* node; iter.next(&node);) {
@@ -2540,12 +2548,4 @@ void ZPageAllocator::print_on_inner(outputStream* st) const {
   for (const ZAllocNode* node; iter.next(&node);) {
     node->print_on(st);
   }
-}
-
-ZPerNUMAConstIterator<ZAllocNode> ZPageAllocator::alloc_node_iterator() const {
-  return ZPerNUMAConstIterator<ZAllocNode>(&_alloc_nodes);
-}
-
-ZPerNUMAIterator<ZAllocNode> ZPageAllocator::alloc_node_iterator() {
-  return ZPerNUMAIterator<ZAllocNode>(&_alloc_nodes);
 }
