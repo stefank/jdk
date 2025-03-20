@@ -98,6 +98,10 @@ private:
     const zbacking_index* const src = _physical_mappings->addr(vmem.start());
     const size_t num_granules = vmem.size_in_granules();
 
+    // Check bounds
+    assert(index + checked_cast<int>(num_granules) <= _stash.length(),
+           "Copy overflow %d + %zu <= %d", index, num_granules, _stash.length());
+
     // Copy to stash
     ZUtils::copy_disjoint(dest, src, num_granules);
   }
@@ -106,6 +110,10 @@ private:
     zbacking_index* const dest = _physical_mappings->addr(vmem.start());
     const zbacking_index* const src = _stash.adr_at(index);
     const size_t num_granules = vmem.size_in_granules();
+
+    // Check bounds
+    assert(index + checked_cast<int>(num_granules) <= _stash.length(),
+           "Copy overflow %d + %zu <= %d", index, num_granules, _stash.length());
 
     // Copy from stash
     ZUtils::copy_disjoint(dest, src, num_granules);
@@ -160,7 +168,7 @@ public:
     const size_t granules_left = _stash.length();
     const ZVirtualMemory to_pop = vmem.first_part(granules_left * ZGranuleSize);
 
-    copy_from_stash(0, vmem);
+    copy_from_stash(0, to_pop);
   }
 };
 
