@@ -186,7 +186,7 @@ private:
 
   explicit ZMemoryAllocation(const ZMemoryAllocation& other)
     : ZMemoryAllocation(other._size) {
-      // Transfer the numa id
+    // Transfer the numa id
     set_numa_id(other._numa_id);
 
     // Reserve space for the partial vmems
@@ -215,6 +215,7 @@ private:
   void transfer_claimed_capacity(const ZMemoryAllocation& from) {
     assert(from._committed_capacity == 0, "Unexpected value %zu", from._committed_capacity);
     assert(!from._commit_failed, "Unexpected value");
+
     // Transfer increased capacity
     _increased_capacity += from._increased_capacity;
 
@@ -244,6 +245,31 @@ public:
       _committed_capacity(0),
       _commit_failed(false) {}
 
+  void reset_for_retry() {
+    assert(_satisfied_from_cache_vmem.is_null(), "Incompatible with reset");
+
+    _partial_vmems.clear();
+    _num_harvested = 0;
+    _harvested = 0;
+    _increased_capacity = 0;
+    _committed_capacity = 0;
+    _commit_failed = false;
+  }
+
+  size_t size() const {
+    return _size;
+  }
+
+  uint32_t numa_id() const {
+    assert(_numa_id != (uint32_t)-1, "Should have been initialized");
+    return _numa_id;
+  }
+
+  void set_numa_id(uint32_t numa_id) {
+    assert(_numa_id == (uint32_t)-1, "Should be initialized only once");
+    _numa_id = numa_id;
+  }
+
   ZVirtualMemory satisfied_from_cache_vmem() const {
     return _satisfied_from_cache_vmem;
   }
@@ -256,15 +282,12 @@ public:
     _satisfied_from_cache_vmem = vmem;
   }
 
-  void reset_for_retry() {
-    _partial_vmems.clear();
-    _harvested = 0;
-    _increased_capacity = 0;
-    _committed_capacity = 0;
+  ZArray<ZVirtualMemory>* partial_vmems() {
+    return &_partial_vmems;
   }
 
-  size_t size() const {
-    return _size;
+  const ZArray<ZVirtualMemory>* partial_vmems() const {
+    return &_partial_vmems;
   }
 
   int num_harvested() const {
@@ -297,30 +320,12 @@ public:
     _committed_capacity = committed_capacity;
   }
 
-  uint32_t numa_id() const {
-    assert(_numa_id != (uint32_t)-1, "Should have been initialized");
-    return _numa_id;
-  }
-
-  void set_numa_id(uint32_t numa_id) {
-    assert(_numa_id == (uint32_t)-1, "Should be initialized only once");
-    _numa_id = numa_id;
-  }
-
   bool commit_failed() const {
     return _commit_failed;
   }
 
   void set_commit_failed() {
     _commit_failed = true;
-  }
-
-  ZArray<ZVirtualMemory>* partial_vmems() {
-    return &_partial_vmems;
-  }
-
-  const ZArray<ZVirtualMemory>* partial_vmems() const {
-    return &_partial_vmems;
   }
 
   static void destroy(ZMemoryAllocation* allocation) {
