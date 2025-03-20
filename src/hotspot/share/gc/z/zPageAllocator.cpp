@@ -395,7 +395,7 @@ public:
   void initialize() {
     precond(_allocations.is_empty());
 
-    // The multi node allocation creates at most one allocation per node.
+    // The multi-node allocation creates at most one allocation per node.
     const int length = (int)ZNUMA::count();
 
     _allocations.reserve(length);
@@ -578,25 +578,25 @@ public:
   }
 
   ZMultiNodeAllocation* multi_node_allocation() {
-    assert(_is_multi_node, "multi node allocation must be initiated");
+    assert(_is_multi_node, "multi-node allocation must be initiated");
 
     return &_multi_node_allocation;
   }
 
   const ZMultiNodeAllocation* multi_node_allocation() const {
-    assert(_is_multi_node, "multi node allocation must be initiated");
+    assert(_is_multi_node, "multi-node allocation must be initiated");
 
     return &_multi_node_allocation;
   }
 
   ZSingleNodeAllocation* single_node_allocation() {
-    assert(!_is_multi_node, "multi node allocation must not have been initiated");
+    assert(!_is_multi_node, "multi-node allocation must not have been initiated");
 
     return &_single_node_allocation;
   }
 
   const ZSingleNodeAllocation* single_node_allocation() const {
-    assert(!_is_multi_node, "multi node allocation must not have been initiated");
+    assert(!_is_multi_node, "multi-node allocation must not have been initiated");
 
     return &_single_node_allocation;
   }
@@ -2374,10 +2374,10 @@ void ZPageAllocator::free_pages(const ZArray<ZPage*>* pages) {
   // All pages belong to the same generation, so either only young or old.
   const ZGenerationId gen_id = pages->first()->generation_id();
 
-  // Prepare memory from pages to be cached before taking the loc
+  // Prepare memory from pages to be cached before taking the lock
   for (ZPage* page : *pages) {
     if (page->is_multi_node()) {
-      // Multi numa is handled separately
+      // Multi-node is handled separately
       free_page_multi_node(page);
       continue;
     }
