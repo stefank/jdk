@@ -390,7 +390,7 @@ public:
 
   void reset_for_retry() {
     for (ZMemoryAllocation* allocation : _allocations) {
-      delete allocation;
+      ZMemoryAllocation::destroy(allocation);
     }
     _allocations.clear();
 
