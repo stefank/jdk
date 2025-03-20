@@ -108,43 +108,43 @@ public:
     os::free(_vmm);
   }
 
-  static void test_remove_low_address() {
+  static void test_remove_from_low() {
     // Verify that we get placeholder for first granule
-    ZVirtualMemory bottom = _va->remove_low_address(ZGranuleSize);
+    ZVirtualMemory bottom = _va->remove_from_low(ZGranuleSize);
     EXPECT_REMOVAL_OK(bottom);
 
     _va->insert(bottom);
 
     // Remove something larger than a granule and insert it
-    bottom = _va->remove_low_address(ZGranuleSize * 3);
+    bottom = _va->remove_from_low(ZGranuleSize * 3);
     EXPECT_REMOVAL_OK(bottom);
 
     _va->insert(bottom);
 
     // Insert with more memory removed
-    bottom = _va->remove_low_address(ZGranuleSize);
+    bottom = _va->remove_from_low(ZGranuleSize);
     EXPECT_REMOVAL_OK(bottom);
 
-    ZVirtualMemory next = _va->remove_low_address(ZGranuleSize);
+    ZVirtualMemory next = _va->remove_from_low(ZGranuleSize);
     EXPECT_REMOVAL_OK(next);
 
     _va->insert(bottom);
     _va->insert(next);
   }
 
-  static void test_remove_high_address() {
+  static void test_remove_from_high() {
     // Verify that we get placeholder for last granule
-    ZVirtualMemory high = _va->remove_high_address(ZGranuleSize);
+    ZVirtualMemory high = _va->remove_from_high(ZGranuleSize);
     EXPECT_REMOVAL_OK(high);
 
-    ZVirtualMemory prev = _va->remove_high_address(ZGranuleSize);
+    ZVirtualMemory prev = _va->remove_from_high(ZGranuleSize);
     EXPECT_REMOVAL_OK(prev);
 
     _va->insert(high);
     _va->insert(prev);
 
     // Remove something larger than a granule and return it
-    high = _va->remove_high_address(ZGranuleSize * 2);
+    high = _va->remove_from_high(ZGranuleSize * 2);
     EXPECT_REMOVAL_OK(high);
 
     _va->insert(high);
@@ -152,23 +152,23 @@ public:
 
   static void test_remove_whole_area() {
     // Remove the whole reservation
-    ZVirtualMemory bottom = _va->remove_low_address(ZMapperTestReservationSize);
+    ZVirtualMemory bottom = _va->remove_from_low(ZMapperTestReservationSize);
     EXPECT_REMOVAL_OK(bottom);
 
     // Insert two chunks and then remove them again
     _va->insert(bottom.start(), ZGranuleSize * 4);
     _va->insert(bottom.start() + ZGranuleSize * 6, ZGranuleSize * 6);
 
-    ZVirtualMemory range = _va->remove_low_address(ZGranuleSize * 4);
+    ZVirtualMemory range = _va->remove_from_low(ZGranuleSize * 4);
     EXPECT_REMOVAL_OK(range);
 
-    range = _va->remove_low_address(ZGranuleSize * 6);
+    range = _va->remove_from_low(ZGranuleSize * 6);
     EXPECT_REMOVAL_OK(range);
 
     // Now insert it all, and verify it can be removed again
     _va->insert(bottom.start(), ZMapperTestReservationSize);
 
-    bottom = _va->remove_low_address(ZMapperTestReservationSize);
+    bottom = _va->remove_from_low(ZMapperTestReservationSize);
     EXPECT_REMOVAL_OK(bottom);
 
     _va->insert(bottom.start(), ZMapperTestReservationSize);
@@ -179,12 +179,12 @@ bool ZMapperTest::_initialized              = false;
 ZPerNUMA<ZMemoryManager>* ZMapperTest::_vas = nullptr;
 ZMemoryManager* ZMapperTest::_va            = nullptr;
 
-TEST_VM_F(ZMapperTest, test_remove_low_address) {
-  test_remove_low_address();
+TEST_VM_F(ZMapperTest, test_remove_from_low) {
+  test_remove_from_low();
 }
 
-TEST_VM_F(ZMapperTest, test_remove_high_address) {
-  test_remove_high_address();
+TEST_VM_F(ZMapperTest, test_remove_from_high) {
+  test_remove_from_high();
 }
 
 TEST_VM_F(ZMapperTest, test_remove_whole_area) {
