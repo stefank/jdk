@@ -57,6 +57,8 @@ private:
 
   DEBUG_ONLY(size_t force_reserve_discontiguous(size_t size);)
 
+  void initialize_nodes(size_t max_capacity, size_t reserved);
+
 public:
   ZVirtualMemoryManager(size_t max_capacity);
 

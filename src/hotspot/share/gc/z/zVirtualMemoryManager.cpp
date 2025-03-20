@@ -46,8 +46,8 @@ ZVirtualMemoryManager::ZVirtualMemoryManager(size_t max_capacity)
   pd_initialize_before_reserve();
 
   // Reserve address space
-  const size_t reserved_total = reserve(max_capacity);
-  if (reserved_total < max_capacity) {
+  const size_t reserved = reserve(max_capacity);
+  if (reserved < max_capacity) {
     ZInitialize::error_d("Failed to reserve enough address space for Java heap");
     return;
   }
@@ -55,6 +55,14 @@ ZVirtualMemoryManager::ZVirtualMemoryManager(size_t max_capacity)
   // Initialize platform specific parts after reserving address space
   pd_initialize_after_reserve();
 
+  // Divide the reserved memory over the NUMA nodes
+  initialize_nodes(max_capacity, reserved);
+
+  // Successfully initialized
+  _initialized = true;
+}
+
+void ZVirtualMemoryManager::initialize_nodes(size_t max_capacity, size_t reserved) {
   // If the capacity consist of less granules than the number of nodes some
   // nodes will be empty. Distribute these shares on the none empty nodes.
   const uint32_t first_empty_numa_id = MIN2(static_cast<uint32_t>(max_capacity >> ZGranuleSizeShift), ZNUMA::count());
@@ -69,17 +77,17 @@ ZVirtualMemoryManager::ZVirtualMemoryManager(size_t max_capacity)
       break;
     }
 
-    const size_t reserved = ZNUMA::calculate_share(numa_id, reserved_total, ZGranuleSize, ignore_count);
+    // Calculate how much reserved memory this node gets
+    const size_t reserved_for_node = ZNUMA::calculate_share(numa_id, reserved, ZGranuleSize, ignore_count);
+
     // Transfer reserved memory
-    _init_node.transfer_low_address(manager, reserved);
+    _init_node.transfer_low_address(manager, reserved_for_node);
 
     // Store the range for the manager
     _vmem_ranges.set(manager->total_range(), numa_id);
   }
-  assert(_init_node.total_range().is_null(), "must insert all reserved");
 
-  // Successfully initialized
-  _initialized = true;
+  assert(_init_node.total_range().is_null(), "must insert all reserved");
 }
 
 #ifdef ASSERT
