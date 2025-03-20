@@ -248,6 +248,7 @@ public:
   void reset_for_retry() {
     assert(_satisfied_from_cache_vmem.is_null(), "Incompatible with reset");
 
+    _numa_id = -1;
     _partial_vmems.clear();
     _num_harvested = 0;
     _harvested = 0;
