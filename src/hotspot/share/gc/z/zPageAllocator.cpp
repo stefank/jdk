@@ -1076,22 +1076,22 @@ void ZAllocNode::free_virtual(const ZVirtualMemory& vmem) {
   manager.insert(vmem, _numa_id);
 }
 
-void ZAllocNode::shuffle_virtual(const ZVirtualMemory& vmem, ZArray<ZVirtualMemory>* vmems_out) {
+void ZAllocNode::free_and_claim_virtual_from_low_many(const ZVirtualMemory& vmem, ZArray<ZVirtualMemory>* vmems_out) {
   verify_virtual_memory_association(vmem);
 
   ZVirtualMemoryManager& manager = virtual_memory_manager();
 
   // Shuffle virtual memory
-  manager.shuffle_to_low_addresses(vmem, _numa_id, vmems_out);
+  manager.insert_and_remove_from_low_many(vmem, _numa_id, vmems_out);
 }
 
-ZVirtualMemory ZAllocNode::shuffle_virtual(size_t size, ZArray<ZVirtualMemory>* vmems_in_out) {
+ZVirtualMemory ZAllocNode::free_and_claim_virtual_from_low_exact_or_many(size_t size, ZArray<ZVirtualMemory>* vmems_in_out) {
   verify_virtual_memory_association(vmems_in_out);
 
   ZVirtualMemoryManager& manager = virtual_memory_manager();
 
   // Shuffle virtual memory
-  return manager.shuffle_to_low_addresses_and_remove_contiguous(size, _numa_id, vmems_in_out);
+  return manager.insert_and_remove_from_low_exact_or_many(size, _numa_id, vmems_in_out);
 }
 
 static void pretouch_memory(zoffset start, size_t size) {
@@ -1172,7 +1172,7 @@ bool ZAllocNode::prime(ZWorkers* workers, size_t size) {
   return true;
 }
 
-ZVirtualMemory ZAllocNode::remap_harvested_and_claim_virtual(ZMemoryAllocation* allocation) {
+ZVirtualMemory ZAllocNode::prepare_harvested_and_claim_virtual(ZMemoryAllocation* allocation) {
   verify_memory_allocation_association(allocation);
 
   // Unmap virtual memory
@@ -1188,12 +1188,14 @@ ZVirtualMemory ZAllocNode::remap_harvested_and_claim_virtual(ZMemoryAllocation* 
 
   // Shuffle virtual memory. We attempt to allocate enough memory to cover the entire
   // allocation size, not just for the harvested memory.
-  const ZVirtualMemory result = shuffle_virtual(allocation->size(), allocation->partial_vmems());
+  const ZVirtualMemory result = free_and_claim_virtual_from_low_exact_or_many(allocation->size(), allocation->partial_vmems());
 
   // Restore segments
   if (!result.is_null()) {
+    // Got exact match
     segments.pop_all(result);
   } else {
+    // Got many partial vmems
     segments.pop_all(allocation->partial_vmems());
   }
 
@@ -1213,7 +1215,7 @@ ZVirtualMemory ZAllocNode::claim_virtual_memory(ZMemoryAllocation* allocation) {
   if (allocation->harvested() > 0) {
     // If we have harvested anything, we claim virtual memory from the harvested
     // vmems, and perhaps also allocate more to match the allocation request.
-    return remap_harvested_and_claim_virtual(allocation);
+    return prepare_harvested_and_claim_virtual(allocation);
   } else {
     // Just try to claim virtual memory
     return claim_virtual(allocation->size(), true /* force_low_address */);
@@ -1680,7 +1682,8 @@ void ZPageAllocator::remap_and_defragment(const ZVirtualMemory& vmem, ZArray<ZVi
 
   // Shuffle vmem - put new vmems in entries
   const int start_index = entries->length();
-  node.shuffle_virtual(vmem, entries);
+  node.free_and_claim_virtual_from_low_many(vmem, entries);
+
   const int num_vmems = entries->length() - start_index;
 
   // Restore segments
@@ -1929,7 +1932,7 @@ ZVirtualMemory ZPageAllocator::claim_virtual_memory_multi_node(ZMultiNodeAllocat
     if (!vmem.is_null()) {
       // Copy claimed multi-node vmems, we leave the old vmems mapped until after
       // we have committed. In case committing fails we can simply reinsert the
-      // inital vmems.
+      // initial vmems.
       copy_claimed_physical_multi_node(multi_node_allocation, vmem);
 
       return vmem;

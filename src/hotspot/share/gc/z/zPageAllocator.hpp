@@ -141,12 +141,12 @@ public:
   size_t claim_virtual(size_t size, ZArray<ZVirtualMemory>* vmems_out);
   void free_virtual(const ZVirtualMemory& vmem);
 
-  void shuffle_virtual(const ZVirtualMemory& vmem, ZArray<ZVirtualMemory>* vmems_out);
-  ZVirtualMemory shuffle_virtual(size_t size, ZArray<ZVirtualMemory>* vmems_in_out);
+  void free_and_claim_virtual_from_low_many(const ZVirtualMemory& vmem, ZArray<ZVirtualMemory>* vmems_out);
+  ZVirtualMemory free_and_claim_virtual_from_low_exact_or_many(size_t size, ZArray<ZVirtualMemory>* vmems_in_out);
 
   bool prime(ZWorkers* workers, size_t size);
 
-  ZVirtualMemory remap_harvested_and_claim_virtual(ZMemoryAllocation* allocation);
+  ZVirtualMemory prepare_harvested_and_claim_virtual(ZMemoryAllocation* allocation);
   ZVirtualMemory claim_virtual_memory(ZMemoryAllocation* allocation);
 
   ZVirtualMemory commit_increased_capacity(ZMemoryAllocation* allocation, const ZVirtualMemory& vmem);

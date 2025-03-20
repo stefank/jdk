@@ -140,8 +140,8 @@ public:
   Range remove_high_address(size_t size);
 
   void transfer_low_address(ZMemoryManagerImpl* other, size_t size);
-  void shuffle_to_low_addresses(offset start, size_t size, ZArray<Range>* out);
-  Range shuffle_to_low_addresses_and_remove_contiguous(size_t size, ZArray<Range>* in_out);
+  void insert_and_remove_from_low_many(offset start, size_t size, ZArray<Range>* out);
+  Range insert_and_remove_from_low_exact_or_many(size_t size, ZArray<Range>* in_out);
 
   void insert(offset start, size_t size);
   void insert(const Range& range);

@@ -356,7 +356,7 @@ void ZMemoryManagerImpl<Range>::transfer_low_address(ZMemoryManagerImpl* other, 
 }
 
 template <typename Range>
-void ZMemoryManagerImpl<Range>::shuffle_to_low_addresses(offset start, size_t size, ZArray<Range>* out) {
+void ZMemoryManagerImpl<Range>::insert_and_remove_from_low_many(offset start, size_t size, ZArray<Range>* out) {
   ZLocker<ZLock> locker(&_lock);
 
   // Insert the range
@@ -370,12 +370,12 @@ void ZMemoryManagerImpl<Range>::shuffle_to_low_addresses(offset start, size_t si
 }
 
 template <typename Range>
-Range ZMemoryManagerImpl<Range>::shuffle_to_low_addresses_and_remove_contiguous(size_t size, ZArray<Range>* in_out) {
+Range ZMemoryManagerImpl<Range>::insert_and_remove_from_low_exact_or_many(size_t size, ZArray<Range>* in_out) {
   ZLocker<ZLock> locker(&_lock);
 
   size_t inserted = 0;
 
-  // Free everything
+  // Insert everything
   ZArrayIterator<Range> iter(in_out);
   for (Range mem; iter.next(&mem);) {
     insert_inner(mem.start(), mem.size());
