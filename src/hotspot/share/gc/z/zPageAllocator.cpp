@@ -195,10 +195,9 @@ private:
     set_numa_id(a1._numa_id);
 
     // Reserve space for the partial vmems
-    const size_t num_vmems_a1 = a1._partial_vmems.length() + (a1._satisfied_from_cache_vmem.is_null() ? 1 : 0);
-    const size_t num_vmems_a2 = a2._partial_vmems.length() + (a2._satisfied_from_cache_vmem.is_null() ? 1 : 0);
-    const int total_vmems = (int)(num_vmems_a1 + num_vmems_a2);
-    _partial_vmems.reserve(total_vmems);
+    const int num_vmems_a1 = a1._partial_vmems.length() + (a1._satisfied_from_cache_vmem.is_null() ? 1 : 0);
+    const int num_vmems_a2 = a2._partial_vmems.length() + (a2._satisfied_from_cache_vmem.is_null() ? 1 : 0);
+    _partial_vmems.reserve(num_vmems_a1 + num_vmems_a2);
 
     // Transfer the claimed capacity
     transfer_claimed_capacity(a1);
