@@ -32,7 +32,7 @@
 #include "utilities/align.hpp"
 #include "utilities/debug.hpp"
 
-class ZVirtualMemoryManagerImpl : public CHeapObj<mtGC> {
+class ZVirtualMemoryReserverImpl : public CHeapObj<mtGC> {
 public:
   virtual void initialize_before_reserve() {}
   virtual void initialize_after_reserve(ZVirtualMemoryManager::ZMemoryManager* manager) {}
@@ -46,7 +46,7 @@ public:
 // single placeholder is covering that memory range. When memory is
 // removed from the manager the placeholder is split into granule
 // sized placeholders to allow mapping operations on that granularity.
-class ZVirtualMemoryManagerSmallPages : public ZVirtualMemoryManagerImpl {
+class ZVirtualMemoryReserverSmallPages : public ZVirtualMemoryReserverImpl {
 private:
   class PlaceholderCallbacks : public AllStatic {
   public:
@@ -193,7 +193,7 @@ private:
 // ZPhysicalMemory layer needs access to the section
 HANDLE ZAWESection;
 
-class ZVirtualMemoryManagerLargePages : public ZVirtualMemoryManagerImpl {
+class ZVirtualMemoryReserverLargePages : public ZVirtualMemoryReserverImpl {
 private:
   virtual void initialize_before_reserve() {
     ZAWESection = ZMapper::create_shared_awe_section();
@@ -211,25 +211,25 @@ private:
   }
 };
 
-static ZVirtualMemoryManagerImpl* _impl = nullptr;
+static ZVirtualMemoryReserverImpl* _impl = nullptr;
 
-void ZVirtualMemoryManager::pd_initialize_before_reserve() {
+void ZVirtualMemoryReserver::pd_initialize_before_reserve() {
   if (ZLargePages::is_enabled()) {
-    _impl = new ZVirtualMemoryManagerLargePages();
+    _impl = new ZVirtualMemoryReserverLargePages();
   } else {
-    _impl = new ZVirtualMemoryManagerSmallPages();
+    _impl = new ZVirtualMemoryReserverSmallPages();
   }
   _impl->initialize_before_reserve();
 }
 
-void ZVirtualMemoryManager::pd_initialize_after_reserve() {
-  _impl->initialize_after_reserve(_nodes.addr(0));
+void ZVirtualMemoryReserver::pd_initialize_after_reserve(ZVirtualMemoryManager::ZMemoryManager* manager) {
+  _impl->initialize_after_reserve(manager);
 }
 
-bool ZVirtualMemoryManager::pd_reserve(zaddress_unsafe addr, size_t size) {
+bool ZVirtualMemoryReserver::pd_reserve(zaddress_unsafe addr, size_t size) {
   return _impl->reserve(addr, size);
 }
 
-void ZVirtualMemoryManager::pd_unreserve(zaddress_unsafe addr, size_t size) {
+void ZVirtualMemoryReserver::pd_unreserve(zaddress_unsafe addr, size_t size) {
   _impl->unreserve(addr, size);
 }

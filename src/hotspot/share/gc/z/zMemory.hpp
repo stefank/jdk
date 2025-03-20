@@ -109,9 +109,12 @@ private:
   mutable ZLock  _lock;
   ZList<ZMemory> _list;
   Callbacks      _callbacks;
+  Range          _limits;
 
   ZMemory* create(offset start, size_t size);
   void destroy(ZMemory* area);
+  Range disown(ZMemory* area);
+
   void shrink_from_front(ZMemory* area, size_t size);
   void shrink_from_back(ZMemory* area, size_t size);
   void grow_from_front(ZMemory* area, size_t size);
@@ -128,7 +131,12 @@ private:
 public:
   ZMemoryManagerImpl();
 
+  bool is_empty() const;
   bool is_contiguous() const;
+
+  void set_limits(const Range& limits);
+  Range limits() const;
+  bool limits_contain(const Range& other) const;
 
   void register_callbacks(const Callbacks& callbacks);
 
@@ -147,6 +155,8 @@ public:
 
   void insert(offset start, size_t size);
   void insert(const Range& range);
+
+  bool disown_first(Range* out);
 };
 
 #endif // SHARE_GC_Z_ZMEMORY_HPP

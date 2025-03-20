@@ -78,6 +78,22 @@ void ZMemoryManagerImpl<Range>::destroy(ZMemory* area) {
 }
 
 template <typename Range>
+Range ZMemoryManagerImpl<Range>::disown(ZMemory* area) {
+  Range range = *area->range();
+
+  // The memory manager are "disowning" this memory area.
+  //
+  // Don't call "destroy" because that will invoke the callbacks should only
+  // been applied to memory that is going to be used by the users of this
+  // memory manager.
+  //
+  // This call is typically used to disown memory before unreserving a surplus.
+  delete area;
+
+  return range;
+}
+
+template <typename Range>
 void ZMemoryManagerImpl<Range>::shrink_from_front(ZMemory* area, size_t size) {
   if (_callbacks._shrink_from_front != nullptr) {
     _callbacks._shrink_from_front(*area->range(), size);
@@ -169,7 +185,11 @@ Range ZMemoryManagerImpl<Range>::remove_from_low_at_most_inner(size_t size) {
 template <typename Range>
 void ZMemoryManagerImpl<Range>::insert_inner(offset start, size_t size) {
   assert(start != offset::invalid, "Invalid address");
+  assert(_limits.start() == offset::invalid || start >= _limits.start(), "Invalid address");
+
   const offset_end end = to_end_type(start, size);
+
+  assert(_limits.end() == offset_end::invalid || end <= _limits.end(), "Invalid address");
 
   ZListIterator<ZMemory> iter(&_list);
   for (ZMemory* area; iter.next(&area);) {
@@ -243,11 +263,37 @@ ZMemoryManagerImpl<Range>::Callbacks::Callbacks()
 template <typename Range>
 ZMemoryManagerImpl<Range>::ZMemoryManagerImpl()
   : _list(),
-    _callbacks() {}
+    _callbacks(),
+    _limits() {}
+
+template <typename Range>
+bool ZMemoryManagerImpl<Range>::is_empty() const {
+  return _list.is_empty();
+}
 
 template <typename Range>
 bool ZMemoryManagerImpl<Range>::is_contiguous() const {
   return _list.size() == 1;
+}
+
+template <typename Range>
+void ZMemoryManagerImpl<Range>::set_limits(const Range& limits) {
+  _limits = limits;
+ }
+
+template <typename Range>
+Range ZMemoryManagerImpl<Range>::limits() const {
+  assert(_limits.end() == offset_end::invalid, "Don't use uninitialized");
+  return _limits;
+}
+
+template <typename Range>
+bool ZMemoryManagerImpl<Range>::limits_contain(const Range& other) const {
+  if (_limits.is_null() || other.is_null()) {
+    return false;
+  }
+
+  return other.start() >= _limits.start() && other.end() <= _limits.end();
 }
 
 template <typename Range>
@@ -432,6 +478,20 @@ void ZMemoryManagerImpl<Range>::insert(offset start, size_t size) {
 template <typename Range>
 void ZMemoryManagerImpl<Range>::insert(const Range& range) {
   insert(range.start(), range.size());
+}
+
+template <typename Range>
+bool ZMemoryManagerImpl<Range>::disown_first(Range* out) {
+  ZLocker<ZLock> locker(&_lock);
+
+  if (_list.is_empty()) {
+    return false;
+  }
+
+  ZMemory* const area = _list.remove_first();
+  *out = disown(area);
+
+  return true;
 }
 
 // Instantiate the concrete classes

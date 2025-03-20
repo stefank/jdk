@@ -29,25 +29,20 @@
 #include "gc/z/zMemory.hpp"
 #include "gc/z/zValue.hpp"
 
-class ZVirtualMemoryManager {
+class ZVirtualMemoryReserver {
   friend class ZMapperTest;
 
-public:
+private:
   using ZMemoryManager = ZMemoryManagerImpl<ZVirtualMemory>;
 
-private:
-  static size_t calculate_min_range(size_t size);
+  ZMemoryManager _virtual_memory_reservation;
+  size_t         _reserved;
 
-  ZMemoryManager           _extra_node;
-  ZPerNUMA<ZMemoryManager> _nodes;
-  ZPerNUMA<ZVirtualMemory> _vmem_ranges;
-  ZVirtualMemory           _extra_space_range;
-  bool                     _reserved_extra_space;
-  bool                     _initialized;
+  static size_t calculate_min_range(size_t size);
 
   // Platform specific implementation
   void pd_initialize_before_reserve();
-  void pd_initialize_after_reserve();
+  void pd_initialize_after_reserve(ZMemoryManager* manager);
   bool pd_reserve(zaddress_unsafe addr, size_t size);
   void pd_unreserve(zaddress_unsafe addr, size_t size);
 
@@ -59,20 +54,41 @@ private:
 
   DEBUG_ONLY(size_t force_reserve_discontiguous(size_t size);)
 
-  void initialize_nodes(size_t max_capacity, size_t reserved);
+public:
+  ZVirtualMemoryReserver(size_t size);
+
+  void unreserve();
+
+  bool is_initialized() const;
+  bool is_empty() const;
+  bool is_contiguous() const;
+  size_t reserved() const;
+
+  void initialize_node(ZMemoryManager* node, size_t size);
+};
+
+class ZVirtualMemoryManager {
+public:
+  using ZMemoryManager = ZMemoryManagerImpl<ZVirtualMemory>;
+
+private:
+  ZPerNUMA<ZMemoryManager> _nodes;
+  ZMemoryManager           _multi_node;
+  bool                     _initialized;
 
 public:
   ZVirtualMemoryManager(size_t max_capacity);
 
-  bool is_initialized() const;
+  void initialize_nodes(ZVirtualMemoryReserver* reserver, size_t reserved);
 
-  bool reserved_extra_space() const;
-  ZVirtualMemory remove_from_extra_space(size_t size);
-  void insert_extra_space(const ZVirtualMemory& vmem);
-  bool is_in_extra_space(const ZVirtualMemory& vmem) const;
+  bool is_initialized() const;
+  bool is_multi_node_enabled() const;
+  bool is_in_multi_node(const ZVirtualMemory& vmem) const;
+
+  ZVirtualMemory remove_from_multi_node(size_t size);
+  void insert_into_multi_node(const ZVirtualMemory& vmem);
 
   void insert_and_remove_from_low_many(const ZVirtualMemory& vmem, uint32_t numa_id, ZArray<ZVirtualMemory>* vmems_out);
-
   ZVirtualMemory insert_and_remove_from_low_exact_or_many(size_t size, uint32_t numa_id, ZArray<ZVirtualMemory>* vmems_in_out);
 
   size_t remove_from_low_many_at_most(size_t size, uint32_t numa_id, ZArray<ZVirtualMemory>* vmems_out);

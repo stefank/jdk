@@ -26,6 +26,7 @@
 #include "gc/z/zAddress.inline.hpp"
 #include "gc/z/zGlobals.hpp"
 #include "gc/z/zList.inline.hpp"
+#include "gc/z/zMapper_windows.hpp"
 #include "gc/z/zMemory.inline.hpp"
 #include "gc/z/zNUMA.inline.hpp"
 #include "gc/z/zSyscall_windows.hpp"
@@ -38,37 +39,18 @@ using namespace testing;
 
 #define EXPECT_REMOVAL_OK(range) EXPECT_FALSE(range.is_null())
 
-using ZMemoryManager = ZVirtualMemoryManager::ZMemoryManager;
+using ZMemoryManager = ZMemoryManagerImpl<ZVirtualMemory>;
 
 class ZMapperTest : public Test {
 private:
   static constexpr size_t ZMapperTestReservationSize = 32 * M;
 
-  static bool                      _initialized;
-  static ZPerNUMA<ZMemoryManager>* _vas;
-  static ZMemoryManager*           _va;
+  static bool             _initialized;
+  static ZMemoryManager*  _va;
 
-  ZVirtualMemoryManager* _vmm;
+  static ZVirtualMemoryReserver* _vmr;
 
 public:
-  bool reserve_for_test() {
-    // Initialize platform specific parts before reserving address space
-    _vmm->pd_initialize_before_reserve();
-
-    // Reserve address space
-    if (!_vmm->pd_reserve(ZOffset::address_unsafe(zoffset(0)), ZMapperTestReservationSize)) {
-      return false;
-    }
-
-    // Insert the address range before setting up callbacks below
-    _va->insert(zoffset(0), ZMapperTestReservationSize);
-
-    // Initialize platform specific parts after reserving address space
-    _vmm->pd_initialize_after_reserve();
-
-    return true;
-  }
-
   virtual void SetUp() {
     // Only run test on supported Windows versions
     if (!ZSyscall::is_supported()) {
@@ -80,16 +62,19 @@ public:
     ZGlobalsPointers::initialize();
     ZNUMA::initialize();
 
-    // Fake a ZVirtualMemoryManager
-    _vmm = (ZVirtualMemoryManager*)os::malloc(sizeof(ZVirtualMemoryManager), mtTest);
-    _vas = ::new (&_vmm->_nodes) ZPerNUMA<ZMemoryManager>();
-    _va = _vmm->_nodes.addr(0);
+
+    void* vmr_mem = os::malloc(sizeof(ZVirtualMemoryReserver), mtTest);
+    _vmr = ::new (vmr_mem) ZVirtualMemoryReserver(ZMapperTestReservationSize);
+    _va = &_vmr->_virtual_memory_reservation;
 
     // Reserve address space for the test
-    if (!reserve_for_test()) {
+    if (_vmr->reserved() != ZMapperTestReservationSize) {
       GTEST_SKIP() << "Failed to reserve address space";
       return;
     }
+
+    // Set up the callbacks
+    _vmr->pd_initialize_after_reserve(_va);
 
     _initialized = true;
   }
@@ -101,11 +86,23 @@ public:
     }
 
     if (_initialized) {
-      _vmm->pd_unreserve(ZOffset::address_unsafe(zoffset(0)), 0);
+      _vmr->unreserve();
     }
 
-    _vas->~ZPerNUMA<ZMemoryManager>();
-    os::free(_vmm);
+    _vmr->~ZVirtualMemoryReserver();
+    os::free(_vmr);
+  }
+
+  static void test_unreserve() {
+    ZVirtualMemory bottom = _va->remove_from_low(ZGranuleSize);
+    ZVirtualMemory top    = _va->remove_from_high(ZGranuleSize);
+
+    // Unreserve the middle part
+    _vmr->unreserve();
+
+    // Make sure that we still can unreserve the memory before and after
+    ZMapper::unreserve(ZOffset::address_unsafe(bottom.start()), bottom.size());
+    ZMapper::unreserve(ZOffset::address_unsafe(top.start()), top.size());
   }
 
   static void test_remove_from_low() {
@@ -176,8 +173,12 @@ public:
 };
 
 bool ZMapperTest::_initialized              = false;
-ZPerNUMA<ZMemoryManager>* ZMapperTest::_vas = nullptr;
 ZMemoryManager* ZMapperTest::_va            = nullptr;
+ZVirtualMemoryReserver* ZMapperTest::_vmr   = nullptr;
+
+TEST_VM_F(ZMapperTest, test_unreserve) {
+  test_unreserve();
+}
 
 TEST_VM_F(ZMapperTest, test_remove_from_low) {
   test_remove_from_low();
