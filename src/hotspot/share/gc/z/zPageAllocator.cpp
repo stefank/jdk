@@ -805,7 +805,8 @@ void ZAllocNode::claim_from_cache_or_increase_capacity(ZMemoryAllocation* alloca
 
   allocation->set_harvested(num_harvested, harvested);
 
-  assert(harvested + increased_capacity == size, "Mismatch harvested: %zu increased_capacity: %zu size: %zu",
+  assert(harvested + increased_capacity == size,
+         "Mismatch harvested: %zu increased_capacity: %zu size: %zu",
          harvested, increased_capacity, size);
 
   return;
@@ -1328,7 +1329,7 @@ public:
     const ZMultiNodeTracker* const tracker = page->multi_node_tracker();
     allocator->safe_destroy_page(page);
 
-    // Remap memory back to original numa node
+    // Remap memory back to original node
     ZArray<ZVirtualMemory> vmems;
     for (const Element partial_allocation : *tracker->map()) {
       ZVirtualMemory remaining_vmem = partial_allocation._vmem;
@@ -1729,7 +1730,7 @@ bool ZPageAllocator::claim_capacity_multi_node(ZMultiNodeAllocation* multi_node_
     return true;
   };
 
-  // Loops over every node and allocates memory from nodes
+  // Loops over every node and claims memory
   const auto do_claim_each_node = [&](bool claim_evenly) {
     for (uint32_t i = 0; i < numa_nodes; ++i) {
       const uint32_t numa_id = (start_node + i) % numa_nodes;

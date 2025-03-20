@@ -334,7 +334,8 @@ void ZVirtualMemoryManager::insert(const ZVirtualMemory& vmem, uint32_t numa_id)
 }
 
 uint32_t ZVirtualMemoryManager::get_numa_id(const ZVirtualMemory& vmem) const {
-  for (uint32_t numa_id = 0; numa_id < ZNUMA::count(); numa_id++) {
+  const uint32_t numa_nodes = ZNUMA::count();
+  for (uint32_t numa_id = 0; numa_id < numa_nodes; numa_id++) {
     const ZVirtualMemory& range = _vmem_ranges.get(numa_id);
     if (!vmem.is_null() && vmem.start() >= range.start() && vmem.end() <= range.end()) {
       return numa_id;
