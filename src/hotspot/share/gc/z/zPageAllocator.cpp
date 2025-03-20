@@ -921,8 +921,7 @@ size_t ZAllocNode::uncommit(uint64_t* timeout) {
   }
 
   // Unmap and uncommit flushed memory
-  ZArrayIterator<ZVirtualMemory> it(&flushed_vmems);
-  for (ZVirtualMemory vmem; it.next(&vmem);) {
+  for (const ZVirtualMemory vmem : flushed_vmems) {
     unmap_virtual(vmem);
     uncommit_physical(vmem);
     free_physical(vmem);
@@ -1164,8 +1163,7 @@ ZVirtualMemory ZAllocNode::remap_harvested_and_claim_virtual(ZMemoryAllocation* 
   verify_memory_allocation_association(allocation);
 
   // Unmap virtual memory
-  ZArrayIterator<ZVirtualMemory> iter(allocation->partial_vmems());
-  for (ZVirtualMemory vmem; iter.next(&vmem);) {
+  for (const ZVirtualMemory vmem : *allocation->partial_vmems()) {
     unmap_virtual(vmem);
   }
 
@@ -1188,8 +1186,7 @@ ZVirtualMemory ZAllocNode::remap_harvested_and_claim_virtual(ZMemoryAllocation* 
 
   if (result.is_null()) {
     // Before returning harvested memory to the cache it must be mapped.
-    ZArrayIterator<ZVirtualMemory> iter(allocation->partial_vmems());
-    for (ZVirtualMemory vmem; iter.next(&vmem);) {
+    for (const ZVirtualMemory vmem : *allocation->partial_vmems()) {
       map_virtual_to_physical(vmem);
     }
   }
@@ -1284,8 +1281,7 @@ void ZAllocNode::free_memory_alloc_failed(ZMemoryAllocation* allocation) {
   size_t freed = 0;
 
   // Free mapped memory
-  ZArrayIterator<ZVirtualMemory> iter(allocation->partial_vmems());
-  for (ZVirtualMemory vmem; iter.next(&vmem);) {
+  for (const ZVirtualMemory vmem : *allocation->partial_vmems()) {
     freed += vmem.size();
     _cache.insert(vmem);
   }
@@ -1364,8 +1360,7 @@ public:
     ZAllocNode& vmem_node = allocator->node_from_vmem(vmem);
 
     // Remap memory back to original numa node
-    ZArrayIterator<Element> iter(tracker->map());
-    for (Element partial_allocation; iter.next(&partial_allocation);) {
+    for (const Element partial_allocation : *tracker->map()) {
       ZVirtualMemory remaining_vmem = partial_allocation._vmem;
       const uint32_t numa_id = partial_allocation._numa_id;
 
@@ -1428,8 +1423,7 @@ public:
         node->decrease_capacity(numa_data._uncommitted, false /* set_max_capacity */);
 
         // Reinsert vmems
-        ZArrayIterator<ZVirtualMemory> iter(&numa_data._vmems);
-        for (ZVirtualMemory vmem; iter.next(&vmem);) {
+        for (const ZVirtualMemory vmem : numa_data._vmems) {
           node->cache()->insert(vmem);
         }
       }
@@ -1447,8 +1441,7 @@ public:
     ZMultiNodeTracker* const tracker = from->multi_node_tracker();
     assert(tracker == to->multi_node_tracker(), "should have the same tracker");
 
-    ZArrayIterator<Element> iter(tracker->map());
-    for (Element partial_allocation; iter.next(&partial_allocation);) {
+    for (const Element partial_allocation : *tracker->map()) {
       const size_t size = partial_allocation._vmem.size();
       const uint32_t numa_id = partial_allocation._numa_id;
       ZAllocNode& node = allocator->node_from_numa_id(numa_id);
@@ -2354,8 +2347,7 @@ void ZPageAllocator::free_page(ZPage* page, bool allow_defragment) {
 
   ZLocker<ZLock> locker(&_lock);
 
-  ZArrayIterator<ZVirtualMemory> iter(&to_cache);
-  for (ZVirtualMemory vmem; iter.next(&vmem);) {
+  for (const ZVirtualMemory vmem : to_cache) {
     // Update used statistics and cache memory
     node.decrease_used(vmem.size());
     node.decrease_used_generation(id, vmem.size());
@@ -2372,9 +2364,8 @@ void ZPageAllocator::free_pages(const ZArray<ZPage*>* pages) {
   // All pages belong to the same generation, so either only young or old.
   const ZGenerationId gen_id = pages->first()->generation_id();
 
-  // Prepare memory from pages to be cached before taking the lock
-  ZArrayIterator<ZPage*> pages_iter(pages);
-  for (ZPage* page; pages_iter.next(&page);) {
+  // Prepare memory from pages to be cached before taking the loc
+  for (ZPage* page : *pages) {
     if (page->is_multi_node()) {
       // Multi numa is handled separately
       free_page_multi_node(page);
@@ -2388,8 +2379,7 @@ void ZPageAllocator::free_pages(const ZArray<ZPage*>* pages) {
   ZLocker<ZLock> locker(&_lock);
 
   // Insert vmems to the cache
-  ZArrayIterator<ZVirtualMemory> iter(&to_cache);
-  for (ZVirtualMemory vmem; iter.next(&vmem);) {
+  for (const ZVirtualMemory vmem : to_cache) {
     ZAllocNode& node = node_from_vmem(vmem);
     const size_t size = vmem.size();
 
