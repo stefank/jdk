@@ -1330,8 +1330,8 @@ public:
     // Keep track of to be inserted vmems
     struct PerNUMAData : public CHeapObj<mtGC> {
       ZArray<ZVirtualMemory> _vmems{};
-      size_t _mapped = 0;
-      size_t _uncommitted = 0;
+      size_t                 _mapped = 0;
+      size_t                 _uncommitted = 0;
     };
     PerNUMAData* const per_numa_vmems = new PerNUMAData[numa_nodes];
     ZAllocNode& vmem_node = allocator->node_from_vmem(vmem);
@@ -1510,7 +1510,6 @@ size_t ZPageAllocator::current_max_capacity() const {
   for (const ZAllocNode* node; iter.next(&node);) {
     current_max_capacity += Atomic::load(&node->_current_max_capacity);
   }
-
   return current_max_capacity;
 }
 

@@ -58,25 +58,25 @@ class ZAllocNode {
   friend class ZPageAllocator;
 
 private:
-  ZPageAllocator* const      _page_allocator;
-  ZMappedCache               _cache;
-  ZUncommitter               _uncommitter;
-  const size_t               _min_capacity;
-  const size_t               _initial_capacity;
-  const size_t               _max_capacity;
-  size_t                     _current_max_capacity;
-  volatile size_t            _capacity;
-  volatile size_t            _claimed;
-  volatile size_t            _used;
-  size_t                     _used_generations[2];
+  ZPageAllocator* const _page_allocator;
+  ZMappedCache          _cache;
+  ZUncommitter          _uncommitter;
+  const size_t          _min_capacity;
+  const size_t          _initial_capacity;
+  const size_t          _max_capacity;
+  volatile size_t       _current_max_capacity;
+  volatile size_t       _capacity;
+  volatile size_t       _claimed;
+  volatile size_t       _used;
+  size_t                _used_generations[2];
   struct {
-    size_t                   _used_high;
-    size_t                   _used_low;
-  } _collection_stats[2];
-  double                     _last_commit;
-  double                     _last_uncommit;
-  size_t                     _to_uncommit;
-  const uint32_t             _numa_id;
+    size_t _used_high;
+    size_t _used_low;
+  }                     _collection_stats[2];
+  double                _last_commit;
+  double                _last_uncommit;
+  size_t                _to_uncommit;
+  const uint32_t        _numa_id;
 
   const ZVirtualMemoryManager& virtual_memory_manager() const;
   ZVirtualMemoryManager& virtual_memory_manager();
@@ -279,14 +279,14 @@ public:
   void handle_alloc_stalling_for_young();
   void handle_alloc_stalling_for_old(bool cleared_soft_refs);
 
+  ZPerNUMAConstIterator<ZAllocNode> alloc_node_iterator() const;
+  ZPerNUMAIterator<ZAllocNode> alloc_node_iterator();
+
   void threads_do(ThreadClosure* tc) const;
 
   void print_on(outputStream* st) const;
   void print_extended_on_error(outputStream* st) const;
   void print_on_error(outputStream* st) const;
-
-  ZPerNUMAConstIterator<ZAllocNode> alloc_node_iterator() const;
-  ZPerNUMAIterator<ZAllocNode> alloc_node_iterator();
 };
 
 class ZPageAllocatorStats {
