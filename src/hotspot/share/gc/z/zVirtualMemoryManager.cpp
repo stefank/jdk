@@ -341,8 +341,8 @@ uint32_t ZVirtualMemoryManager::get_numa_id(const ZVirtualMemory& vmem) const {
     }
   }
 
-  assert(false, "Should never reach here");
-  return -1;
+  ShouldNotReachHere();
+  return (uint32_t)-1;
 }
 
 zoffset ZVirtualMemoryManager::lowest_available_address(uint32_t numa_id) const {
