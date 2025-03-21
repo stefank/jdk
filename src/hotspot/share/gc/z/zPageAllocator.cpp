@@ -120,9 +120,9 @@ private:
   }
 
 public:
-  ZSegmentStash(ZGranuleMap<zbacking_index>* physical_mappings, int num_granules)
+  ZSegmentStash(ZGranuleMap<zbacking_index>* physical_mappings, int granule_count)
     : _physical_mappings(physical_mappings),
-      _stash(num_granules, num_granules, zbacking_index::zero) {}
+      _stash(granule_count, granule_count, zbacking_index::zero) {}
 
   void stash(const ZVirtualMemory& vmem) {
     copy_to_stash(0, vmem);
@@ -140,9 +140,9 @@ public:
     sort_stashed_segments();
   }
 
-  void pop(ZArray<ZVirtualMemory>* vmems, int num_vmems) {
+  void pop(ZArray<ZVirtualMemory>* vmems, int vmem_count) {
     int stash_index = 0;
-    const int pop_start_index = vmems->length() - num_vmems;
+    const int pop_start_index = vmems->length() - vmem_count;
     ZArrayIterator<ZVirtualMemory> iter(vmems, pop_start_index);
     for (ZVirtualMemory vmem; iter.next(&vmem);) {
       const int granule_count = vmem.granule_count();
@@ -1187,8 +1187,8 @@ ZVirtualMemory ZAllocNode::prepare_harvested_and_claim_virtual(ZMemoryAllocation
     unmap_virtual(vmem);
   }
 
-  const int num_granules = (int)(allocation->harvested() >> ZGranuleSizeShift);
-  ZSegmentStash segments(&physical_mappings(), num_granules);
+  const int granule_count = (int)(allocation->harvested() >> ZGranuleSizeShift);
+  ZSegmentStash segments(&physical_mappings(), granule_count);
 
   // Stash segments
   segments.stash(allocation->partial_vmems());
@@ -1665,10 +1665,10 @@ void ZPageAllocator::remap_and_defragment(const ZVirtualMemory& vmem, ZArray<ZVi
   const int start_index = vmems_out->length();
   node.free_and_claim_virtual_from_low_many(vmem, vmems_out);
 
-  const int num_vmems = vmems_out->length() - start_index;
+  const int vmem_count = vmems_out->length() - start_index;
 
   // Restore segments
-  segments.pop(vmems_out, num_vmems);
+  segments.pop(vmems_out, vmem_count);
 
   // The entries array may contain entries from other defragmentations as well,
   // so we only operate on the last ranges that we have just inserted
