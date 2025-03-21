@@ -91,6 +91,7 @@ private:
   const zbacking_index* physical_mappings_addr(const ZVirtualMemory& vmem) const;
   zbacking_index* physical_mappings_addr(const ZVirtualMemory& vmem);
 
+  void verify_virtual_memory_extra_space_association(const ZVirtualMemory& vmem) const;
   void verify_virtual_memory_association(const ZVirtualMemory& vmem, bool check_extra_space = false) const;
   void verify_virtual_memory_association(const ZArray<ZVirtualMemory>* vmems) const;
   void verify_memory_allocation_association(const ZMemoryAllocation* allocation) const;
@@ -144,6 +145,9 @@ public:
 
   void copy_physical_segments_to_node(const ZVirtualMemory& at, const ZVirtualMemory& from);
   void copy_physical_segments_from_node(const ZVirtualMemory& at, const ZVirtualMemory& to);
+
+  void map_virtual_from_extra_space(const ZVirtualMemory& vmem);
+  void unmap_virtual_from_extra_space(const ZVirtualMemory& vmem);
 
   ZVirtualMemory commit_increased_capacity(ZMemoryAllocation* allocation, const ZVirtualMemory& vmem);
   void map_memory(ZMemoryAllocation* allocation, const ZVirtualMemory& vmem);

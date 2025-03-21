@@ -646,6 +646,13 @@ zbacking_index* ZAllocNode::physical_mappings_addr(const ZVirtualMemory& vmem) {
   return mappings.addr(vmem.start());
 }
 
+void ZAllocNode::verify_virtual_memory_extra_space_association(const ZVirtualMemory& vmem) const {
+  const ZVirtualMemoryManager& manager = virtual_memory_manager();
+
+  assert(manager.is_in_extra_space(vmem), "Virtual memory must be associated with the extra space "
+                                          "actual: %u", virtual_memory_manager().get_numa_id(vmem));
+}
+
 void ZAllocNode::verify_virtual_memory_association(const ZVirtualMemory& vmem, bool check_extra_space) const {
   const ZVirtualMemoryManager& manager = virtual_memory_manager();
 
@@ -1191,6 +1198,30 @@ void ZAllocNode::copy_physical_segments_from_node(const ZVirtualMemory& at, cons
   copy_physical_segments(to, at);
 }
 
+void ZAllocNode::map_virtual_from_extra_space(const ZVirtualMemory& vmem) {
+  verify_virtual_memory_extra_space_association(vmem);
+
+  ZPhysicalMemoryManager& manager = physical_memory_manager();
+  const zoffset offset = vmem.start();
+  zbacking_index* const pmem = physical_mappings_addr(vmem);
+  const size_t size = vmem.size();
+
+  // Map virtual memory to physical memory
+  manager.map(offset, pmem, size, _numa_id);
+}
+
+void ZAllocNode::unmap_virtual_from_extra_space(const ZVirtualMemory& vmem) {
+  verify_virtual_memory_extra_space_association(vmem);
+
+  ZPhysicalMemoryManager& manager = physical_memory_manager();
+  const zoffset offset = vmem.start();
+  zbacking_index* const pmem = physical_mappings_addr(vmem);
+  const size_t size = vmem.size();
+
+  // Unmap virtual memory from physical memory
+  manager.unmap(offset, pmem, size);
+}
+
 ZVirtualMemory ZAllocNode::commit_increased_capacity(ZMemoryAllocation* allocation, const ZVirtualMemory& vmem) {
   const size_t already_committed = allocation->harvested();
 
@@ -1354,11 +1385,7 @@ public:
         node.copy_physical_segments_to_node(to_vmem, from_vmem);
 
         // Unmap from_vmem
-        ZPhysicalMemoryManager& manager = allocator->_physical;
-        const zoffset offset = from_vmem.start();
-        zbacking_index* const pmem = allocator->_physical_mappings.addr(offset);
-        const size_t size = from_vmem.size();
-        manager.unmap(offset, pmem, size);
+        node.unmap_virtual_from_extra_space(from_vmem);
 
         // Map to_vmem
         node.map_virtual_to_physical(to_vmem);
@@ -2000,13 +2027,7 @@ void ZPageAllocator::map_memory_multi_node(ZMultiNodeAllocation* multi_node_allo
     sort_segments_physical(to_vmem);
 
     // Map the partial_allocation to partial_vmem
-    ZPhysicalMemoryManager& manager = _physical;
-    const zoffset offset = vmem.start();
-    zbacking_index* const pmem = _physical_mappings.addr(offset);
-    const size_t size = vmem.size();
-
-    // Map virtual memory to physical memory
-    manager.map(offset, pmem, size, original_node.numa_id());
+    original_node.map_virtual_from_extra_space(to_vmem);
   }
 }
 
