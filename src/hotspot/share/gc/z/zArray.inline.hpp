@@ -29,6 +29,138 @@
 #include "gc/z/zLock.inline.hpp"
 #include "runtime/atomic.hpp"
 
+template <typename T>
+ZArraySlice<T>::ZArraySlice(T* data, int len)
+  : GrowableArrayView<T>(data, len, len) {}
+
+template <typename T>
+const std::remove_const_t<T>* ZArraySlice<T>::cbegin() const {
+  return begin();
+}
+
+template <typename T>
+const std::remove_const_t<T>* ZArraySlice<T>::begin() const {
+  return const_cast<ZArraySlice<T>*>(this)->begin();
+}
+
+template <typename T>
+T* ZArraySlice<T>::begin() {
+  return this->_data;
+}
+
+template <typename T>
+const std::remove_const_t<T>* ZArraySlice<T>::cend() const {
+  return end();
+}
+
+template <typename T>
+const std::remove_const_t<T>* ZArraySlice<T>::end() const {
+  return const_cast<ZArraySlice<T>*>(this)->end();
+}
+
+template <typename T>
+T* ZArraySlice<T>::end() {
+  return this->_data + this->_len;
+}
+
+template <typename T>
+ZArraySlice<T> ZArraySlice<T>::slice_front(int end) {
+  return slice(0, end);
+}
+
+template <typename T>
+ZArraySlice<const std::remove_const_t<T>> ZArraySlice<T>::slice_front(int end) const {
+  return slice(0, end);
+}
+
+template <typename T>
+ZArraySlice<T> ZArraySlice<T>::slice_back(int start) {
+  return slice(start, this->_len);
+}
+
+template <typename T>
+ZArraySlice<const std::remove_const_t<T>> ZArraySlice<T>::slice_back(int start) const {
+  return slice(start, this->_len);
+}
+
+template <typename T>
+ZArraySlice<T> ZArraySlice<T>::slice(int start, int end) {
+  assert(0 <= start && start <= end && end <= this->_len,
+         "slice called with invalid range (%d, %d) for length %d", start, end, this->_len);
+  return ZArraySlice<T>(this->_data + start, end - start);
+}
+
+template <typename T>
+ZArraySlice<const std::remove_const_t<T>> ZArraySlice<T>::slice(int start, int end) const {
+  assert(0 <= start && start <= end && end <= this->_len,
+         "slice called with invalid range (%d, %d) for length %d", start, end, this->_len);
+  return ZArraySlice<const T>(this->_data + start, end - start);
+}
+
+template <typename T>
+const std::remove_const_t<T>* ZArray<T>::cbegin() const {
+  return begin();
+}
+
+template <typename T>
+const std::remove_const_t<T>* ZArray<T>::begin() const {
+  return const_cast<ZArray<T>*>(this)->begin();
+}
+
+template <typename T>
+T* ZArray<T>::begin() {
+  return this->_data;
+}
+
+template <typename T>
+const std::remove_const_t<T>* ZArray<T>::cend() const {
+  return end();
+}
+
+template <typename T>
+const std::remove_const_t<T>* ZArray<T>::end() const {
+  return const_cast<ZArray<T>*>(this)->end();
+}
+
+template <typename T>
+T* ZArray<T>::end() {
+  return this->_data + this->_len;
+}
+
+template <typename T>
+ZArraySlice<T> ZArray<T>::slice_front(int end) {
+  return slice(0, end);
+}
+
+template <typename T>
+ZArraySlice<const std::remove_const_t<T>> ZArray<T>::slice_front(int end) const {
+  return slice(0, end);
+}
+
+template <typename T>
+ZArraySlice<T> ZArray<T>::slice_back(int start) {
+  return slice(start, this->_len);
+}
+
+template <typename T>
+ZArraySlice<const std::remove_const_t<T>> ZArray<T>::slice_back(int start) const {
+  return slice(start, this->_len);
+}
+
+template <typename T>
+ZArraySlice<T> ZArray<T>::slice(int start, int end) {
+  assert(0 <= start && start <= end && end <= this->_len,
+         "slice called with invalid range (%d, %d) for length %d", start, end, this->_len);
+  return ZArraySlice<T>(this->_data + start, end - start);
+}
+
+template <typename T>
+ZArraySlice<const std::remove_const_t<T>> ZArray<T>::slice(int start, int end) const {
+  assert(0 <= start && start <= end && end <= this->_len,
+         "slice called with invalid range (%d, %d) for length %d", start, end, this->_len);
+  return ZArraySlice<const T>(this->_data + start, end - start);
+}
+
 template <typename T, bool Parallel>
 inline bool ZArrayIteratorImpl<T, Parallel>::next_serial(size_t* index) {
   if (_next == _end) {

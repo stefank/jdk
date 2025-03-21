@@ -32,9 +32,58 @@
 
 #include <type_traits>
 
+template<typename T> class ZArray;
 class ZLock;
 
-template <typename T> using ZArray = GrowableArrayCHeap<T, mtGC>;
+template <typename T>
+class ZArraySlice : public GrowableArrayView<T> {
+  friend class ZArray<T>;
+  friend class ZArray<std::remove_const_t<T>>;
+  friend class ZArraySlice<const std::remove_const_t<T>>;
+
+  ZArraySlice(T* data, int len);
+
+public:
+  const std::remove_const_t<T>* cbegin() const;
+  const std::remove_const_t<T>* begin() const;
+  T* begin();
+
+  const std::remove_const_t<T>* cend() const;
+  const std::remove_const_t<T>* end() const;
+  T* end();
+
+  ZArraySlice<T> slice_front(int end);
+  ZArraySlice<const std::remove_const_t<T>> slice_front(int end) const;
+
+  ZArraySlice<T> slice_back(int start);
+  ZArraySlice<const std::remove_const_t<T>> slice_back(int start) const;
+
+  ZArraySlice<T> slice(int start, int end);
+  ZArraySlice<const std::remove_const_t<T>> slice(int start, int end) const;
+};
+
+template <typename T>
+class ZArray : public GrowableArrayCHeap<T, mtGC> {
+public:
+  using GrowableArrayCHeap<T, mtGC>::GrowableArrayCHeap;
+
+  const std::remove_const_t<T>* cbegin() const;
+  const std::remove_const_t<T>* begin() const;
+  T* begin();
+
+  const std::remove_const_t<T>* cend() const;
+  const std::remove_const_t<T>* end() const;
+  T* end();
+
+  ZArraySlice<T> slice_front(int end);
+  ZArraySlice<const std::remove_const_t<T>> slice_front(int end) const;
+
+  ZArraySlice<T> slice_back(int start);
+  ZArraySlice<const std::remove_const_t<T>> slice_back(int start) const;
+
+  ZArraySlice<T> slice(int start, int end);
+  ZArraySlice<const std::remove_const_t<T>> slice(int start, int end) const;
+};
 
 template <typename T, bool Parallel>
 class ZArrayIteratorImpl : public StackObj {
