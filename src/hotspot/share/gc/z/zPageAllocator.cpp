@@ -1004,7 +1004,7 @@ size_t ZAllocNode::uncommit_physical(const ZVirtualMemory& vmem) {
   return manager.uncommit(pmem, size);
 }
 
-void ZAllocNode::map_virtual_to_physical(const ZVirtualMemory& vmem) {
+void ZAllocNode::map_virtual(const ZVirtualMemory& vmem) {
   verify_virtual_memory_association(vmem);
 
   ZPhysicalMemoryManager& manager = physical_memory_manager();
@@ -1152,7 +1152,7 @@ bool ZAllocNode::prime(ZWorkers* workers, size_t size) {
     return false;
   }
 
-  map_virtual_to_physical(vmem);
+  map_virtual(vmem);
 
   check_numa_mismatch(vmem, _numa_id);
 
@@ -1199,7 +1199,7 @@ ZVirtualMemory ZAllocNode::prepare_harvested_and_claim_virtual(ZMemoryAllocation
   if (result.is_null()) {
     // Before returning harvested memory to the cache it must be mapped.
     for (const ZVirtualMemory vmem : *allocation->partial_vmems()) {
-      map_virtual_to_physical(vmem);
+      map_virtual(vmem);
     }
   }
 
@@ -1243,7 +1243,7 @@ ZVirtualMemory ZAllocNode::commit_increased_capacity(ZMemoryAllocation* allocati
 
 void ZAllocNode::map_memory(ZMemoryAllocation* allocation, const ZVirtualMemory& vmem) {
   _page_allocator->sort_segments_physical(vmem);
-  map_virtual_to_physical(vmem);
+  map_virtual(vmem);
 
   check_numa_mismatch(vmem, allocation->node().numa_id());
 }
@@ -1388,7 +1388,7 @@ public:
         node.unmap_virtual_from_extra_space(from_vmem);
 
         // Map to_vmem
-        node.map_virtual_to_physical(to_vmem);
+        node.map_virtual(to_vmem);
 
         mapped += to_vmem.size();
       }
@@ -1668,7 +1668,7 @@ void ZPageAllocator::remap_and_defragment(const ZVirtualMemory& vmem, ZArray<ZVi
   // so we only operate on the last ranges that we have just inserted
   ZArrayIterator<ZVirtualMemory> iter(vmems_out, start_index);
   for (ZVirtualMemory v; iter.next(&v);) {
-    node.map_virtual_to_physical(v);
+    node.map_virtual(v);
     pretouch_memory(v.start(), v.size());
   }
 }
@@ -2075,7 +2075,7 @@ void ZPageAllocator::cleanup_failed_commit_multi_node(ZMultiNodeAllocation* mult
       node.copy_physical_segments_to_node(partial_vmem, from);
 
       // Map memory
-      node.map_virtual_to_physical(partial_vmem);
+      node.map_virtual(partial_vmem);
     }
 
     assert(claimed_offset == claimed_virtual, "all memory should be accounted for");

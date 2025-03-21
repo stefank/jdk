@@ -129,7 +129,7 @@ public:
   size_t commit_physical(const ZVirtualMemory& vmem);
   size_t uncommit_physical(const ZVirtualMemory& vmem);
 
-  void map_virtual_to_physical(const ZVirtualMemory& vmem);
+  void map_virtual(const ZVirtualMemory& vmem);
   void unmap_virtual(const ZVirtualMemory& vmem);
 
   void map_virtual_from_extra_space(const ZVirtualMemory& vmem);
