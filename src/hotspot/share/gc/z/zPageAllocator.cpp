@@ -1667,9 +1667,9 @@ void ZPageAllocator::remap_and_defragment(const ZVirtualMemory& vmem, ZArray<ZVi
   // The entries array may contain entries from other defragmentations as well,
   // so we only operate on the last ranges that we have just inserted
   ZArrayIterator<ZVirtualMemory> iter(vmems_out, start_index);
-  for (ZVirtualMemory v; iter.next(&v);) {
-    node.map_virtual(v);
-    pretouch_memory(v.start(), v.size());
+  for (ZVirtualMemory claimed_vmem; iter.next(&claimed_vmem);) {
+    node.map_virtual(claimed_vmem);
+    pretouch_memory(claimed_vmem.start(), claimed_vmem.size());
   }
 }
 
