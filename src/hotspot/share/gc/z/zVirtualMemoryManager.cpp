@@ -39,6 +39,7 @@ ZVirtualMemoryManager::ZVirtualMemoryManager(size_t max_capacity)
   : _extra_node(),
     _nodes(),
     _vmem_ranges(),
+    _extra_space_range(),
     _reserved_extra_space(false),
     _initialized(false) {
 
@@ -260,8 +261,6 @@ size_t ZVirtualMemoryManager::reserve(size_t max_capacity) {
       for (const ZVirtualMemory vmem : to_unreserve) {
         // Unreserve address
         const zaddress_unsafe addr = ZOffset::address_unsafe(vmem.start());
-
-        // Reserve address space
         pd_unreserve(addr, vmem.size());
       }
     }
