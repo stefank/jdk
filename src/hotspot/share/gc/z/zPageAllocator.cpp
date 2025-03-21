@@ -150,7 +150,7 @@ public:
 
       // If we run out of segments in the stash, we finish early
       if (granule_count >= granules_left) {
-        const ZVirtualMemory truncated_vmem(vmem.start(), granules_left * ZGranuleSize);
+        const ZVirtualMemory truncated_vmem(vmem.start(), (size_t)granules_left * ZGranuleSize);
         copy_from_stash(stash_index, truncated_vmem);
         return;
       }
@@ -683,7 +683,7 @@ void ZAllocNode::copy_physical_segments(const ZVirtualMemory& to, const ZVirtual
   assert(to.size() == from.size(), "must be of the same size");
   zbacking_index* const dest = physical_mappings_addr(to);
   const zbacking_index* const src = physical_mappings_addr(from);
-  const size_t granule_count = from.granule_count();
+  const int granule_count = from.granule_count();
 
   ZUtils::copy_disjoint(dest, src, granule_count);
 }
