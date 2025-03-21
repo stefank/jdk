@@ -122,9 +122,6 @@ public:
 
   size_t uncommit(uint64_t* timeout);
 
-  const ZUncommitter& uncommitter() const;
-  ZUncommitter& uncommitter();
-
   void claim_physical(const ZVirtualMemory& vmem);
   void free_physical(const ZVirtualMemory& vmem);
   size_t commit_physical(const ZVirtualMemory& vmem);

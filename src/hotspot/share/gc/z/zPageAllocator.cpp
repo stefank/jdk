@@ -943,14 +943,6 @@ size_t ZAllocNode::uncommit(uint64_t* timeout) {
   return flushed;
 }
 
-const ZUncommitter& ZAllocNode::uncommitter() const {
-  return _uncommitter;
-}
-
-ZUncommitter& ZAllocNode::uncommitter() {
-  return _uncommitter;
-}
-
 void ZAllocNode::claim_physical(const ZVirtualMemory& vmem) {
   verify_virtual_memory_association(vmem, true /* check_extra_space */);
 
