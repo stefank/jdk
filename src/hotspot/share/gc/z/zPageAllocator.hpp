@@ -132,6 +132,9 @@ public:
   void map_virtual_to_physical(const ZVirtualMemory& vmem);
   void unmap_virtual(const ZVirtualMemory& vmem);
 
+  void map_virtual_from_extra_space(const ZVirtualMemory& vmem);
+  void unmap_virtual_from_extra_space(const ZVirtualMemory& vmem);
+
   ZVirtualMemory claim_virtual(size_t size);
   size_t claim_virtual(size_t size, ZArray<ZVirtualMemory>* vmems_out);
   void free_virtual(const ZVirtualMemory& vmem);
@@ -145,9 +148,6 @@ public:
 
   void copy_physical_segments_to_node(const ZVirtualMemory& at, const ZVirtualMemory& from);
   void copy_physical_segments_from_node(const ZVirtualMemory& at, const ZVirtualMemory& to);
-
-  void map_virtual_from_extra_space(const ZVirtualMemory& vmem);
-  void unmap_virtual_from_extra_space(const ZVirtualMemory& vmem);
 
   ZVirtualMemory commit_increased_capacity(ZMemoryAllocation* allocation, const ZVirtualMemory& vmem);
   void map_memory(ZMemoryAllocation* allocation, const ZVirtualMemory& vmem);

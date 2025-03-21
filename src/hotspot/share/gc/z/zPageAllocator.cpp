@@ -1016,18 +1016,6 @@ void ZAllocNode::map_virtual_to_physical(const ZVirtualMemory& vmem) {
   manager.map(offset, pmem, size, _numa_id);
 }
 
-ZVirtualMemory ZAllocNode::claim_virtual(size_t size) {
-  ZVirtualMemoryManager& manager = virtual_memory_manager();
-
-  return manager.remove_low_address(size, _numa_id);
-}
-
-size_t ZAllocNode::claim_virtual(size_t size, ZArray<ZVirtualMemory>* vmems_out) {
-  ZVirtualMemoryManager& manager = virtual_memory_manager();
-
-  return manager.remove_from_low_many_at_most(size, _numa_id, vmems_out);
-}
-
 void ZAllocNode::unmap_virtual(const ZVirtualMemory& vmem) {
   verify_virtual_memory_association(vmem);
 
@@ -1038,6 +1026,42 @@ void ZAllocNode::unmap_virtual(const ZVirtualMemory& vmem) {
 
   // Unmap virtual memory from physical memory
   manager.unmap(offset, pmem, size);
+}
+
+void ZAllocNode::map_virtual_from_extra_space(const ZVirtualMemory& vmem) {
+  verify_virtual_memory_extra_space_association(vmem);
+
+  ZPhysicalMemoryManager& manager = physical_memory_manager();
+  const zoffset offset = vmem.start();
+  zbacking_index* const pmem = physical_mappings_addr(vmem);
+  const size_t size = vmem.size();
+
+  // Map virtual memory to physical memory
+  manager.map(offset, pmem, size, _numa_id);
+}
+
+void ZAllocNode::unmap_virtual_from_extra_space(const ZVirtualMemory& vmem) {
+  verify_virtual_memory_extra_space_association(vmem);
+
+  ZPhysicalMemoryManager& manager = physical_memory_manager();
+  const zoffset offset = vmem.start();
+  zbacking_index* const pmem = physical_mappings_addr(vmem);
+  const size_t size = vmem.size();
+
+  // Unmap virtual memory from physical memory
+  manager.unmap(offset, pmem, size);
+}
+
+ZVirtualMemory ZAllocNode::claim_virtual(size_t size) {
+  ZVirtualMemoryManager& manager = virtual_memory_manager();
+
+  return manager.remove_low_address(size, _numa_id);
+}
+
+size_t ZAllocNode::claim_virtual(size_t size, ZArray<ZVirtualMemory>* vmems_out) {
+  ZVirtualMemoryManager& manager = virtual_memory_manager();
+
+  return manager.remove_from_low_many_at_most(size, _numa_id, vmems_out);
 }
 
 void ZAllocNode::free_virtual(const ZVirtualMemory& vmem) {
@@ -1196,30 +1220,6 @@ void ZAllocNode::copy_physical_segments_from_node(const ZVirtualMemory& at, cons
 
   // Copy segments
   copy_physical_segments(to, at);
-}
-
-void ZAllocNode::map_virtual_from_extra_space(const ZVirtualMemory& vmem) {
-  verify_virtual_memory_extra_space_association(vmem);
-
-  ZPhysicalMemoryManager& manager = physical_memory_manager();
-  const zoffset offset = vmem.start();
-  zbacking_index* const pmem = physical_mappings_addr(vmem);
-  const size_t size = vmem.size();
-
-  // Map virtual memory to physical memory
-  manager.map(offset, pmem, size, _numa_id);
-}
-
-void ZAllocNode::unmap_virtual_from_extra_space(const ZVirtualMemory& vmem) {
-  verify_virtual_memory_extra_space_association(vmem);
-
-  ZPhysicalMemoryManager& manager = physical_memory_manager();
-  const zoffset offset = vmem.start();
-  zbacking_index* const pmem = physical_mappings_addr(vmem);
-  const size_t size = vmem.size();
-
-  // Unmap virtual memory from physical memory
-  manager.unmap(offset, pmem, size);
 }
 
 ZVirtualMemory ZAllocNode::commit_increased_capacity(ZMemoryAllocation* allocation, const ZVirtualMemory& vmem) {
