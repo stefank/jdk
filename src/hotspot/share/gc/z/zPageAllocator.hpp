@@ -125,11 +125,6 @@ public:
   const ZUncommitter& uncommitter() const;
   ZUncommitter& uncommitter();
 
-  void threads_do(ThreadClosure* tc) const;
-
-  void print_on(outputStream* st) const;
-  void print_extended_on_error(outputStream* st) const;
-
   void claim_physical(const ZVirtualMemory& vmem);
   void free_physical(const ZVirtualMemory& vmem);
   size_t commit_physical(const ZVirtualMemory& vmem);
@@ -154,6 +149,11 @@ public:
 
   bool commit_and_map_memory(ZMemoryAllocation* allocation, const ZVirtualMemory& vmem);
   void free_memory_alloc_failed(ZMemoryAllocation* allocation);
+
+  void threads_do(ThreadClosure* tc) const;
+
+  void print_on(outputStream* st) const;
+  void print_extended_on_error(outputStream* st) const;
 };
 
 class ZPageAllocator {

@@ -951,24 +951,6 @@ ZUncommitter& ZAllocNode::uncommitter() {
   return _uncommitter;
 }
 
-void ZAllocNode::threads_do(ThreadClosure* tc) const {
-  tc->do_thread(const_cast<ZUncommitter*>(&_uncommitter));
-}
-
-void ZAllocNode::print_on(outputStream* st) const {
-  st->print("  Node %u", _numa_id);
-  st->fill_to(17 + st->indentation());
-  st->print_cr("used %zuM, capacity %zuM, max capacity %zuM",
-               _used / M, _capacity / M, _max_capacity / M);
-
-  _cache.print_on(st);
-}
-
-void ZAllocNode::print_extended_on_error(outputStream* st) const {
-  st->print_cr(" Node %u", _numa_id);
-  _cache.print_extended_on(st);
-}
-
 void ZAllocNode::claim_physical(const ZVirtualMemory& vmem) {
   verify_virtual_memory_association(vmem, true /* check_extra_space */);
 
@@ -1285,6 +1267,24 @@ void ZAllocNode::free_memory_alloc_failed(ZMemoryAllocation* allocation) {
                       allocation->node().numa_id());
     }
   }
+}
+
+void ZAllocNode::threads_do(ThreadClosure* tc) const {
+  tc->do_thread(const_cast<ZUncommitter*>(&_uncommitter));
+}
+
+void ZAllocNode::print_on(outputStream* st) const {
+  st->print("  Node %u", _numa_id);
+  st->fill_to(17 + st->indentation());
+  st->print_cr("used %zuM, capacity %zuM, max capacity %zuM",
+               _used / M, _capacity / M, _max_capacity / M);
+
+  _cache.print_on(st);
+}
+
+void ZAllocNode::print_extended_on_error(outputStream* st) const {
+  st->print_cr(" Node %u", _numa_id);
+  _cache.print_extended_on(st);
 }
 
 class ZMultiNodeTracker : CHeapObj<mtGC> {
