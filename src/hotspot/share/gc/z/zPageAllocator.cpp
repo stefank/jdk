@@ -68,7 +68,7 @@ static const ZStatCounter       ZCounterMutatorAllocationRate("Memory", "Allocat
 static const ZStatCounter       ZCounterDefragment("Memory", "Defragment", ZStatUnitOpsPerSecond);
 static const ZStatCriticalPhase ZCriticalPhaseAllocationStall("Allocation Stall");
 
-static void sort_zbacking_index_array(zbacking_index* array, size_t count) {
+static void sort_zbacking_index_array(zbacking_index* array, int count) {
   ZUtils::sort(array, count, [](const zbacking_index* e1, const zbacking_index* e2) {
     return *e1 < *e2 ? -1 : 1;
   });
@@ -90,33 +90,33 @@ private:
   ZArray<zbacking_index>             _stash;
 
   void sort_stashed_segments() {
-    sort_zbacking_index_array(_stash.adr_at(0), (size_t)_stash.length());
+    sort_zbacking_index_array(_stash.adr_at(0), _stash.length());
   }
 
   void copy_to_stash(int index, const ZVirtualMemory& vmem) {
     zbacking_index* const dest = _stash.adr_at(index);
     const zbacking_index* const src = _physical_mappings->addr(vmem.start());
-    const size_t num_granules = vmem.size_in_granules();
+    const int granule_count = vmem.granule_count();
 
     // Check bounds
-    assert(index + checked_cast<int>(num_granules) <= _stash.length(),
-           "Copy overflow %d + %zu <= %d", index, num_granules, _stash.length());
+    assert(index + granule_count <= _stash.length(),
+           "Copy overflow %d + %d <= %d", index, granule_count, _stash.length());
 
     // Copy to stash
-    ZUtils::copy_disjoint(dest, src, num_granules);
+    ZUtils::copy_disjoint(dest, src, granule_count);
   }
 
   void copy_from_stash(int index, const ZVirtualMemory& vmem) {
     zbacking_index* const dest = _physical_mappings->addr(vmem.start());
     const zbacking_index* const src = _stash.adr_at(index);
-    const size_t num_granules = vmem.size_in_granules();
+    const int granule_count = vmem.granule_count();
 
     // Check bounds
-    assert(index + checked_cast<int>(num_granules) <= _stash.length(),
-           "Copy overflow %d + %zu <= %d", index, num_granules, _stash.length());
+    assert(index + granule_count <= _stash.length(),
+           "Copy overflow %d + %d <= %d", index, granule_count, _stash.length());
 
     // Copy from stash
-    ZUtils::copy_disjoint(dest, src, num_granules);
+    ZUtils::copy_disjoint(dest, src, granule_count);
   }
 
 public:
@@ -133,9 +133,9 @@ public:
     int stash_index = 0;
     ZArrayIterator<ZVirtualMemory> iter(vmems);
     for (ZVirtualMemory vmem; iter.next(&vmem);) {
-      const size_t num_granules = vmem.size_in_granules();
+      const int granule_count = vmem.granule_count();
       copy_to_stash(stash_index, vmem);
-      stash_index += (int)num_granules;
+      stash_index += granule_count;
     }
     sort_stashed_segments();
   }
@@ -145,18 +145,18 @@ public:
     const int pop_start_index = vmems->length() - num_vmems;
     ZArrayIterator<ZVirtualMemory> iter(vmems, pop_start_index);
     for (ZVirtualMemory vmem; iter.next(&vmem);) {
-      const size_t num_granules = vmem.size_in_granules();
-      const size_t granules_left = (size_t)(_stash.length() - stash_index);
+      const int granule_count = vmem.granule_count();
+      const int granules_left = _stash.length() - stash_index;
 
       // If we run out of segments in the stash, we finish early
-      if (num_granules >= granules_left) {
+      if (granule_count >= granules_left) {
         const ZVirtualMemory truncated_vmem(vmem.start(), granules_left * ZGranuleSize);
         copy_from_stash(stash_index, truncated_vmem);
         return;
       }
 
       copy_from_stash(stash_index, vmem);
-      stash_index += (int)num_granules;
+      stash_index += (int)granule_count;
     }
   }
 
@@ -683,9 +683,9 @@ void ZAllocNode::copy_physical_segments(const ZVirtualMemory& to, const ZVirtual
   assert(to.size() == from.size(), "must be of the same size");
   zbacking_index* const dest = physical_mappings_addr(to);
   const zbacking_index* const src = physical_mappings_addr(from);
-  const size_t num_granules = from.size_in_granules();
+  const size_t granule_count = from.granule_count();
 
-  ZUtils::copy_disjoint(dest, src, num_granules);
+  ZUtils::copy_disjoint(dest, src, granule_count);
 }
 
 ZAllocNode::ZAllocNode(uint32_t numa_id, ZPageAllocator* page_allocator)
@@ -963,10 +963,10 @@ void ZAllocNode::sort_segments_physical(const ZVirtualMemory& vmem) {
   verify_virtual_memory_association(vmem, true /* check_extra_space */);
 
   zbacking_index* const pmem = physical_mappings_addr(vmem);
-  const size_t num_granules = vmem.size_in_granules();
+  const int granule_count = vmem.granule_count();
 
   // Sort physical segments
-  sort_zbacking_index_array(pmem, num_granules);
+  sort_zbacking_index_array(pmem, granule_count);
 }
 
 void ZAllocNode::claim_physical(const ZVirtualMemory& vmem) {
@@ -1658,7 +1658,7 @@ void ZPageAllocator::remap_and_defragment(const ZVirtualMemory& vmem, ZArray<ZVi
   node.unmap_virtual(vmem);
 
   // Stash segments
-  ZSegmentStash segments(&_physical_mappings, (int)vmem.size_in_granules());
+  ZSegmentStash segments(&_physical_mappings, vmem.granule_count());
   segments.stash(vmem);
 
   // Shuffle vmem - put new vmems in entries

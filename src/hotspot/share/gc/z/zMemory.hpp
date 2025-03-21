@@ -77,7 +77,7 @@ public:
   ZVirtualMemory(zoffset start, size_t size);
   ZVirtualMemory(const ZRange<zoffset, zoffset_end>& range);
 
-  size_t size_in_granules() const;
+  int granule_count() const;
 };
 
 using ZBackingIndexRange = ZRange<zbacking_index, zbacking_index_end>;

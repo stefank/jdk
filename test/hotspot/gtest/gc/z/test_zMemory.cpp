@@ -59,7 +59,7 @@ TEST(ZMemoryRange, accessors) {
     EXPECT_EQ(mem.start(), zoffset(0));
     EXPECT_EQ(mem.end(), zoffset_end(ZGranuleSize));
     EXPECT_EQ(mem.size(), ZGranuleSize);
-    EXPECT_EQ(mem.size_in_granules(), 1u);
+    EXPECT_EQ(mem.granule_count(), 1);
   }
 
   {
@@ -68,7 +68,7 @@ TEST(ZMemoryRange, accessors) {
     EXPECT_EQ(mem.start(), zoffset(ZGranuleSize));
     EXPECT_EQ(mem.end(), zoffset_end(ZGranuleSize + ZGranuleSize));
     EXPECT_EQ(mem.size(), ZGranuleSize);
-    EXPECT_EQ(mem.size_in_granules(), 1u);
+    EXPECT_EQ(mem.granule_count(), 1);
   }
 
   {
@@ -78,7 +78,7 @@ TEST(ZMemoryRange, accessors) {
     EXPECT_EQ(mem.start(), zoffset(0));
     EXPECT_EQ(mem.end(), zoffset_end(ZAddressOffsetMax));
     EXPECT_EQ(mem.size(), ZAddressOffsetMax);
-    EXPECT_EQ(mem.size_in_granules(), ZAddressOffsetMax >> ZGranuleSizeShift);
+    EXPECT_EQ(mem.granule_count(), (int)(ZAddressOffsetMax >> ZGranuleSizeShift));
   }
 }
 

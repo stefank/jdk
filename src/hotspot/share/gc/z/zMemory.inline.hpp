@@ -31,6 +31,7 @@
 #include "gc/z/zList.inline.hpp"
 #include "utilities/align.hpp"
 #include "utilities/debug.hpp"
+#include "utilities/globalDefinitions.hpp"
 
 template <typename Start, typename End>
 inline ZRange<Start, End>::ZRange()
@@ -134,8 +135,13 @@ inline ZVirtualMemory::ZVirtualMemory(zoffset start, size_t size)
 inline ZVirtualMemory::ZVirtualMemory(const ZRange<zoffset, zoffset_end>& range)
   : ZVirtualMemory(range.start(), range.size()) {}
 
-inline size_t ZVirtualMemory::size_in_granules() const {
-  return size() >> ZGranuleSizeShift;
+inline int ZVirtualMemory::granule_count() const {
+  const size_t granule_count = size() >> ZGranuleSizeShift;
+
+  assert(granule_count <= static_cast<size_t>(std::numeric_limits<int>::max()),
+         "must not overflow an int %zu", granule_count);
+
+  return static_cast<int>(granule_count);
 }
 
 #endif // SHARE_GC_Z_ZMEMORY_INLINE_HPP
