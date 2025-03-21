@@ -131,8 +131,7 @@ public:
 
   void stash(ZArray<ZVirtualMemory>* vmems) {
     int stash_index = 0;
-    ZArrayIterator<ZVirtualMemory> iter(vmems);
-    for (ZVirtualMemory vmem; iter.next(&vmem);) {
+    for (const ZVirtualMemory& vmem : *vmems) {
       const int granule_count = vmem.granule_count();
       copy_to_stash(stash_index, vmem);
       stash_index += granule_count;
@@ -143,8 +142,7 @@ public:
   void pop(ZArray<ZVirtualMemory>* vmems, int vmem_count) {
     int stash_index = 0;
     const int pop_start_index = vmems->length() - vmem_count;
-    ZArrayIterator<ZVirtualMemory> iter(vmems, pop_start_index);
-    for (ZVirtualMemory vmem; iter.next(&vmem);) {
+    for (const ZVirtualMemory& vmem : vmems->slice_back(pop_start_index)) {
       const int granule_count = vmem.granule_count();
       const int granules_left = _stash.length() - stash_index;
 
@@ -668,8 +666,7 @@ void ZAllocNode::verify_virtual_memory_association(const ZVirtualMemory& vmem, b
 }
 
 void ZAllocNode::verify_virtual_memory_association(const ZArray<ZVirtualMemory>* vmems) const {
-  ZArrayIterator<ZVirtualMemory> iter(vmems);
-  for (ZVirtualMemory vmem; iter.next(&vmem);) {
+  for (const ZVirtualMemory& vmem : *vmems) {
     verify_virtual_memory_association(vmem);
   }
 }
@@ -1387,8 +1384,7 @@ public:
 
       // Remap to the newly allocated virtual address ranges
       size_t mapped = 0;
-      ZArrayIterator<ZVirtualMemory> iter(vmems_out, start_index);
-      for (ZVirtualMemory to_vmem; iter.next(&to_vmem);) {
+      for (const ZVirtualMemory& to_vmem : vmems_out->slice_back(start_index)) {
         ZVirtualMemory from_vmem = remaining_vmem.split_from_front(to_vmem.size());
 
         // Copy physical segments
@@ -1672,8 +1668,7 @@ void ZPageAllocator::remap_and_defragment(const ZVirtualMemory& vmem, ZArray<ZVi
 
   // The entries array may contain entries from other defragmentations as well,
   // so we only operate on the last ranges that we have just inserted
-  ZArrayIterator<ZVirtualMemory> iter(vmems_out, start_index);
-  for (ZVirtualMemory claimed_vmem; iter.next(&claimed_vmem);) {
+  for (const ZVirtualMemory& claimed_vmem : vmems_out->slice_back(start_index)) {
     node.map_virtual(claimed_vmem);
     pretouch_memory(claimed_vmem.start(), claimed_vmem.size());
   }
