@@ -95,6 +95,7 @@ private:
   void verify_virtual_memory_association(const ZArray<ZVirtualMemory>* vmems) const;
   void verify_memory_allocation_association(const ZMemoryAllocation* allocation) const;
 
+  void copy_physical_segments(const ZVirtualMemory& to, const ZVirtualMemory& from);
 public:
   ZAllocNode(uint32_t numa_id, ZPageAllocator* page_allocator);
 
@@ -140,6 +141,9 @@ public:
   bool prime(ZWorkers* workers, size_t size);
 
   ZVirtualMemory prepare_harvested_and_claim_virtual(ZMemoryAllocation* allocation);
+
+  void copy_physical_segments_to_node(const ZVirtualMemory& at, const ZVirtualMemory& from);
+  void copy_physical_segments_from_node(const ZVirtualMemory& at, const ZVirtualMemory& to);
 
   ZVirtualMemory commit_increased_capacity(ZMemoryAllocation* allocation, const ZVirtualMemory& vmem);
   void map_memory(ZMemoryAllocation* allocation, const ZVirtualMemory& vmem);
@@ -197,7 +201,6 @@ private:
 
   ZVirtualMemory satisfied_from_cache_vmem(const ZPageAllocation* allocation) const;
 
-  void copy_physical_segments(zoffset to, const ZVirtualMemory& from);
   void copy_claimed_physical_multi_node(ZMultiNodeAllocation* multi_node_allocation, const ZVirtualMemory& vmem);
 
   ZVirtualMemory claim_virtual_memory_multi_node(ZMultiNodeAllocation* multi_node_allocation);

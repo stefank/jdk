@@ -672,6 +672,15 @@ void ZAllocNode::verify_memory_allocation_association(const ZMemoryAllocation* a
                                       "expected: %u, actual: %u", _numa_id, allocation->node().numa_id());
 }
 
+void ZAllocNode::copy_physical_segments(const ZVirtualMemory& to, const ZVirtualMemory& from) {
+  assert(to.size() == from.size(), "must be of the same size");
+  zbacking_index* const dest = physical_mappings_addr(to);
+  const zbacking_index* const src = physical_mappings_addr(from);
+  const size_t num_granules = from.size_in_granules();
+
+  ZUtils::copy_disjoint(dest, src, num_granules);
+}
+
 ZAllocNode::ZAllocNode(uint32_t numa_id, ZPageAllocator* page_allocator)
   : _page_allocator(page_allocator),
     _cache(),
@@ -1166,6 +1175,22 @@ ZVirtualMemory ZAllocNode::prepare_harvested_and_claim_virtual(ZMemoryAllocation
   return result;
 }
 
+void ZAllocNode::copy_physical_segments_to_node(const ZVirtualMemory& at, const ZVirtualMemory& from) {
+  verify_virtual_memory_association(at);
+  verify_virtual_memory_association(from, true /* check_extra_space */);
+
+  // Copy segments
+  copy_physical_segments(at, from);
+}
+
+void ZAllocNode::copy_physical_segments_from_node(const ZVirtualMemory& at, const ZVirtualMemory& to) {
+  verify_virtual_memory_association(at);
+  verify_virtual_memory_association(to, true /* check_extra_space */);
+
+  // Copy segments
+  copy_physical_segments(to, at);
+}
+
 ZVirtualMemory ZAllocNode::commit_increased_capacity(ZMemoryAllocation* allocation, const ZVirtualMemory& vmem) {
   const size_t already_committed = allocation->harvested();
 
@@ -1326,7 +1351,7 @@ public:
         ZVirtualMemory from_vmem = remaining_vmem.split_from_front(to_vmem.size());
 
         // Copy physical segments
-        allocator->copy_physical_segments(to_vmem.start(), from_vmem);
+        node.copy_physical_segments_to_node(to_vmem, from_vmem);
 
         // Unmap from_vmem
         ZPhysicalMemoryManager& manager = allocator->_physical;
@@ -1809,40 +1834,26 @@ ZVirtualMemory ZPageAllocator::satisfied_from_cache_vmem(const ZPageAllocation* 
   return allocation->satisfied_from_cache_vmem();
 }
 
-void ZPageAllocator::copy_physical_segments(zoffset to, const ZVirtualMemory& from) {
-  zbacking_index* const dest = _physical_mappings.addr(to);
-  const zbacking_index* const src = _physical_mappings.addr(from.start());
-  const size_t num_granules = from.size_in_granules();
-
-  ZUtils::copy_disjoint(dest, src, num_granules);
-}
-
 void ZPageAllocator::copy_claimed_physical_multi_node(ZMultiNodeAllocation* multi_node_allocation, const ZVirtualMemory& vmem) {
   // Start at the new dest offset
-  zoffset_end offset = to_zoffset_end(vmem.start());
+  ZVirtualMemory remaining_dest_vmem = vmem;
 
   for (const ZMemoryAllocation* partial_allocation : *multi_node_allocation->allocations()) {
-    // Iterate over all partial vmems and copy physical segments into the
-    // partial_allocations' destination offset
-    for (const ZVirtualMemory partial_vmem : *partial_allocation->partial_vmems()) {
+    // Split off the partial allocation's partial
+    ZVirtualMemory partial_dest_vmem = remaining_dest_vmem.split_from_front(partial_allocation->size());
+
+    // Get the partial allocation's node
+    ZAllocNode& node = partial_allocation->node();
+
+    // Copy all physical segments from the node to the destination vmem
+    for (const ZVirtualMemory from_vmem : *partial_allocation->partial_vmems()) {
+      // Split off destination
+      const ZVirtualMemory to_vmem = partial_dest_vmem.split_from_front(from_vmem.size());
+
       // Copy physical segments
-      copy_physical_segments(to_zoffset(offset), partial_vmem);
-
-      // Advance to next partial_vmem's offset
-      offset += partial_vmem.size();
+      node.copy_physical_segments_from_node(from_vmem, to_vmem);
     }
-
-    offset += partial_allocation->increased_capacity();
-
-    assert(partial_allocation->size() == partial_allocation->harvested() + partial_allocation->increased_capacity(),
-           "Must be %zu == %zu + %zu",
-           partial_allocation->size(), partial_allocation->harvested(), partial_allocation->increased_capacity());
   }
-
-  assert(offset == vmem.end(),
-         "All memory should have been accounted for "
-         "offset: " PTR_FORMAT " vmem.end(): " PTR_FORMAT,
-         untype(offset), untype(vmem.end()));
 }
 
 ZVirtualMemory ZPageAllocator::claim_virtual_memory_multi_node(ZMultiNodeAllocation* multi_node_allocation) {
@@ -2040,7 +2051,7 @@ void ZPageAllocator::cleanup_failed_commit_multi_node(ZMultiNodeAllocation* mult
       const ZVirtualMemory from = non_harvest_vmem.partition(claimed_offset, partial_vmem.size());
 
       // Copy physical mappings
-      copy_physical_segments(partial_vmem.start(), from);
+      node.copy_physical_segments_to_node(partial_vmem, from);
 
       // Map memory
       node.map_virtual_to_physical(partial_vmem);
