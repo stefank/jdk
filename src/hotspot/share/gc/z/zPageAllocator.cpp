@@ -146,7 +146,7 @@ public:
     ZArrayIterator<ZVirtualMemory> iter(vmems, pop_start_index);
     for (ZVirtualMemory vmem; iter.next(&vmem);) {
       const size_t num_granules = vmem.size_in_granules();
-      const size_t granules_left = _stash.length() - stash_index;
+      const size_t granules_left = (size_t)(_stash.length() - stash_index);
 
       // If we run out of segments in the stash, we finish early
       if (num_granules >= granules_left) {
@@ -165,7 +165,7 @@ public:
   }
 
   void pop_all(ZVirtualMemory vmem) {
-    const size_t granules_left = _stash.length();
+    const size_t granules_left = (size_t)_stash.length();
     const ZVirtualMemory to_pop = vmem.first_part(granules_left * ZGranuleSize);
 
     copy_from_stash(0, to_pop);
