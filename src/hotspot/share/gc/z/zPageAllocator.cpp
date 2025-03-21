@@ -2008,9 +2008,6 @@ void ZPageAllocator::map_memory_multi_node(ZMultiNodeAllocation* multi_node_allo
 }
 
 void ZPageAllocator::cleanup_failed_commit_multi_node(ZMultiNodeAllocation* multi_node_allocation, const ZVirtualMemory& vmem) {
-  // Node associated with the final virtual memory
-  ZAllocNode& vmem_node = node_from_vmem(vmem);
-
   size_t offset = 0;
   ZArrayIterator<ZMemoryAllocation*> iter(multi_node_allocation->allocations());
   for (ZMemoryAllocation* allocation; iter.next(&allocation); offset += allocation->size()) {
@@ -2039,20 +2036,9 @@ void ZPageAllocator::cleanup_failed_commit_multi_node(ZMultiNodeAllocation* mult
     // Try to claim virtual memory for the committed part
     const size_t claimed_virtual = node.claim_virtual(committed, partial_vmems);
 
-    if (claimed_virtual != committed) {
-      // We failed to claim enough virtual memory to map all our committed memory.
-      //
-      // We currently have no facility to track committed but unmapped memory,
-      // so this path uncommits the unmappable memory here.
-      //
-      // Note that this failure path is only present in multi-node allocations.
-      // The single-node allocations claims virtual memory before it tries to
-      // commit memory.
-
-      const ZVirtualMemory unmappable = committed_vmem.last_part(claimed_virtual);
-      vmem_node.uncommit_physical(unmappable);
-      vmem_node.free_physical(unmappable);
-    }
+    // We are holding memory associated with this node, and we do not overcommit
+    // virtual memory claiming. So virtual memory must always be available.
+    assert(claimed_virtual == committed, "must succeed");
 
     // Associate and map the physical memory with the partial vmems
 
@@ -2072,7 +2058,7 @@ void ZPageAllocator::cleanup_failed_commit_multi_node(ZMultiNodeAllocation* mult
   }
 
   // Free the unused virtual memory
-  vmem_node.free_virtual(vmem);
+  _virtual.insert_extra_space(vmem);
 }
 
 bool ZPageAllocator::commit_and_map_memory_multi_node(ZMultiNodeAllocation* multi_node_allocation, const ZVirtualMemory& vmem) {
