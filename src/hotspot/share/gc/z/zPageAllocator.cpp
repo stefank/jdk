@@ -690,6 +690,10 @@ ZAllocNode::ZAllocNode(uint32_t numa_id, ZPageAllocator* page_allocator)
     _to_uncommit(0),
     _numa_id(numa_id) {}
 
+uint32_t ZAllocNode::numa_id() const {
+  return _numa_id;
+}
+
 size_t ZAllocNode::available() const {
   return _current_max_capacity - _used - _claimed;
 }
@@ -842,10 +846,6 @@ bool ZAllocNode::claim_capacity(ZMemoryAllocation* allocation) {
 void ZAllocNode::promote_used(size_t size) {
   decrease_used_generation(ZGenerationId::young, size);
   increase_used_generation(ZGenerationId::old, size);
-}
-
-uint32_t ZAllocNode::numa_id() const {
-  return _numa_id;
 }
 
 size_t ZAllocNode::uncommit(uint64_t* timeout) {

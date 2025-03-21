@@ -98,6 +98,8 @@ private:
 public:
   ZAllocNode(uint32_t numa_id, ZPageAllocator* page_allocator);
 
+  uint32_t numa_id() const;
+
   size_t available() const;
 
   size_t increase_capacity(size_t size);
@@ -117,8 +119,6 @@ public:
   bool claim_capacity(ZMemoryAllocation* allocation);
 
   void promote_used(size_t size);
-
-  uint32_t numa_id() const;
 
   size_t uncommit(uint64_t* timeout);
 
