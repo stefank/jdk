@@ -116,7 +116,6 @@ inline ZRange<Start, End> ZRange<Start, End>::last_part(size_t split_offset) con
   return partition(split_offset, size() - split_offset);
 }
 
-
 template <typename Start, typename End>
 inline bool ZRange<Start, End>::adjacent_to(const ZRange<Start, End>& other) const {
   return end() == other.start() || other.end() == start();
