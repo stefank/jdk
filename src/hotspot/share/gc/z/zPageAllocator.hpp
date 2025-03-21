@@ -124,6 +124,8 @@ public:
 
   size_t uncommit(uint64_t* timeout);
 
+  void sort_segments_physical(const ZVirtualMemory& vmem);
+
   void claim_physical(const ZVirtualMemory& vmem);
   void free_physical(const ZVirtualMemory& vmem);
   size_t commit_physical(const ZVirtualMemory& vmem);
@@ -187,7 +189,6 @@ private:
   ZAllocNode& node_from_vmem(const ZVirtualMemory& vmem);
 
   size_t count_segments_physical(const ZVirtualMemory& vmem);
-  void sort_segments_physical(const ZVirtualMemory& vmem);
 
   void remap_and_defragment(const ZVirtualMemory& vmem, ZArray<ZVirtualMemory>* vmems_out);
   void prepare_memory_for_free(ZPage* page, ZArray<ZVirtualMemory>* vmems, bool allow_defragment);

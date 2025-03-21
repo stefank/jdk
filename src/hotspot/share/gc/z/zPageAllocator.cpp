@@ -959,6 +959,16 @@ size_t ZAllocNode::uncommit(uint64_t* timeout) {
   return flushed;
 }
 
+void ZAllocNode::sort_segments_physical(const ZVirtualMemory& vmem) {
+  verify_virtual_memory_association(vmem, true /* check_extra_space */);
+
+  zbacking_index* const pmem = physical_mappings_addr(vmem);
+  const size_t num_granules = vmem.size_in_granules();
+
+  // Sort physical segments
+  sort_zbacking_index_array(pmem, num_granules);
+}
+
 void ZAllocNode::claim_physical(const ZVirtualMemory& vmem) {
   verify_virtual_memory_association(vmem, true /* check_extra_space */);
 
@@ -1242,7 +1252,7 @@ ZVirtualMemory ZAllocNode::commit_increased_capacity(ZMemoryAllocation* allocati
 }
 
 void ZAllocNode::map_memory(ZMemoryAllocation* allocation, const ZVirtualMemory& vmem) {
-  _page_allocator->sort_segments_physical(vmem);
+  sort_segments_physical(vmem);
   map_virtual(vmem);
 
   check_numa_mismatch(vmem, allocation->node().numa_id());
@@ -1633,10 +1643,6 @@ size_t ZPageAllocator::count_segments_physical(const ZVirtualMemory& vmem) {
   return _physical.count_segments(_physical_mappings.addr(vmem.start()), vmem.size());
 }
 
-void ZPageAllocator::sort_segments_physical(const ZVirtualMemory& vmem) {
-  sort_zbacking_index_array(_physical_mappings.addr(vmem.start()), vmem.size_in_granules());
-}
-
 void ZPageAllocator::remap_and_defragment(const ZVirtualMemory& vmem, ZArray<ZVirtualMemory>* vmems_out) {
   ZAllocNode& node = node_from_vmem(vmem);
 
@@ -2024,7 +2030,7 @@ void ZPageAllocator::map_memory_multi_node(ZMultiNodeAllocation* multi_node_allo
     }
 
     // Sort physical segments
-    sort_segments_physical(to_vmem);
+    original_node.sort_segments_physical(to_vmem);
 
     // Map the partial_allocation to partial_vmem
     original_node.map_virtual_from_extra_space(to_vmem);
