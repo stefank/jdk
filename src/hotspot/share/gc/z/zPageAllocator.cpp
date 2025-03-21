@@ -649,7 +649,7 @@ zbacking_index* ZAllocNode::physical_mappings_addr(const ZVirtualMemory& vmem) {
 void ZAllocNode::verify_virtual_memory_association(const ZVirtualMemory& vmem, bool check_extra_space) const {
   const ZVirtualMemoryManager& manager = virtual_memory_manager();
 
-  if (check_extra_space && manager.reserved_extra_space()) {
+  if (check_extra_space && manager.is_in_extra_space(vmem)) {
     // We allow claim/free/commit physical operation in multi-node allocations
     // to use virtual memory associated with the extra space.
     return;
