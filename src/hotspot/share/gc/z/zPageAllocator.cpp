@@ -1302,36 +1302,11 @@ private:
   }
 
 public:
-  static ZMultiNodeTracker* create(const ZMultiNodeAllocation* multi_node_allocation, const ZVirtualMemory vmem) {
-    const ZArray<ZMemoryAllocation*>* const partial_allocations = multi_node_allocation->allocations();
-
-    ZMultiNodeTracker* const tracker = new ZMultiNodeTracker(partial_allocations->length());
-
-    ZVirtualMemory remaining = vmem;
-
-    // Each partial allocation is mapped to the virtual memory in order
-    for (ZMemoryAllocation* partial_allocation : *partial_allocations) {
-      // Track each separate vmem's numa node
-      const ZVirtualMemory partial_vmem = remaining.split_from_front(partial_allocation->size());
-      const uint32_t numa_id = partial_allocation->numa_id();
-      tracker->map()->push({partial_vmem, numa_id});
-    }
-
-    return tracker;
-  }
-
-  static void free_and_destroy(ZPageAllocator* allocator, ZPage* page, bool should_satisfy_stalled) {
+  void prepare_memory_for_free(ZPageAllocator* allocator, const ZVirtualMemory& vmem, ZArray<ZVirtualMemory>* vmems_out) const {
     const uint32_t numa_nodes = ZNUMA::count();
 
-    // Extract data and destroy page
-    const ZVirtualMemory vmem = page->virtual_memory();
-    const ZGenerationId id = page->generation_id();
-    const ZMultiNodeTracker* const tracker = page->multi_node_tracker();
-    allocator->safe_destroy_page(page);
-
     // Remap memory back to original node
-    ZArray<ZVirtualMemory> vmems;
-    for (const Element partial_allocation : *tracker->map()) {
+    for (const Element partial_allocation : *map()) {
       ZVirtualMemory remaining_vmem = partial_allocation._vmem;
       const uint32_t numa_id = partial_allocation._numa_id;
 
@@ -1339,8 +1314,8 @@ public:
       ZAllocNode& node = allocator->node_from_numa_id(numa_id);
 
       // Allocate new virtual address ranges
-      vmems.clear();
-      const size_t claimed_virtual = node.claim_virtual(remaining_vmem.size(), &vmems);
+      const int start_index = vmems_out->length();
+      const size_t claimed_virtual = node.claim_virtual(remaining_vmem.size(), vmems_out);
 
       // We are holding memory associated with this node, and we do not
       // overcommit virtual memory claiming. So virtual memory must always
@@ -1349,7 +1324,8 @@ public:
 
       // Remap to the newly allocated virtual address ranges
       size_t mapped = 0;
-      for (const ZVirtualMemory to_vmem : vmems) {
+      ZArrayIterator<ZVirtualMemory> iter(vmems_out, start_index);
+      for (ZVirtualMemory to_vmem; iter.next(&to_vmem);) {
         ZVirtualMemory from_vmem = remaining_vmem.split_from_front(to_vmem.size());
 
         // Copy physical segments
@@ -1368,35 +1344,32 @@ public:
         mapped += to_vmem.size();
       }
       assert(claimed_virtual == mapped, "must have mapped all claimed virtual memory");
-
-      {
-        ZLocker<ZLock> locker(&allocator->_lock);
-
-        // Update accounting
-        node.decrease_used(size);
-        node.decrease_used_generation(id, size);
-
-        // Reinsert vmems
-        for (const ZVirtualMemory vmem : vmems) {
-          node.cache()->insert(vmem);
-        }
-
-        // Defer potentially satisfying stalled allocations until after the loop
-      }
     }
 
     // Free the virtual memory
     allocator->_virtual.insert_extra_space(vmem);
+  }
 
-    if (should_satisfy_stalled) {
-      ZLocker<ZLock> locker(&allocator->_lock);
+  static void destroy(const ZMultiNodeTracker* tracker) {
+    delete tracker;
+  }
 
-      // Try satisfy stalled allocations
-      allocator->satisfy_stalled();
+  static ZMultiNodeTracker* create(const ZMultiNodeAllocation* multi_node_allocation, const ZVirtualMemory& vmem) {
+    const ZArray<ZMemoryAllocation*>* const partial_allocations = multi_node_allocation->allocations();
+
+    ZMultiNodeTracker* const tracker = new ZMultiNodeTracker(partial_allocations->length());
+
+    ZVirtualMemory remaining = vmem;
+
+    // Each partial allocation is mapped to the virtual memory in order
+    for (ZMemoryAllocation* partial_allocation : *partial_allocations) {
+      // Track each separate vmem's numa node
+      const ZVirtualMemory partial_vmem = remaining.split_from_front(partial_allocation->size());
+      const uint32_t numa_id = partial_allocation->numa_id();
+      tracker->map()->push({partial_vmem, numa_id});
     }
 
-    // Free up the allocated memory
-    delete tracker;
+    return tracker;
   }
 
   static void promote(ZPageAllocator* allocator, const ZPage* from, const ZPage* to) {
@@ -1615,12 +1588,12 @@ void ZPageAllocator::sort_segments_physical(const ZVirtualMemory& vmem) {
   sort_zbacking_index_array(_physical_mappings.addr(vmem.start()), vmem.size_in_granules());
 }
 
-void ZPageAllocator::remap_and_defragment(const ZVirtualMemory& vmem, ZArray<ZVirtualMemory>* entries) {
+void ZPageAllocator::remap_and_defragment(const ZVirtualMemory& vmem, ZArray<ZVirtualMemory>* vmems_out) {
   ZAllocNode& node = node_from_vmem(vmem);
 
   // If no lower address can be found, don't remap/defrag
   if (_virtual.lowest_available_address(_virtual.get_numa_id(vmem)) > vmem.start()) {
-    entries->append(vmem);
+    vmems_out->append(vmem);
     return;
   }
 
@@ -1634,17 +1607,17 @@ void ZPageAllocator::remap_and_defragment(const ZVirtualMemory& vmem, ZArray<ZVi
   segments.stash(vmem);
 
   // Shuffle vmem - put new vmems in entries
-  const int start_index = entries->length();
-  node.free_and_claim_virtual_from_low_many(vmem, entries);
+  const int start_index = vmems_out->length();
+  node.free_and_claim_virtual_from_low_many(vmem, vmems_out);
 
-  const int num_vmems = entries->length() - start_index;
+  const int num_vmems = vmems_out->length() - start_index;
 
   // Restore segments
-  segments.pop(entries, num_vmems);
+  segments.pop(vmems_out, num_vmems);
 
   // The entries array may contain entries from other defragmentations as well,
   // so we only operate on the last ranges that we have just inserted
-  ZArrayIterator<ZVirtualMemory> iter(entries, start_index);
+  ZArrayIterator<ZVirtualMemory> iter(vmems_out, start_index);
   for (ZVirtualMemory v; iter.next(&v);) {
     node.map_virtual_to_physical(v);
     pretouch_memory(v.start(), v.size());
@@ -2287,87 +2260,74 @@ void ZPageAllocator::satisfy_stalled() {
   }
 }
 
-void ZPageAllocator::prepare_memory_for_free(ZPage* page, ZArray<ZVirtualMemory>* entries, bool allow_defragment) {
+void ZPageAllocator::prepare_memory_for_free(ZPage* page, ZArray<ZVirtualMemory>* vmems, bool allow_defragment) {
   // Extract memory and destroy page
   const ZVirtualMemory vmem = page->virtual_memory();
   const ZPageType page_type = page->type();
+  const ZMultiNodeTracker* const tracker = page->multi_node_tracker();
   safe_destroy_page(page);
 
   // Perhaps remap vmem
-  if (page_type == ZPageType::large && allow_defragment) {
-    remap_and_defragment(vmem, entries);
+  if (tracker != nullptr) {
+    tracker->prepare_memory_for_free(this, vmem, vmems);
+  } else if (page_type == ZPageType::large && allow_defragment) {
+    remap_and_defragment(vmem, vmems);
   } else {
-    entries->append(vmem);
-  }
-}
-
-void ZPageAllocator::free_page_multi_node(ZPage* page, bool should_satisfy_stalled) {
-  assert(page->is_multi_node(), "only used for multi-node pages");
-  ZMultiNodeTracker::free_and_destroy(this, page, should_satisfy_stalled);
-}
-
-void ZPageAllocator::free_page(ZPage* page, bool allow_defragment) {
-  if (page->is_multi_node()) {
-    // Multi-node is handled separately, multi-node allocations are always
-    // effectively defragmented
-    free_page_multi_node(page, true /* should_satisfy_stalled */);
-    return;
+    vmems->append(vmem);
   }
 
-  ZArray<ZVirtualMemory> to_cache;
+  // Destroy the tracker
+  ZMultiNodeTracker::destroy(tracker);
+}
 
-  ZGenerationId id = page->generation_id();
-  ZAllocNode& node = node_from_vmem(page->virtual_memory());
-  prepare_memory_for_free(page, &to_cache, allow_defragment);
-
+void ZPageAllocator::free_memory(ZGenerationId id, ZArray<ZVirtualMemory>* vmems) {
   ZLocker<ZLock> locker(&_lock);
 
-  for (const ZVirtualMemory vmem : to_cache) {
-    // Update used statistics and cache memory
-    node.decrease_used(vmem.size());
-    node.decrease_used_generation(id, vmem.size());
-    node.cache()->insert(vmem);
-  }
-
-  // Try satisfy stalled allocations
-  satisfy_stalled();
-}
-
-void ZPageAllocator::free_pages(const ZArray<ZPage*>* pages) {
-  ZArray<ZVirtualMemory> to_cache;
-
-  // All pages belong to the same generation, so either only young or old.
-  const ZGenerationId gen_id = pages->first()->generation_id();
-
-  // Prepare memory from pages to be cached before taking the lock
-  for (ZPage* page : *pages) {
-    if (page->is_multi_node()) {
-      // Multi-node is handled separately
-      free_page_multi_node(page, false /* should_satisfy_stalled */);
-      continue;
-    }
-
-    prepare_memory_for_free(page, &to_cache, true /* allow_defragment */);
-  }
-
-  const uint32_t numa_nodes = ZNUMA::count();
-  ZLocker<ZLock> locker(&_lock);
-
-  // Insert vmems to the cache
-  for (const ZVirtualMemory vmem : to_cache) {
+  // Insert vmems in the cache
+  for (const ZVirtualMemory vmem : *vmems) {
     ZAllocNode& node = node_from_vmem(vmem);
     const size_t size = vmem.size();
 
-    // Reinsert vmems
+    // Insert vmem
     node.cache()->insert(vmem);
 
     // Update accounting
     node.decrease_used(size);
-    node.decrease_used_generation(gen_id, size);
+    node.decrease_used_generation(id, size);
   }
 
   // Try satisfy stalled allocations
   satisfy_stalled();
+}
+
+void ZPageAllocator::free_page(ZPage* page, bool allow_defragment) {
+  // Extract the id from the page
+  const ZGenerationId id = page->generation_id();
+
+  // Extract vmems and destroy the page
+  ZArray<ZVirtualMemory> vmems;
+  prepare_memory_for_free(page, &vmems, allow_defragment);
+
+  // Free the extracted vmems
+  free_memory(id, &vmems);
+}
+
+void ZPageAllocator::free_pages(const ZArray<ZPage*>* pages) {
+  ZArray<ZVirtualMemory> vmems;
+
+  // All pages belong to the same generation, so either only young or old.
+  const ZGenerationId id = pages->first()->generation_id();
+
+  // Prepare memory from pages to be cached before taking the lock
+  for (ZPage* page : *pages) {
+    assert(page->generation_id() == id, "All pages must be from the same generation");
+
+  // Extract vmems and destroy the page
+    prepare_memory_for_free(page, &vmems, true /* allow_defragment */);
+  }
+
+  // Free the extracted vmems
+  free_memory(id, &vmems);
 }
 
 void ZPageAllocator::free_memory_alloc_failed(ZMemoryAllocation* allocation) {
