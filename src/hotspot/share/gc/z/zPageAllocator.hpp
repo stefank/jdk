@@ -109,14 +109,14 @@ public:
   void increase_used_generation(ZGenerationId id, size_t size);
   void decrease_used_generation(ZGenerationId id, size_t size);
 
+  void free_memory(ZGenerationId id, const ZVirtualMemory& vmem);
+
   void reset_statistics(ZGenerationId id);
 
   void claim_from_cache_or_increase_capacity(ZMemoryAllocation* allocation);
   bool claim_capacity(ZMemoryAllocation* allocation);
 
   void promote_used(size_t size);
-
-  ZMappedCache* cache();
 
   uint32_t numa_id() const;
 

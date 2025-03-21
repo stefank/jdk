@@ -762,6 +762,17 @@ void ZAllocNode::decrease_used_generation(ZGenerationId id, size_t size) {
   Atomic::sub(&_used_generations[(int)id], size, memory_order_relaxed);
 }
 
+void ZAllocNode::free_memory(ZGenerationId id, const ZVirtualMemory& vmem) {
+  const size_t size = vmem.size();
+
+  // Cache the vmem
+  _cache.insert(vmem);
+
+  // Update accounting
+  decrease_used(size);
+  decrease_used_generation(id, size);
+}
+
 void ZAllocNode::reset_statistics(ZGenerationId id) {
   _collection_stats[(int)id]._used_high = _used;
   _collection_stats[(int)id]._used_low = _used;
@@ -832,10 +843,6 @@ bool ZAllocNode::claim_capacity(ZMemoryAllocation* allocation) {
 void ZAllocNode::promote_used(size_t size) {
   decrease_used_generation(ZGenerationId::young, size);
   increase_used_generation(ZGenerationId::old, size);
-}
-
-ZMappedCache* ZAllocNode::cache() {
-  return &_cache;
 }
 
 uint32_t ZAllocNode::numa_id() const {
@@ -2283,17 +2290,12 @@ void ZPageAllocator::prepare_memory_for_free(ZPage* page, ZArray<ZVirtualMemory>
 void ZPageAllocator::free_memory(ZGenerationId id, ZArray<ZVirtualMemory>* vmems) {
   ZLocker<ZLock> locker(&_lock);
 
-  // Insert vmems in the cache
+  // Free the vmems
   for (const ZVirtualMemory vmem : *vmems) {
     ZAllocNode& node = node_from_vmem(vmem);
-    const size_t size = vmem.size();
 
-    // Insert vmem
-    node.cache()->insert(vmem);
-
-    // Update accounting
-    node.decrease_used(size);
-    node.decrease_used_generation(id, size);
+    // Free the vmem
+    node.free_memory(id, vmem);
   }
 
   // Try satisfy stalled allocations
