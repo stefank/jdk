@@ -2262,23 +2262,29 @@ void ZPageAllocator::satisfy_stalled() {
 }
 
 void ZPageAllocator::prepare_memory_for_free(ZPage* page, ZArray<ZVirtualMemory>* vmems, bool allow_defragment) {
-  // Extract memory and destroy page
+  // Extract memory and destroy the page
   const ZVirtualMemory vmem = page->virtual_memory();
   const ZPageType page_type = page->type();
   const ZMultiNodeTracker* const tracker = page->multi_node_tracker();
   safe_destroy_page(page);
 
-  // Perhaps remap vmem
+  // Multi-node memory is always remapped
   if (tracker != nullptr) {
     tracker->prepare_memory_for_free(this, vmem, vmems);
-  } else if (page_type == ZPageType::large && allow_defragment) {
-    remap_and_defragment(vmem, vmems);
-  } else {
-    vmems->append(vmem);
+
+    // Destroy the tracker
+    ZMultiNodeTracker::destroy(tracker);
+    return;
   }
 
-  // Destroy the tracker
-  ZMultiNodeTracker::destroy(tracker);
+  // Perhaps remap and defragment if page was a large page
+  if (page_type == ZPageType::large && allow_defragment) {
+    remap_and_defragment(vmem, vmems);
+    return;
+  }
+
+  // Leave the memory untouched
+  vmems->append(vmem);
 }
 
 void ZPageAllocator::free_memory(ZGenerationId id, ZArray<ZVirtualMemory>* vmems) {
@@ -2309,16 +2315,15 @@ void ZPageAllocator::free_page(ZPage* page, bool allow_defragment) {
 }
 
 void ZPageAllocator::free_pages(const ZArray<ZPage*>* pages) {
-  ZArray<ZVirtualMemory> vmems;
-
   // All pages belong to the same generation, so either only young or old.
   const ZGenerationId id = pages->first()->generation_id();
 
-  // Prepare memory from pages to be cached before taking the lock
+  // Prepare memory from pages to be cached
+  ZArray<ZVirtualMemory> vmems;
   for (ZPage* page : *pages) {
     assert(page->generation_id() == id, "All pages must be from the same generation");
 
-  // Extract vmems and destroy the page
+    // Extract vmems and destroy the page
     prepare_memory_for_free(page, &vmems, true /* allow_defragment */);
   }
 
