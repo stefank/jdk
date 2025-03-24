@@ -250,40 +250,46 @@ ZVirtualMemoryManager::ZVirtualMemoryManager(size_t max_capacity)
   assert(max_capacity <= ZAddressOffsetMax, "Too large max_capacity");
 
   const size_t limit = MIN2(ZAddressOffsetMax, ZAddressSpaceLimit::heap());
-  const size_t normal_size = max_capacity * ZVirtualToPhysicalRatio;
-  const size_t limited_size = MIN2(normal_size, limit);
-  const size_t extended_size = normal_size + max_capacity;
-  const bool reserve_extra_space = ZNUMA::count() > 1 && extended_size <= limit;
-  const size_t size = reserve_extra_space ? extended_size : limited_size;
+
+  const size_t desired_for_nodes = max_capacity * ZVirtualToPhysicalRatio;
+  const size_t desired_for_multi_node = ZNUMA::count() > 1 ? max_capacity : 0;
+
+  const size_t desired = desired_for_nodes + desired_for_multi_node;
+  const size_t requested = desired >= limit
+      ? desired
+      : MIN2(desired_for_nodes, limit);
 
   // Reserve virtual memory for the heap
-  ZVirtualMemoryReserver reserver(size);
+  ZVirtualMemoryReserver reserver(requested);
 
+  const size_t reserved = reserver.reserved();
   const bool is_contiguous = reserver.is_contiguous();
+
+  if (reserved < max_capacity) {
+    ZInitialize::error_d("Failed to reserve " EXACTFMT " address space for Java heap", EXACTFMTARGS(max_capacity));
+    return;
+  }
+
+  const size_t size_for_nodes = MIN2(reserved, desired_for_nodes);
+
+  // Divide size_for_nodes virtual memory over the NUMA nodes
+  initialize_nodes(&reserver, size_for_nodes);
+
+  if (desired_for_multi_node > 0 && reserved == desired) {
+    // Enough left to setup the multi-node memory reservation
+    reserver.initialize_node(&_multi_node, max_capacity);
+  } else {
+    // Failed to reserve enough memory for multi-node, unreserve unused memory
+    reserver.unreserve();
+  }
+
+  assert(reserver.is_empty(), "Must have handled all reserved memory");
 
   log_info_p(gc, init)("Address Space Type: %s/%s/%s",
                        (is_contiguous ? "Contiguous" : "Discontiguous"),
                        (limit == ZAddressOffsetMax ? "Unrestricted" : "Restricted"),
-                       (reserver.reserved() >= normal_size ? "Complete" : "Degraded"));
-  log_info_p(gc, init)("Address Space Size: %zuM", reserver.reserved() / M);
-
-  if (reserver.reserved() < max_capacity) {
-    ZInitialize::error_d("Failed to reserve enough address space for Java heap");
-    return;
-  }
-
-  const size_t size_for_nodes = MIN2(reserver.reserved(), limited_size);
-
-  // Divide the reserved memory over the NUMA nodes
-  initialize_nodes(&reserver, size_for_nodes);
-
-  if (reserver.reserved() - size_for_nodes >= max_capacity) {
-    // Enough left to setup the multi-node memory reservation
-    reserver.initialize_node(&_multi_node, max_capacity);
-  }
-
-  // Unreserve any left-overs
-  reserver.unreserve();
+                       (reserved >= desired_for_nodes ? "Complete" : "Degraded"));
+  log_info_p(gc, init)("Address Space Size: %zuM", reserved / M);
 
   // Successfully initialized
   _initialized = true;
