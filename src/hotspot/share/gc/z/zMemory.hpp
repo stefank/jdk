@@ -42,12 +42,13 @@ public:
   using offset_end = End;
 
 private:
-  Start _start;
-  End   _end;
+  End _start;
+  End _end;
 
 public:
   ZRange();
   ZRange(Start start, size_t size);
+  ZRange(End start, size_t size);
 
   bool is_null() const;
 

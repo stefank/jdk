@@ -35,22 +35,27 @@
 
 template <typename Start, typename End>
 inline ZRange<Start, End>::ZRange()
-  : _start(Start::invalid),
+  : _start(End::invalid),
     _end(End::invalid) {}
 
 template <typename Start, typename End>
 inline ZRange<Start, End>::ZRange(Start start, size_t size)
-  : _start(start),
+  : _start(to_end_type(start, 0)),
     _end(to_end_type(start, size)) {}
 
 template <typename Start, typename End>
+inline ZRange<Start, End>::ZRange(End start, size_t size)
+  : _start(start),
+    _end(start + size) {}
+
+template <typename Start, typename End>
 inline bool ZRange<Start, End>::is_null() const {
-  return _start == Start::invalid;
+  return _start == End::invalid;
 }
 
 template <typename Start, typename End>
 inline Start ZRange<Start, End>::start() const {
-  return _start;
+  return to_start_type(_start);
 }
 
 template <typename Start, typename End>
@@ -60,7 +65,7 @@ inline End ZRange<Start, End>::end() const {
 
 template <typename Start, typename End>
 inline size_t ZRange<Start, End>::size() const {
-  return end() - start();
+  return _end - _start;
 }
 
 template <typename Start, typename End>

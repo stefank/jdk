@@ -90,6 +90,11 @@ inline offset_type##_end& operator-=(offset_type##_end& offset, size_t size) {  
   return offset;                                                                          \
 }                                                                                         \
                                                                                           \
+inline offset_type##_end operator+(offset_type##_end offset, size_t size) {               \
+  const auto size_value = checked_cast<std::underlying_type_t<offset_type##_end>>(size);  \
+  return to_##offset_type##_end(untype(offset) + size_value);                             \
+}                                                                                         \
+                                                                                          \
 inline offset_type##_end& operator+=(offset_type##_end& offset, size_t size) {            \
   const auto size_value = checked_cast<std::underlying_type_t<offset_type##_end>>(size);  \
   offset = to_##offset_type##_end(untype(offset) + size_value);                           \
