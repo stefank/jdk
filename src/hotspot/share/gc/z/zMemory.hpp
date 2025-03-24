@@ -114,10 +114,11 @@ private:
   Callbacks      _callbacks;
   Range          _limits;
 
-  void insert_inner(const Range& range);
+  void move_into(const Range& range);
 
-  void insert_stand_alone_last(ZMemory* area);
-  void insert_stand_alone_before(ZMemory* area, ZMemory* before);
+  void insert_inner(const Range& range);
+  void register_inner(const Range& range);
+
   void insert_from_front(ZMemory* area, size_t size);
   void insert_from_back(ZMemory* area, size_t size);
 
@@ -136,6 +137,9 @@ public:
   ZMemoryManagerImpl();
 
   void register_callbacks(const Callbacks& callbacks);
+
+  void register_range(const Range& range);
+  bool unregister_first(Range* out);
 
   bool is_empty() const;
   bool is_contiguous() const;
@@ -158,8 +162,6 @@ public:
   Range remove_from_high(size_t size);
 
   void transfer_from_low(ZMemoryManagerImpl* other, size_t size);
-
-  bool disown_first(Range* out);
 };
 
 #endif // SHARE_GC_Z_ZMEMORY_HPP

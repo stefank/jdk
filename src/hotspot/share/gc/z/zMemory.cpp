@@ -61,7 +61,7 @@ public:
 };
 
 template <typename Range>
-void ZMemoryManagerImpl<Range>::insert_inner(const Range& range) {
+void ZMemoryManagerImpl<Range>::move_into(const Range& range) {
   assert(!range.is_null(), "Invalid range");
   assert(check_limits(range), "Range outside limits");
 
@@ -93,7 +93,7 @@ void ZMemoryManagerImpl<Range>::insert_inner(const Range& range) {
       // Insert new area before current area
       assert(end < area->start(), "Areas must not overlap");
       ZMemory* const new_area = new ZMemory(start, size);
-      insert_stand_alone_before(new_area, area);
+      _list.insert_before(area, new_area);
     }
 
     // Done
@@ -108,24 +108,21 @@ void ZMemoryManagerImpl<Range>::insert_inner(const Range& range) {
   } else {
     // Insert new area last
     ZMemory* const new_area = new ZMemory(start, size);
-    insert_stand_alone_last(new_area);
+    _list.insert_last(new_area);
   }
 }
 
 template <typename Range>
-void ZMemoryManagerImpl<Range>::insert_stand_alone_last(ZMemory* area) {
+void ZMemoryManagerImpl<Range>::insert_inner(const Range& range) {
   if (_callbacks._insert_stand_alone != nullptr) {
-    _callbacks._insert_stand_alone(*area->range());
+    _callbacks._insert_stand_alone(range);
   }
-  _list.insert_last(area);
+  move_into(range);
 }
 
 template <typename Range>
-void ZMemoryManagerImpl<Range>::insert_stand_alone_before(ZMemory* area, ZMemory* before) {
-  if (_callbacks._insert_stand_alone != nullptr) {
-    _callbacks._insert_stand_alone(*area->range());
-  }
-  _list.insert_before(before, area);
+void ZMemoryManagerImpl<Range>::register_inner(const Range& range) {
+  move_into(range);
 }
 
 template <typename Range>
@@ -175,7 +172,7 @@ void ZMemoryManagerImpl<Range>::transfer_from_front(ZMemory* area, size_t size, 
     _callbacks._transfer_from_front(*area->range(), size);
   }
   Range to_transfer =  area->range()->split_from_front(size);
-  other->insert(to_transfer);
+  other->register_range(to_transfer);
 }
 
 template <typename Range>
@@ -255,6 +252,35 @@ ZMemoryManagerImpl<Range>::ZMemoryManagerImpl()
 template <typename Range>
 void ZMemoryManagerImpl<Range>::register_callbacks(const Callbacks& callbacks) {
   _callbacks = callbacks;
+}
+
+template <typename Range>
+void ZMemoryManagerImpl<Range>::register_range(const Range& range) {
+  ZLocker<ZLock> locker(&_lock);
+  register_inner(range);
+}
+
+template <typename Range>
+bool ZMemoryManagerImpl<Range>::unregister_first(Range* out) {
+  // This intentionally does not call the "remove" callback.
+  // This call is typically used to unregister memory before unreserving a surplus.
+
+  ZLocker<ZLock> locker(&_lock);
+
+  if (_list.is_empty()) {
+    return false;
+  }
+
+  // Don't invoke the "remove" callback
+
+  ZMemory* const area = _list.remove_first();
+
+  // Return the range
+  *out = *area->range();
+
+  delete area;
+
+  return true;
 }
 
 template <typename Range>
@@ -443,29 +469,6 @@ void ZMemoryManagerImpl<Range>::transfer_from_low(ZMemoryManagerImpl* other, siz
   }
 
   assert(to_move == 0, "Should have transferred requested size");
-}
-
-template <typename Range>
-bool ZMemoryManagerImpl<Range>::disown_first(Range* out) {
-  // This intentionally does not call the "remove" callback.
-  // This call is typically used to disown memory before unreserving a surplus.
-
-  ZLocker<ZLock> locker(&_lock);
-
-  if (_list.is_empty()) {
-    return false;
-  }
-
-  // Don't invoke the "remove" callback
-
-  ZMemory* const area = _list.remove_first();
-
-  // Return the range
-  *out = *area->range();
-
-  delete area;
-
-  return true;
 }
 
 // Instantiate the concrete classes

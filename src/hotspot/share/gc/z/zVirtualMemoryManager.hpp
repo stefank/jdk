@@ -42,7 +42,7 @@ private:
 
   // Platform specific implementation
   void pd_initialize_before_reserve();
-  void pd_initialize_after_reserve(ZMemoryManager* manager);
+  void pd_register_callbacks(ZMemoryManager* manager);
   bool pd_reserve(zaddress_unsafe addr, size_t size);
   void pd_unreserve(zaddress_unsafe addr, size_t size);
 
@@ -51,7 +51,6 @@ private:
   size_t reserve_discontiguous(zoffset start, size_t size, size_t min_range);
   size_t reserve_discontiguous(size_t size);
 
-  size_t reserve_inner(size_t size);
   size_t reserve(size_t size);
 
   DEBUG_ONLY(size_t force_reserve_discontiguous(size_t size);)

@@ -37,10 +37,12 @@
 
 ZVirtualMemoryReserver::ZVirtualMemoryReserver(size_t size)
   : _virtual_memory_reservation(),
-    _reserved(reserve(size)) {}
+    _reserved(reserve(size)) {
+  pd_register_callbacks(&_virtual_memory_reservation);
+}
 
 void ZVirtualMemoryReserver::unreserve() {
-  for (ZVirtualMemory vmem; _virtual_memory_reservation.disown_first(&vmem);) {
+  for (ZVirtualMemory vmem; _virtual_memory_reservation.unregister_first(&vmem);) {
     const zaddress_unsafe addr = ZOffset::address_unsafe(vmem.start());
 
      // Unreserve address space
@@ -63,13 +65,13 @@ size_t ZVirtualMemoryReserver::reserved() const {
 void ZVirtualMemoryReserver::initialize_node(ZMemoryManager* node, size_t size) {
   assert(node->is_empty(), "Should be empty when initializing");
 
+  // Registers the Windows callbacks
+  pd_register_callbacks(node);
+
   _virtual_memory_reservation.transfer_from_low(node, size);
 
   // Set the limits according to the virtual memory given to this node
   node->anchor_limits();
-
-  // This registers the Windows callbacks after memory has been transferred
-  pd_initialize_after_reserve(node);
 }
 
 void ZVirtualMemoryManager::initialize_nodes(ZVirtualMemoryReserver* reserver, size_t size_for_nodes) {
@@ -192,7 +194,7 @@ bool ZVirtualMemoryReserver::reserve_contiguous(zoffset start, size_t size) {
   ZNMT::reserve(addr, size);
 
   // Register the memory reservation
-  _virtual_memory_reservation.insert({start, size});
+  _virtual_memory_reservation.register_range({start, size});
 
   return true;
 }
@@ -213,7 +215,12 @@ bool ZVirtualMemoryReserver::reserve_contiguous(size_t size) {
   return false;
 }
 
-size_t ZVirtualMemoryReserver::reserve_inner(size_t size) {
+size_t ZVirtualMemoryReserver::reserve(size_t size) {
+  // Initialize platform specific parts before reserving address space
+  pd_initialize_before_reserve();
+
+  // Reserve address space
+
 #ifdef ASSERT
   if (ZForceDiscontiguousHeapReservations > 0) {
     return force_reserve_discontiguous(size);
@@ -227,19 +234,6 @@ size_t ZVirtualMemoryReserver::reserve_inner(size_t size) {
 
   // Fall back to a discontiguous address space
   return reserve_discontiguous(size);
-}
-
-size_t ZVirtualMemoryReserver::reserve(size_t size) {
-  // Initialize platform specific parts before reserving address space
-  pd_initialize_before_reserve();
-
-  // Reserve address space
-  const size_t reserved = reserve_inner(size);
-
-  // This registers the Windows callbacks for this node
-  pd_initialize_after_reserve(&_virtual_memory_reservation);
-
-  return reserved;
 }
 
 ZVirtualMemoryManager::ZVirtualMemoryManager(size_t max_capacity)

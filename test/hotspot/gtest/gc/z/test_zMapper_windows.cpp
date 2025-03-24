@@ -74,7 +74,7 @@ public:
     }
 
     // Set up the callbacks
-    _vmr->pd_initialize_after_reserve(_va);
+    _vmr->pd_register_callbacks(_va);
 
     _initialized = true;
   }

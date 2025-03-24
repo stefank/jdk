@@ -34,8 +34,7 @@
 
 class ZVirtualMemoryReserverImpl : public CHeapObj<mtGC> {
 public:
-  virtual void initialize_before_reserve() {}
-  virtual void initialize_after_reserve(ZVirtualMemoryManager::ZMemoryManager* manager) {}
+  virtual void register_callbacks(ZVirtualMemoryManager::ZMemoryManager* manager) {}
   virtual bool reserve(zaddress_unsafe addr, size_t size) = 0;
   virtual void unreserve(zaddress_unsafe addr, size_t size) = 0;
 };
@@ -158,7 +157,7 @@ private:
     }
 
   public:
-    static void register_with(ZVirtualMemoryManager::ZMemoryManager* manager) {
+    static ZVirtualMemoryManager::ZMemoryManager::Callbacks callbacks() {
       // Each reserved virtual memory address range registered in _manager is
       // exactly covered by a single placeholder. Callbacks are installed so
       // that whenever a memory range changes, the corresponding placeholder
@@ -191,12 +190,12 @@ private:
 
       callbacks._transfer_from_front = &transfer_from_front_callback;
 
-      manager->register_callbacks(callbacks);
+      return callbacks;
     }
   };
 
-  virtual void initialize_after_reserve(ZVirtualMemoryManager::ZMemoryManager* manager) {
-    PlaceholderCallbacks::register_with(manager);
+  virtual void register_callbacks(ZVirtualMemoryManager::ZMemoryManager* manager) {
+    manager->register_callbacks(PlaceholderCallbacks::callbacks());
   }
 
   virtual bool reserve(zaddress_unsafe addr, size_t size) {
@@ -218,10 +217,6 @@ HANDLE ZAWESection;
 
 class ZVirtualMemoryReserverLargePages : public ZVirtualMemoryReserverImpl {
 private:
-  virtual void initialize_before_reserve() {
-    ZAWESection = ZMapper::create_shared_awe_section();
-  }
-
   virtual bool reserve(zaddress_unsafe addr, size_t size) {
     const zaddress_unsafe res = ZMapper::reserve_for_shared_awe(ZAWESection, addr, size);
 
@@ -232,21 +227,27 @@ private:
   virtual void unreserve(zaddress_unsafe addr, size_t size) {
     ZMapper::unreserve_for_shared_awe(addr, size);
   }
+
+public:
+  ZVirtualMemoryReserverLargePages() {
+    ZAWESection = ZMapper::create_shared_awe_section();
+  }
 };
 
 static ZVirtualMemoryReserverImpl* _impl = nullptr;
 
 void ZVirtualMemoryReserver::pd_initialize_before_reserve() {
+  assert(_impl == nullptr, "Should only initialize once");
+
   if (ZLargePages::is_enabled()) {
     _impl = new ZVirtualMemoryReserverLargePages();
   } else {
     _impl = new ZVirtualMemoryReserverSmallPages();
   }
-  _impl->initialize_before_reserve();
 }
 
-void ZVirtualMemoryReserver::pd_initialize_after_reserve(ZVirtualMemoryManager::ZMemoryManager* manager) {
-  _impl->initialize_after_reserve(manager);
+void ZVirtualMemoryReserver::pd_register_callbacks(ZVirtualMemoryManager::ZMemoryManager* manager) {
+  _impl->register_callbacks(manager);
 }
 
 bool ZVirtualMemoryReserver::pd_reserve(zaddress_unsafe addr, size_t size) {
