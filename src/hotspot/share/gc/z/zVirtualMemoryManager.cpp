@@ -73,15 +73,13 @@ size_t ZVirtualMemoryReserver::reserved() const {
 void ZVirtualMemoryReserver::initialize_node(ZMemoryManager* node, size_t size) {
   assert(node->total_range().is_null(), "Should be empty when initializing");
 
-  // This registers the Windows callbacks for this node before
-  // starting to transfer memory.
-  pd_initialize_after_reserve(node);
-
   _virtual_memory_reservation.transfer_low_address(node, size);
 
   // Set the limits according to the virtual memory given to this node
   node->set_limits(node->total_range());
 
+  // This registers the Windows callbacks after memory has been transfered.
+  pd_initialize_after_reserve(node);
 }
 
 void ZVirtualMemoryManager::initialize_nodes(ZVirtualMemoryReserver* reserver, size_t size_for_nodes) {

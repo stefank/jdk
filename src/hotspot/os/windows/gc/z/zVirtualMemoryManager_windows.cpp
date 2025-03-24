@@ -49,7 +49,7 @@ public:
 class ZVirtualMemoryReserverSmallPages : public ZVirtualMemoryReserverImpl {
 private:
   class PlaceholderCallbacks : public AllStatic {
-  public:
+  private:
     static void split_placeholder(zoffset start, size_t size) {
       ZMapper::split_placeholder(ZOffset::address_unsafe(start), size);
     }
@@ -81,18 +81,37 @@ private:
       }
     }
 
+    // Callback implementations
+
     // Called when a memory range is returned to the memory manager but can't
     // be merged with an already existing range. Make sure this range is covered
     // by a single placeholder.
-    static void create_callback(const ZVirtualMemory& range) {
+    static void insert_stand_alone_callback(const ZVirtualMemory& range) {
       assert(is_aligned(range.size(), ZGranuleSize), "Must be granule aligned");
 
       coalesce_into_one_placeholder(range.start(), range.size());
     }
 
-    // Called when a complete memory range in the memory manager is removed.
-    // Create granule sized placeholders for the entire range.
-    static void destroy_callback(const ZVirtualMemory& range) {
+    // Called when inserting a memory range and it can be merged at the start of an
+    // existing range. Coalesce the underlying placeholders into one.
+    static void insert_from_front_callback(const ZVirtualMemory& range, size_t size) {
+      assert(is_aligned(range.size(), ZGranuleSize), "Must be granule aligned");
+
+      const zoffset start = range.start() - size;
+      coalesce_into_one_placeholder(start, range.size() + size);
+    }
+
+    // Called when inserting a memory range and it can be merged at the end of an
+    // existing range. Coalesce the underlying placeholders into one.
+    static void insert_from_back_callback(const ZVirtualMemory& range, size_t size) {
+      assert(is_aligned(range.size(), ZGranuleSize), "Must be granule aligned");
+
+      coalesce_into_one_placeholder(range.start(), range.size() + size);
+    }
+
+    // Called when a memory range is going to be handed out to be used.
+    // This splits the memory range into granule sized placeholders.
+    static void remove_stand_alone_callback(const ZVirtualMemory& range) {
       assert(is_aligned(range.size(), ZGranuleSize), "Must be granule aligned");
 
       split_into_granule_sized_placeholders(range.start(), range.size());
@@ -100,7 +119,7 @@ private:
 
     // Called when a memory range is removed at the front of an existing memory range.
     // Turn the first part of the memory range into granule sized placeholders.
-    static void shrink_from_front_callback(const ZVirtualMemory& range, size_t size) {
+    static void remove_from_front_callback(const ZVirtualMemory& range, size_t size) {
       assert(range.size() > size, "Must be larger than what we try to split out");
       assert(is_aligned(size, ZGranuleSize), "Must be granule aligned");
 
@@ -113,7 +132,7 @@ private:
 
     // Called when a memory range is removed at the end of an existing memory range.
     // Turn the second part of the memory range into granule sized placeholders.
-    static void shrink_from_back_callback(const ZVirtualMemory& range, size_t size) {
+    static void remove_from_back_callback(const ZVirtualMemory& range, size_t size) {
       assert(range.size() > size, "Must be larger than what we try to split out");
       assert(is_aligned(size, ZGranuleSize), "Must be granule aligned");
 
@@ -125,48 +144,52 @@ private:
       split_into_granule_sized_placeholders(start, size);
     }
 
-    // Called when inserting a memory range and it can be merged at the start of an
+    // Called when transferring a memory range and it can be merged at the start of an
     // existing range. Coalesce the underlying placeholders into one.
-    static void grow_from_front_callback(const ZVirtualMemory& range, size_t size) {
+    static void transfer_from_front_callback(const ZVirtualMemory& range, size_t size) {
+      assert(range.size() > size, "Must be larger than what we try to split out");
       assert(is_aligned(range.size(), ZGranuleSize), "Must be granule aligned");
 
-      const zoffset start = range.start() - size;
-      coalesce_into_one_placeholder(start, range.size() + size);
+      // Split the range into two placeholders
+      split_placeholder(range.start(), size);
+
+      // Do not split the second part into granule sized placeholders.
+      // The second part will be transfered over to another list.
     }
 
-    // Called when inserting a memory range and it can be merged at the end of an
-    // existing range. Coalesce the underlying placeholders into one.
-    static void grow_from_back_callback(const ZVirtualMemory& range, size_t size) {
-      assert(is_aligned(range.size(), ZGranuleSize), "Must be granule aligned");
-
-      coalesce_into_one_placeholder(range.start(), range.size() + size);
-    }
-
+  public:
     static void register_with(ZVirtualMemoryManager::ZMemoryManager* manager) {
       // Each reserved virtual memory address range registered in _manager is
       // exactly covered by a single placeholder. Callbacks are installed so
       // that whenever a memory range changes, the corresponding placeholder
       // is adjusted.
       //
-      // The create and grow callbacks are called when virtual memory is
+      // The insert and grow callbacks are called when virtual memory is
       // returned to the memory manager. The new memory range is then covered
       // by a new single placeholder.
       //
-      // The destroy and shrink callbacks are called when virtual memory is
+      // The remove and shrink callbacks are called when virtual memory is
       // removed from the memory manager. The memory range is then is split
       // into granule-sized placeholders.
+      //
+      // The transfer callback is called when virtual memory is transferred
+      // from one memory manager to another. The resulting memory ranges are
+      // are covered by two separate placeholders.
       //
       // See comment in zMapper_windows.cpp explaining why placeholders are
       // split into ZGranuleSize sized placeholders.
 
       ZVirtualMemoryManager::ZMemoryManager::Callbacks callbacks;
 
-      callbacks._create = &create_callback;
-      callbacks._destroy = &destroy_callback;
-      callbacks._shrink_from_front = &shrink_from_front_callback;
-      callbacks._shrink_from_back = &shrink_from_back_callback;
-      callbacks._grow_from_front = &grow_from_front_callback;
-      callbacks._grow_from_back = &grow_from_back_callback;
+      callbacks._insert_stand_alone = &insert_stand_alone_callback;
+      callbacks._insert_from_front = &insert_from_front_callback;
+      callbacks._insert_from_back = &insert_from_back_callback;
+
+      callbacks._remove_stand_alone = &remove_stand_alone_callback;
+      callbacks._remove_from_front = &remove_from_front_callback;
+      callbacks._remove_from_back = &remove_from_back_callback;
+
+      callbacks._transfer_from_front = &transfer_from_front_callback;
 
       manager->register_callbacks(callbacks);
     }
