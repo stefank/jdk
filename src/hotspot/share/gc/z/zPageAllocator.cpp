@@ -648,7 +648,7 @@ void ZAllocNode::verify_virtual_memory_multi_node_association(const ZVirtualMemo
   const ZVirtualMemoryManager& manager = virtual_memory_manager();
 
   assert(manager.is_in_multi_node(vmem), "Virtual memory must be associated with the extra space "
-                                      "actual: %u", virtual_memory_manager().get_numa_id(vmem));
+                                         "actual: %u", virtual_memory_manager().get_numa_id(vmem));
 }
 
 void ZAllocNode::verify_virtual_memory_association(const ZVirtualMemory& vmem, bool check_multi_node) const {
@@ -1885,10 +1885,9 @@ void ZPageAllocator::copy_claimed_physical_multi_node(ZMultiNodeAllocation* mult
 }
 
 ZVirtualMemory ZPageAllocator::claim_virtual_memory_multi_node(ZMultiNodeAllocation* multi_node_allocation) {
-  const uint32_t numa_nodes = ZNUMA::count();
   const size_t size = multi_node_allocation->size();
 
-  ZVirtualMemory vmem = _virtual.remove_from_multi_node(size);
+  const ZVirtualMemory vmem = _virtual.remove_from_multi_node(size);
   if (!vmem.is_null()) {
     // Copy claimed multi-node vmems, we leave the old vmems mapped until after
     // we have committed. In case committing fails we can simply reinsert the

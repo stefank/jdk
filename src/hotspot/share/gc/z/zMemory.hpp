@@ -114,8 +114,10 @@ private:
   Callbacks      _callbacks;
   Range          _limits;
 
-  void insert_last(ZMemory* area);
-  void insert_before(ZMemory* area, ZMemory* other);
+  void insert_inner(const Range& range);
+
+  void insert_stand_alone_last(ZMemory* area);
+  void insert_stand_alone_before(ZMemory* area, ZMemory* before);
   void insert_from_front(ZMemory* area, size_t size);
   void insert_from_back(ZMemory* area, size_t size);
 
@@ -124,8 +126,6 @@ private:
   Range remove_from_back(ZMemory* area, size_t size);
 
   void transfer_from_front(ZMemory* area, size_t size, ZMemoryManagerImpl<Range>* other);
-
-  void insert_inner(offset start, size_t size);
 
   Range remove_from_low_inner(size_t size);
   Range remove_from_low_at_most_inner(size_t size);
@@ -140,27 +140,24 @@ public:
   bool is_empty() const;
   bool is_contiguous() const;
 
-  void set_limits(const Range& limits);
   Range limits() const;
-  bool limits_contain(const Range& other) const;
-
-  Range total_range() const;
+  void anchor_limits();
+  bool limits_contain(const Range& range) const;
+  bool check_limits(const Range& range) const;
 
   offset peek_low_address() const;
 
-  void insert_and_remove_from_low_many(offset start, size_t size, ZArray<Range>* out);
+  void insert_and_remove_from_low_many(const Range& range, ZArray<Range>* out);
   Range insert_and_remove_from_low_exact_or_many(size_t size, ZArray<Range>* in_out);
 
-  void insert(offset start, size_t size);
   void insert(const Range& range);
 
   Range remove_from_low(size_t size);
   Range remove_from_low_at_most(size_t size);
   size_t remove_from_low_many_at_most(size_t size, ZArray<Range>* out);
   Range remove_from_high(size_t size);
-  void remove_from_high_many(size_t size, ZArray<Range>* out);
 
-  void transfer_low_address(ZMemoryManagerImpl* other, size_t size);
+  void transfer_from_low(ZMemoryManagerImpl* other, size_t size);
 
   bool disown_first(Range* out);
 };

@@ -81,6 +81,17 @@ inline void ZRange<Start, End>::shrink_from_back(size_t size) {
 }
 
 template <typename Start, typename End>
+inline void ZRange<Start, End>::grow_from_front(size_t size) {
+  assert(size_t(start()) >= size, "Too big");
+  _start -= size;
+}
+
+template <typename Start, typename End>
+inline void ZRange<Start, End>::grow_from_back(size_t size) {
+  _end += size;
+}
+
+template <typename Start, typename End>
 inline ZRange<Start, End> ZRange<Start, End>::split_from_front(size_t size) {
   shrink_from_front(size);
   return ZRange(_start - size, size);
@@ -90,17 +101,6 @@ template <typename Start, typename End>
 inline ZRange<Start, End> ZRange<Start, End>::split_from_back(size_t size) {
   shrink_from_back(size);
   return ZRange(to_start_type(_end), size);
-}
-
-template <typename Start, typename End>
-inline void ZRange<Start, End>::grow_from_front(size_t size) {
-  assert(size_t(start()) >= size, "Too big");
-  _start -= size;
-}
-
-template <typename Start, typename End>
-inline void ZRange<Start, End>::grow_from_back(size_t size) {
-  _end += size;
 }
 
 template <typename Start, typename End>

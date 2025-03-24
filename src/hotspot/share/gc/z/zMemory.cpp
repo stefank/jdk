@@ -61,7 +61,59 @@ public:
 };
 
 template <typename Range>
-void ZMemoryManagerImpl<Range>::insert_last(ZMemory* area) {
+void ZMemoryManagerImpl<Range>::insert_inner(const Range& range) {
+  assert(!range.is_null(), "Invalid range");
+  assert(check_limits(range), "Range outside limits");
+
+  const offset start = range.start();
+  const offset_end end = range.end();
+  const size_t size = range.size();
+
+  ZListIterator<ZMemory> iter(&_list);
+  for (ZMemory* area; iter.next(&area);) {
+    if (area->start() < start) {
+      continue;
+    }
+
+    ZMemory* const prev = _list.prev(area);
+    if (prev != nullptr && start == prev->end()) {
+      if (end == area->start()) {
+        // Merge with prev and current area
+        insert_from_back(prev, size + area->size());
+        _list.remove(area);
+        delete area;
+      } else {
+        // Merge with prev area
+        insert_from_back(prev, size);
+      }
+    } else if (end == area->start()) {
+      // Merge with current area
+      insert_from_front(area, size);
+    } else {
+      // Insert new area before current area
+      assert(end < area->start(), "Areas must not overlap");
+      ZMemory* const new_area = new ZMemory(start, size);
+      insert_stand_alone_before(new_area, area);
+    }
+
+    // Done
+    return;
+  }
+
+  // Insert last
+  ZMemory* const last = _list.last();
+  if (last != nullptr && start == last->end()) {
+    // Merge with last area
+    insert_from_back(last, size);
+  } else {
+    // Insert new area last
+    ZMemory* const new_area = new ZMemory(start, size);
+    insert_stand_alone_last(new_area);
+  }
+}
+
+template <typename Range>
+void ZMemoryManagerImpl<Range>::insert_stand_alone_last(ZMemory* area) {
   if (_callbacks._insert_stand_alone != nullptr) {
     _callbacks._insert_stand_alone(*area->range());
   }
@@ -69,11 +121,11 @@ void ZMemoryManagerImpl<Range>::insert_last(ZMemory* area) {
 }
 
 template <typename Range>
-void ZMemoryManagerImpl<Range>::insert_before(ZMemory* area, ZMemory* other) {
+void ZMemoryManagerImpl<Range>::insert_stand_alone_before(ZMemory* area, ZMemory* before) {
   if (_callbacks._insert_stand_alone != nullptr) {
     _callbacks._insert_stand_alone(*area->range());
   }
-  _list.insert_before(other, area);
+  _list.insert_before(before, area);
 }
 
 template <typename Range>
@@ -166,56 +218,6 @@ Range ZMemoryManagerImpl<Range>::remove_from_low_at_most_inner(size_t size) {
 }
 
 template <typename Range>
-void ZMemoryManagerImpl<Range>::insert_inner(offset start, size_t size) {
-  assert(start != offset::invalid, "Invalid address");
-  assert(_limits.start() == offset::invalid || start >= _limits.start(), "Invalid address");
-
-  const offset_end end = to_end_type(start, size);
-
-  assert(_limits.end() == offset_end::invalid || end <= _limits.end(), "Invalid address");
-
-  ZListIterator<ZMemory> iter(&_list);
-  for (ZMemory* area; iter.next(&area);) {
-    if (start < area->start()) {
-      ZMemory* const prev = _list.prev(area);
-      if (prev != nullptr && start == prev->end()) {
-        if (end == area->start()) {
-          // Merge with prev and current area
-          insert_from_back(prev, size + area->size());
-          _list.remove(area);
-          delete area;
-        } else {
-          // Merge with prev area
-          insert_from_back(prev, size);
-        }
-      } else if (end == area->start()) {
-        // Merge with current area
-        insert_from_front(area, size);
-      } else {
-        // Insert new area before current area
-        assert(end < area->start(), "Areas must not overlap");
-        ZMemory* const new_area = new ZMemory(start, size);
-        insert_before(new_area, area);
-      }
-
-      // Done
-      return;
-    }
-  }
-
-  // Insert last
-  ZMemory* const last = _list.last();
-  if (last != nullptr && start == last->end()) {
-    // Merge with last area
-    insert_from_back(last, size);
-  } else {
-    // Insert new area last
-    ZMemory* const new_area = new ZMemory(start, size);
-    insert_last(new_area);
-  }
-}
-
-template <typename Range>
 size_t ZMemoryManagerImpl<Range>::remove_from_low_many_at_most_inner(size_t size, ZArray<Range>* out) {
   size_t to_remove = size;
 
@@ -266,38 +268,44 @@ bool ZMemoryManagerImpl<Range>::is_contiguous() const {
 }
 
 template <typename Range>
-void ZMemoryManagerImpl<Range>::set_limits(const Range& limits) {
-  _limits = limits;
- }
-
-template <typename Range>
 Range ZMemoryManagerImpl<Range>::limits() const {
-  assert(_limits.end() == offset_end::invalid, "Don't use uninitialized");
+  assert(!_limits.is_null(), "Limits not anchored");
   return _limits;
 }
 
 template <typename Range>
-bool ZMemoryManagerImpl<Range>::limits_contain(const Range& other) const {
-  if (_limits.is_null() || other.is_null()) {
-    return false;
-  }
-
-  return other.start() >= _limits.start() && other.end() <= _limits.end();
-}
-
-template <typename Range>
-Range ZMemoryManagerImpl<Range>::total_range() const {
-  ZLocker<ZLock> locker(&_lock);
+void ZMemoryManagerImpl<Range>::anchor_limits() {
+  assert(_limits.is_null(), "Should only anchor limits once");
 
   if (_list.is_empty()) {
-    return Range();
+    return;
   }
 
   const offset start = _list.first()->start();
   const size_t size = _list.last()->end() - start;
 
-  return Range(start, size);
+  _limits = Range(start, size);
+ }
+
+template <typename Range>
+bool ZMemoryManagerImpl<Range>::limits_contain(const Range& range) const {
+  if (_limits.is_null() || range.is_null()) {
+    return false;
+  }
+
+  return range.start() >= _limits.start() && range.end() <= _limits.end();
 }
+
+template <typename Range>
+bool ZMemoryManagerImpl<Range>::check_limits(const Range& range) const {
+  if (_limits.is_null()) {
+    // Limits not anchored
+    return true;
+  }
+
+  // Otherwise, check that other is within the limits
+  return limits_contain(range);
+ }
 
 template <typename Range>
 typename ZMemoryManagerImpl<Range>::offset ZMemoryManagerImpl<Range>::peek_low_address() const {
@@ -313,22 +321,19 @@ typename ZMemoryManagerImpl<Range>::offset ZMemoryManagerImpl<Range>::peek_low_a
 }
 
 template <typename Range>
-void ZMemoryManagerImpl<Range>::insert(offset start, size_t size) {
-  ZLocker<ZLock> locker(&_lock);
-  insert_inner(start, size);
-}
-
-template <typename Range>
 void ZMemoryManagerImpl<Range>::insert(const Range& range) {
-  insert(range.start(), range.size());
+  ZLocker<ZLock> locker(&_lock);
+  insert_inner(range);
 }
 
 template <typename Range>
-void ZMemoryManagerImpl<Range>::insert_and_remove_from_low_many(offset start, size_t size, ZArray<Range>* out) {
+void ZMemoryManagerImpl<Range>::insert_and_remove_from_low_many(const Range& range, ZArray<Range>* out) {
   ZLocker<ZLock> locker(&_lock);
+
+  const size_t size = range.size();
 
   // Insert the range
-  insert_inner(start, size);
+  insert_inner(range);
 
   // Remove (hopefully) at a lower address
   const size_t removed = remove_from_low_many_at_most_inner(size, out);
@@ -346,7 +351,7 @@ Range ZMemoryManagerImpl<Range>::insert_and_remove_from_low_exact_or_many(size_t
   // Insert everything
   ZArrayIterator<Range> iter(in_out);
   for (Range mem; iter.next(&mem);) {
-    insert_inner(mem.start(), mem.size());
+    insert_inner(mem);
     inserted += mem.size();
   }
 
@@ -392,16 +397,18 @@ Range ZMemoryManagerImpl<Range>::remove_from_high(size_t size) {
 
   ZListReverseIterator<ZMemory> iter(&_list);
   for (ZMemory* area; iter.next(&area);) {
-    if (area->size() >= size) {
-      if (area->size() == size) {
-        // Exact match, remove area
-        const Range range = remove_stand_alone(area);
-        delete area;
-        return range;
-      } else {
-        // Larger than requested, shrink area
-        return remove_from_back(area, size);
-      }
+    if (area->size() < size) {
+      continue;
+    }
+
+    if (area->size() == size) {
+      // Exact match, remove area
+      const Range range = remove_stand_alone(area);
+      delete area;
+      return range;
+    } else {
+      // Larger than requested, shrink area
+      return remove_from_back(area, size);
     }
   }
 
@@ -410,31 +417,7 @@ Range ZMemoryManagerImpl<Range>::remove_from_high(size_t size) {
 }
 
 template <typename Range>
-void ZMemoryManagerImpl<Range>::remove_from_high_many(size_t size, ZArray<Range>* out) {
-  ZLocker<ZLock> locker(&_lock);
-
-  size_t remaining = size;
-  ZListReverseIterator<ZMemory> iter(&_list);
-  for (ZMemory* area; iter.next(&area);) {
-    if (area->size() <= remaining) {
-      // Smaller than or equal to requested, remove area
-      remaining -= area->size();
-      const Range range = remove_stand_alone(area);
-      delete area;
-      out->append(range);
-    } else {
-      // Larger than requested, shrink area
-      const Range range = remove_from_back(area, remaining);
-      out->append(range);
-      return;
-    }
-  }
-
-  ShouldNotReachHere();
-}
-
-template <typename Range>
-void ZMemoryManagerImpl<Range>::transfer_low_address(ZMemoryManagerImpl* other, size_t size) {
+void ZMemoryManagerImpl<Range>::transfer_from_low(ZMemoryManagerImpl* other, size_t size) {
   assert(other->_list.is_empty(), "Should only be used for initialization");
 
   ZLocker<ZLock> locker(&_lock);
@@ -458,6 +441,8 @@ void ZMemoryManagerImpl<Range>::transfer_low_address(ZMemoryManagerImpl* other, 
       break;
     }
   }
+
+  assert(to_move == 0, "Should have transferred requested size");
 }
 
 template <typename Range>

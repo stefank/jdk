@@ -67,7 +67,7 @@ ZPhysicalMemoryManager::ZPhysicalMemoryManager(size_t max_capacity)
     const zbacking_index index = to_zbacking_index(next_index);
 
     // Insert the next number of segment indices into id's manager
-    manager->insert(index, num_segments);
+    manager->insert({index, num_segments});
 
     // Advance to next index by the inserted number of segment indices
     next_index += num_segments;
@@ -193,7 +193,7 @@ void ZPhysicalMemoryManager::free(const zbacking_index* pmem, size_t size, uint3
     const zbacking_index index = to_zbacking_index(segment_start);
 
     // Insert the free segment indices
-    _nodes.get(numa_id).insert(index, num_segments);
+    _nodes.get(numa_id).insert({index, num_segments});
   });
 }
 

@@ -36,7 +36,7 @@ private:
   using ZMemoryManager = ZMemoryManagerImpl<ZVirtualMemory>;
 
   ZMemoryManager _virtual_memory_reservation;
-  size_t         _reserved;
+  const size_t   _reserved;
 
   static size_t calculate_min_range(size_t size);
 
@@ -50,7 +50,9 @@ private:
   bool reserve_contiguous(size_t size);
   size_t reserve_discontiguous(zoffset start, size_t size, size_t min_range);
   size_t reserve_discontiguous(size_t size);
-  size_t reserve(size_t max_capacity);
+
+  size_t reserve_inner(size_t size);
+  size_t reserve(size_t size);
 
   DEBUG_ONLY(size_t force_reserve_discontiguous(size_t size);)
 

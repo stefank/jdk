@@ -37,29 +37,19 @@
 
 ZVirtualMemoryReserver::ZVirtualMemoryReserver(size_t size)
   : _virtual_memory_reservation(),
-    _reserved() {
-
-  // Initialize platform specific parts before reserving address space
-  pd_initialize_before_reserve();
-
-  // Reserve address space
-  _reserved = reserve(size);
-
-  // This registers the Windows callbacks for this node
-  pd_initialize_after_reserve(&_virtual_memory_reservation);
-}
+    _reserved(reserve(size)) {}
 
 void ZVirtualMemoryReserver::unreserve() {
   for (ZVirtualMemory vmem; _virtual_memory_reservation.disown_first(&vmem);) {
     const zaddress_unsafe addr = ZOffset::address_unsafe(vmem.start());
 
-     // Reserve address space
+     // Unreserve address space
      pd_unreserve(addr, vmem.size());
   }
 }
 
 bool ZVirtualMemoryReserver::is_empty() const {
-  return _virtual_memory_reservation.total_range().is_null();
+  return _virtual_memory_reservation.is_empty();
 }
 
 bool ZVirtualMemoryReserver::is_contiguous() const {
@@ -71,14 +61,14 @@ size_t ZVirtualMemoryReserver::reserved() const {
 }
 
 void ZVirtualMemoryReserver::initialize_node(ZMemoryManager* node, size_t size) {
-  assert(node->total_range().is_null(), "Should be empty when initializing");
+  assert(node->is_empty(), "Should be empty when initializing");
 
-  _virtual_memory_reservation.transfer_low_address(node, size);
+  _virtual_memory_reservation.transfer_from_low(node, size);
 
   // Set the limits according to the virtual memory given to this node
-  node->set_limits(node->total_range());
+  node->anchor_limits();
 
-  // This registers the Windows callbacks after memory has been transfered.
+  // This registers the Windows callbacks after memory has been transferred
   pd_initialize_after_reserve(node);
 }
 
@@ -202,7 +192,7 @@ bool ZVirtualMemoryReserver::reserve_contiguous(zoffset start, size_t size) {
   ZNMT::reserve(addr, size);
 
   // Register the memory reservation
-  _virtual_memory_reservation.insert(start, size);
+  _virtual_memory_reservation.insert({start, size});
 
   return true;
 }
@@ -223,7 +213,7 @@ bool ZVirtualMemoryReserver::reserve_contiguous(size_t size) {
   return false;
 }
 
-size_t ZVirtualMemoryReserver::reserve(size_t size) {
+size_t ZVirtualMemoryReserver::reserve_inner(size_t size) {
 #ifdef ASSERT
   if (ZForceDiscontiguousHeapReservations > 0) {
     return force_reserve_discontiguous(size);
@@ -237,6 +227,19 @@ size_t ZVirtualMemoryReserver::reserve(size_t size) {
 
   // Fall back to a discontiguous address space
   return reserve_discontiguous(size);
+}
+
+size_t ZVirtualMemoryReserver::reserve(size_t size) {
+  // Initialize platform specific parts before reserving address space
+  pd_initialize_before_reserve();
+
+  // Reserve address space
+  const size_t reserved = reserve_inner(size);
+
+  // This registers the Windows callbacks for this node
+  pd_initialize_after_reserve(&_virtual_memory_reservation);
+
+  return reserved;
 }
 
 ZVirtualMemoryManager::ZVirtualMemoryManager(size_t max_capacity)
@@ -303,11 +306,11 @@ ZVirtualMemory ZVirtualMemoryManager::remove_from_multi_node(size_t size) {
 }
 
 void ZVirtualMemoryManager::insert_into_multi_node(const ZVirtualMemory& vmem) {
-  _multi_node.insert(vmem.start(), vmem.size());
+  _multi_node.insert(vmem);
 }
 
 void ZVirtualMemoryManager::insert_and_remove_from_low_many(const ZVirtualMemory& vmem, uint32_t numa_id, ZArray<ZVirtualMemory>* vmems_out) {
-  _nodes.get(numa_id).insert_and_remove_from_low_many(vmem.start(), vmem.size(), vmems_out);
+  _nodes.get(numa_id).insert_and_remove_from_low_many(vmem, vmems_out);
 }
 
 ZVirtualMemory ZVirtualMemoryManager::insert_and_remove_from_low_exact_or_many(size_t size, uint32_t numa_id, ZArray<ZVirtualMemory>* vmems_in_out) {
@@ -324,12 +327,12 @@ ZVirtualMemory ZVirtualMemoryManager::remove_low_address(size_t size, uint32_t n
 
 void ZVirtualMemoryManager::insert(const ZVirtualMemory& vmem) {
   const uint32_t numa_id = get_numa_id(vmem);
-  _nodes.get(numa_id).insert(vmem.start(), vmem.size());
+  _nodes.get(numa_id).insert(vmem);
 }
 
 void ZVirtualMemoryManager::insert(const ZVirtualMemory& vmem, uint32_t numa_id) {
   assert(numa_id == get_numa_id(vmem), "wrong numa_id for vmem");
-  _nodes.get(numa_id).insert(vmem.start(), vmem.size());
+  _nodes.get(numa_id).insert(vmem);
 }
 
 uint32_t ZVirtualMemoryManager::get_numa_id(const ZVirtualMemory& vmem) const {

@@ -28,7 +28,7 @@
 void ZNUMA::pd_initialize() {
   _enabled = false;
   _count = 1;
-  NOT_PRODUCT(ZFakeNUMA = 1;)
+  //NOT_PRODUCT(ZFakeNUMA = 1;)
 }
 
 uint32_t ZNUMA::id() {
