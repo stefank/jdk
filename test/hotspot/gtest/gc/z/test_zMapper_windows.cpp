@@ -153,8 +153,8 @@ public:
     EXPECT_REMOVAL_OK(bottom);
 
     // Insert two chunks and then remove them again
-    _va->insert(bottom.start(), ZGranuleSize * 4);
-    _va->insert(bottom.start() + ZGranuleSize * 6, ZGranuleSize * 6);
+    _va->insert({bottom.start(), ZGranuleSize * 4});
+    _va->insert({bottom.start() + ZGranuleSize * 6, ZGranuleSize * 6});
 
     ZVirtualMemory range = _va->remove_from_low(ZGranuleSize * 4);
     EXPECT_REMOVAL_OK(range);
@@ -163,12 +163,12 @@ public:
     EXPECT_REMOVAL_OK(range);
 
     // Now insert it all, and verify it can be removed again
-    _va->insert(bottom.start(), ZMapperTestReservationSize);
+    _va->insert({bottom.start(), ZMapperTestReservationSize});
 
     bottom = _va->remove_from_low(ZMapperTestReservationSize);
     EXPECT_REMOVAL_OK(bottom);
 
-    _va->insert(bottom.start(), ZMapperTestReservationSize);
+    _va->insert({bottom.start(), ZMapperTestReservationSize});
   }
 };
 
