@@ -36,8 +36,9 @@ private:
   static void pd_initialize();
 
 public:
-  static bool is_faked();
   static void initialize();
+
+  static bool is_faked();
   static bool is_enabled();
 
   static uint32_t count();
