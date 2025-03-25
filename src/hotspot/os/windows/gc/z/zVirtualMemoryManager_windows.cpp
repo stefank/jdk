@@ -100,26 +100,27 @@ private:
 
     // Called when inserting a memory range and it can be merged at the start of an
     // existing range. Coalesce the underlying placeholders into one.
-    static void merge_callback(const ZVirtualMemory& inserted, const ZVirtualMemory& extended) {
-      assert(is_aligned(inserted.size(), ZGranuleSize), "Must be granule aligned");
-      assert(is_aligned(extended.size(), ZGranuleSize), "Must be granule aligned");
-      assert(inserted != extended, "Must have grown");
-      assert(extended.contains(inserted), "Must be within");
+    static void grow_callback(const ZVirtualMemory& from, const ZVirtualMemory& to) {
+      assert(is_aligned(from.size(), ZGranuleSize), "Must be granule aligned");
+      assert(is_aligned(to.size(), ZGranuleSize), "Must be granule aligned");
+      assert(from != to, "Must have grown");
+      assert(to.contains(from), "Must be within");
 
-
-      coalesce_into_one_placeholder(extended.start(), extended.size());
+      coalesce_into_one_placeholder(to.start(), to.size());
     }
 
     // Called when a memory range is removed at the front of an existing memory range.
     // Turn the first part of the memory range into granule sized placeholders.
-    static void split_callback(const ZVirtualMemory& extracted, const ZVirtualMemory& origin) {
-      assert(is_aligned(extracted.size(), ZGranuleSize), "Must be granule aligned");
-      assert(origin.contains(extracted), "Must be larger than what we try to split out");
-      assert(origin.start() == extracted.start() || origin.end() == extracted.end(),
+    static void shrink_callback(const ZVirtualMemory& from, const ZVirtualMemory& to) {
+      assert(is_aligned(from.size(), ZGranuleSize), "Must be granule aligned");
+      assert(is_aligned(to.size(), ZGranuleSize), "Must be granule aligned");
+      assert(from != to, "Must have shrunk");
+      assert(from.contains(to), "Must be larger than what we try to split out");
+      assert(from.start() == to.start() || from.end() == to.end(),
              "Only verified to work if we split a placeholder into two placeholders");
 
       // Split the range into two placeholders
-      split_placeholder(extracted.start(), extracted.size());
+      split_placeholder(to.start(), to.size());
     }
 
   public:
@@ -151,8 +152,8 @@ private:
 
       callbacks._insert = &insert_callback;
       callbacks._remove = &remove_callback;
-      callbacks._merge = &merge_callback;
-      callbacks._split = &split_callback;
+      callbacks._grow = &grow_callback;
+      callbacks._shrink = &shrink_callback;
 
       return callbacks;
     }

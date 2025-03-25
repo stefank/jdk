@@ -112,45 +112,45 @@ TEST(ZMemoryRange, resize) {
   mem.shrink_from_back(ZGranuleSize);
 }
 
-TEST(ZMemoryRange, split_front) {
+TEST(ZMemoryRange, shrink_from_front) {
   ZAddressOffsetMaxSetter setter;
 
   ZVirtualMemory mem(zoffset(0), ZGranuleSize * 10);
 
-  ZVirtualMemory mem0 = mem.split_from_front(0);
+  ZVirtualMemory mem0 = mem.shrink_from_front(0);
   EXPECT_EQ(mem0.size(), 0u);
   EXPECT_EQ(mem.size(), ZGranuleSize * 10);
 
-  ZVirtualMemory mem1 = mem.split_from_front(ZGranuleSize * 5);
+  ZVirtualMemory mem1 = mem.shrink_from_front(ZGranuleSize * 5);
   EXPECT_EQ(mem1.size(), ZGranuleSize * 5);
   EXPECT_EQ(mem.size(), ZGranuleSize * 5);
 
-  ZVirtualMemory mem2 = mem.split_from_front(ZGranuleSize * 5);
+  ZVirtualMemory mem2 = mem.shrink_from_front(ZGranuleSize * 5);
   EXPECT_EQ(mem2.size(), ZGranuleSize * 5);
   EXPECT_EQ(mem.size(), 0u);
 
-  ZVirtualMemory mem3 = mem.split_from_front(0);
+  ZVirtualMemory mem3 = mem.shrink_from_front(0);
   EXPECT_EQ(mem3.size(), 0u);
 }
 
-TEST(ZMemoryRange, split_back) {
+TEST(ZMemoryRange, shrink_from_back) {
   ZAddressOffsetMaxSetter setter;
 
   ZVirtualMemory mem(zoffset(0), ZGranuleSize * 10);
 
-  ZVirtualMemory mem0 = mem.split_from_back(0);
+  ZVirtualMemory mem0 = mem.shrink_from_back(0);
   EXPECT_EQ(mem0.size(), 0u);
   EXPECT_EQ(mem.size(), ZGranuleSize * 10);
 
-  ZVirtualMemory mem1 = mem.split_from_back(ZGranuleSize * 5);
+  ZVirtualMemory mem1 = mem.shrink_from_back(ZGranuleSize * 5);
   EXPECT_EQ(mem1.size(), ZGranuleSize * 5);
   EXPECT_EQ(mem.size(), ZGranuleSize * 5);
 
-  ZVirtualMemory mem2 = mem.split_from_back(ZGranuleSize * 5);
+  ZVirtualMemory mem2 = mem.shrink_from_back(ZGranuleSize * 5);
   EXPECT_EQ(mem2.size(), ZGranuleSize * 5);
   EXPECT_EQ(mem.size(), 0u);
 
-  ZVirtualMemory mem3 = mem.split_from_back(0);
+  ZVirtualMemory mem3 = mem.shrink_from_back(0);
   EXPECT_EQ(mem3.size(), 0u);
 }
 

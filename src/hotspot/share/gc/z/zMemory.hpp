@@ -62,13 +62,11 @@ public:
 
   bool contains(const ZRange& other) const;
 
-  void shrink_from_front(size_t size);
-  void shrink_from_back(size_t size);
   void grow_from_front(size_t size);
   void grow_from_back(size_t size);
 
-  ZRange split_from_front(size_t size);
-  ZRange split_from_back(size_t size);
+  ZRange shrink_from_front(size_t size);
+  ZRange shrink_from_back(size_t size);
 
   ZRange partition(size_t offset, size_t partition_size) const;
   ZRange first_part(size_t split_offset) const;
@@ -98,14 +96,14 @@ public:
   using offset_end = typename Range::offset_end;
   typedef void (*CallbackInsert)(const Range& range);
   typedef void (*CallbackRemove)(const Range& range);
-  typedef void (*CallbackMerge)(const Range& inserted, const Range& extended);
-  typedef void (*CallbackSplit)(const Range& extracted, const Range& origin);
+  typedef void (*CallbackGrow)(const Range& from, const Range& to);
+  typedef void (*CallbackShrink)(const Range& extracted, const Range& origin);
 
   struct Callbacks {
     CallbackInsert _insert;
     CallbackRemove _remove;
-    CallbackMerge  _merge;
-    CallbackSplit  _split;
+    CallbackGrow   _grow;
+    CallbackShrink _shrink;
 
     Callbacks();
   };
@@ -124,8 +122,8 @@ private:
   void grow_from_front(ZMemory* area, size_t size);
   void grow_from_back(ZMemory* area, size_t size);
 
-  Range split_from_front(ZMemory* area, size_t size);
-  Range split_from_back(ZMemory* area, size_t size);
+  Range shrink_from_front(ZMemory* area, size_t size);
+  Range shrink_from_back(ZMemory* area, size_t size);
 
   Range remove_from_low_inner(size_t size);
   Range remove_from_low_at_most_inner(size_t size);

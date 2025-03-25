@@ -37,9 +37,7 @@
 
 ZVirtualMemoryReserver::ZVirtualMemoryReserver(size_t size)
   : _virtual_memory_reservation(),
-    _reserved(reserve(size)) {
-  pd_register_callbacks(&_virtual_memory_reservation);
-}
+    _reserved(reserve(size)) {}
 
 void ZVirtualMemoryReserver::unreserve() {
   for (ZVirtualMemory vmem; _virtual_memory_reservation.unregister_first(&vmem);) {
@@ -218,6 +216,8 @@ bool ZVirtualMemoryReserver::reserve_contiguous(size_t size) {
 size_t ZVirtualMemoryReserver::reserve(size_t size) {
   // Initialize platform specific parts before reserving address space
   pd_initialize_before_reserve();
+
+  pd_register_callbacks(&_virtual_memory_reservation);
 
   // Reserve address space
 

@@ -278,14 +278,14 @@ ZVirtualMemory ZMappedCache::remove_vmem(ZMappedCacheEntry* const entry, size_t 
     // Partial removal
     if (strategy == RemovalStrategy::LowestAddress) {
       const size_t unused_size = size - to_remove;
-      const ZVirtualMemory unused_vmem = vmem.split_from_back(unused_size);
+      const ZVirtualMemory unused_vmem = vmem.shrink_from_back(unused_size);
       tree_update(entry, unused_vmem);
 
     } else {
       assert(strategy == RemovalStrategy::HighestAddress, "must be LowestAddress or HighestAddress");
 
       const size_t unused_size = size - to_remove;
-      const ZVirtualMemory unused_vmem = vmem.split_from_front(unused_size);
+      const ZVirtualMemory unused_vmem = vmem.shrink_from_front(unused_size);
 
       auto cursor = _tree.get_cursor(entry->node_addr());
       assert(cursor.is_valid(), "must be");

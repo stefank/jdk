@@ -1385,7 +1385,7 @@ public:
       // Remap to the newly allocated virtual address ranges
       size_t mapped = 0;
       for (const ZVirtualMemory& to_vmem : vmems_out->slice_back(start_index)) {
-        ZVirtualMemory from_vmem = remaining_vmem.split_from_front(to_vmem.size());
+        const ZVirtualMemory from_vmem = remaining_vmem.shrink_from_front(to_vmem.size());
 
         // Copy physical segments
         node.copy_physical_segments_to_node(to_vmem, from_vmem);
@@ -1419,7 +1419,7 @@ public:
     // Each partial allocation is mapped to the virtual memory in order
     for (ZMemoryAllocation* partial_allocation : *partial_allocations) {
       // Track each separate vmem's numa node
-      const ZVirtualMemory partial_vmem = remaining.split_from_front(partial_allocation->size());
+      const ZVirtualMemory partial_vmem = remaining.shrink_from_front(partial_allocation->size());
       ZAllocNode* const node = &partial_allocation->node();
       tracker->map()->push({partial_vmem, node});
     }
@@ -1868,7 +1868,7 @@ void ZPageAllocator::copy_claimed_physical_multi_node(ZMultiNodeAllocation* mult
 
   for (const ZMemoryAllocation* partial_allocation : *multi_node_allocation->allocations()) {
     // Split off the partial allocation's partial
-    ZVirtualMemory partial_dest_vmem = remaining_dest_vmem.split_from_front(partial_allocation->size());
+    ZVirtualMemory partial_dest_vmem = remaining_dest_vmem.shrink_from_front(partial_allocation->size());
 
     // Get the partial allocation's node
     ZAllocNode& node = partial_allocation->node();
@@ -1876,7 +1876,7 @@ void ZPageAllocator::copy_claimed_physical_multi_node(ZMultiNodeAllocation* mult
     // Copy all physical segments from the node to the destination vmem
     for (const ZVirtualMemory from_vmem : *partial_allocation->partial_vmems()) {
       // Split off destination
-      const ZVirtualMemory to_vmem = partial_dest_vmem.split_from_front(from_vmem.size());
+      const ZVirtualMemory to_vmem = partial_dest_vmem.shrink_from_front(from_vmem.size());
 
       // Copy physical segments
       node.copy_physical_segments_from_node(from_vmem, to_vmem);
@@ -1948,7 +1948,7 @@ void ZPageAllocator::claim_physical_for_increased_capacity_multi_node(const ZMul
   ZVirtualMemory remaining = vmem;
 
   for (ZMemoryAllocation* allocation : *multi_node_allocation->allocations()) {
-    const ZVirtualMemory partial = remaining.split_from_front(allocation->size());
+    const ZVirtualMemory partial = remaining.shrink_from_front(allocation->size());
     claim_physical_for_increased_capacity(allocation, partial);
   }
 }
@@ -1971,7 +1971,7 @@ bool ZPageAllocator::commit_memory_multi_node(ZMultiNodeAllocation* multi_node_a
   ZVirtualMemory remaining = vmem;
   for (ZMemoryAllocation* const allocation : *multi_node_allocation->allocations()) {
     // Split off the partial allocation's memory range
-    const ZVirtualMemory partial_vmem = remaining.split_from_front(allocation->size());
+    const ZVirtualMemory partial_vmem = remaining.shrink_from_front(allocation->size());
 
     if (allocation->harvested() == allocation->size()) {
       // The allocation has already been fully satisfied by harvesting.
@@ -2010,7 +2010,7 @@ void ZPageAllocator::map_memory_multi_node(ZMultiNodeAllocation* multi_node_allo
   ZVirtualMemory remaining = vmem;
   for (ZMemoryAllocation* const allocation : *multi_node_allocation->allocations()) {
     // Split off the partial allocation's memory range
-    const ZVirtualMemory to_vmem = remaining.split_from_front(allocation->size());
+    const ZVirtualMemory to_vmem = remaining.shrink_from_front(allocation->size());
 
     ZAllocNode& original_node = allocation->node();
     ZArray<ZVirtualMemory>* const partial_vmems = allocation->partial_vmems();
@@ -2036,7 +2036,7 @@ void ZPageAllocator::cleanup_failed_commit_multi_node(ZMultiNodeAllocation* mult
   ZVirtualMemory remaining = vmem;
   for (ZMemoryAllocation* const allocation : *multi_node_allocation->allocations()) {
     // Split off the partial allocation's memory range
-    const ZVirtualMemory partial_vmem = remaining.split_from_front(allocation->size());
+    const ZVirtualMemory partial_vmem = remaining.shrink_from_front(allocation->size());
 
     const size_t committed = allocation->committed_capacity();
 
@@ -2065,7 +2065,7 @@ void ZPageAllocator::cleanup_failed_commit_multi_node(ZMultiNodeAllocation* mult
 
     ZVirtualMemory remaining_non_harvest_vmem = non_harvest_vmem;
     for (const ZVirtualMemory& to_vmem : partial_vmems->slice_back(start_index)) {
-      const ZVirtualMemory from_vmem = remaining_non_harvest_vmem.split_from_front(to_vmem.size());
+      const ZVirtualMemory from_vmem = remaining_non_harvest_vmem.shrink_from_front(to_vmem.size());
 
       // Copy physical mappings
       node.copy_physical_segments_to_node(to_vmem, from_vmem);
