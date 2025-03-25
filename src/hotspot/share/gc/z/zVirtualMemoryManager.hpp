@@ -86,17 +86,15 @@ public:
   bool is_multi_node_enabled() const;
   bool is_in_multi_node(const ZVirtualMemory& vmem) const;
 
-  ZVirtualMemory remove_from_multi_node(size_t size);
-  void insert_into_multi_node(const ZVirtualMemory& vmem);
+  void insert(const ZVirtualMemory& vmem, uint32_t numa_id);
+  void insert_multi_node(const ZVirtualMemory& vmem);
+
+  size_t remove_from_low_many_at_most(size_t size, uint32_t numa_id, ZArray<ZVirtualMemory>* vmems_out);
+  ZVirtualMemory remove_from_low(size_t size, uint32_t numa_id);
+  ZVirtualMemory remove_from_low_multi_node(size_t size);
 
   void insert_and_remove_from_low_many(const ZVirtualMemory& vmem, uint32_t numa_id, ZArray<ZVirtualMemory>* vmems_out);
   ZVirtualMemory insert_and_remove_from_low_exact_or_many(size_t size, uint32_t numa_id, ZArray<ZVirtualMemory>* vmems_in_out);
-
-  size_t remove_from_low_many_at_most(size_t size, uint32_t numa_id, ZArray<ZVirtualMemory>* vmems_out);
-  ZVirtualMemory remove_low_address(size_t size, uint32_t numa_id);
-
-  void insert(const ZVirtualMemory& vmem);
-  void insert(const ZVirtualMemory& vmem, uint32_t numa_id);
 
   uint32_t get_numa_id(const ZVirtualMemory& vmem) const;
   zoffset lowest_available_address(uint32_t numa_id) const;

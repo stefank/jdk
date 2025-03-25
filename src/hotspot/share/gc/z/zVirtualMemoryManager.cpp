@@ -301,12 +301,25 @@ bool ZVirtualMemoryManager::is_in_multi_node(const ZVirtualMemory& vmem) const {
   return _multi_node.limits_contain(vmem);
 }
 
-ZVirtualMemory ZVirtualMemoryManager::remove_from_multi_node(size_t size) {
-  return _multi_node.remove_from_low(size);
+void ZVirtualMemoryManager::insert(const ZVirtualMemory& vmem, uint32_t numa_id) {
+  assert(numa_id == get_numa_id(vmem), "wrong numa_id for vmem");
+  _nodes.get(numa_id).insert(vmem);
 }
 
-void ZVirtualMemoryManager::insert_into_multi_node(const ZVirtualMemory& vmem) {
+void ZVirtualMemoryManager::insert_multi_node(const ZVirtualMemory& vmem) {
   _multi_node.insert(vmem);
+}
+
+size_t ZVirtualMemoryManager::remove_from_low_many_at_most(size_t size, uint32_t numa_id, ZArray<ZVirtualMemory>* vmems_out) {
+  return _nodes.get(numa_id).remove_from_low_many_at_most(size, vmems_out);
+}
+
+ZVirtualMemory ZVirtualMemoryManager::remove_from_low(size_t size, uint32_t numa_id) {
+  return _nodes.get(numa_id).remove_from_low(size);
+}
+
+ZVirtualMemory ZVirtualMemoryManager::remove_from_low_multi_node(size_t size) {
+  return _multi_node.remove_from_low(size);
 }
 
 void ZVirtualMemoryManager::insert_and_remove_from_low_many(const ZVirtualMemory& vmem, uint32_t numa_id, ZArray<ZVirtualMemory>* vmems_out) {
@@ -315,24 +328,6 @@ void ZVirtualMemoryManager::insert_and_remove_from_low_many(const ZVirtualMemory
 
 ZVirtualMemory ZVirtualMemoryManager::insert_and_remove_from_low_exact_or_many(size_t size, uint32_t numa_id, ZArray<ZVirtualMemory>* vmems_in_out) {
   return _nodes.get(numa_id).insert_and_remove_from_low_exact_or_many(size, vmems_in_out);
-}
-
-size_t ZVirtualMemoryManager::remove_from_low_many_at_most(size_t size, uint32_t numa_id, ZArray<ZVirtualMemory>* vmems_out) {
-  return _nodes.get(numa_id).remove_from_low_many_at_most(size, vmems_out);
-}
-
-ZVirtualMemory ZVirtualMemoryManager::remove_low_address(size_t size, uint32_t numa_id) {
-  return _nodes.get(numa_id).remove_from_low(size);
-}
-
-void ZVirtualMemoryManager::insert(const ZVirtualMemory& vmem) {
-  const uint32_t numa_id = get_numa_id(vmem);
-  _nodes.get(numa_id).insert(vmem);
-}
-
-void ZVirtualMemoryManager::insert(const ZVirtualMemory& vmem, uint32_t numa_id) {
-  assert(numa_id == get_numa_id(vmem), "wrong numa_id for vmem");
-  _nodes.get(numa_id).insert(vmem);
 }
 
 uint32_t ZVirtualMemoryManager::get_numa_id(const ZVirtualMemory& vmem) const {

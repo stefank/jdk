@@ -1062,7 +1062,7 @@ void ZAllocNode::unmap_virtual_from_multi_node(const ZVirtualMemory& vmem) {
 ZVirtualMemory ZAllocNode::claim_virtual(size_t size) {
   ZVirtualMemoryManager& manager = virtual_memory_manager();
 
-  return manager.remove_low_address(size, _numa_id);
+  return manager.remove_from_low(size, _numa_id);
 }
 
 size_t ZAllocNode::claim_virtual(size_t size, ZArray<ZVirtualMemory>* vmems_out) {
@@ -1399,7 +1399,7 @@ public:
     }
 
     // Free the virtual memory
-    allocator->_virtual.insert_into_multi_node(vmem);
+    allocator->_virtual.insert_multi_node(vmem);
   }
 
   static void destroy(const ZMultiNodeTracker* tracker) {
@@ -1884,7 +1884,7 @@ void ZPageAllocator::copy_claimed_physical_multi_node(ZMultiNodeAllocation* mult
 ZVirtualMemory ZPageAllocator::claim_virtual_memory_multi_node(ZMultiNodeAllocation* multi_node_allocation) {
   const size_t size = multi_node_allocation->size();
 
-  const ZVirtualMemory vmem = _virtual.remove_from_multi_node(size);
+  const ZVirtualMemory vmem = _virtual.remove_from_low_multi_node(size);
   if (!vmem.is_null()) {
     // Copy claimed multi-node vmems, we leave the old vmems mapped until after
     // we have committed. In case committing fails we can simply reinsert the
@@ -2077,7 +2077,7 @@ void ZPageAllocator::cleanup_failed_commit_multi_node(ZMultiNodeAllocation* mult
   assert(remaining.size() == 0, "all memory must be accounted for");
 
   // Free the unused virtual memory
-  _virtual.insert_into_multi_node(vmem);
+  _virtual.insert_multi_node(vmem);
 }
 
 bool ZPageAllocator::commit_and_map_memory_multi_node(ZMultiNodeAllocation* multi_node_allocation, const ZVirtualMemory& vmem) {
