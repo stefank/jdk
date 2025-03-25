@@ -1235,15 +1235,14 @@ ZVirtualMemory ZAllocNode::commit_increased_capacity(ZMemoryAllocation* allocati
   const ZVirtualMemory already_committed_vmem = vmem.first_part(already_committed);
   const ZVirtualMemory to_be_committed_vmem = vmem.last_part(already_committed);
 
-  // Try to commit all physical memory, commit_physical frees both the virtual
-  // and physical parts that correspond to the memory that failed to be committed.
+  // Try to commit the uncommitted physical memory
   const size_t committed = commit_physical(to_be_committed_vmem);
-
-  // We got more committed memory
-  const ZVirtualMemory total_committed_vmem(already_committed_vmem.start(), already_committed_vmem.size() + committed);
 
   // Keep track of the committed amount
   allocation->set_committed_capacity(committed);
+
+  // Total committed memory
+  const ZVirtualMemory total_committed_vmem(already_committed_vmem.start(), already_committed_vmem.size() + committed);
 
   return total_committed_vmem;
 }
