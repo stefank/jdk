@@ -1262,9 +1262,9 @@ bool ZAllocNode::commit_and_map_memory(ZMemoryAllocation* allocation, const ZVir
       ? vmem // Already fully committed
       : commit_increased_capacity(allocation, vmem);
 
-  // Check if we managed to commit all we requested
+  // Check if all memory is committed
   if (committed_vmem.size() != vmem.size()) {
-    // Failed to commit all that we requested
+    // Failed to commit physical memory from increased capacity
 
     // Free the uncommitted memory
     const ZVirtualMemory not_commited_vmem = vmem.last_part(committed_vmem.size());
@@ -1275,7 +1275,7 @@ bool ZAllocNode::commit_and_map_memory(ZMemoryAllocation* allocation, const ZVir
   }
 
   if (committed_vmem.size() == 0)  {
-    // We have not managed to get any committed memory at all.
+    // We have not managed to get any committed memory at all
     return false;
   }
 
@@ -1283,7 +1283,9 @@ bool ZAllocNode::commit_and_map_memory(ZMemoryAllocation* allocation, const ZVir
   map_memory(allocation, committed_vmem);
 
   if (committed_vmem.size() != vmem.size()) {
-    // Register the committed and mapped memory
+    // Register the committed and mapped memory. We insert the committed
+    // memory into partial_vmems so that it will be inserted into the cache
+    // in a subsequent step.
     allocation->partial_vmems()->append(committed_vmem);
 
     return false;
