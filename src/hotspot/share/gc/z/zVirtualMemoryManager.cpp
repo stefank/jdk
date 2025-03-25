@@ -255,7 +255,7 @@ ZVirtualMemoryManager::ZVirtualMemoryManager(size_t max_capacity)
   const size_t desired_for_multi_node = ZNUMA::count() > 1 ? max_capacity : 0;
 
   const size_t desired = desired_for_nodes + desired_for_multi_node;
-  const size_t requested = desired >= limit
+  const size_t requested = desired <= limit
       ? desired
       : MIN2(desired_for_nodes, limit);
 
