@@ -39,6 +39,18 @@ ZVirtualMemoryReserver::ZVirtualMemoryReserver(size_t size)
   : _virtual_memory_reservation(),
     _reserved(reserve(size)) {}
 
+void ZVirtualMemoryReserver::initialize_node(ZMemoryManager* node, size_t size) {
+  assert(node->is_empty(), "Should be empty when initializing");
+
+  // Registers the Windows callbacks
+  pd_register_callbacks(node);
+
+  _virtual_memory_reservation.transfer_from_low(node, size);
+
+  // Set the limits according to the virtual memory given to this node
+  node->anchor_limits();
+}
+
 void ZVirtualMemoryReserver::unreserve() {
   for (ZVirtualMemory vmem; _virtual_memory_reservation.unregister_first(&vmem);) {
     const zaddress_unsafe addr = ZOffset::address_unsafe(vmem.start());
@@ -58,18 +70,6 @@ bool ZVirtualMemoryReserver::is_contiguous() const {
 
 size_t ZVirtualMemoryReserver::reserved() const {
   return _reserved;
-}
-
-void ZVirtualMemoryReserver::initialize_node(ZMemoryManager* node, size_t size) {
-  assert(node->is_empty(), "Should be empty when initializing");
-
-  // Registers the Windows callbacks
-  pd_register_callbacks(node);
-
-  _virtual_memory_reservation.transfer_from_low(node, size);
-
-  // Set the limits according to the virtual memory given to this node
-  node->anchor_limits();
 }
 
 void ZVirtualMemoryManager::initialize_nodes(ZVirtualMemoryReserver* reserver, size_t size_for_nodes) {

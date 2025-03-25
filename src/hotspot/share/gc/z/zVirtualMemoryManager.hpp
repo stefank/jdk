@@ -58,14 +58,14 @@ private:
 public:
   ZVirtualMemoryReserver(size_t size);
 
+  void initialize_node(ZMemoryManager* node, size_t size);
+
   void unreserve();
 
-  bool is_initialized() const;
   bool is_empty() const;
   bool is_contiguous() const;
-  size_t reserved() const;
 
-  void initialize_node(ZMemoryManager* node, size_t size);
+  size_t reserved() const;
 };
 
 class ZVirtualMemoryManager {
