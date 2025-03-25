@@ -1383,7 +1383,6 @@ public:
       assert(claimed_virtual == size, "must succeed");
 
       // Remap to the newly allocated virtual address ranges
-      size_t mapped = 0;
       for (const ZVirtualMemory& to_vmem : vmems_out->slice_back(start_index)) {
         const ZVirtualMemory from_vmem = remaining_vmem.shrink_from_front(to_vmem.size());
 
@@ -1395,10 +1394,8 @@ public:
 
         // Map to_vmem
         node.map_virtual(to_vmem);
-
-        mapped += to_vmem.size();
       }
-      assert(claimed_virtual == mapped, "must have mapped all claimed virtual memory");
+      assert(remaining_vmem.size() == 0, "must have mapped all claimed virtual memory");
     }
 
     // Free the virtual memory
