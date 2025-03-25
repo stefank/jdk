@@ -25,6 +25,7 @@
 #include "gc/z/zNUMA.inline.hpp"
 #include "unittest.hpp"
 
+#ifdef ASSERT
 TEST(ZNUMA, calculate_share) {
   // Setup number of NUMA nodes through faking
   const size_t nodes = 4;
@@ -88,3 +89,4 @@ TEST(ZNUMA, calculate_share) {
     EXPECT_EQ(ZNUMA::calculate_share(nodes - 1, total), ZGranuleSize);
   }
 }
+#endif // ASSERT
