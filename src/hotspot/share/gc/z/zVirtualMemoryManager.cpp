@@ -301,6 +301,21 @@ bool ZVirtualMemoryManager::is_in_multi_node(const ZVirtualMemory& vmem) const {
   return _multi_node.limits_contain(vmem);
 }
 
+uint32_t ZVirtualMemoryManager::get_numa_id(const ZVirtualMemory& vmem) const {
+  const uint32_t numa_nodes = ZNUMA::count();
+  for (uint32_t numa_id = 0; numa_id < numa_nodes; numa_id++) {
+    if (_nodes.get(numa_id).limits_contain(vmem)) {
+      return numa_id;
+    }
+  }
+
+  ShouldNotReachHere();
+}
+
+zoffset ZVirtualMemoryManager::lowest_available_address(uint32_t numa_id) const {
+  return _nodes.get(numa_id).peek_low_address();
+}
+
 void ZVirtualMemoryManager::insert(const ZVirtualMemory& vmem, uint32_t numa_id) {
   assert(numa_id == get_numa_id(vmem), "wrong numa_id for vmem");
   _nodes.get(numa_id).insert(vmem);
@@ -328,19 +343,4 @@ void ZVirtualMemoryManager::insert_and_remove_from_low_many(const ZVirtualMemory
 
 ZVirtualMemory ZVirtualMemoryManager::insert_and_remove_from_low_exact_or_many(size_t size, uint32_t numa_id, ZArray<ZVirtualMemory>* vmems_in_out) {
   return _nodes.get(numa_id).insert_and_remove_from_low_exact_or_many(size, vmems_in_out);
-}
-
-uint32_t ZVirtualMemoryManager::get_numa_id(const ZVirtualMemory& vmem) const {
-  const uint32_t numa_nodes = ZNUMA::count();
-  for (uint32_t numa_id = 0; numa_id < numa_nodes; numa_id++) {
-    if (_nodes.get(numa_id).limits_contain(vmem)) {
-      return numa_id;
-    }
-  }
-
-  ShouldNotReachHere();
-}
-
-zoffset ZVirtualMemoryManager::lowest_available_address(uint32_t numa_id) const {
-  return _nodes.get(numa_id).peek_low_address();
 }

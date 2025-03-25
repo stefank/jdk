@@ -86,6 +86,9 @@ public:
   bool is_multi_node_enabled() const;
   bool is_in_multi_node(const ZVirtualMemory& vmem) const;
 
+  uint32_t get_numa_id(const ZVirtualMemory& vmem) const;
+  zoffset lowest_available_address(uint32_t numa_id) const;
+
   void insert(const ZVirtualMemory& vmem, uint32_t numa_id);
   void insert_multi_node(const ZVirtualMemory& vmem);
 
@@ -95,9 +98,6 @@ public:
 
   void insert_and_remove_from_low_many(const ZVirtualMemory& vmem, uint32_t numa_id, ZArray<ZVirtualMemory>* vmems_out);
   ZVirtualMemory insert_and_remove_from_low_exact_or_many(size_t size, uint32_t numa_id, ZArray<ZVirtualMemory>* vmems_in_out);
-
-  uint32_t get_numa_id(const ZVirtualMemory& vmem) const;
-  zoffset lowest_available_address(uint32_t numa_id) const;
 };
 
 #endif // SHARE_GC_Z_ZVIRTUALMEMORYMANAGER_HPP
