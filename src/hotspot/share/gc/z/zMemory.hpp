@@ -57,6 +57,11 @@ public:
 
   size_t size() const;
 
+  bool operator==(const ZRange& other) const;
+  bool operator!=(const ZRange& other) const;
+
+  bool contains(const ZRange& other) const;
+
   void shrink_from_front(size_t size);
   void shrink_from_back(size_t size);
   void grow_from_front(size_t size);
@@ -91,19 +96,16 @@ private:
 public:
   using offset     = typename Range::offset;
   using offset_end = typename Range::offset_end;
-  typedef void (*RangeCallback)(const Range& range);
-  typedef void (*ResizeCallback)(const Range& range, size_t size);
+  typedef void (*CallbackInsert)(const Range& range);
+  typedef void (*CallbackRemove)(const Range& range);
+  typedef void (*CallbackMerge)(const Range& inserted, const Range& extended);
+  typedef void (*CallbackSplit)(const Range& extracted, const Range& origin);
 
   struct Callbacks {
-    RangeCallback  _insert_stand_alone;
-    ResizeCallback _insert_from_front;
-    ResizeCallback _insert_from_back;
-
-    RangeCallback  _remove_stand_alone;
-    ResizeCallback _remove_from_front;
-    ResizeCallback _remove_from_back;
-
-    ResizeCallback _transfer_from_front;
+    CallbackInsert _insert;
+    CallbackRemove _remove;
+    CallbackMerge  _merge;
+    CallbackSplit  _split;
 
     Callbacks();
   };
@@ -119,14 +121,11 @@ private:
   void insert_inner(const Range& range);
   void register_inner(const Range& range);
 
-  void insert_from_front(ZMemory* area, size_t size);
-  void insert_from_back(ZMemory* area, size_t size);
+  void grow_from_front(ZMemory* area, size_t size);
+  void grow_from_back(ZMemory* area, size_t size);
 
-  Range remove_stand_alone(ZMemory* area);
-  Range remove_from_front(ZMemory* area, size_t size);
-  Range remove_from_back(ZMemory* area, size_t size);
-
-  void transfer_from_front(ZMemory* area, size_t size, ZMemoryManagerImpl<Range>* other);
+  Range split_from_front(ZMemory* area, size_t size);
+  Range split_from_back(ZMemory* area, size_t size);
 
   Range remove_from_low_inner(size_t size);
   Range remove_from_low_at_most_inner(size_t size);

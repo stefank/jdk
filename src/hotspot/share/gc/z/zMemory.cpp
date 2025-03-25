@@ -43,6 +43,9 @@ public:
     : _range(start, size),
       _node() {}
 
+  ZRangeNode(const Range& other)
+    : ZRangeNode(other.start(), other.size()) {}
+
   Range* range() {
     return &_range;
   }
@@ -79,16 +82,16 @@ void ZMemoryManagerImpl<Range>::move_into(const Range& range) {
     if (prev != nullptr && start == prev->end()) {
       if (end == area->start()) {
         // Merge with prev and current area
-        insert_from_back(prev, size + area->size());
+        grow_from_back(prev, size + area->size());
         _list.remove(area);
         delete area;
       } else {
         // Merge with prev area
-        insert_from_back(prev, size);
+        grow_from_back(prev, size);
       }
     } else if (end == area->start()) {
       // Merge with current area
-      insert_from_front(area, size);
+      grow_from_front(area, size);
     } else {
       // Insert new area before current area
       assert(end < area->start(), "Areas must not overlap");
@@ -104,7 +107,7 @@ void ZMemoryManagerImpl<Range>::move_into(const Range& range) {
   ZMemory* const last = _list.last();
   if (last != nullptr && start == last->end()) {
     // Merge with last area
-    insert_from_back(last, size);
+    grow_from_back(last, size);
   } else {
     // Insert new area last
     ZMemory* const new_area = new ZMemory(start, size);
@@ -114,8 +117,8 @@ void ZMemoryManagerImpl<Range>::move_into(const Range& range) {
 
 template <typename Range>
 void ZMemoryManagerImpl<Range>::insert_inner(const Range& range) {
-  if (_callbacks._insert_stand_alone != nullptr) {
-    _callbacks._insert_stand_alone(range);
+  if (_callbacks._insert != nullptr) {
+    _callbacks._insert(range);
   }
   move_into(range);
 }
@@ -126,53 +129,43 @@ void ZMemoryManagerImpl<Range>::register_inner(const Range& range) {
 }
 
 template <typename Range>
-void ZMemoryManagerImpl<Range>::insert_from_front(ZMemory* area, size_t size) {
-  if (_callbacks._insert_from_front != nullptr) {
-    _callbacks._insert_from_front(*area->range(), size);
+void ZMemoryManagerImpl<Range>::grow_from_front(ZMemory* area, size_t size) {
+  if (_callbacks._merge != nullptr) {
+    const Range extended = Range(area->range()->start() - size, area->range()->size() + size);
+    const Range inserted = extended.first_part(size);
+    _callbacks._merge(inserted, extended);
   }
   area->range()->grow_from_front(size);
 }
 
 template <typename Range>
-void ZMemoryManagerImpl<Range>::insert_from_back(ZMemory* area, size_t size) {
-  if (_callbacks._insert_from_back != nullptr) {
-    _callbacks._insert_from_back(*area->range(), size);
+void ZMemoryManagerImpl<Range>::grow_from_back(ZMemory* area, size_t size) {
+  if (_callbacks._merge != nullptr) {
+    const Range extended = Range(area->range()->start(), area->range()->size() + size);
+    const Range inserted = extended.last_part(area->range()->size());
+    _callbacks._merge(inserted, extended);
   }
   area->range()->grow_from_back(size);
 }
 
 template <typename Range>
-Range ZMemoryManagerImpl<Range>::remove_stand_alone(ZMemory* area) {
-  if (_callbacks._remove_stand_alone != nullptr) {
-    _callbacks._remove_stand_alone(*area->range());
-  }
-  _list.remove(area);
-  return *area->range();
-}
-
-template <typename Range>
-Range ZMemoryManagerImpl<Range>::remove_from_front(ZMemory* area, size_t size) {
-  if (_callbacks._remove_from_front != nullptr) {
-    _callbacks._remove_from_front(*area->range(), size);
+Range ZMemoryManagerImpl<Range>::split_from_front(ZMemory* area, size_t size) {
+  if (_callbacks._split != nullptr) {
+    const Range extracted = area->range()->first_part(size);
+    const Range origin = *area->range();
+    _callbacks._split(extracted, origin);
   }
   return area->range()->split_from_front(size);
 }
 
 template <typename Range>
-Range ZMemoryManagerImpl<Range>::remove_from_back(ZMemory* area, size_t size) {
-  if (_callbacks._remove_from_back != nullptr) {
-    _callbacks._remove_from_back(*area->range(), size);
+Range ZMemoryManagerImpl<Range>::split_from_back(ZMemory* area, size_t size) {
+  if (_callbacks._split != nullptr) {
+    const Range extracted = area->range()->last_part(area->range()->size() - size);
+    const Range origin = *area->range();
+    _callbacks._split(extracted, origin);
   }
   return area->range()->split_from_back(size);
-}
-
-template <typename Range>
-void ZMemoryManagerImpl<Range>::transfer_from_front(ZMemory* area, size_t size, ZMemoryManagerImpl<Range>* other) {
-  if (_callbacks._transfer_from_front != nullptr) {
-    _callbacks._transfer_from_front(*area->range(), size);
-  }
-  Range to_transfer =  area->range()->split_from_front(size);
-  other->register_range(to_transfer);
 }
 
 template <typename Range>
@@ -180,15 +173,25 @@ Range ZMemoryManagerImpl<Range>::remove_from_low_inner(size_t size) {
   ZListIterator<ZMemory> iter(&_list);
   for (ZMemory* area; iter.next(&area);) {
     if (area->size() >= size) {
+      // Found a match
+
+      Range range;
+
       if (area->size() == size) {
         // Exact match, remove area
-        const Range range = remove_stand_alone(area);
+        _list.remove(area);
+        range = *area->range();
         delete area;
-        return range;
       } else {
         // Larger than requested, shrink area
-        return remove_from_front(area, size);
+        range = split_from_front(area, size);
       }
+
+      if (_callbacks._remove != nullptr) {
+        _callbacks._remove(range);
+      }
+
+      return range;
     }
   }
 
@@ -200,15 +203,23 @@ template <typename Range>
 Range ZMemoryManagerImpl<Range>::remove_from_low_at_most_inner(size_t size) {
   ZMemory* const area = _list.first();
   if (area != nullptr) {
+    Range range;
+
     if (area->size() <= size) {
       // Smaller than or equal to requested, remove area
-      const Range range = remove_stand_alone(area);
+      _list.remove(area);
+      range = *area->range();
       delete area;
-      return range;
     } else {
       // Larger than requested, shrink area
-      return remove_from_front(area, size);
+      range = split_from_front(area, size);
     }
+
+    if (_callbacks._remove) {
+      _callbacks._remove(range);
+    }
+
+    return range;
   }
 
   return Range();
@@ -235,13 +246,10 @@ size_t ZMemoryManagerImpl<Range>::remove_from_low_many_at_most_inner(size_t size
 
 template <typename Range>
 ZMemoryManagerImpl<Range>::Callbacks::Callbacks()
-  : _insert_stand_alone(nullptr),
-    _insert_from_front(nullptr),
-    _insert_from_back(nullptr),
-    _remove_stand_alone(nullptr),
-    _remove_from_front(nullptr),
-    _remove_from_back(nullptr),
-    _transfer_from_front(nullptr) {}
+  : _insert(nullptr),
+    _remove(nullptr),
+    _merge(nullptr),
+    _split(nullptr) {}
 
 template <typename Range>
 ZMemoryManagerImpl<Range>::ZMemoryManagerImpl()
@@ -427,15 +435,23 @@ Range ZMemoryManagerImpl<Range>::remove_from_high(size_t size) {
       continue;
     }
 
+    Range range;
+
     if (area->size() == size) {
       // Exact match, remove area
-      const Range range = remove_stand_alone(area);
+      _list.remove(area);
+      range = *area->range();
       delete area;
-      return range;
     } else {
       // Larger than requested, shrink area
-      return remove_from_back(area, size);
+      range = split_from_back(area, size);
     }
+
+    if (_callbacks._remove != nullptr) {
+      _callbacks._remove(range);
+    }
+
+    return range;
   }
 
   // Out of memory
@@ -451,18 +467,25 @@ void ZMemoryManagerImpl<Range>::transfer_from_low(ZMemoryManagerImpl* other, siz
 
   ZListIterator<ZMemory> iter(&_list);
   for (ZMemory* area; iter.next(&area);) {
+    ZMemory* to_transfer;
+
     if (area->size() <= to_move) {
-      // Smaller than or equal to requested, remove from this list and
-      // insert in other's list
-      to_move -= area->size();
+      // Smaller than or equal to requested, remove area
       _list.remove(area);
-      other->_list.insert_last(area);
+      to_transfer = area;
     } else {
       // Larger than requested, shrink area
-      transfer_from_front(area, to_move, other);
-      to_move = 0;
+      const Range range = split_from_front(area, to_move);
+      to_transfer = new ZMemory(range);
     }
 
+    // Insert into the other list
+    //
+    // The from list is sorted, the other list starts empty, and the inserts
+    // come in sort order, so we can insert_last here.
+    other->_list.insert_last(to_transfer);
+
+    to_move -= to_transfer->size();
     if (to_move == 0) {
       break;
     }

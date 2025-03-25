@@ -69,6 +69,27 @@ inline size_t ZRange<Start, End>::size() const {
 }
 
 template <typename Start, typename End>
+inline bool ZRange<Start, End>::operator==(const ZRange& other) const {
+  precond(!is_null());
+  precond(!other.is_null());
+
+  return _start == other._start && _end == other._end;
+}
+
+template <typename Start, typename End>
+inline bool ZRange<Start, End>::operator!=(const ZRange& other) const {
+  return !operator==(other);
+}
+
+template <typename Start, typename End>
+inline bool ZRange<Start, End>::contains(const ZRange& other) const {
+  precond(!is_null());
+  precond(!other.is_null());
+
+  return _start <= other._start && other._end <= _end;
+}
+
+template <typename Start, typename End>
 inline void ZRange<Start, End>::shrink_from_front(size_t size) {
   assert(this->size() >= size, "Too small");
   _start += size;
