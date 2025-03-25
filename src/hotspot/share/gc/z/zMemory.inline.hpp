@@ -44,11 +44,6 @@ inline ZRange<Start, End>::ZRange(Start start, size_t size)
     _end(to_end_type(start, size)) {}
 
 template <typename Start, typename End>
-inline ZRange<Start, End>::ZRange(End start, size_t size)
-  : _start(start),
-    _end(start + size) {}
-
-template <typename Start, typename End>
 inline bool ZRange<Start, End>::is_null() const {
   return _start == End::invalid;
 }
@@ -91,7 +86,8 @@ inline bool ZRange<Start, End>::contains(const ZRange& other) const {
 
 template <typename Start, typename End>
 inline void ZRange<Start, End>::grow_from_front(size_t size) {
-  assert(size_t(start()) >= size, "Too big");
+  precond(size_t(start()) >= size);
+
   _start -= size;
 }
 
@@ -102,14 +98,17 @@ inline void ZRange<Start, End>::grow_from_back(size_t size) {
 
 template <typename Start, typename End>
 inline ZRange<Start, End> ZRange<Start, End>::shrink_from_front(size_t size) {
-  assert(this->size() >= size, "Too small");
+  precond(this->size() >= size);
+
   _start += size;
-  return ZRange(_start - size, size);
+  return ZRange(to_start_type(_start - size), size);
 }
 
 template <typename Start, typename End>
 inline ZRange<Start, End> ZRange<Start, End>::shrink_from_back(size_t size) {
-  assert(this->size() >= size, "Too small");
+  precond(size > 0);
+  precond(this->size() >= size);
+
   _end -= size;
   return ZRange(to_start_type(_end), size);
 }
@@ -119,7 +118,7 @@ inline ZRange<Start, End> ZRange<Start, End>::partition(size_t offset, size_t pa
   precond(offset < size());
   precond(size() - offset >= partition_size);
 
-  return ZRange(_start + offset, partition_size);
+  return ZRange(to_start_type(_start + offset), partition_size);
 }
 
 template <typename Start, typename End>

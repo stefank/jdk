@@ -138,10 +138,6 @@ TEST(ZMemoryRange, shrink_from_back) {
 
   ZVirtualMemory mem(zoffset(0), ZGranuleSize * 10);
 
-  ZVirtualMemory mem0 = mem.shrink_from_back(0);
-  EXPECT_EQ(mem0.size(), 0u);
-  EXPECT_EQ(mem.size(), ZGranuleSize * 10);
-
   ZVirtualMemory mem1 = mem.shrink_from_back(ZGranuleSize * 5);
   EXPECT_EQ(mem1.size(), ZGranuleSize * 5);
   EXPECT_EQ(mem.size(), ZGranuleSize * 5);
@@ -149,9 +145,6 @@ TEST(ZMemoryRange, shrink_from_back) {
   ZVirtualMemory mem2 = mem.shrink_from_back(ZGranuleSize * 5);
   EXPECT_EQ(mem2.size(), ZGranuleSize * 5);
   EXPECT_EQ(mem.size(), 0u);
-
-  ZVirtualMemory mem3 = mem.shrink_from_back(0);
-  EXPECT_EQ(mem3.size(), 0u);
 }
 
 TEST(ZMemoryRange, adjacent_to) {

@@ -48,7 +48,6 @@ private:
 public:
   ZRange();
   ZRange(Start start, size_t size);
-  ZRange(End start, size_t size);
 
   bool is_null() const;
 
