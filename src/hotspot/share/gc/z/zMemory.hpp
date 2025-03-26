@@ -45,6 +45,9 @@ private:
   End _start;
   End _end;
 
+  // Used internally to create a ZRange.
+  // The size parameter is only used for verification and to distinguish
+  // the constructors if End = size_t
   ZRange(End start, End end, size_t size);
 
 public:
