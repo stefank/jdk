@@ -221,12 +221,13 @@ private:
   void unmap_harvested_memory_multi_node(ZMultiNodeAllocation* multi_node_allocation);
   void map_memory_multi_node(ZMultiNodeAllocation* multi_node_allocation, const ZVirtualMemory& vmem);
   void cleanup_failed_commit_multi_node(ZMultiNodeAllocation* multi_node_allocation, const ZVirtualMemory& vmem);
-
   bool commit_and_map_memory_multi_node(ZMultiNodeAllocation* multi_node_allocation, const ZVirtualMemory& vmem);
+
   bool commit_memory_single_node(ZSingleNodeAllocation* single_node_allocation, const ZVirtualMemory& vmem);
   void map_committed_memory_single_node(ZSingleNodeAllocation* single_node_allocation, const ZVirtualMemory& vmem);
   void cleanup_failed_commit_single_node(ZSingleNodeAllocation* single_node_allocation, const ZVirtualMemory& vmem);
   bool commit_and_map_memory_single_node(ZSingleNodeAllocation* single_node_allocation, const ZVirtualMemory& vmem);
+
   bool commit_and_map_memory(ZPageAllocation* allocation, const ZVirtualMemory& vmem);
 
   ZPage* alloc_page_inner(ZPageAllocation* allocation);
