@@ -216,6 +216,8 @@ private:
   void claim_physical_for_increased_capacity_single_node(ZSingleNodeAllocation* allocation, const ZVirtualMemory& vmem);
   void claim_physical_for_increased_capacity(ZPageAllocation* allocation, const ZVirtualMemory& vmem);
 
+  void commit_memory(ZMemoryAllocation* allocation, const ZVirtualMemory& vmem);
+
   bool commit_memory_multi_node(ZMultiNodeAllocation* multi_node_allocation, const ZVirtualMemory& vmem);
   void unmap_harvested_memory_multi_node(ZMultiNodeAllocation* multi_node_allocation);
   void map_memory_multi_node(ZMultiNodeAllocation* multi_node_allocation, const ZVirtualMemory& vmem);

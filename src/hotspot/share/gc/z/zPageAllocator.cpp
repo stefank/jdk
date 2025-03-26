@@ -1920,6 +1920,15 @@ void ZPageAllocator::claim_physical_for_increased_capacity(ZPageAllocation* allo
   }
 }
 
+void ZPageAllocator::commit_memory(ZMemoryAllocation* allocation, const ZVirtualMemory& vmem) {
+  ZAllocNode& node = allocation->node();
+
+  if (allocation->increased_capacity() > 0) {
+    // Commit memory
+    node.commit_increased_capacity(allocation, vmem);
+  }
+}
+
 bool ZPageAllocator::commit_memory_multi_node(ZMultiNodeAllocation* multi_node_allocation, const ZVirtualMemory& vmem) {
   bool commit_failed = false;
   ZVirtualMemory remaining = vmem;
@@ -1927,15 +1936,10 @@ bool ZPageAllocator::commit_memory_multi_node(ZMultiNodeAllocation* multi_node_a
     // Split off the partial allocation's memory range
     const ZVirtualMemory partial_vmem = remaining.shrink_from_front(allocation->size());
 
-    if (allocation->increased_capacity() > 0) {
-      // Try to commit
-      ZAllocNode& node = allocation->node();
-      node.commit_increased_capacity(allocation, partial_vmem);
+    commit_memory(allocation, partial_vmem);
 
-      // Keep track if any partial allocation failed to commit
-      commit_failed |= allocation->commit_failed();
-    }
-
+    // Keep track if any partial allocation failed to commit
+    commit_failed |= allocation->commit_failed();
   }
 
   assert(remaining.size() == 0, "all memory must be accounted for");
@@ -2064,12 +2068,8 @@ bool ZPageAllocator::commit_and_map_memory_multi_node(ZMultiNodeAllocation* mult
 
 bool ZPageAllocator::commit_memory_single_node(ZSingleNodeAllocation* single_node_allocation, const ZVirtualMemory& vmem) {
   ZMemoryAllocation* const allocation = single_node_allocation->allocation();
-  ZAllocNode& node = allocation->node();
 
-  if (allocation->increased_capacity() > 0) {
-    // Commit and free failed memory
-    node.commit_increased_capacity(allocation, vmem);
-  }
+  commit_memory(allocation, vmem);
 
   return !allocation->commit_failed();
 }
