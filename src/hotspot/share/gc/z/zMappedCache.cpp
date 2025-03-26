@@ -567,10 +567,6 @@ size_t ZMappedCache::remove_from_min(size_t max_size, ZArray<ZVirtualMemory>* ou
   return remove_discontiguous_with_strategy<RemovalStrategy::HighestAddress>(size, out);
 }
 
-size_t ZMappedCache::size() const {
-  return _size;
-}
-
 void ZMappedCache::print_on(outputStream* st) const {
   st->print_cr("   Cache         size %zuM, entry count %zu", _size / M, _entry_count);
 

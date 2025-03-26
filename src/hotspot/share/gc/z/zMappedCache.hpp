@@ -103,8 +103,6 @@ public:
   size_t reset_min();
   size_t remove_from_min(size_t max_size, ZArray<ZVirtualMemory>* out);
 
-  size_t size() const;
-
   void print_on(outputStream* st) const;
   void print_extended_on(outputStream* st) const;
 };
