@@ -1248,18 +1248,6 @@ void ZAllocNode::map_memory(ZMemoryAllocation* allocation, const ZVirtualMemory&
   check_numa_mismatch(vmem, allocation->node().numa_id());
 }
 
-void ZAllocNode::commit_and_free_failed_memory(ZMemoryAllocation* allocation, const ZVirtualMemory& vmem) {
-  commit_increased_capacity(allocation, vmem);
-
-  if (allocation->commit_failed()) {
-    // Failed to commit physical memory from increased capacity
-
-    // Free the uncommitted memory
-    const ZVirtualMemory not_commited_vmem = vmem.last_part(allocation->harvested() + allocation->committed_capacity());
-    free_physical(not_commited_vmem);
-  }
-}
-
 void ZAllocNode::free_memory_alloc_failed(ZMemoryAllocation* allocation) {
   verify_memory_allocation_association(allocation);
 
@@ -1941,7 +1929,7 @@ bool ZPageAllocator::commit_memory_multi_node(ZMultiNodeAllocation* multi_node_a
     if (allocation->increased_capacity() > 0) {
       // Try to commit
       ZAllocNode& node = allocation->node();
-      node.commit_and_free_failed_memory(allocation, partial_vmem);
+      node.commit_increased_capacity(allocation, partial_vmem);
 
       // Keep track if any partial allocation failed to commit
       commit_failed |= allocation->commit_failed();

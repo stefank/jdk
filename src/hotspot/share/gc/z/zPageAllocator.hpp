@@ -154,7 +154,6 @@ public:
   void commit_increased_capacity(ZMemoryAllocation* allocation, const ZVirtualMemory& vmem);
   void map_memory(ZMemoryAllocation* allocation, const ZVirtualMemory& vmem);
 
-  void commit_and_free_failed_memory(ZMemoryAllocation* allocation, const ZVirtualMemory& vmem);
   void free_memory_alloc_failed(ZMemoryAllocation* allocation);
 
   void threads_do(ThreadClosure* tc) const;
