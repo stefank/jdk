@@ -45,6 +45,8 @@ private:
   End _start;
   End _end;
 
+  ZRange(End start, End end, size_t size);
+
 public:
   ZRange();
   ZRange(Start start, size_t size);
