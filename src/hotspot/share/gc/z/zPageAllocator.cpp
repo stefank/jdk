@@ -1475,6 +1475,7 @@ size_t ZPageAllocator::current_max_capacity() const {
   for (const ZAllocNode* node; iter.next(&node);) {
     current_max_capacity += Atomic::load(&node->_current_max_capacity);
   }
+
   return current_max_capacity;
 }
 
