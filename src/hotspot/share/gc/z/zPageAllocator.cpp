@@ -315,16 +315,13 @@ public:
   }
 
   void set_committed_capacity(size_t committed_capacity) {
-    assert(_committed_capacity == 0, "Should this only be set once?");
+    assert(_committed_capacity == 0, "Should only commit once");
     _committed_capacity = committed_capacity;
+    _commit_failed = committed_capacity != _increased_capacity;
   }
 
   bool commit_failed() const {
     return _commit_failed;
-  }
-
-  void set_commit_failed() {
-    _commit_failed = true;
   }
 
   static void destroy(ZMemoryAllocation* allocation) {
@@ -1229,7 +1226,9 @@ void ZAllocNode::copy_physical_segments_from_node(const ZVirtualMemory& at, cons
   copy_physical_segments(to, at);
 }
 
-ZVirtualMemory ZAllocNode::commit_increased_capacity(ZMemoryAllocation* allocation, const ZVirtualMemory& vmem) {
+void ZAllocNode::commit_increased_capacity(ZMemoryAllocation* allocation, const ZVirtualMemory& vmem) {
+  assert(allocation->increased_capacity() > 0, "Nothing to commit");
+
   const size_t already_committed = allocation->harvested();
 
   const ZVirtualMemory already_committed_vmem = vmem.first_part(already_committed);
@@ -1240,11 +1239,6 @@ ZVirtualMemory ZAllocNode::commit_increased_capacity(ZMemoryAllocation* allocati
 
   // Keep track of the committed amount
   allocation->set_committed_capacity(committed);
-
-  // Total committed memory
-  const ZVirtualMemory total_committed_vmem(already_committed_vmem.start(), already_committed_vmem.size() + committed);
-
-  return total_committed_vmem;
 }
 
 void ZAllocNode::map_memory(ZMemoryAllocation* allocation, const ZVirtualMemory& vmem) {
@@ -1254,44 +1248,16 @@ void ZAllocNode::map_memory(ZMemoryAllocation* allocation, const ZVirtualMemory&
   check_numa_mismatch(vmem, allocation->node().numa_id());
 }
 
-bool ZAllocNode::commit_and_map_memory(ZMemoryAllocation* allocation, const ZVirtualMemory& vmem) {
-  const size_t already_committed = allocation->harvested();
+void ZAllocNode::commit_and_free_failed_memory(ZMemoryAllocation* allocation, const ZVirtualMemory& vmem) {
+  commit_increased_capacity(allocation, vmem);
 
-  // Commit more memory if necessary
-  const ZVirtualMemory committed_vmem = (already_committed == vmem.size())
-      ? vmem // Already fully committed
-      : commit_increased_capacity(allocation, vmem);
-
-  // Check if all memory is committed
-  if (committed_vmem.size() != vmem.size()) {
+  if (allocation->commit_failed()) {
     // Failed to commit physical memory from increased capacity
 
     // Free the uncommitted memory
-    const ZVirtualMemory not_commited_vmem = vmem.last_part(committed_vmem.size());
+    const ZVirtualMemory not_commited_vmem = vmem.last_part(allocation->harvested() + allocation->committed_capacity());
     free_physical(not_commited_vmem);
-    free_virtual(not_commited_vmem);
-
-    allocation->set_commit_failed();
   }
-
-  if (committed_vmem.size() == 0)  {
-    // We have not managed to get any committed memory at all
-    return false;
-  }
-
-  // Map all the committed memory
-  map_memory(allocation, committed_vmem);
-
-  if (committed_vmem.size() != vmem.size()) {
-    // Register the committed and mapped memory. We insert the committed
-    // memory into partial_vmems so that it will be inserted into the cache
-    // in a subsequent step.
-    allocation->partial_vmems()->append(committed_vmem);
-
-    return false;
-  }
-
-  return true;
 }
 
 void ZAllocNode::free_memory_alloc_failed(ZMemoryAllocation* allocation) {
@@ -1966,42 +1932,40 @@ void ZPageAllocator::claim_physical_for_increased_capacity(ZPageAllocation* allo
 }
 
 bool ZPageAllocator::commit_memory_multi_node(ZMultiNodeAllocation* multi_node_allocation, const ZVirtualMemory& vmem) {
+  bool commit_failed = false;
   ZVirtualMemory remaining = vmem;
   for (ZMemoryAllocation* const allocation : *multi_node_allocation->allocations()) {
     // Split off the partial allocation's memory range
     const ZVirtualMemory partial_vmem = remaining.shrink_from_front(allocation->size());
 
-    if (allocation->harvested() == allocation->size()) {
-      // The allocation has already been fully satisfied by harvesting.
-      continue;
+    if (allocation->increased_capacity() > 0) {
+      // Try to commit
+      ZAllocNode& node = allocation->node();
+      node.commit_and_free_failed_memory(allocation, partial_vmem);
+
+      // Keep track if any partial allocation failed to commit
+      commit_failed |= allocation->commit_failed();
     }
 
-    // Extract the part that we need to commit
-    const ZVirtualMemory to_commit_vmem = partial_vmem.last_part(allocation->harvested());
-
-    // Try to commit
-    ZAllocNode& node = allocation->node();
-    const size_t to_commit = to_commit_vmem.size();
-    const size_t committed = node.commit_physical(to_commit_vmem);
-
-    // Keep track of the committed amount
-    allocation->set_committed_capacity(committed);
-
-    if (committed != to_commit) {
-      allocation->set_commit_failed();
-
-      // Free physical segments for part that we failed to commit
-      const ZVirtualMemory non_committed_vmem = to_commit_vmem.last_part(committed);
-      node.free_physical(non_committed_vmem);
-
-      // A commit failed, skip the commit for all remaining partial allocations
-      return false;
-    }
   }
 
   assert(remaining.size() == 0, "all memory must be accounted for");
 
-  return true;
+  return !commit_failed;
+}
+
+void ZPageAllocator::unmap_harvested_memory_multi_node(ZMultiNodeAllocation* multi_node_allocation) {
+  for (ZMemoryAllocation* const allocation : *multi_node_allocation->allocations()) {
+    ZAllocNode& node = allocation->node();
+    ZArray<ZVirtualMemory>* const partial_vmems = allocation->partial_vmems();
+
+    // Unmap harvested vmems
+    while (!partial_vmems->is_empty()) {
+      const ZVirtualMemory to_unmap = partial_vmems->pop();
+      node.unmap_virtual(to_unmap);
+      node.free_virtual(to_unmap);
+    }
+  }
 }
 
 void ZPageAllocator::map_memory_multi_node(ZMultiNodeAllocation* multi_node_allocation, const ZVirtualMemory& vmem) {
@@ -2010,21 +1974,13 @@ void ZPageAllocator::map_memory_multi_node(ZMultiNodeAllocation* multi_node_allo
     // Split off the partial allocation's memory range
     const ZVirtualMemory to_vmem = remaining.shrink_from_front(allocation->size());
 
-    ZAllocNode& original_node = allocation->node();
-    ZArray<ZVirtualMemory>* const partial_vmems = allocation->partial_vmems();
-
-    // Unmap original vmems
-    while (!partial_vmems->is_empty()) {
-      const ZVirtualMemory to_unmap = partial_vmems->pop();
-      original_node.unmap_virtual(to_unmap);
-      original_node.free_virtual(to_unmap);
-    }
+    ZAllocNode& node = allocation->node();
 
     // Sort physical segments
-    original_node.sort_segments_physical(to_vmem);
+    node.sort_segments_physical(to_vmem);
 
     // Map the partial_allocation to partial_vmem
-    original_node.map_virtual_from_multi_node(to_vmem);
+    node.map_virtual_from_multi_node(to_vmem);
   }
 
   assert(remaining.size() == 0, "all memory must be accounted for");
@@ -2036,23 +1992,37 @@ void ZPageAllocator::cleanup_failed_commit_multi_node(ZMultiNodeAllocation* mult
     // Split off the partial allocation's memory range
     const ZVirtualMemory partial_vmem = remaining.shrink_from_front(allocation->size());
 
-    const size_t committed = allocation->committed_capacity();
+    if (allocation->harvested() == allocation->size()) {
+      // Everything is harvested, the mappings are already in the partial_vmems,
+      // nothing to cleanup.
+      continue;
+    }
 
-    if (committed == 0) {
-      // Nothing committed, nothing to cleanup
+    const size_t committed = allocation->committed_capacity();
+    const ZVirtualMemory non_harvested_vmem = vmem.last_part(allocation->harvested());
+    const ZVirtualMemory committed_vmem = non_harvested_vmem.first_part(committed);
+    const ZVirtualMemory non_committed_vmem = non_harvested_vmem.last_part(committed);
+    ZAllocNode& node = allocation->node();
+
+    if (allocation->commit_failed()) {
+      // Free the part we failed to commit
+      node.free_physical(non_committed_vmem);
+    }
+
+    if (committed_vmem.size() == 0) {
+      // Nothing committed, nothing more to cleanup
       continue;
     }
 
     // Remove the harvested part
     const ZVirtualMemory non_harvest_vmem = partial_vmem.last_part(allocation->harvested());
 
-    ZAllocNode& node = allocation->node();
     ZArray<ZVirtualMemory>* const partial_vmems = allocation->partial_vmems();
 
     // Keep track of the start index
     const int start_index = partial_vmems->length();
 
-    // Try to claim virtual memory for the committed part
+    // Claim virtual memory for the committed part
     const size_t claimed_virtual = node.claim_virtual(committed, partial_vmems);
 
     // We are holding memory associated with this node, and we do not overcommit
@@ -2061,9 +2031,9 @@ void ZPageAllocator::cleanup_failed_commit_multi_node(ZMultiNodeAllocation* mult
 
     // Associate and map the physical memory with the partial vmems
 
-    ZVirtualMemory remaining_non_harvest_vmem = non_harvest_vmem;
+    ZVirtualMemory remaining_committed_vmem = committed_vmem;
     for (const ZVirtualMemory& to_vmem : partial_vmems->slice_back(start_index)) {
-      const ZVirtualMemory from_vmem = remaining_non_harvest_vmem.shrink_from_front(to_vmem.size());
+      const ZVirtualMemory from_vmem = remaining_committed_vmem.shrink_from_front(to_vmem.size());
 
       // Copy physical mappings
       node.copy_physical_segments_to_node(to_vmem, from_vmem);
@@ -2072,7 +2042,7 @@ void ZPageAllocator::cleanup_failed_commit_multi_node(ZMultiNodeAllocation* mult
       node.map_virtual(to_vmem);
     }
 
-    assert(remaining_non_harvest_vmem.size() == 0, "all memory must be accounted for");
+    assert(remaining_committed_vmem.size() == 0, "all memory must be accounted for");
   }
 
   assert(remaining.size() == 0, "all memory must be accounted for");
@@ -2084,6 +2054,11 @@ void ZPageAllocator::cleanup_failed_commit_multi_node(ZMultiNodeAllocation* mult
 bool ZPageAllocator::commit_and_map_memory_multi_node(ZMultiNodeAllocation* multi_node_allocation, const ZVirtualMemory& vmem) {
   if (commit_memory_multi_node(multi_node_allocation, vmem)) {
     // Commit successful
+
+    // Unmap harvested vmems
+    unmap_harvested_memory_multi_node(multi_node_allocation);
+
+    // Map the vmem
     map_memory_multi_node(multi_node_allocation, vmem);
 
     return true;
@@ -2095,11 +2070,68 @@ bool ZPageAllocator::commit_and_map_memory_multi_node(ZMultiNodeAllocation* mult
   return false;
 }
 
-bool ZPageAllocator::commit_and_map_memory_single_node(ZSingleNodeAllocation* single_node_allocation, const ZVirtualMemory& vmem) {
+bool ZPageAllocator::commit_memory_single_node(ZSingleNodeAllocation* single_node_allocation, const ZVirtualMemory& vmem) {
   ZMemoryAllocation* const allocation = single_node_allocation->allocation();
   ZAllocNode& node = allocation->node();
 
-  return node.commit_and_map_memory(allocation, vmem);
+  if (allocation->increased_capacity() > 0) {
+    // Commit and free failed memory
+    node.commit_increased_capacity(allocation, vmem);
+  }
+
+  return !allocation->commit_failed();
+}
+
+void ZPageAllocator::map_committed_memory_single_node(ZSingleNodeAllocation* single_node_allocation, const ZVirtualMemory& vmem) {
+  ZMemoryAllocation* const allocation = single_node_allocation->allocation();
+  ZAllocNode& node = allocation->node();
+
+  const size_t total_committed = allocation->harvested() + allocation->committed_capacity();
+  const ZVirtualMemory total_committed_vmem = vmem.first_part(total_committed);
+
+  if (total_committed_vmem.size() > 0)  {
+    // Map all the committed memory
+    node.map_memory(allocation, total_committed_vmem);
+  }
+}
+
+void ZPageAllocator::cleanup_failed_commit_single_node(ZSingleNodeAllocation* single_node_allocation, const ZVirtualMemory& vmem) {
+  ZMemoryAllocation* const allocation = single_node_allocation->allocation();
+
+  assert(allocation->commit_failed(), "why else?");
+
+  const ZVirtualMemory non_harvested_vmem = vmem.last_part(allocation->harvested());
+  const ZVirtualMemory committed_vmem = non_harvested_vmem.first_part(allocation->committed_capacity());
+  const ZVirtualMemory non_committed_vmem = non_harvested_vmem.last_part(allocation->committed_capacity());
+
+  if (committed_vmem.size() > 0) {
+    // Register the committed and mapped memory. We insert the committed
+    // memory into partial_vmems so that it will be inserted into the cache
+    // in a subsequent step.
+    allocation->partial_vmems()->append(committed_vmem);
+  }
+
+  // Free the virtual memory we were suppose to use for the memory we failed
+  // to commit.
+  ZAllocNode& node = allocation->node();
+  node.free_physical(non_committed_vmem);
+  node.free_virtual(non_committed_vmem);
+}
+
+bool ZPageAllocator::commit_and_map_memory_single_node(ZSingleNodeAllocation* single_node_allocation, const ZVirtualMemory& vmem) {
+  const bool commit_successful = commit_memory_single_node(single_node_allocation, vmem);
+
+  // Map the vmem
+  map_committed_memory_single_node(single_node_allocation, vmem);
+
+  if (commit_successful) {
+    return true;
+  }
+
+  // Commit failed
+  cleanup_failed_commit_single_node(single_node_allocation, vmem);
+
+  return false;
 }
 
 bool ZPageAllocator::commit_and_map_memory(ZPageAllocation* allocation, const ZVirtualMemory& vmem) {

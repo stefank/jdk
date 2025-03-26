@@ -151,10 +151,10 @@ public:
   void copy_physical_segments_to_node(const ZVirtualMemory& at, const ZVirtualMemory& from);
   void copy_physical_segments_from_node(const ZVirtualMemory& at, const ZVirtualMemory& to);
 
-  ZVirtualMemory commit_increased_capacity(ZMemoryAllocation* allocation, const ZVirtualMemory& vmem);
+  void commit_increased_capacity(ZMemoryAllocation* allocation, const ZVirtualMemory& vmem);
   void map_memory(ZMemoryAllocation* allocation, const ZVirtualMemory& vmem);
 
-  bool commit_and_map_memory(ZMemoryAllocation* allocation, const ZVirtualMemory& vmem);
+  void commit_and_free_failed_memory(ZMemoryAllocation* allocation, const ZVirtualMemory& vmem);
   void free_memory_alloc_failed(ZMemoryAllocation* allocation);
 
   void threads_do(ThreadClosure* tc) const;
@@ -218,10 +218,14 @@ private:
   void claim_physical_for_increased_capacity(ZPageAllocation* allocation, const ZVirtualMemory& vmem);
 
   bool commit_memory_multi_node(ZMultiNodeAllocation* multi_node_allocation, const ZVirtualMemory& vmem);
+  void unmap_harvested_memory_multi_node(ZMultiNodeAllocation* multi_node_allocation);
   void map_memory_multi_node(ZMultiNodeAllocation* multi_node_allocation, const ZVirtualMemory& vmem);
   void cleanup_failed_commit_multi_node(ZMultiNodeAllocation* multi_node_allocation, const ZVirtualMemory& vmem);
 
   bool commit_and_map_memory_multi_node(ZMultiNodeAllocation* multi_node_allocation, const ZVirtualMemory& vmem);
+  bool commit_memory_single_node(ZSingleNodeAllocation* single_node_allocation, const ZVirtualMemory& vmem);
+  void map_committed_memory_single_node(ZSingleNodeAllocation* single_node_allocation, const ZVirtualMemory& vmem);
+  void cleanup_failed_commit_single_node(ZSingleNodeAllocation* single_node_allocation, const ZVirtualMemory& vmem);
   bool commit_and_map_memory_single_node(ZSingleNodeAllocation* single_node_allocation, const ZVirtualMemory& vmem);
   bool commit_and_map_memory(ZPageAllocation* allocation, const ZVirtualMemory& vmem);
 
