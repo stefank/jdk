@@ -729,7 +729,14 @@ void ZAllocNode::decrease_capacity(size_t size, bool set_max_capacity) {
 
   // Adjust current max capacity to avoid further attempts to increase capacity
   if (set_max_capacity) {
+    const size_t current_max_capacity_before = _current_max_capacity;
     Atomic::store(&_current_max_capacity, _capacity);
+
+    log_debug_p(gc)("Forced to lower max Node (%u) capacity from "
+                    "%zuM(%.0f%%) to %zuM(%.0f%%)",
+                    _numa_id,
+                    current_max_capacity_before / M, percent_of(current_max_capacity_before, _max_capacity),
+                    _current_max_capacity / M, percent_of(_current_max_capacity, _max_capacity));
   }
 }
 
@@ -1269,13 +1276,6 @@ void ZAllocNode::free_memory_alloc_failed(ZMemoryAllocation* allocation) {
   if (remaining > 0) {
     const bool set_max_capacity = allocation->commit_failed();
     decrease_capacity(remaining, set_max_capacity);
-    if (set_max_capacity) {
-      log_error_p(gc)("Forced to lower max Java heap size from "
-                      "%zuM(%.0f%%) to %zuM(%.0f%%) (NUMA id %d)",
-                      _current_max_capacity / M, percent_of(_current_max_capacity, _max_capacity),
-                      _capacity / M, percent_of(_capacity, _max_capacity),
-                      allocation->node().numa_id());
-    }
   }
 }
 
@@ -2378,10 +2378,23 @@ void ZPageAllocator::free_memory_alloc_failed_single_node(ZSingleNodeAllocation*
 }
 
 void ZPageAllocator::free_memory_alloc_failed(ZPageAllocation* allocation) {
+  // The current max capacity may be decreased, store the value before freeing memory
+  const size_t current_max_capacity_before = current_max_capacity();
+
+  // Free memory
   if (allocation->is_multi_node()) {
     free_memory_alloc_failed_multi_node(allocation->multi_node_allocation());
   } else {
     free_memory_alloc_failed_single_node(allocation->single_node_allocation());
+  }
+
+  const size_t current_max_capacity_after = current_max_capacity();
+
+  if (current_max_capacity_before != current_max_capacity_after) {
+    log_error_p(gc)("Forced to lower max Java heap size from "
+                    "%zuM(%.0f%%) to %zuM(%.0f%%)",
+                    current_max_capacity_before / M, percent_of(current_max_capacity_before, _max_capacity),
+                    current_max_capacity_after / M, percent_of(current_max_capacity_after, _max_capacity));
   }
 }
 
