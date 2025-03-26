@@ -62,11 +62,6 @@ public:
     ZGlobalsPointers::initialize();
     ZNUMA::initialize();
 
-    if (!_initialized) {
-      // Already initialized
-      return;
-    }
-
     void* vmr_mem = os::malloc(sizeof(ZVirtualMemoryReserver), mtTest);
     _vmr = ::new (vmr_mem) ZVirtualMemoryReserver(ZMapperTestReservationSize);
     _va = &_vmr->_virtual_memory_reservation;

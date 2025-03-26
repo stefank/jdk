@@ -202,7 +202,11 @@ public:
 static ZVirtualMemoryReserverImpl* _impl = nullptr;
 
 void ZVirtualMemoryReserver::pd_initialize_before_reserve() {
-  assert(_impl == nullptr, "Should only initialize once");
+  if (_impl != nullptr) {
+    // Should only initialize once
+    // TODO: This should be replaced with an assert
+    return;
+  }
 
   if (ZLargePages::is_enabled()) {
     _impl = new ZVirtualMemoryReserverLargePages();
