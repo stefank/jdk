@@ -1318,7 +1318,7 @@ private:
   }
 
 public:
-  void prepare_memory_for_free(ZPageAllocator* allocator, const ZVirtualMemory& vmem, ZArray<ZVirtualMemory>* vmems_out) const {
+  void prepare_memory_for_free(const ZVirtualMemory& vmem, ZArray<ZVirtualMemory>* vmems_out) const {
     const uint32_t numa_nodes = ZNUMA::count();
 
     // Remap memory back to original node
@@ -1352,9 +1352,6 @@ public:
       }
       assert(remaining_vmem.size() == 0, "must have mapped all claimed virtual memory");
     }
-
-    // Free the virtual memory
-    allocator->_virtual.insert_multi_node(vmem);
   }
 
   static void destroy(const ZMultiNodeTracker* tracker) {
@@ -2300,7 +2297,10 @@ void ZPageAllocator::prepare_memory_for_free(ZPage* page, ZArray<ZVirtualMemory>
 
   // Multi-node memory is always remapped
   if (tracker != nullptr) {
-    tracker->prepare_memory_for_free(this, vmem, vmems);
+    tracker->prepare_memory_for_free(vmem, vmems);
+
+    // Free the virtual memory
+    _virtual.insert_multi_node(vmem);
 
     // Destroy the tracker
     ZMultiNodeTracker::destroy(tracker);
