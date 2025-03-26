@@ -162,7 +162,7 @@ public:
     pop(vmems, vmems->length());
   }
 
-  void pop_all(ZVirtualMemory vmem) {
+  void pop_all(const ZVirtualMemory& vmem) {
     const size_t granules_left = (size_t)_stash.length();
     const ZVirtualMemory to_pop = vmem.first_part(granules_left * ZGranuleSize);
 
