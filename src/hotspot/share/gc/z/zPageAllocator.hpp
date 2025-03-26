@@ -190,7 +190,7 @@ private:
   size_t count_segments_physical(const ZVirtualMemory& vmem);
 
   void remap_and_defragment(const ZVirtualMemory& vmem, ZArray<ZVirtualMemory>* vmems_out);
-  void prepare_memory_for_free(ZPage* page, ZArray<ZVirtualMemory>* vmems, bool allow_defragment);
+  void prepare_memory_for_free(ZPage* page, ZArray<ZVirtualMemory>* vmems);
   void free_memory(ZGenerationId id, ZArray<ZVirtualMemory>* vmems);
 
   bool alloc_page_stall(ZPageAllocation* allocation);
@@ -282,7 +282,7 @@ public:
 
   ZPage* alloc_page(ZPageType type, size_t size, ZAllocationFlags flags, ZPageAge age);
   void safe_destroy_page(ZPage* page);
-  void free_page(ZPage* page, bool allow_defragment);
+  void free_page(ZPage* page);
   void free_pages(const ZArray<ZPage*>* pages);
 
   void enable_safe_destroy() const;

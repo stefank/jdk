@@ -240,15 +240,15 @@ void ZHeap::undo_alloc_page(ZPage* page) {
   log_trace(gc)("Undo page allocation, thread: " PTR_FORMAT " (%s), page: " PTR_FORMAT ", size: %zu",
                 p2i(Thread::current()), ZUtils::thread_name(), p2i(page), page->size());
 
-  free_page(page, false /* allow_defragment */);
+  free_page(page);
 }
 
-void ZHeap::free_page(ZPage* page, bool allow_defragment) {
+void ZHeap::free_page(ZPage* page) {
   // Remove page table entry
   _page_table.remove(page);
 
   // Free page
-  _page_allocator.free_page(page, allow_defragment);
+  _page_allocator.free_page(page);
 }
 
 size_t ZHeap::free_empty_pages(const ZArray<ZPage*>* pages) {

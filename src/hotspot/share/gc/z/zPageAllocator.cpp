@@ -2283,7 +2283,7 @@ void ZPageAllocator::satisfy_stalled() {
   }
 }
 
-void ZPageAllocator::prepare_memory_for_free(ZPage* page, ZArray<ZVirtualMemory>* vmems, bool allow_defragment) {
+void ZPageAllocator::prepare_memory_for_free(ZPage* page, ZArray<ZVirtualMemory>* vmems) {
   // Extract memory and destroy the page
   const ZVirtualMemory vmem = page->virtual_memory();
   const ZPageType page_type = page->type();
@@ -2303,7 +2303,7 @@ void ZPageAllocator::prepare_memory_for_free(ZPage* page, ZArray<ZVirtualMemory>
   }
 
   // Perhaps remap and defragment if page was a large page
-  if (page_type == ZPageType::large && allow_defragment) {
+  if (page_type == ZPageType::large) {
     remap_and_defragment(vmem, vmems);
     return;
   }
@@ -2327,13 +2327,13 @@ void ZPageAllocator::free_memory(ZGenerationId id, ZArray<ZVirtualMemory>* vmems
   satisfy_stalled();
 }
 
-void ZPageAllocator::free_page(ZPage* page, bool allow_defragment) {
+void ZPageAllocator::free_page(ZPage* page) {
   // Extract the id from the page
   const ZGenerationId id = page->generation_id();
 
   // Extract vmems and destroy the page
   ZArray<ZVirtualMemory> vmems;
-  prepare_memory_for_free(page, &vmems, allow_defragment);
+  prepare_memory_for_free(page, &vmems);
 
   // Free the extracted vmems
   free_memory(id, &vmems);
@@ -2349,7 +2349,7 @@ void ZPageAllocator::free_pages(const ZArray<ZPage*>* pages) {
     assert(page->generation_id() == id, "All pages must be from the same generation");
 
     // Extract vmems and destroy the page
-    prepare_memory_for_free(page, &vmems, true /* allow_defragment */);
+    prepare_memory_for_free(page, &vmems);
   }
 
   // Free the extracted vmems
