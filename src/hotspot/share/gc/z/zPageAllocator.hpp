@@ -197,7 +197,7 @@ private:
 
   size_t sum_available() const;
 
-  bool claim_capacity_multi_node(ZMultiNodeAllocation* multi_node_allocation, uint32_t start_node);
+  void claim_capacity_multi_node(ZMultiNodeAllocation* multi_node_allocation, uint32_t start_node);
   bool claim_capacity_single_node(ZSingleNodeAllocation* single_node_allocation, uint32_t numa_id);
   bool claim_capacity(ZPageAllocation* allocation);
 

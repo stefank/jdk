@@ -1661,7 +1661,7 @@ bool ZPageAllocator::alloc_page_stall(ZPageAllocation* allocation) {
   return result;
 }
 
-bool ZPageAllocator::claim_capacity_multi_node(ZMultiNodeAllocation* multi_node_allocation, uint32_t start_node) {
+void ZPageAllocator::claim_capacity_multi_node(ZMultiNodeAllocation* multi_node_allocation, uint32_t start_node) {
   const size_t size = multi_node_allocation->size();
   const uint32_t numa_nodes = ZNUMA::count();
   const size_t split_size = align_up(size / numa_nodes, ZGranuleSize);
@@ -1722,7 +1722,7 @@ bool ZPageAllocator::claim_capacity_multi_node(ZMultiNodeAllocation* multi_node_
   // Try claim the remaining
   do_claim_each_node(false /* claim_evenly */);
 
-  return remaining == 0;
+  assert(remaining == 0, "Must have claimed capacity for the whole allocation");
 }
 
 bool ZPageAllocator::claim_capacity_single_node(ZSingleNodeAllocation* single_node_allocation, uint32_t numa_id) {
@@ -1769,14 +1769,9 @@ bool ZPageAllocator::claim_capacity(ZPageAllocation* allocation) {
 
   ZMultiNodeAllocation* const multi_node_allocation = allocation->multi_node_allocation();
 
-  if (claim_capacity_multi_node(multi_node_allocation, start_node)) {
-    return true;
-  }
+  claim_capacity_multi_node(multi_node_allocation, start_node);
 
-  // May have partially succeeded, undo any partial allocations
-  free_memory_alloc_failed_multi_node(multi_node_allocation);
-
-  return false;
+  return true;
 }
 
 bool ZPageAllocator::claim_capacity_or_stall(ZPageAllocation* allocation) {
