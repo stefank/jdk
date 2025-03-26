@@ -35,6 +35,8 @@
 #include "runtime/os.hpp"
 #include "unittest.hpp"
 
+void ZVirtualMemoryReserverImpl_initialize();
+
 using namespace testing;
 
 #define EXPECT_REMOVAL_OK(range) EXPECT_FALSE(range.is_null())
@@ -45,10 +47,8 @@ class ZMapperTest : public Test {
 private:
   static constexpr size_t ZMapperTestReservationSize = 32 * M;
 
-  static bool             _initialized;
-  static ZMemoryManager*  _va;
-
-  static ZVirtualMemoryReserver* _vmr;
+  ZMemoryManager*         _va;
+  ZVirtualMemoryReserver* _vmr;
 
 public:
   virtual void SetUp() {
@@ -58,9 +58,13 @@ public:
       return;
     }
 
-    ZSyscall::initialize();
-    ZGlobalsPointers::initialize();
-    ZNUMA::initialize();
+    static bool runs_once = [&]() {
+      ZSyscall::initialize();
+      ZVirtualMemoryReserverImpl_initialize();
+      ZGlobalsPointers::initialize();
+      ZNUMA::initialize();
+      return true;
+    }();
 
     void* vmr_mem = os::malloc(sizeof(ZVirtualMemoryReserver), mtTest);
     _vmr = ::new (vmr_mem) ZVirtualMemoryReserver(ZMapperTestReservationSize);
@@ -71,11 +75,6 @@ public:
       GTEST_SKIP() << "Failed to reserve address space";
       return;
     }
-
-    // Set up the callbacks
-    _vmr->pd_register_callbacks(_va);
-
-    _initialized = true;
   }
 
   virtual void TearDown() {
@@ -84,15 +83,12 @@ public:
       return;
     }
 
-    if (_initialized) {
-      _vmr->unreserve();
-    }
-
+    _vmr->unreserve();
     _vmr->~ZVirtualMemoryReserver();
     os::free(_vmr);
   }
 
-  static void test_unreserve() {
+  void test_unreserve() {
     ZVirtualMemory bottom = _va->remove_from_low(ZGranuleSize);
     ZVirtualMemory top    = _va->remove_from_high(ZGranuleSize);
 
@@ -104,7 +100,7 @@ public:
     ZMapper::unreserve(ZOffset::address_unsafe(top.start()), top.size());
   }
 
-  static void test_remove_from_low() {
+  void test_remove_from_low() {
     // Verify that we get placeholder for first granule
     ZVirtualMemory bottom = _va->remove_from_low(ZGranuleSize);
     EXPECT_REMOVAL_OK(bottom);
@@ -125,10 +121,11 @@ public:
     EXPECT_REMOVAL_OK(next);
 
     _va->insert(bottom);
+
     _va->insert(next);
   }
 
-  static void test_remove_from_high() {
+  void test_remove_from_high() {
     // Verify that we get placeholder for last granule
     ZVirtualMemory high = _va->remove_from_high(ZGranuleSize);
     EXPECT_REMOVAL_OK(high);
@@ -146,7 +143,7 @@ public:
     _va->insert(high);
   }
 
-  static void test_remove_whole_area() {
+  void test_remove_whole_area() {
     // Remove the whole reservation
     ZVirtualMemory bottom = _va->remove_from_low(ZMapperTestReservationSize);
     EXPECT_REMOVAL_OK(bottom);
@@ -170,10 +167,6 @@ public:
     _va->insert({bottom.start(), ZMapperTestReservationSize});
   }
 };
-
-bool ZMapperTest::_initialized              = false;
-ZMemoryManager* ZMapperTest::_va            = nullptr;
-ZVirtualMemoryReserver* ZMapperTest::_vmr   = nullptr;
 
 TEST_VM_F(ZMapperTest, test_unreserve) {
   test_unreserve();

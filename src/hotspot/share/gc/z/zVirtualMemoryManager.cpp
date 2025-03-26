@@ -214,9 +214,7 @@ bool ZVirtualMemoryReserver::reserve_contiguous(size_t size) {
 }
 
 size_t ZVirtualMemoryReserver::reserve(size_t size) {
-  // Initialize platform specific parts before reserving address space
-  pd_initialize_before_reserve();
-
+  // Register Windows callbacks
   pd_register_callbacks(&_virtual_memory_reservation);
 
   // Reserve address space

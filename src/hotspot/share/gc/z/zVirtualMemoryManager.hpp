@@ -41,7 +41,6 @@ private:
   static size_t calculate_min_range(size_t size);
 
   // Platform specific implementation
-  void pd_initialize_before_reserve();
   void pd_register_callbacks(ZMemoryManager* manager);
   bool pd_reserve(zaddress_unsafe addr, size_t size);
   void pd_unreserve(zaddress_unsafe addr, size_t size);

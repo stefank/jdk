@@ -27,10 +27,6 @@
 
 #include <sys/mman.h>
 
-void ZVirtualMemoryReserver::pd_initialize_before_reserve() {
-  // Does nothing
-}
-
 void ZVirtualMemoryReserver::pd_register_callbacks(ZMemoryManagerImpl<ZVirtualMemory>*) {
   // Does nothing
 }
