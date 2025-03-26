@@ -2002,10 +2002,13 @@ void ZPageAllocator::cleanup_failed_commit_multi_node(ZMultiNodeAllocation* mult
     const ZVirtualMemory non_harvested_vmem = vmem.last_part(allocation->harvested());
     const ZVirtualMemory committed_vmem = non_harvested_vmem.first_part(committed);
     const ZVirtualMemory non_committed_vmem = non_harvested_vmem.last_part(committed);
+
     ZAllocNode& node = allocation->node();
 
     if (allocation->commit_failed()) {
-      // Free the part we failed to commit
+      // Free the physical memory we failed to commit. Virtual memory is later
+      // freed for the entire multi-node allocation after all memory allocations
+      // have been visited.
       node.free_physical(non_committed_vmem);
     }
 
@@ -2098,11 +2101,12 @@ void ZPageAllocator::map_committed_memory_single_node(ZSingleNodeAllocation* sin
 void ZPageAllocator::cleanup_failed_commit_single_node(ZSingleNodeAllocation* single_node_allocation, const ZVirtualMemory& vmem) {
   ZMemoryAllocation* const allocation = single_node_allocation->allocation();
 
-  assert(allocation->commit_failed(), "why else?");
+  assert(allocation->commit_failed(), "Must have failed to commit");
 
+  const size_t committed = allocation->committed_capacity();
   const ZVirtualMemory non_harvested_vmem = vmem.last_part(allocation->harvested());
-  const ZVirtualMemory committed_vmem = non_harvested_vmem.first_part(allocation->committed_capacity());
-  const ZVirtualMemory non_committed_vmem = non_harvested_vmem.last_part(allocation->committed_capacity());
+  const ZVirtualMemory committed_vmem = non_harvested_vmem.first_part(committed);
+  const ZVirtualMemory non_committed_vmem = non_harvested_vmem.last_part(committed);
 
   if (committed_vmem.size() > 0) {
     // Register the committed and mapped memory. We insert the committed
@@ -2111,8 +2115,7 @@ void ZPageAllocator::cleanup_failed_commit_single_node(ZSingleNodeAllocation* si
     allocation->partial_vmems()->append(committed_vmem);
   }
 
-  // Free the virtual memory we were suppose to use for the memory we failed
-  // to commit.
+  // Free the virtual and physical memory we were supposed to use but failed to commit
   ZAllocNode& node = allocation->node();
   node.free_physical(non_committed_vmem);
   node.free_virtual(non_committed_vmem);
