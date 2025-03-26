@@ -181,73 +181,71 @@ private:
   mutable ZSafeDelete<ZPage>  _safe_destroy;
   bool                        _initialized;
 
-  bool is_multi_node_enabled() const;
-
-  const ZAllocNode& node_from_numa_id(uint32_t numa_id) const;
-  ZAllocNode& node_from_numa_id(uint32_t numa_id);
-  ZAllocNode& node_from_vmem(const ZVirtualMemory& vmem);
-
-  size_t count_segments_physical(const ZVirtualMemory& vmem);
-
-  void remap_and_defragment(const ZVirtualMemory& vmem, ZArray<ZVirtualMemory>* vmems_out);
-  void prepare_memory_for_free(ZPage* page, ZArray<ZVirtualMemory>* vmems);
-  void free_memory(ZGenerationId id, ZArray<ZVirtualMemory>* vmems);
-
   bool alloc_page_stall(ZPageAllocation* allocation);
-
-  size_t sum_available() const;
-
-  void claim_capacity_multi_node(ZMultiNodeAllocation* multi_node_allocation, uint32_t start_node);
-  bool claim_capacity_single_node(ZSingleNodeAllocation* single_node_allocation, uint32_t numa_id);
-  bool claim_capacity(ZPageAllocation* allocation);
+  ZPage* alloc_page_inner(ZPageAllocation* allocation);
 
   bool claim_capacity_or_stall(ZPageAllocation* allocation);
+  bool claim_capacity(ZPageAllocation* allocation);
+  bool claim_capacity_single_node(ZSingleNodeAllocation* single_node_allocation, uint32_t numa_id);
+  void claim_capacity_multi_node(ZMultiNodeAllocation* multi_node_allocation, uint32_t start_node);
 
   ZVirtualMemory satisfied_from_cache_vmem(const ZPageAllocation* allocation) const;
 
+  ZVirtualMemory claim_virtual_memory(ZPageAllocation* allocation);
+  ZVirtualMemory claim_virtual_memory_single_node(ZSingleNodeAllocation* single_node_allocation);
+  ZVirtualMemory claim_virtual_memory_multi_node(ZMultiNodeAllocation* multi_node_allocation);
+
   void copy_claimed_physical_multi_node(ZMultiNodeAllocation* multi_node_allocation, const ZVirtualMemory& vmem);
 
-  ZVirtualMemory claim_virtual_memory_multi_node(ZMultiNodeAllocation* multi_node_allocation);
-  ZVirtualMemory claim_virtual_memory_single_node(ZSingleNodeAllocation* single_node_allocation);
-  ZVirtualMemory claim_virtual_memory(ZPageAllocation* allocation);
-
-  void claim_physical_for_increased_capacity(ZMemoryAllocation* allocation, const ZVirtualMemory& vmem);
-  void claim_physical_for_increased_capacity_multi_node(const ZMultiNodeAllocation* multi_node_allocation, const ZVirtualMemory& vmem);
-  void claim_physical_for_increased_capacity_single_node(ZSingleNodeAllocation* allocation, const ZVirtualMemory& vmem);
   void claim_physical_for_increased_capacity(ZPageAllocation* allocation, const ZVirtualMemory& vmem);
-
-  void commit_memory(ZMemoryAllocation* allocation, const ZVirtualMemory& vmem);
-
-  bool commit_memory_multi_node(ZMultiNodeAllocation* multi_node_allocation, const ZVirtualMemory& vmem);
-  void unmap_harvested_memory_multi_node(ZMultiNodeAllocation* multi_node_allocation);
-  void map_memory_multi_node(ZMultiNodeAllocation* multi_node_allocation, const ZVirtualMemory& vmem);
-  void cleanup_failed_commit_multi_node(ZMultiNodeAllocation* multi_node_allocation, const ZVirtualMemory& vmem);
-  bool commit_and_map_memory_multi_node(ZMultiNodeAllocation* multi_node_allocation, const ZVirtualMemory& vmem);
-
-  bool commit_memory_single_node(ZSingleNodeAllocation* single_node_allocation, const ZVirtualMemory& vmem);
-  void map_committed_memory_single_node(ZSingleNodeAllocation* single_node_allocation, const ZVirtualMemory& vmem);
-  void cleanup_failed_commit_single_node(ZSingleNodeAllocation* single_node_allocation, const ZVirtualMemory& vmem);
-  bool commit_and_map_memory_single_node(ZSingleNodeAllocation* single_node_allocation, const ZVirtualMemory& vmem);
+  void claim_physical_for_increased_capacity_single_node(ZSingleNodeAllocation* allocation, const ZVirtualMemory& vmem);
+  void claim_physical_for_increased_capacity_multi_node(const ZMultiNodeAllocation* multi_node_allocation, const ZVirtualMemory& vmem);
+  void claim_physical_for_increased_capacity(ZMemoryAllocation* allocation, const ZVirtualMemory& vmem);
 
   bool commit_and_map_memory(ZPageAllocation* allocation, const ZVirtualMemory& vmem);
+  bool commit_and_map_memory_single_node(ZSingleNodeAllocation* single_node_allocation, const ZVirtualMemory& vmem);
+  bool commit_and_map_memory_multi_node(ZMultiNodeAllocation* multi_node_allocation, const ZVirtualMemory& vmem);
 
-  ZPage* alloc_page_inner(ZPageAllocation* allocation);
+  void commit_memory(ZMemoryAllocation* allocation, const ZVirtualMemory& vmem);
+  bool commit_memory_single_node(ZSingleNodeAllocation* single_node_allocation, const ZVirtualMemory& vmem);
+  bool commit_memory_multi_node(ZMultiNodeAllocation* multi_node_allocation, const ZVirtualMemory& vmem);
 
-  void increase_used_generation(const ZMemoryAllocation* allocation, ZGenerationId id);
-  void increase_used_generation_multi_node(const ZMultiNodeAllocation* multi_node_allocation, ZGenerationId id);
-  void increase_used_generation_single_node(const ZSingleNodeAllocation* single_mode_allocation, ZGenerationId id);
-  void increase_used_generation(const ZPageAllocation* allocation, ZGenerationId id);
+  void unmap_harvested_memory_multi_node(ZMultiNodeAllocation* multi_node_allocation);
 
-  void alloc_page_age_update(ZPageAllocation* allocation, ZPage* page, ZPageAge age);
+  void map_committed_memory_single_node(ZSingleNodeAllocation* single_node_allocation, const ZVirtualMemory& vmem);
+  void map_committed_memory_multi_node(ZMultiNodeAllocation* multi_node_allocation, const ZVirtualMemory& vmem);
 
-  void free_memory_alloc_failed(ZMemoryAllocation* allocation);
-  void free_memory_alloc_failed_multi_node(ZMultiNodeAllocation* multi_node_allocation);
-  void free_memory_alloc_failed_single_node(ZSingleNodeAllocation* single_node_allocation);
-  void free_memory_alloc_failed(ZPageAllocation* allocation);
+  void cleanup_failed_commit_single_node(ZSingleNodeAllocation* single_node_allocation, const ZVirtualMemory& vmem);
+  void cleanup_failed_commit_multi_node(ZMultiNodeAllocation* multi_node_allocation, const ZVirtualMemory& vmem);
 
   void free_after_alloc_page_failed(ZPageAllocation* allocation);
 
+  void free_memory_alloc_failed(ZPageAllocation* allocation);
+  void free_memory_alloc_failed_single_node(ZSingleNodeAllocation* single_node_allocation);
+  void free_memory_alloc_failed_multi_node(ZMultiNodeAllocation* multi_node_allocation);
+  void free_memory_alloc_failed(ZMemoryAllocation* allocation);
+
+  void alloc_page_age_update(ZPageAllocation* allocation, ZPage* page, ZPageAge age);
+
+  void increase_used_generation(const ZPageAllocation* allocation, ZGenerationId id);
+  void increase_used_generation_single_node(const ZSingleNodeAllocation* single_mode_allocation, ZGenerationId id);
+  void increase_used_generation_multi_node(const ZMultiNodeAllocation* multi_node_allocation, ZGenerationId id);
+  void increase_used_generation(const ZMemoryAllocation* allocation, ZGenerationId id);
+
+  void prepare_memory_for_free(ZPage* page, ZArray<ZVirtualMemory>* vmems);
+  void remap_and_defragment(const ZVirtualMemory& vmem, ZArray<ZVirtualMemory>* vmems_out);
+  void free_memory(ZGenerationId id, ZArray<ZVirtualMemory>* vmems);
+
   void satisfy_stalled();
+
+  bool is_multi_node_enabled() const;
+
+  const ZAllocNode& node_from_numa_id(uint32_t numa_id) const;
+  ZAllocNode&       node_from_numa_id(uint32_t numa_id);
+  ZAllocNode&       node_from_vmem(const ZVirtualMemory& vmem);
+
+  size_t count_segments_physical(const ZVirtualMemory& vmem);
+  size_t sum_available() const;
 
   void notify_out_of_memory();
   void restart_gc() const;
