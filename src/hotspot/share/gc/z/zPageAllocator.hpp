@@ -245,7 +245,6 @@ private:
   ZPartition&       partition_from_partition_id(uint32_t partition_id);
   ZPartition&       partition_from_vmem(const ZVirtualMemory& vmem);
 
-  size_t count_segments_physical(const ZVirtualMemory& vmem);
   size_t sum_available() const;
 
   void notify_out_of_memory();

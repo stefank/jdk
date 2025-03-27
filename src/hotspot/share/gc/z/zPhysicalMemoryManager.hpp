@@ -54,8 +54,6 @@ public:
 
   void map(zoffset offset, const zbacking_index* pmem, size_t size, uint32_t numa_id) const;
   void unmap(zoffset offset, const zbacking_index* pmem, size_t size) const;
-
-  size_t count_segments(const zbacking_index* pmem, size_t size);
 };
 
 #endif // SHARE_GC_Z_ZPHYSICALMEMORYMANAGER_HPP

@@ -2375,10 +2375,6 @@ ZPartition& ZPageAllocator::partition_from_vmem(const ZVirtualMemory& vmem) {
   return partition_from_partition_id(_virtual.get_partition_id(vmem));
 }
 
-size_t ZPageAllocator::count_segments_physical(const ZVirtualMemory& vmem) {
-  return _physical.count_segments(_physical_mappings.addr(vmem.start()), vmem.size());
-}
-
 size_t ZPageAllocator::sum_available() const {
   const uint32_t numa_nodes = ZNUMA::count();
 

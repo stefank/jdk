@@ -258,12 +258,3 @@ void ZPhysicalMemoryManager::unmap(zoffset offset, const zbacking_index* /* igno
   const zaddress_unsafe addr = ZOffset::address_unsafe(offset);
   _backing.unmap(addr, size);
 }
-
-size_t ZPhysicalMemoryManager::count_segments(const zbacking_index* pmem, size_t size) {
-  size_t count = 0;
-  for_each_segment_apply(pmem, size, [&](zbacking_offset, size_t) {
-    count++;
-  });
-
-  return count;
-}
