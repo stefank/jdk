@@ -150,19 +150,10 @@ public:
   void pop_all(const ZArraySlice<ZVirtualMemory>& vmems) {
     int stash_index = 0;
     for (const ZVirtualMemory& vmem : vmems) {
-      const int granule_count = vmem.granule_count();
-      const int granules_left = _stash.length() - stash_index;
-
-      // If we run out of segments in the stash, we finish early
-      if (granule_count >= granules_left) {
-        const ZVirtualMemory truncated_vmem(vmem.start(), (size_t)granules_left * ZGranuleSize);
-        copy_from_stash(stash_index, truncated_vmem);
-        return;
-      }
-
       copy_from_stash(stash_index, vmem);
-      stash_index += (int)granule_count;
+      stash_index += vmem.granule_count();
     }
+    assert(stash_index == _stash.length(), "Must have emptied the stash");
   }
 
   void pop_all(ZArray<ZVirtualMemory>* vmems) {
@@ -170,10 +161,7 @@ public:
   }
 
   void pop_all(const ZVirtualMemory& vmem) {
-    const size_t granules_left = (size_t)_stash.length();
-    const ZVirtualMemory to_pop = vmem.first_part(granules_left * ZGranuleSize);
-
-    copy_from_stash(0, to_pop);
+    copy_from_stash(0, vmem);
   }
 };
 
@@ -1202,7 +1190,8 @@ ZVirtualMemory ZPartition::prepare_harvested_and_claim_virtual(ZMemoryAllocation
     unmap_virtual(vmem);
   }
 
-  const int granule_count = (int)(allocation->harvested() >> ZGranuleSizeShift);
+  const size_t harvested = allocation->harvested();
+  const int granule_count = (int)(harvested >> ZGranuleSizeShift);
   ZSegmentStash segments(&physical_mappings(), allocation->partial_vmems(), granule_count);
 
   // Shuffle virtual memory. We attempt to allocate enough memory to cover the entire
@@ -1211,8 +1200,8 @@ ZVirtualMemory ZPartition::prepare_harvested_and_claim_virtual(ZMemoryAllocation
 
   // Restore segments
   if (!result.is_null()) {
-    // Got exact match
-    segments.pop_all(result);
+    // Got exact match. Restore stashed physical segments for the harvested part.
+    segments.pop_all(result.first_part(harvested));
   } else {
     // Got many partial vmems
     segments.pop_all(allocation->partial_vmems());
