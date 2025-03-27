@@ -641,17 +641,16 @@ zbacking_index* ZPartition::physical_mappings_addr(const ZVirtualMemory& vmem) {
   return mappings.addr(vmem.start());
 }
 
-void ZPartition::verify_virtual_memory_multi_partition_association(const ZVirtualMemory& vmem) const {
 #ifdef ASSERT
+
+void ZPartition::verify_virtual_memory_multi_partition_association(const ZVirtualMemory& vmem) const {
   const ZVirtualMemoryManager& manager = virtual_memory_manager();
 
   assert(manager.is_in_multi_partition(vmem), "Virtual memory must be associated with the extra space "
-                                         "actual: %u", virtual_memory_manager().get_numa_id(vmem));
-#endif // ASSERT
+                                         "actual: %u", virtual_memory_manager().get_partition_id(vmem));
 }
 
 void ZPartition::verify_virtual_memory_association(const ZVirtualMemory& vmem, bool check_multi_partition) const {
-#ifdef ASSERT
   const ZVirtualMemoryManager& manager = virtual_memory_manager();
 
   if (check_multi_partition && manager.is_in_multi_partition(vmem)) {
@@ -660,26 +659,23 @@ void ZPartition::verify_virtual_memory_association(const ZVirtualMemory& vmem, b
     return;
   }
 
-  const uint32_t vmem_numa_id = virtual_memory_manager().get_numa_id(vmem);
+  const uint32_t vmem_numa_id = virtual_memory_manager().get_partition_id(vmem);
   assert(_numa_id == vmem_numa_id, "Virtual memory must be associated with the current partition "
                                    "expected: %u, actual: %u", _numa_id, vmem_numa_id);
-#endif // ASSERT
 }
 
 void ZPartition::verify_virtual_memory_association(const ZArray<ZVirtualMemory>* vmems) const {
-#ifdef ASSERT
   for (const ZVirtualMemory& vmem : *vmems) {
     verify_virtual_memory_association(vmem);
   }
-#endif // ASSERT
 }
 
 void ZPartition::verify_memory_allocation_association(const ZMemoryAllocation* allocation) const {
-#ifdef ASSERT
   assert(this == &allocation->partition(), "Memory allocation must be associated with the current partition "
                                            "expected: %u, actual: %u", _numa_id, allocation->partition().numa_id());
-#endif // ASSERT
 }
+
+#endif // ASSERT
 
 void ZPartition::copy_physical_segments(const ZVirtualMemory& to, const ZVirtualMemory& from) {
   assert(to.size() == from.size(), "must be of the same size");
