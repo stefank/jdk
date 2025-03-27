@@ -39,7 +39,7 @@ ZArraySlice<T> ZArraySlice<T>::slice_front(int end) {
 }
 
 template <typename T>
-ZArraySlice<const std::remove_const_t<T>> ZArraySlice<T>::slice_front(int end) const {
+ZArraySlice<const T> ZArraySlice<T>::slice_front(int end) const {
   return slice(0, end);
 }
 
@@ -49,7 +49,7 @@ ZArraySlice<T> ZArraySlice<T>::slice_back(int start) {
 }
 
 template <typename T>
-ZArraySlice<const std::remove_const_t<T>> ZArraySlice<T>::slice_back(int start) const {
+ZArraySlice<const T> ZArraySlice<T>::slice_back(int start) const {
   return slice(start, this->_len);
 }
 
@@ -61,7 +61,7 @@ ZArraySlice<T> ZArraySlice<T>::slice(int start, int end) {
 }
 
 template <typename T>
-ZArraySlice<const std::remove_const_t<T>> ZArraySlice<T>::slice(int start, int end) const {
+ZArraySlice<const T> ZArraySlice<T>::slice(int start, int end) const {
   assert(0 <= start && start <= end && end <= this->_len,
          "slice called with invalid range (%d, %d) for length %d", start, end, this->_len);
   return ZArraySlice<const T>(this->_data + start, end - start);
@@ -78,7 +78,7 @@ ZArraySlice<T> ZArray<T>::slice_front(int end) {
 }
 
 template <typename T>
-ZArraySlice<const std::remove_const_t<T>> ZArray<T>::slice_front(int end) const {
+ZArraySlice<const T> ZArray<T>::slice_front(int end) const {
   return slice(0, end);
 }
 
@@ -88,7 +88,7 @@ ZArraySlice<T> ZArray<T>::slice_back(int start) {
 }
 
 template <typename T>
-ZArraySlice<const std::remove_const_t<T>> ZArray<T>::slice_back(int start) const {
+ZArraySlice<const T> ZArray<T>::slice_back(int start) const {
   return slice(start, this->_len);
 }
 
@@ -100,7 +100,7 @@ ZArraySlice<T> ZArray<T>::slice(int start, int end) {
 }
 
 template <typename T>
-ZArraySlice<const std::remove_const_t<T>> ZArray<T>::slice(int start, int end) const {
+ZArraySlice<const T> ZArray<T>::slice(int start, int end) const {
   assert(0 <= start && start <= end && end <= this->_len,
          "slice called with invalid range (%d, %d) for length %d", start, end, this->_len);
   return ZArraySlice<const T>(this->_data + start, end - start);
