@@ -163,4 +163,23 @@ inline int ZVirtualMemory::granule_count() const {
   return static_cast<int>(granule_count);
 }
 
+template <typename Range>
+inline bool ZMemoryManagerImpl<Range>::is_empty() const {
+  return _list.is_empty();
+}
+
+template <typename Range>
+bool ZMemoryManagerImpl<Range>::is_contiguous() const {
+  return _list.size() == 1;
+}
+
+template <typename Range>
+bool ZMemoryManagerImpl<Range>::limits_contain(const Range& range) const {
+  if (_limits.is_null() || range.is_null()) {
+    return false;
+  }
+
+  return range.start() >= _limits.start() && range.end() <= _limits.end();
+}
+
 #endif // SHARE_GC_Z_ZMEMORY_INLINE_HPP

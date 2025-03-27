@@ -134,6 +134,8 @@ private:
 
   size_t remove_from_low_many_at_most_inner(size_t size, ZArray<Range>* out);
 
+  bool check_limits(const Range& range) const;
+
 public:
   ZMemoryManagerImpl();
 
@@ -145,10 +147,8 @@ public:
   bool is_empty() const;
   bool is_contiguous() const;
 
-  Range limits() const;
   void anchor_limits();
   bool limits_contain(const Range& range) const;
-  bool check_limits(const Range& range) const;
 
   offset peek_low_address() const;
 

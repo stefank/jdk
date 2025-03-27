@@ -293,22 +293,6 @@ bool ZMemoryManagerImpl<Range>::unregister_first(Range* out) {
 }
 
 template <typename Range>
-bool ZMemoryManagerImpl<Range>::is_empty() const {
-  return _list.is_empty();
-}
-
-template <typename Range>
-bool ZMemoryManagerImpl<Range>::is_contiguous() const {
-  return _list.size() == 1;
-}
-
-template <typename Range>
-Range ZMemoryManagerImpl<Range>::limits() const {
-  assert(!_limits.is_null(), "Limits not anchored");
-  return _limits;
-}
-
-template <typename Range>
 void ZMemoryManagerImpl<Range>::anchor_limits() {
   assert(_limits.is_null(), "Should only anchor limits once");
 
@@ -320,15 +304,6 @@ void ZMemoryManagerImpl<Range>::anchor_limits() {
   const size_t size = _list.last()->end() - start;
 
   _limits = Range(start, size);
- }
-
-template <typename Range>
-bool ZMemoryManagerImpl<Range>::limits_contain(const Range& range) const {
-  if (_limits.is_null() || range.is_null()) {
-    return false;
-  }
-
-  return range.start() >= _limits.start() && range.end() <= _limits.end();
 }
 
 template <typename Range>
@@ -340,7 +315,7 @@ bool ZMemoryManagerImpl<Range>::check_limits(const Range& range) const {
 
   // Otherwise, check that other is within the limits
   return limits_contain(range);
- }
+}
 
 template <typename Range>
 typename ZMemoryManagerImpl<Range>::offset ZMemoryManagerImpl<Range>::peek_low_address() const {
