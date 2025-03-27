@@ -39,16 +39,16 @@ ZVirtualMemoryReserver::ZVirtualMemoryReserver(size_t size)
   : _virtual_memory_reservation(),
     _reserved(reserve(size)) {}
 
-void ZVirtualMemoryReserver::initialize_node(ZMemoryManager* node, size_t size) {
-  assert(node->is_empty(), "Should be empty when initializing");
+void ZVirtualMemoryReserver::initialize_partition(ZMemoryManager* partition, size_t size) {
+  assert(partition->is_empty(), "Should be empty when initializing");
 
   // Registers the Windows callbacks
-  pd_register_callbacks(node);
+  pd_register_callbacks(partition);
 
-  _virtual_memory_reservation.transfer_from_low(node, size);
+  _virtual_memory_reservation.transfer_from_low(partition, size);
 
-  // Set the limits according to the virtual memory given to this node
-  node->anchor_limits();
+  // Set the limits according to the virtual memory given to this partition
+  partition->anchor_limits();
 }
 
 void ZVirtualMemoryReserver::unreserve() {
@@ -72,27 +72,27 @@ size_t ZVirtualMemoryReserver::reserved() const {
   return _reserved;
 }
 
-void ZVirtualMemoryManager::initialize_nodes(ZVirtualMemoryReserver* reserver, size_t size_for_nodes) {
-  precond(is_aligned(size_for_nodes, ZGranuleSize));
+void ZVirtualMemoryManager::initialize_partitions(ZVirtualMemoryReserver* reserver, size_t size_for_partitions) {
+  precond(is_aligned(size_for_partitions, ZGranuleSize));
 
-  // If the capacity consist of less granules than the number of nodes some
-  // nodes will be empty. Distribute these shares on the none empty nodes.
-  const uint32_t first_empty_numa_id = MIN2(static_cast<uint32_t>(size_for_nodes >> ZGranuleSizeShift), ZNUMA::count());
+  // If the capacity consist of less granules than the number of partitions some
+  // partitions will be empty. Distribute these shares on the none empty partitions.
+  const uint32_t first_empty_numa_id = MIN2(static_cast<uint32_t>(size_for_partitions >> ZGranuleSizeShift), ZNUMA::count());
   const uint32_t ignore_count = ZNUMA::count() - first_empty_numa_id;
 
   // Install reserved memory into manager(s)
   uint32_t numa_id;
-  ZPerNUMAIterator<ZMemoryManager> iter(&_nodes);
-  for (ZMemoryManager* node; iter.next(&node, &numa_id);) {
+  ZPerNUMAIterator<ZMemoryManager> iter(&_partitions);
+  for (ZMemoryManager* partition; iter.next(&partition, &numa_id);) {
     if (numa_id == first_empty_numa_id) {
       break;
     }
 
-    // Calculate how much reserved memory this node gets
-    const size_t reserved_for_node = ZNUMA::calculate_share(numa_id, size_for_nodes, ZGranuleSize, ignore_count);
+    // Calculate how much reserved memory this partition gets
+    const size_t reserved_for_partition = ZNUMA::calculate_share(numa_id, size_for_partitions, ZGranuleSize, ignore_count);
 
     // Transfer reserved memory
-    reserver->initialize_node(node, reserved_for_node);
+    reserver->initialize_partition(partition, reserved_for_partition);
   }
 }
 
@@ -235,21 +235,21 @@ size_t ZVirtualMemoryReserver::reserve(size_t size) {
 }
 
 ZVirtualMemoryManager::ZVirtualMemoryManager(size_t max_capacity)
-  : _nodes(),
-    _multi_node(),
+  : _partitions(),
+    _multi_partition(),
     _initialized(false) {
 
   assert(max_capacity <= ZAddressOffsetMax, "Too large max_capacity");
 
   const size_t limit = MIN2(ZAddressOffsetMax, ZAddressSpaceLimit::heap());
 
-  const size_t desired_for_nodes = max_capacity * ZVirtualToPhysicalRatio;
-  const size_t desired_for_multi_node = ZNUMA::count() > 1 ? max_capacity : 0;
+  const size_t desired_for_partitions = max_capacity * ZVirtualToPhysicalRatio;
+  const size_t desired_for_multi_partition = ZNUMA::count() > 1 ? max_capacity : 0;
 
-  const size_t desired = desired_for_nodes + desired_for_multi_node;
+  const size_t desired = desired_for_partitions + desired_for_multi_partition;
   const size_t requested = desired <= limit
       ? desired
-      : MIN2(desired_for_nodes, limit);
+      : MIN2(desired_for_partitions, limit);
 
   // Reserve virtual memory for the heap
   ZVirtualMemoryReserver reserver(requested);
@@ -262,16 +262,16 @@ ZVirtualMemoryManager::ZVirtualMemoryManager(size_t max_capacity)
     return;
   }
 
-  const size_t size_for_nodes = MIN2(reserved, desired_for_nodes);
+  const size_t size_for_partitions = MIN2(reserved, desired_for_partitions);
 
-  // Divide size_for_nodes virtual memory over the NUMA nodes
-  initialize_nodes(&reserver, size_for_nodes);
+  // Divide size_for_partitions virtual memory over the NUMA nodes
+  initialize_partitions(&reserver, size_for_partitions);
 
-  if (desired_for_multi_node > 0 && reserved == desired) {
-    // Enough left to setup the multi-node memory reservation
-    reserver.initialize_node(&_multi_node, max_capacity);
+  if (desired_for_multi_partition > 0 && reserved == desired) {
+    // Enough left to setup the multi-partition memory reservation
+    reserver.initialize_partition(&_multi_partition, max_capacity);
   } else {
-    // Failed to reserve enough memory for multi-node, unreserve unused memory
+    // Failed to reserve enough memory for multi-partition, unreserve unused memory
     reserver.unreserve();
   }
 
@@ -280,7 +280,7 @@ ZVirtualMemoryManager::ZVirtualMemoryManager(size_t max_capacity)
   log_info_p(gc, init)("Address Space Type: %s/%s/%s",
                        (is_contiguous ? "Contiguous" : "Discontiguous"),
                        (limit == ZAddressOffsetMax ? "Unrestricted" : "Restricted"),
-                       (reserved >= desired_for_nodes ? "Complete" : "Degraded"));
+                       (reserved >= desired_for_partitions ? "Complete" : "Degraded"));
   log_info_p(gc, init)("Address Space Size: %zuM", reserved / M);
 
   // Successfully initialized
@@ -291,35 +291,35 @@ bool ZVirtualMemoryManager::is_initialized() const {
   return _initialized;
 }
 
-zoffset ZVirtualMemoryManager::lowest_available_address(uint32_t numa_id) const {
-  return _nodes.get(numa_id).peek_low_address();
+zoffset ZVirtualMemoryManager::lowest_available_address(uint32_t partition_id) const {
+  return _partitions.get(partition_id).peek_low_address();
 }
 
-void ZVirtualMemoryManager::insert(const ZVirtualMemory& vmem, uint32_t numa_id) {
-  assert(numa_id == get_numa_id(vmem), "wrong numa_id for vmem");
-  _nodes.get(numa_id).insert(vmem);
+void ZVirtualMemoryManager::insert(const ZVirtualMemory& vmem, uint32_t partition_id) {
+  assert(partition_id == get_partition_id(vmem), "wrong partition_id for vmem");
+  _partitions.get(partition_id).insert(vmem);
 }
 
-void ZVirtualMemoryManager::insert_multi_node(const ZVirtualMemory& vmem) {
-  _multi_node.insert(vmem);
+void ZVirtualMemoryManager::insert_multi_partition(const ZVirtualMemory& vmem) {
+  _multi_partition.insert(vmem);
 }
 
-size_t ZVirtualMemoryManager::remove_from_low_many_at_most(size_t size, uint32_t numa_id, ZArray<ZVirtualMemory>* vmems_out) {
-  return _nodes.get(numa_id).remove_from_low_many_at_most(size, vmems_out);
+size_t ZVirtualMemoryManager::remove_from_low_many_at_most(size_t size, uint32_t partition_id, ZArray<ZVirtualMemory>* vmems_out) {
+  return _partitions.get(partition_id).remove_from_low_many_at_most(size, vmems_out);
 }
 
-ZVirtualMemory ZVirtualMemoryManager::remove_from_low(size_t size, uint32_t numa_id) {
-  return _nodes.get(numa_id).remove_from_low(size);
+ZVirtualMemory ZVirtualMemoryManager::remove_from_low(size_t size, uint32_t partition_id) {
+  return _partitions.get(partition_id).remove_from_low(size);
 }
 
-ZVirtualMemory ZVirtualMemoryManager::remove_from_low_multi_node(size_t size) {
-  return _multi_node.remove_from_low(size);
+ZVirtualMemory ZVirtualMemoryManager::remove_from_low_multi_partition(size_t size) {
+  return _multi_partition.remove_from_low(size);
 }
 
-void ZVirtualMemoryManager::insert_and_remove_from_low_many(const ZVirtualMemory& vmem, uint32_t numa_id, ZArray<ZVirtualMemory>* vmems_out) {
-  _nodes.get(numa_id).insert_and_remove_from_low_many(vmem, vmems_out);
+void ZVirtualMemoryManager::insert_and_remove_from_low_many(const ZVirtualMemory& vmem, uint32_t partition_id, ZArray<ZVirtualMemory>* vmems_out) {
+  _partitions.get(partition_id).insert_and_remove_from_low_many(vmem, vmems_out);
 }
 
-ZVirtualMemory ZVirtualMemoryManager::insert_and_remove_from_low_exact_or_many(size_t size, uint32_t numa_id, ZArray<ZVirtualMemory>* vmems_in_out) {
-  return _nodes.get(numa_id).insert_and_remove_from_low_exact_or_many(size, vmems_in_out);
+ZVirtualMemory ZVirtualMemoryManager::insert_and_remove_from_low_exact_or_many(size_t size, uint32_t partition_id, ZArray<ZVirtualMemory>* vmems_in_out) {
+  return _partitions.get(partition_id).insert_and_remove_from_low_exact_or_many(size, vmems_in_out);
 }

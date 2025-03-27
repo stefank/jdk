@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2025, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -46,15 +46,15 @@
 class ThreadClosure;
 class ZGeneration;
 class ZMemoryAllocation;
-class ZMultiNodeAllocation;
+class ZMultiPartitionAllocation;
 class ZPageAllocation;
 class ZPageAllocator;
 class ZPageAllocatorStats;
 class ZSegmentStash;
-class ZSingleNodeAllocation;
+class ZSinglePartitionAllocation;
 class ZWorkers;
 
-class ZAllocNode {
+class ZPartition {
   friend class VMStructs;
   friend class ZPageAllocator;
 
@@ -91,14 +91,14 @@ private:
   const zbacking_index* physical_mappings_addr(const ZVirtualMemory& vmem) const;
   zbacking_index* physical_mappings_addr(const ZVirtualMemory& vmem);
 
-  void verify_virtual_memory_multi_node_association(const ZVirtualMemory& vmem) const;
-  void verify_virtual_memory_association(const ZVirtualMemory& vmem, bool check_multi_node = false) const;
+  void verify_virtual_memory_multi_partition_association(const ZVirtualMemory& vmem) const;
+  void verify_virtual_memory_association(const ZVirtualMemory& vmem, bool check_multi_partition = false) const;
   void verify_virtual_memory_association(const ZArray<ZVirtualMemory>* vmems) const;
   void verify_memory_allocation_association(const ZMemoryAllocation* allocation) const;
 
   void copy_physical_segments(const ZVirtualMemory& to, const ZVirtualMemory& from);
 public:
-  ZAllocNode(uint32_t numa_id, ZPageAllocator* page_allocator);
+  ZPartition(uint32_t numa_id, ZPageAllocator* page_allocator);
 
   uint32_t numa_id() const;
 
@@ -134,8 +134,8 @@ public:
   void map_virtual(const ZVirtualMemory& vmem);
   void unmap_virtual(const ZVirtualMemory& vmem);
 
-  void map_virtual_from_multi_node(const ZVirtualMemory& vmem);
-  void unmap_virtual_from_multi_node(const ZVirtualMemory& vmem);
+  void map_virtual_from_multi_partition(const ZVirtualMemory& vmem);
+  void unmap_virtual_from_multi_partition(const ZVirtualMemory& vmem);
 
   ZVirtualMemory claim_virtual(size_t size);
   size_t claim_virtual(size_t size, ZArray<ZVirtualMemory>* vmems_out);
@@ -148,8 +148,8 @@ public:
 
   ZVirtualMemory prepare_harvested_and_claim_virtual(ZMemoryAllocation* allocation);
 
-  void copy_physical_segments_to_node(const ZVirtualMemory& at, const ZVirtualMemory& from);
-  void copy_physical_segments_from_node(const ZVirtualMemory& at, const ZVirtualMemory& to);
+  void copy_physical_segments_to_partition(const ZVirtualMemory& at, const ZVirtualMemory& from);
+  void copy_physical_segments_from_partition(const ZVirtualMemory& at, const ZVirtualMemory& to);
 
   void commit_increased_capacity(ZMemoryAllocation* allocation, const ZVirtualMemory& vmem);
   void map_memory(ZMemoryAllocation* allocation, const ZVirtualMemory& vmem);
@@ -164,9 +164,9 @@ public:
 
 class ZPageAllocator {
   friend class VMStructs;
-  friend class ZAllocNode;
+  friend class ZPartition;
   friend class ZUncommitter;
-  friend class ZMultiNodeTracker;
+  friend class ZMultiPartitionTracker;
 
 private:
   mutable ZLock               _lock;
@@ -176,7 +176,7 @@ private:
   const size_t                _min_capacity;
   const size_t                _initial_capacity;
   const size_t                _max_capacity;
-  ZPerNUMA<ZAllocNode>        _alloc_nodes;
+  ZPerNUMA<ZPartition>        _partitions;
   ZList<ZPageAllocation>      _stalled;
   mutable ZSafeDelete<ZPage>  _safe_destroy;
   bool                        _initialized;
@@ -186,50 +186,50 @@ private:
 
   bool claim_capacity_or_stall(ZPageAllocation* allocation);
   bool claim_capacity(ZPageAllocation* allocation);
-  bool claim_capacity_single_node(ZSingleNodeAllocation* single_node_allocation, uint32_t numa_id);
-  void claim_capacity_multi_node(ZMultiNodeAllocation* multi_node_allocation, uint32_t start_node);
+  bool claim_capacity_single_partition(ZSinglePartitionAllocation* single_partition_allocation, uint32_t partition_id);
+  void claim_capacity_multi_partition(ZMultiPartitionAllocation* multi_partition_allocation, uint32_t start_partition);
 
   ZVirtualMemory satisfied_from_cache_vmem(const ZPageAllocation* allocation) const;
 
   ZVirtualMemory claim_virtual_memory(ZPageAllocation* allocation);
-  ZVirtualMemory claim_virtual_memory_single_node(ZSingleNodeAllocation* single_node_allocation);
-  ZVirtualMemory claim_virtual_memory_multi_node(ZMultiNodeAllocation* multi_node_allocation);
+  ZVirtualMemory claim_virtual_memory_single_partition(ZSinglePartitionAllocation* single_partition_allocation);
+  ZVirtualMemory claim_virtual_memory_multi_partition(ZMultiPartitionAllocation* multi_partition_allocation);
 
-  void copy_claimed_physical_multi_node(ZMultiNodeAllocation* multi_node_allocation, const ZVirtualMemory& vmem);
+  void copy_claimed_physical_multi_partition(ZMultiPartitionAllocation* multi_partition_allocation, const ZVirtualMemory& vmem);
 
   void claim_physical_for_increased_capacity(ZPageAllocation* allocation, const ZVirtualMemory& vmem);
-  void claim_physical_for_increased_capacity_single_node(ZSingleNodeAllocation* allocation, const ZVirtualMemory& vmem);
-  void claim_physical_for_increased_capacity_multi_node(const ZMultiNodeAllocation* multi_node_allocation, const ZVirtualMemory& vmem);
+  void claim_physical_for_increased_capacity_single_partition(ZSinglePartitionAllocation* allocation, const ZVirtualMemory& vmem);
+  void claim_physical_for_increased_capacity_multi_partition(const ZMultiPartitionAllocation* multi_partition_allocation, const ZVirtualMemory& vmem);
   void claim_physical_for_increased_capacity(ZMemoryAllocation* allocation, const ZVirtualMemory& vmem);
 
   bool commit_and_map_memory(ZPageAllocation* allocation, const ZVirtualMemory& vmem);
-  bool commit_and_map_memory_single_node(ZSingleNodeAllocation* single_node_allocation, const ZVirtualMemory& vmem);
-  bool commit_and_map_memory_multi_node(ZMultiNodeAllocation* multi_node_allocation, const ZVirtualMemory& vmem);
+  bool commit_and_map_memory_single_partition(ZSinglePartitionAllocation* single_partition_allocation, const ZVirtualMemory& vmem);
+  bool commit_and_map_memory_multi_partition(ZMultiPartitionAllocation* multi_partition_allocation, const ZVirtualMemory& vmem);
 
   void commit_memory(ZMemoryAllocation* allocation, const ZVirtualMemory& vmem);
-  bool commit_memory_single_node(ZSingleNodeAllocation* single_node_allocation, const ZVirtualMemory& vmem);
-  bool commit_memory_multi_node(ZMultiNodeAllocation* multi_node_allocation, const ZVirtualMemory& vmem);
+  bool commit_memory_single_partition(ZSinglePartitionAllocation* single_partition_allocation, const ZVirtualMemory& vmem);
+  bool commit_memory_multi_partition(ZMultiPartitionAllocation* multi_partition_allocation, const ZVirtualMemory& vmem);
 
-  void unmap_harvested_memory_multi_node(ZMultiNodeAllocation* multi_node_allocation);
+  void unmap_harvested_memory_multi_partition(ZMultiPartitionAllocation* multi_partition_allocation);
 
-  void map_committed_memory_single_node(ZSingleNodeAllocation* single_node_allocation, const ZVirtualMemory& vmem);
-  void map_committed_memory_multi_node(ZMultiNodeAllocation* multi_node_allocation, const ZVirtualMemory& vmem);
+  void map_committed_memory_single_partition(ZSinglePartitionAllocation* single_partition_allocation, const ZVirtualMemory& vmem);
+  void map_committed_memory_multi_partition(ZMultiPartitionAllocation* multi_partition_allocation, const ZVirtualMemory& vmem);
 
-  void cleanup_failed_commit_single_node(ZSingleNodeAllocation* single_node_allocation, const ZVirtualMemory& vmem);
-  void cleanup_failed_commit_multi_node(ZMultiNodeAllocation* multi_node_allocation, const ZVirtualMemory& vmem);
+  void cleanup_failed_commit_single_partition(ZSinglePartitionAllocation* single_partition_allocation, const ZVirtualMemory& vmem);
+  void cleanup_failed_commit_multi_partition(ZMultiPartitionAllocation* multi_partition_allocation, const ZVirtualMemory& vmem);
 
   void free_after_alloc_page_failed(ZPageAllocation* allocation);
 
   void free_memory_alloc_failed(ZPageAllocation* allocation);
-  void free_memory_alloc_failed_single_node(ZSingleNodeAllocation* single_node_allocation);
-  void free_memory_alloc_failed_multi_node(ZMultiNodeAllocation* multi_node_allocation);
+  void free_memory_alloc_failed_single_partition(ZSinglePartitionAllocation* single_partition_allocation);
+  void free_memory_alloc_failed_multi_partition(ZMultiPartitionAllocation* multi_partition_allocation);
   void free_memory_alloc_failed(ZMemoryAllocation* allocation);
 
   void alloc_page_age_update(ZPageAllocation* allocation, ZPage* page, ZPageAge age);
 
   void increase_used_generation(const ZPageAllocation* allocation, ZGenerationId id);
-  void increase_used_generation_single_node(const ZSingleNodeAllocation* single_mode_allocation, ZGenerationId id);
-  void increase_used_generation_multi_node(const ZMultiNodeAllocation* multi_node_allocation, ZGenerationId id);
+  void increase_used_generation_single_partition(const ZSinglePartitionAllocation* single_mode_allocation, ZGenerationId id);
+  void increase_used_generation_multi_partition(const ZMultiPartitionAllocation* multi_partition_allocation, ZGenerationId id);
   void increase_used_generation(const ZMemoryAllocation* allocation, ZGenerationId id);
 
   void prepare_memory_for_free(ZPage* page, ZArray<ZVirtualMemory>* vmems);
@@ -238,11 +238,11 @@ private:
 
   void satisfy_stalled();
 
-  bool is_multi_node_enabled() const;
+  bool is_multi_partition_enabled() const;
 
-  const ZAllocNode& node_from_numa_id(uint32_t numa_id) const;
-  ZAllocNode&       node_from_numa_id(uint32_t numa_id);
-  ZAllocNode&       node_from_vmem(const ZVirtualMemory& vmem);
+  const ZPartition& partition_from_partition_id(uint32_t partition_id) const;
+  ZPartition&       partition_from_partition_id(uint32_t partition_id);
+  ZPartition&       partition_from_vmem(const ZVirtualMemory& vmem);
 
   size_t count_segments_physical(const ZVirtualMemory& vmem);
   size_t sum_available() const;
@@ -291,8 +291,8 @@ public:
   void handle_alloc_stalling_for_young();
   void handle_alloc_stalling_for_old(bool cleared_soft_refs);
 
-  ZPerNUMAConstIterator<ZAllocNode> alloc_node_iterator() const;
-  ZPerNUMAIterator<ZAllocNode> alloc_node_iterator();
+  ZPerNUMAConstIterator<ZPartition> partition_iterator() const;
+  ZPerNUMAIterator<ZPartition> partition_iterator();
 
   void threads_do(ThreadClosure* tc) const;
 

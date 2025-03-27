@@ -30,18 +30,18 @@
 #include "gc/z/zNUMA.inline.hpp"
 #include "utilities/globalDefinitions.hpp"
 
-inline bool ZVirtualMemoryManager::is_multi_node_enabled() const {
-  return !_multi_node.is_empty();
+inline bool ZVirtualMemoryManager::is_multi_partition_enabled() const {
+  return !_multi_partition.is_empty();
 }
 
-inline bool ZVirtualMemoryManager::is_in_multi_node(const ZVirtualMemory& vmem) const {
-  return _multi_node.limits_contain(vmem);
+inline bool ZVirtualMemoryManager::is_in_multi_partition(const ZVirtualMemory& vmem) const {
+  return _multi_partition.limits_contain(vmem);
 }
 
-inline uint32_t ZVirtualMemoryManager::get_numa_id(const ZVirtualMemory& vmem) const {
+inline uint32_t ZVirtualMemoryManager::get_partition_id(const ZVirtualMemory& vmem) const {
   const uint32_t numa_nodes = ZNUMA::count();
   for (uint32_t numa_id = 0; numa_id < numa_nodes; numa_id++) {
-    if (_nodes.get(numa_id).limits_contain(vmem)) {
+    if (_partitions.get(numa_id).limits_contain(vmem)) {
       return numa_id;
     }
   }

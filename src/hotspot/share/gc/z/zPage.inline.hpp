@@ -156,17 +156,17 @@ inline const ZVirtualMemory& ZPage::virtual_memory() const {
   return _virtual;
 }
 
-inline bool ZPage::is_multi_node() const {
-  return _multi_node_tracker != nullptr;
+inline bool ZPage::is_multi_partition() const {
+  return _multi_partition_tracker != nullptr;
 }
 
-inline ZMultiNodeTracker* ZPage::multi_node_tracker() const {
-  return _multi_node_tracker;
+inline ZMultiPartitionTracker* ZPage::multi_partition_tracker() const {
+  return _multi_partition_tracker;
 }
 
-inline void ZPage::set_multi_node_tracker(ZMultiNodeTracker* tracker) {
-  assert(_multi_node_tracker == nullptr, "only set once");
-  _multi_node_tracker = tracker;
+inline void ZPage::set_multi_partition_tracker(ZMultiPartitionTracker* tracker) {
+  assert(_multi_partition_tracker == nullptr, "only set once");
+  _multi_partition_tracker = tracker;
 }
 
 inline ZPageAge ZPage::age() const {

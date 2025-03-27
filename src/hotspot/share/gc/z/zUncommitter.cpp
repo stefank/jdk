@@ -31,9 +31,9 @@
 
 static const ZStatCounter ZCounterUncommit("Memory", "Uncommit", ZStatUnitBytesPerSecond);
 
-ZUncommitter::ZUncommitter(uint32_t id, ZAllocNode* alloc_node)
+ZUncommitter::ZUncommitter(uint32_t id, ZPartition* partition)
   : _id(id),
-    _alloc_node(alloc_node),
+    _partition(partition),
     _lock(),
     _stop(false) {
 
@@ -69,7 +69,7 @@ void ZUncommitter::run_thread() {
 
     while (should_continue()) {
       // Uncommit chunk
-      const size_t flushed = _alloc_node->uncommit(&timeout);
+      const size_t flushed = _partition->uncommit(&timeout);
       if (flushed == 0) {
         // Done
         break;

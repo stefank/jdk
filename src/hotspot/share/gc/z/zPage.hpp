@@ -33,7 +33,7 @@
 #include "memory/allocation.hpp"
 #include "oops/oopsHierarchy.hpp"
 
-class ZMultiNodeTracker;
+class ZMultiPartitionTracker;
 class ZGeneration;
 
 class ZPage : public CHeapObj<mtGC> {
@@ -41,16 +41,16 @@ class ZPage : public CHeapObj<mtGC> {
   friend class ZForwardingTest;
 
 private:
-  ZPageType            _type;
-  ZGenerationId        _generation_id;
-  ZPageAge             _age;
-  uint32_t             _seqnum;
-  uint32_t             _seqnum_other;
-  ZVirtualMemory       _virtual;
-  volatile zoffset_end _top;
-  ZLiveMap             _livemap;
-  ZRememberedSet       _remembered_set;
-  ZMultiNodeTracker*   _multi_node_tracker;
+  ZPageType               _type;
+  ZGenerationId           _generation_id;
+  ZPageAge                _age;
+  uint32_t                _seqnum;
+  uint32_t                _seqnum_other;
+  ZVirtualMemory          _virtual;
+  volatile zoffset_end    _top;
+  ZLiveMap                _livemap;
+  ZRememberedSet          _remembered_set;
+  ZMultiPartitionTracker* _multi_partition_tracker;
 
   const char* type_to_string() const;
 
@@ -68,7 +68,7 @@ private:
 
 public:
   ZPage(ZPageType type, const ZVirtualMemory& vmem);
-  ZPage(ZPageType type, const ZVirtualMemory& vmem, ZMultiNodeTracker* multi_node_tracker);
+  ZPage(ZPageType type, const ZVirtualMemory& vmem, ZMultiPartitionTracker* multi_partition_tracker);
 
   ZPage* clone_limited() const;
 
@@ -94,9 +94,9 @@ public:
 
   const ZVirtualMemory& virtual_memory() const;
 
-  bool is_multi_node() const;
-  ZMultiNodeTracker* multi_node_tracker() const;
-  void set_multi_node_tracker(ZMultiNodeTracker* tracker);
+  bool is_multi_partition() const;
+  ZMultiPartitionTracker* multi_partition_tracker() const;
+  void set_multi_partition_tracker(ZMultiPartitionTracker* tracker);
 
   ZPageAge age() const;
 

@@ -173,7 +173,7 @@ public:
 class ZMemoryAllocation : public CHeapObj<mtGC> {
 private:
   const size_t           _size;
-  ZAllocNode*            _node;
+  ZPartition*            _partition;
   ZVirtualMemory         _satisfied_from_cache_vmem;
   ZArray<ZVirtualMemory> _partial_vmems;
   int                    _num_harvested;
@@ -184,8 +184,8 @@ private:
 
   explicit ZMemoryAllocation(const ZMemoryAllocation& other)
     : ZMemoryAllocation(other._size) {
-    // Transfer the node
-    set_node(other._node);
+    // Transfer the partition
+    set_partition(other._partition);
 
     // Reserve space for the partial vmems
     _partial_vmems.reserve(other._partial_vmems.length() + (other._satisfied_from_cache_vmem.is_null() ? 1 : 0));
@@ -196,9 +196,9 @@ private:
 
   ZMemoryAllocation(const ZMemoryAllocation& a1, const ZMemoryAllocation& a2)
     : ZMemoryAllocation(a1._size + a2._size) {
-    // Transfer the node
-    assert(a1._node == a2._node, "only merge with same node");
-    set_node(a1._node);
+    // Transfer the partition
+    assert(a1._partition == a2._partition, "only merge with same partition");
+    set_partition(a1._partition);
 
     // Reserve space for the partial vmems
     const int num_vmems_a1 = a1._partial_vmems.length() + (a1._satisfied_from_cache_vmem.is_null() ? 1 : 0);
@@ -234,7 +234,7 @@ private:
 public:
   explicit ZMemoryAllocation(size_t size)
     : _size(size),
-      _node(nullptr),
+      _partition(nullptr),
       _satisfied_from_cache_vmem(),
       _partial_vmems(0),
       _num_harvested(0),
@@ -246,7 +246,7 @@ public:
   void reset_for_retry() {
     assert(_satisfied_from_cache_vmem.is_null(), "Incompatible with reset");
 
-    _node = nullptr;
+    _partition = nullptr;
     _partial_vmems.clear();
     _num_harvested = 0;
     _harvested = 0;
@@ -259,14 +259,14 @@ public:
     return _size;
   }
 
-  ZAllocNode& node() const {
-    assert(_node != nullptr, "Should have been initialized");
-    return *_node;
+  ZPartition& partition() const {
+    assert(_partition != nullptr, "Should have been initialized");
+    return *_partition;
   }
 
-  void set_node(ZAllocNode* node) {
-    assert(_node == nullptr, "Should be initialized only once");
-    _node = node;
+  void set_partition(ZPartition* partition) {
+    assert(_partition == nullptr, "Should be initialized only once");
+    _partition = partition;
   }
 
   ZVirtualMemory satisfied_from_cache_vmem() const {
@@ -331,7 +331,7 @@ public:
   static void merge(const ZMemoryAllocation& allocation, ZMemoryAllocation** merge_location) {
     ZMemoryAllocation* const other_allocation = *merge_location;
     if (other_allocation == nullptr) {
-      // First allocation, allocate new node
+      // First allocation, allocate new partition
       *merge_location = new ZMemoryAllocation(allocation);
     } else {
       // Merge with other allocation
@@ -343,12 +343,12 @@ public:
   }
 };
 
-class ZSingleNodeAllocation {
+class ZSinglePartitionAllocation {
 private:
   ZMemoryAllocation _allocation;
 
 public:
-  ZSingleNodeAllocation(size_t size)
+  ZSinglePartitionAllocation(size_t size)
     : _allocation(size) {}
 
   size_t size() const {
@@ -368,17 +368,17 @@ public:
   }
 };
 
-class ZMultiNodeAllocation : public StackObj {
+class ZMultiPartitionAllocation : public StackObj {
 private:
   const size_t               _size;
   ZArray<ZMemoryAllocation*> _allocations;
 
 public:
-  ZMultiNodeAllocation(size_t size)
+  ZMultiPartitionAllocation(size_t size)
     : _size(size),
       _allocations(0) {}
 
-  ~ZMultiNodeAllocation() {
+  ~ZMultiPartitionAllocation() {
     for (ZMemoryAllocation* allocation : _allocations) {
       ZMemoryAllocation::destroy(allocation);
     }
@@ -387,7 +387,7 @@ public:
   void initialize() {
     precond(_allocations.is_empty());
 
-    // The multi-node allocation creates at most one allocation per node.
+    // The multi-partition allocation creates at most one allocation per partition.
     const int length = (int)ZNUMA::count();
 
     _allocations.reserve(length);
@@ -413,7 +413,7 @@ public:
   }
 
   void register_allocation(const ZMemoryAllocation& allocation) {
-    ZMemoryAllocation** const slot = allocation_slot(allocation.node().numa_id());
+    ZMemoryAllocation** const slot = allocation_slot(allocation.partition().numa_id());
 
     ZMemoryAllocation::merge(allocation, slot);
   }
@@ -423,7 +423,7 @@ public:
     for (int i = 0; i < _allocations.length(); ++i) {
       ZMemoryAllocation** const slot_addr = _allocations.adr_at(i);
       ZMemoryAllocation* const allocation = *slot_addr;
-      if (allocation->node().numa_id() == numa_id) {
+      if (allocation->partition().numa_id() == numa_id) {
         // Found an existing slot
         return slot_addr;
       }
@@ -488,9 +488,9 @@ private:
   const uint32_t             _young_seqnum;
   const uint32_t             _old_seqnum;
   const uint32_t             _initiating_numa_id;
-  bool                       _is_multi_node;
-  ZSingleNodeAllocation      _single_node_allocation;
-  ZMultiNodeAllocation       _multi_node_allocation;
+  bool                       _is_multi_partition;
+  ZSinglePartitionAllocation _single_partition_allocation;
+  ZMultiPartitionAllocation  _multi_partition_allocation;
   ZListNode<ZPageAllocation> _node;
   ZFuture<bool>              _stall_result;
 
@@ -502,16 +502,16 @@ public:
       _young_seqnum(ZGeneration::young()->seqnum()),
       _old_seqnum(ZGeneration::old()->seqnum()),
       _initiating_numa_id(ZNUMA::id()),
-      _is_multi_node(false),
-      _single_node_allocation(size),
-      _multi_node_allocation(size),
+      _is_multi_partition(false),
+      _single_partition_allocation(size),
+      _multi_partition_allocation(size),
       _node(),
       _stall_result() {}
 
   void reset_for_retry() {
-    _is_multi_node = false;
-    _single_node_allocation.reset_for_retry();
-    _multi_node_allocation.reset_for_retry();
+    _is_multi_partition = false;
+    _single_partition_allocation.reset_for_retry();
+    _multi_partition_allocation.reset_for_retry();
   }
 
   ZPageType type() const {
@@ -538,44 +538,44 @@ public:
     return _initiating_numa_id;
   }
 
-  bool is_multi_node() const {
-    return _is_multi_node;
+  bool is_multi_partition() const {
+    return _is_multi_partition;
   }
 
-  void initiate_multi_node_allocation() {
-    assert(!_is_multi_node, "Reinitialization?");
-    _is_multi_node = true;
-    _multi_node_allocation.initialize();
+  void initiate_multi_partition_allocation() {
+    assert(!_is_multi_partition, "Reinitialization?");
+    _is_multi_partition = true;
+    _multi_partition_allocation.initialize();
   }
 
-  ZMultiNodeAllocation* multi_node_allocation() {
-    assert(_is_multi_node, "multi-node allocation must be initiated");
+  ZMultiPartitionAllocation* multi_partition_allocation() {
+    assert(_is_multi_partition, "multi-partition allocation must be initiated");
 
-    return &_multi_node_allocation;
+    return &_multi_partition_allocation;
   }
 
-  const ZMultiNodeAllocation* multi_node_allocation() const {
-    assert(_is_multi_node, "multi-node allocation must be initiated");
+  const ZMultiPartitionAllocation* multi_partition_allocation() const {
+    assert(_is_multi_partition, "multi-partition allocation must be initiated");
 
-    return &_multi_node_allocation;
+    return &_multi_partition_allocation;
   }
 
-  ZSingleNodeAllocation* single_node_allocation() {
-    assert(!_is_multi_node, "multi-node allocation must not have been initiated");
+  ZSinglePartitionAllocation* single_partition_allocation() {
+    assert(!_is_multi_partition, "multi-partition allocation must not have been initiated");
 
-    return &_single_node_allocation;
+    return &_single_partition_allocation;
   }
 
-  const ZSingleNodeAllocation* single_node_allocation() const {
-    assert(!_is_multi_node, "multi-node allocation must not have been initiated");
+  const ZSinglePartitionAllocation* single_partition_allocation() const {
+    assert(!_is_multi_partition, "multi-partition allocation must not have been initiated");
 
-    return &_single_node_allocation;
+    return &_single_partition_allocation;
   }
 
   ZVirtualMemory satisfied_from_cache_vmem() const {
-    precond(!_is_multi_node);
+    precond(!_is_multi_partition);
 
-    const ZMemoryAllocation* const allocation = _single_node_allocation.allocation();
+    const ZMemoryAllocation* const allocation = _single_partition_allocation.allocation();
 
     return allocation->satisfied_from_cache_vmem();
   }
@@ -593,80 +593,80 @@ public:
   }
 
   ZPageAllocationStats stats() const {
-    if (_is_multi_node) {
+    if (_is_multi_partition) {
       return ZPageAllocationStats(
-          _multi_node_allocation.sum_num_harvested_vmems(),
-          _multi_node_allocation.sum_harvested(),
-          _multi_node_allocation.sum_committed_increased_capacity());
+          _multi_partition_allocation.sum_num_harvested_vmems(),
+          _multi_partition_allocation.sum_harvested(),
+          _multi_partition_allocation.sum_committed_increased_capacity());
     } else {
       return ZPageAllocationStats(
-          _single_node_allocation.allocation()->num_harvested(),
-          _single_node_allocation.allocation()->harvested(),
-          _single_node_allocation.allocation()->committed_capacity());
+          _single_partition_allocation.allocation()->num_harvested(),
+          _single_partition_allocation.allocation()->harvested(),
+          _single_partition_allocation.allocation()->committed_capacity());
     }
   }
 };
 
-const ZVirtualMemoryManager& ZAllocNode::virtual_memory_manager() const {
+const ZVirtualMemoryManager& ZPartition::virtual_memory_manager() const {
   return _page_allocator->_virtual;
 }
 
-ZVirtualMemoryManager& ZAllocNode::virtual_memory_manager() {
+ZVirtualMemoryManager& ZPartition::virtual_memory_manager() {
   return _page_allocator->_virtual;
 }
 
-const ZPhysicalMemoryManager& ZAllocNode::physical_memory_manager() const {
+const ZPhysicalMemoryManager& ZPartition::physical_memory_manager() const {
   return _page_allocator->_physical;
 }
 
-ZPhysicalMemoryManager& ZAllocNode::physical_memory_manager() {
+ZPhysicalMemoryManager& ZPartition::physical_memory_manager() {
   return _page_allocator->_physical;
 }
 
-const ZGranuleMap<zbacking_index>& ZAllocNode::physical_mappings() const {
+const ZGranuleMap<zbacking_index>& ZPartition::physical_mappings() const {
   return _page_allocator->_physical_mappings;
 }
 
-ZGranuleMap<zbacking_index>& ZAllocNode::physical_mappings() {
+ZGranuleMap<zbacking_index>& ZPartition::physical_mappings() {
   return _page_allocator->_physical_mappings;
 }
 
-const zbacking_index* ZAllocNode::physical_mappings_addr(const ZVirtualMemory& vmem) const {
+const zbacking_index* ZPartition::physical_mappings_addr(const ZVirtualMemory& vmem) const {
   const ZGranuleMap<zbacking_index>& mappings = physical_mappings();
   return mappings.addr(vmem.start());
 }
 
-zbacking_index* ZAllocNode::physical_mappings_addr(const ZVirtualMemory& vmem) {
+zbacking_index* ZPartition::physical_mappings_addr(const ZVirtualMemory& vmem) {
   ZGranuleMap<zbacking_index>& mappings = physical_mappings();
   return mappings.addr(vmem.start());
 }
 
-void ZAllocNode::verify_virtual_memory_multi_node_association(const ZVirtualMemory& vmem) const {
+void ZPartition::verify_virtual_memory_multi_partition_association(const ZVirtualMemory& vmem) const {
 #ifdef ASSERT
   const ZVirtualMemoryManager& manager = virtual_memory_manager();
 
-  assert(manager.is_in_multi_node(vmem), "Virtual memory must be associated with the extra space "
+  assert(manager.is_in_multi_partition(vmem), "Virtual memory must be associated with the extra space "
                                          "actual: %u", virtual_memory_manager().get_numa_id(vmem));
 #endif // ASSERT
 }
 
-void ZAllocNode::verify_virtual_memory_association(const ZVirtualMemory& vmem, bool check_multi_node) const {
+void ZPartition::verify_virtual_memory_association(const ZVirtualMemory& vmem, bool check_multi_partition) const {
 #ifdef ASSERT
   const ZVirtualMemoryManager& manager = virtual_memory_manager();
 
-  if (check_multi_node && manager.is_in_multi_node(vmem)) {
-    // We allow claim/free/commit physical operation in multi-node allocations
+  if (check_multi_partition && manager.is_in_multi_partition(vmem)) {
+    // We allow claim/free/commit physical operation in multi-partition allocations
     // to use virtual memory associated with the extra space.
     return;
   }
 
   const uint32_t vmem_numa_id = virtual_memory_manager().get_numa_id(vmem);
-  assert(_numa_id == vmem_numa_id, "Virtual memory must be associated with the current node "
+  assert(_numa_id == vmem_numa_id, "Virtual memory must be associated with the current partition "
                                    "expected: %u, actual: %u", _numa_id, vmem_numa_id);
 #endif // ASSERT
 }
 
-void ZAllocNode::verify_virtual_memory_association(const ZArray<ZVirtualMemory>* vmems) const {
+void ZPartition::verify_virtual_memory_association(const ZArray<ZVirtualMemory>* vmems) const {
 #ifdef ASSERT
   for (const ZVirtualMemory& vmem : *vmems) {
     verify_virtual_memory_association(vmem);
@@ -674,14 +674,14 @@ void ZAllocNode::verify_virtual_memory_association(const ZArray<ZVirtualMemory>*
 #endif // ASSERT
 }
 
-void ZAllocNode::verify_memory_allocation_association(const ZMemoryAllocation* allocation) const {
+void ZPartition::verify_memory_allocation_association(const ZMemoryAllocation* allocation) const {
 #ifdef ASSERT
-  assert(this == &allocation->node(), "Memory allocation must be associated with the current node "
-                                      "expected: %u, actual: %u", _numa_id, allocation->node().numa_id());
+  assert(this == &allocation->partition(), "Memory allocation must be associated with the current partition "
+                                           "expected: %u, actual: %u", _numa_id, allocation->partition().numa_id());
 #endif // ASSERT
 }
 
-void ZAllocNode::copy_physical_segments(const ZVirtualMemory& to, const ZVirtualMemory& from) {
+void ZPartition::copy_physical_segments(const ZVirtualMemory& to, const ZVirtualMemory& from) {
   assert(to.size() == from.size(), "must be of the same size");
   zbacking_index* const dest = physical_mappings_addr(to);
   const zbacking_index* const src = physical_mappings_addr(from);
@@ -690,7 +690,7 @@ void ZAllocNode::copy_physical_segments(const ZVirtualMemory& to, const ZVirtual
   ZUtils::copy_disjoint(dest, src, granule_count);
 }
 
-ZAllocNode::ZAllocNode(uint32_t numa_id, ZPageAllocator* page_allocator)
+ZPartition::ZPartition(uint32_t numa_id, ZPageAllocator* page_allocator)
   : _page_allocator(page_allocator),
     _cache(),
     _uncommitter(numa_id, this),
@@ -708,15 +708,15 @@ ZAllocNode::ZAllocNode(uint32_t numa_id, ZPageAllocator* page_allocator)
     _to_uncommit(0),
     _numa_id(numa_id) {}
 
-uint32_t ZAllocNode::numa_id() const {
+uint32_t ZPartition::numa_id() const {
   return _numa_id;
 }
 
-size_t ZAllocNode::available() const {
+size_t ZPartition::available() const {
   return _current_max_capacity - _used - _claimed;
 }
 
-size_t ZAllocNode::increase_capacity(size_t size) {
+size_t ZPartition::increase_capacity(size_t size) {
   const size_t increased = MIN2(size, _current_max_capacity - _capacity);
 
   if (increased > 0) {
@@ -731,7 +731,7 @@ size_t ZAllocNode::increase_capacity(size_t size) {
   return increased;
 }
 
-void ZAllocNode::decrease_capacity(size_t size, bool set_max_capacity) {
+void ZPartition::decrease_capacity(size_t size, bool set_max_capacity) {
   // Update state atomically since we have concurrent readers
   Atomic::sub(&_capacity, size);
 
@@ -740,7 +740,7 @@ void ZAllocNode::decrease_capacity(size_t size, bool set_max_capacity) {
     const size_t current_max_capacity_before = _current_max_capacity;
     Atomic::store(&_current_max_capacity, _capacity);
 
-    log_debug_p(gc)("Forced to lower max Node (%u) capacity from "
+    log_debug_p(gc)("Forced to lower max partition (%u) capacity from "
                     "%zuM(%.0f%%) to %zuM(%.0f%%)",
                     _numa_id,
                     current_max_capacity_before / M, percent_of(current_max_capacity_before, _max_capacity),
@@ -748,7 +748,7 @@ void ZAllocNode::decrease_capacity(size_t size, bool set_max_capacity) {
   }
 }
 
-void ZAllocNode::increase_used(size_t size) {
+void ZPartition::increase_used(size_t size) {
   // We don't track generation usage here because this page
   // could be allocated by a thread that satisfies a stalling
   // allocation. The stalled thread can wake up and potentially
@@ -768,7 +768,7 @@ void ZAllocNode::increase_used(size_t size) {
   }
 }
 
-void ZAllocNode::decrease_used(size_t size) {
+void ZPartition::decrease_used(size_t size) {
   // Update atomically since we have concurrent readers
   const size_t used = Atomic::sub(&_used, size);
 
@@ -780,17 +780,17 @@ void ZAllocNode::decrease_used(size_t size) {
   }
 }
 
-void ZAllocNode::increase_used_generation(ZGenerationId id, size_t size) {
+void ZPartition::increase_used_generation(ZGenerationId id, size_t size) {
   // Update atomically since we have concurrent readers
   Atomic::add(&_used_generations[(int)id], size, memory_order_relaxed);
 }
 
-void ZAllocNode::decrease_used_generation(ZGenerationId id, size_t size) {
+void ZPartition::decrease_used_generation(ZGenerationId id, size_t size) {
   // Update atomically since we have concurrent readers
   Atomic::sub(&_used_generations[(int)id], size, memory_order_relaxed);
 }
 
-void ZAllocNode::free_memory(ZGenerationId id, const ZVirtualMemory& vmem) {
+void ZPartition::free_memory(ZGenerationId id, const ZVirtualMemory& vmem) {
   const size_t size = vmem.size();
 
   // Cache the vmem
@@ -801,20 +801,20 @@ void ZAllocNode::free_memory(ZGenerationId id, const ZVirtualMemory& vmem) {
   decrease_used_generation(id, size);
 }
 
-void ZAllocNode::reset_statistics(ZGenerationId id) {
+void ZPartition::reset_statistics(ZGenerationId id) {
   _collection_stats[(int)id]._used_high = _used;
   _collection_stats[(int)id]._used_low = _used;
 }
 
-void ZAllocNode::claim_from_cache_or_increase_capacity(ZMemoryAllocation* allocation) {
+void ZPartition::claim_from_cache_or_increase_capacity(ZMemoryAllocation* allocation) {
   const size_t size = allocation->size();
   ZArray<ZVirtualMemory>* const out = allocation->partial_vmems();
 
   // We are guaranteed to succeed the claiming of capacity here
   assert(available() >= size, "Must be");
 
-  // Associate the allocation with this alloc node.
-  allocation->set_node(this);
+  // Associate the allocation with this partition.
+  allocation->set_partition(this);
 
   // Try to allocate one contiguous vmem
   ZVirtualMemory vmem = _cache.remove_contiguous(size);
@@ -851,7 +851,7 @@ void ZAllocNode::claim_from_cache_or_increase_capacity(ZMemoryAllocation* alloca
   return;
 }
 
-bool ZAllocNode::claim_capacity(ZMemoryAllocation* allocation) {
+bool ZPartition::claim_capacity(ZMemoryAllocation* allocation) {
   const size_t size = allocation->size();
 
   if (available() < size) {
@@ -868,12 +868,12 @@ bool ZAllocNode::claim_capacity(ZMemoryAllocation* allocation) {
   return true;
 }
 
-void ZAllocNode::promote_used(size_t size) {
+void ZPartition::promote_used(size_t size) {
   decrease_used_generation(ZGenerationId::young, size);
   increase_used_generation(ZGenerationId::old, size);
 }
 
-size_t ZAllocNode::uncommit(uint64_t* timeout) {
+size_t ZPartition::uncommit(uint64_t* timeout) {
   ZArray<ZVirtualMemory> flushed_vmems;
   size_t flushed = 0;
 
@@ -900,7 +900,7 @@ size_t ZAllocNode::uncommit(uint64_t* timeout) {
     const size_t limit = MIN2(align_up(_current_max_capacity >> 7, ZGranuleSize), limit_upper_bound);
 
     if (limit == 0) {
-      // This may occur if the current max capacity for this node is 0
+      // This may occur if the current max capacity for this partition is 0
 
       // Set timeout to ZUncommitDelay
       *timeout = ZUncommitDelay;
@@ -968,8 +968,8 @@ size_t ZAllocNode::uncommit(uint64_t* timeout) {
   return flushed;
 }
 
-void ZAllocNode::sort_segments_physical(const ZVirtualMemory& vmem) {
-  verify_virtual_memory_association(vmem, true /* check_multi_node */);
+void ZPartition::sort_segments_physical(const ZVirtualMemory& vmem) {
+  verify_virtual_memory_association(vmem, true /* check_multi_partition */);
 
   zbacking_index* const pmem = physical_mappings_addr(vmem);
   const int granule_count = vmem.granule_count();
@@ -978,8 +978,8 @@ void ZAllocNode::sort_segments_physical(const ZVirtualMemory& vmem) {
   sort_zbacking_index_array(pmem, granule_count);
 }
 
-void ZAllocNode::claim_physical(const ZVirtualMemory& vmem) {
-  verify_virtual_memory_association(vmem, true /* check_multi_node */);
+void ZPartition::claim_physical(const ZVirtualMemory& vmem) {
+  verify_virtual_memory_association(vmem, true /* check_multi_partition */);
 
   ZPhysicalMemoryManager& manager = physical_memory_manager();
   zbacking_index* const pmem = physical_mappings_addr(vmem);
@@ -989,8 +989,8 @@ void ZAllocNode::claim_physical(const ZVirtualMemory& vmem) {
   manager.alloc(pmem, size, _numa_id);
 }
 
-void ZAllocNode::free_physical(const ZVirtualMemory& vmem) {
-  verify_virtual_memory_association(vmem, true /* check_multi_node */);
+void ZPartition::free_physical(const ZVirtualMemory& vmem) {
+  verify_virtual_memory_association(vmem, true /* check_multi_partition */);
 
   ZPhysicalMemoryManager& manager = physical_memory_manager();
   zbacking_index* const pmem = physical_mappings_addr(vmem);
@@ -1000,8 +1000,8 @@ void ZAllocNode::free_physical(const ZVirtualMemory& vmem) {
   manager.free(pmem, size, _numa_id);
 }
 
-size_t ZAllocNode::commit_physical(const ZVirtualMemory& vmem) {
-  verify_virtual_memory_association(vmem, true /* check_multi_node */);
+size_t ZPartition::commit_physical(const ZVirtualMemory& vmem) {
+  verify_virtual_memory_association(vmem, true /* check_multi_partition */);
 
   ZPhysicalMemoryManager& manager = physical_memory_manager();
   zbacking_index* const pmem = physical_mappings_addr(vmem);
@@ -1011,7 +1011,7 @@ size_t ZAllocNode::commit_physical(const ZVirtualMemory& vmem) {
   return manager.commit(pmem, size, _numa_id);
 }
 
-size_t ZAllocNode::uncommit_physical(const ZVirtualMemory& vmem) {
+size_t ZPartition::uncommit_physical(const ZVirtualMemory& vmem) {
   assert(ZUncommit, "should not uncommit when uncommit is disabled");
   verify_virtual_memory_association(vmem);
 
@@ -1023,7 +1023,7 @@ size_t ZAllocNode::uncommit_physical(const ZVirtualMemory& vmem) {
   return manager.uncommit(pmem, size);
 }
 
-void ZAllocNode::map_virtual(const ZVirtualMemory& vmem) {
+void ZPartition::map_virtual(const ZVirtualMemory& vmem) {
   verify_virtual_memory_association(vmem);
 
   ZPhysicalMemoryManager& manager = physical_memory_manager();
@@ -1035,7 +1035,7 @@ void ZAllocNode::map_virtual(const ZVirtualMemory& vmem) {
   manager.map(offset, pmem, size, _numa_id);
 }
 
-void ZAllocNode::unmap_virtual(const ZVirtualMemory& vmem) {
+void ZPartition::unmap_virtual(const ZVirtualMemory& vmem) {
   verify_virtual_memory_association(vmem);
 
   ZPhysicalMemoryManager& manager = physical_memory_manager();
@@ -1047,8 +1047,8 @@ void ZAllocNode::unmap_virtual(const ZVirtualMemory& vmem) {
   manager.unmap(offset, pmem, size);
 }
 
-void ZAllocNode::map_virtual_from_multi_node(const ZVirtualMemory& vmem) {
-  verify_virtual_memory_multi_node_association(vmem);
+void ZPartition::map_virtual_from_multi_partition(const ZVirtualMemory& vmem) {
+  verify_virtual_memory_multi_partition_association(vmem);
 
   // Sort physical segments
   sort_segments_physical(vmem);
@@ -1062,8 +1062,8 @@ void ZAllocNode::map_virtual_from_multi_node(const ZVirtualMemory& vmem) {
   manager.map(offset, pmem, size, _numa_id);
 }
 
-void ZAllocNode::unmap_virtual_from_multi_node(const ZVirtualMemory& vmem) {
-  verify_virtual_memory_multi_node_association(vmem);
+void ZPartition::unmap_virtual_from_multi_partition(const ZVirtualMemory& vmem) {
+  verify_virtual_memory_multi_partition_association(vmem);
 
   ZPhysicalMemoryManager& manager = physical_memory_manager();
   const zoffset offset = vmem.start();
@@ -1074,19 +1074,19 @@ void ZAllocNode::unmap_virtual_from_multi_node(const ZVirtualMemory& vmem) {
   manager.unmap(offset, pmem, size);
 }
 
-ZVirtualMemory ZAllocNode::claim_virtual(size_t size) {
+ZVirtualMemory ZPartition::claim_virtual(size_t size) {
   ZVirtualMemoryManager& manager = virtual_memory_manager();
 
   return manager.remove_from_low(size, _numa_id);
 }
 
-size_t ZAllocNode::claim_virtual(size_t size, ZArray<ZVirtualMemory>* vmems_out) {
+size_t ZPartition::claim_virtual(size_t size, ZArray<ZVirtualMemory>* vmems_out) {
   ZVirtualMemoryManager& manager = virtual_memory_manager();
 
   return manager.remove_from_low_many_at_most(size, _numa_id, vmems_out);
 }
 
-void ZAllocNode::free_virtual(const ZVirtualMemory& vmem) {
+void ZPartition::free_virtual(const ZVirtualMemory& vmem) {
   verify_virtual_memory_association(vmem);
 
   ZVirtualMemoryManager& manager = virtual_memory_manager();
@@ -1095,7 +1095,7 @@ void ZAllocNode::free_virtual(const ZVirtualMemory& vmem) {
   manager.insert(vmem, _numa_id);
 }
 
-void ZAllocNode::free_and_claim_virtual_from_low_many(const ZVirtualMemory& vmem, ZArray<ZVirtualMemory>* vmems_out) {
+void ZPartition::free_and_claim_virtual_from_low_many(const ZVirtualMemory& vmem, ZArray<ZVirtualMemory>* vmems_out) {
   verify_virtual_memory_association(vmem);
 
   ZVirtualMemoryManager& manager = virtual_memory_manager();
@@ -1104,7 +1104,7 @@ void ZAllocNode::free_and_claim_virtual_from_low_many(const ZVirtualMemory& vmem
   manager.insert_and_remove_from_low_many(vmem, _numa_id, vmems_out);
 }
 
-ZVirtualMemory ZAllocNode::free_and_claim_virtual_from_low_exact_or_many(size_t size, ZArray<ZVirtualMemory>* vmems_in_out) {
+ZVirtualMemory ZPartition::free_and_claim_virtual_from_low_exact_or_many(size_t size, ZArray<ZVirtualMemory>* vmems_in_out) {
   verify_virtual_memory_association(vmems_in_out);
 
   ZVirtualMemoryManager& manager = virtual_memory_manager();
@@ -1152,7 +1152,7 @@ public:
   }
 };
 
-bool ZAllocNode::prime(ZWorkers* workers, size_t size) {
+bool ZPartition::prime(ZWorkers* workers, size_t size) {
   if (size == 0) {
     return true;
   }
@@ -1191,7 +1191,7 @@ bool ZAllocNode::prime(ZWorkers* workers, size_t size) {
   return true;
 }
 
-ZVirtualMemory ZAllocNode::prepare_harvested_and_claim_virtual(ZMemoryAllocation* allocation) {
+ZVirtualMemory ZPartition::prepare_harvested_and_claim_virtual(ZMemoryAllocation* allocation) {
   verify_memory_allocation_association(allocation);
 
   // Unmap virtual memory
@@ -1228,23 +1228,23 @@ ZVirtualMemory ZAllocNode::prepare_harvested_and_claim_virtual(ZMemoryAllocation
   return result;
 }
 
-void ZAllocNode::copy_physical_segments_to_node(const ZVirtualMemory& at, const ZVirtualMemory& from) {
+void ZPartition::copy_physical_segments_to_partition(const ZVirtualMemory& at, const ZVirtualMemory& from) {
   verify_virtual_memory_association(at);
-  verify_virtual_memory_association(from, true /* check_multi_node */);
+  verify_virtual_memory_association(from, true /* check_multi_partition */);
 
   // Copy segments
   copy_physical_segments(at, from);
 }
 
-void ZAllocNode::copy_physical_segments_from_node(const ZVirtualMemory& at, const ZVirtualMemory& to) {
+void ZPartition::copy_physical_segments_from_partition(const ZVirtualMemory& at, const ZVirtualMemory& to) {
   verify_virtual_memory_association(at);
-  verify_virtual_memory_association(to, true /* check_multi_node */);
+  verify_virtual_memory_association(to, true /* check_multi_partition */);
 
   // Copy segments
   copy_physical_segments(to, at);
 }
 
-void ZAllocNode::commit_increased_capacity(ZMemoryAllocation* allocation, const ZVirtualMemory& vmem) {
+void ZPartition::commit_increased_capacity(ZMemoryAllocation* allocation, const ZVirtualMemory& vmem) {
   assert(allocation->increased_capacity() > 0, "Nothing to commit");
 
   const size_t already_committed = allocation->harvested();
@@ -1259,14 +1259,14 @@ void ZAllocNode::commit_increased_capacity(ZMemoryAllocation* allocation, const 
   allocation->set_committed_capacity(committed);
 }
 
-void ZAllocNode::map_memory(ZMemoryAllocation* allocation, const ZVirtualMemory& vmem) {
+void ZPartition::map_memory(ZMemoryAllocation* allocation, const ZVirtualMemory& vmem) {
   sort_segments_physical(vmem);
   map_virtual(vmem);
 
-  check_numa_mismatch(vmem, allocation->node().numa_id());
+  check_numa_mismatch(vmem, allocation->partition().numa_id());
 }
 
-void ZAllocNode::free_memory_alloc_failed(ZMemoryAllocation* allocation) {
+void ZPartition::free_memory_alloc_failed(ZMemoryAllocation* allocation) {
   verify_memory_allocation_association(allocation);
 
   // Only decrease the overall used and not the generation used,
@@ -1290,12 +1290,12 @@ void ZAllocNode::free_memory_alloc_failed(ZMemoryAllocation* allocation) {
   }
 }
 
-void ZAllocNode::threads_do(ThreadClosure* tc) const {
+void ZPartition::threads_do(ThreadClosure* tc) const {
   tc->do_thread(const_cast<ZUncommitter*>(&_uncommitter));
 }
 
-void ZAllocNode::print_on(outputStream* st) const {
-  st->print("  Node %u", _numa_id);
+void ZPartition::print_on(outputStream* st) const {
+  st->print("  Partition %u", _numa_id);
   st->fill_to(17 + st->indentation());
   st->print_cr("used %zuM, capacity %zuM, max capacity %zuM",
                _used / M, _capacity / M, _max_capacity / M);
@@ -1303,21 +1303,21 @@ void ZAllocNode::print_on(outputStream* st) const {
   _cache.print_on(st);
 }
 
-void ZAllocNode::print_extended_on_error(outputStream* st) const {
-  st->print_cr(" Node %u", _numa_id);
+void ZPartition::print_extended_on_error(outputStream* st) const {
+  st->print_cr(" Partition %u", _numa_id);
   _cache.print_extended_on(st);
 }
 
-class ZMultiNodeTracker : CHeapObj<mtGC> {
+class ZMultiPartitionTracker : CHeapObj<mtGC> {
 private:
   struct Element {
     ZVirtualMemory _vmem;
-    ZAllocNode*    _node;
+    ZPartition*    _partition;
   };
 
   ZArray<Element> _map;
 
-  ZMultiNodeTracker(int capacity)
+  ZMultiPartitionTracker(int capacity)
     : _map(capacity) {}
 
   const ZArray<Element>* map() const {
@@ -1332,18 +1332,18 @@ public:
   void prepare_memory_for_free(const ZVirtualMemory& vmem, ZArray<ZVirtualMemory>* vmems_out) const {
     const uint32_t numa_nodes = ZNUMA::count();
 
-    // Remap memory back to original node
+    // Remap memory back to original partition
     for (const Element partial_allocation : *map()) {
       ZVirtualMemory remaining_vmem = partial_allocation._vmem;
-      ZAllocNode& node = *partial_allocation._node;
+      ZPartition& partition = *partial_allocation._partition;
 
       const size_t size = remaining_vmem.size();
 
       // Allocate new virtual address ranges
       const int start_index = vmems_out->length();
-      const size_t claimed_virtual = node.claim_virtual(remaining_vmem.size(), vmems_out);
+      const size_t claimed_virtual = partition.claim_virtual(remaining_vmem.size(), vmems_out);
 
-      // We are holding memory associated with this node, and we do not
+      // We are holding memory associated with this partition, and we do not
       // overcommit virtual memory claiming. So virtual memory must always
       // be available.
       assert(claimed_virtual == size, "must succeed");
@@ -1353,49 +1353,49 @@ public:
         const ZVirtualMemory from_vmem = remaining_vmem.shrink_from_front(to_vmem.size());
 
         // Copy physical segments
-        node.copy_physical_segments_to_node(to_vmem, from_vmem);
+        partition.copy_physical_segments_to_partition(to_vmem, from_vmem);
 
         // Unmap from_vmem
-        node.unmap_virtual_from_multi_node(from_vmem);
+        partition.unmap_virtual_from_multi_partition(from_vmem);
 
         // Map to_vmem
-        node.map_virtual(to_vmem);
+        partition.map_virtual(to_vmem);
       }
       assert(remaining_vmem.size() == 0, "must have mapped all claimed virtual memory");
     }
   }
 
-  static void destroy(const ZMultiNodeTracker* tracker) {
+  static void destroy(const ZMultiPartitionTracker* tracker) {
     delete tracker;
   }
 
-  static ZMultiNodeTracker* create(const ZMultiNodeAllocation* multi_node_allocation, const ZVirtualMemory& vmem) {
-    const ZArray<ZMemoryAllocation*>* const partial_allocations = multi_node_allocation->allocations();
+  static ZMultiPartitionTracker* create(const ZMultiPartitionAllocation* multi_partition_allocation, const ZVirtualMemory& vmem) {
+    const ZArray<ZMemoryAllocation*>* const partial_allocations = multi_partition_allocation->allocations();
 
-    ZMultiNodeTracker* const tracker = new ZMultiNodeTracker(partial_allocations->length());
+    ZMultiPartitionTracker* const tracker = new ZMultiPartitionTracker(partial_allocations->length());
 
     ZVirtualMemory remaining = vmem;
 
     // Each partial allocation is mapped to the virtual memory in order
     for (ZMemoryAllocation* partial_allocation : *partial_allocations) {
-      // Track each separate vmem's numa node
+      // Track each separate vmem's partition
       const ZVirtualMemory partial_vmem = remaining.shrink_from_front(partial_allocation->size());
-      ZAllocNode* const node = &partial_allocation->node();
-      tracker->map()->push({partial_vmem, node});
+      ZPartition* const partition = &partial_allocation->partition();
+      tracker->map()->push({partial_vmem, partition});
     }
 
     return tracker;
   }
 
   static void promote(const ZPage* from, const ZPage* to) {
-    ZMultiNodeTracker* const tracker = from->multi_node_tracker();
-    assert(tracker == to->multi_node_tracker(), "should have the same tracker");
+    ZMultiPartitionTracker* const tracker = from->multi_partition_tracker();
+    assert(tracker == to->multi_partition_tracker(), "should have the same tracker");
 
     for (const Element partial_allocation : *tracker->map()) {
       const size_t size = partial_allocation._vmem.size();
-      ZAllocNode& node = *partial_allocation._node;
+      ZPartition& partition = *partial_allocation._partition;
 
-      node.promote_used(size);
+      partition.promote_used(size);
     }
   }
 };
@@ -1411,7 +1411,7 @@ ZPageAllocator::ZPageAllocator(size_t min_capacity,
     _min_capacity(min_capacity),
     _initial_capacity(initial_capacity),
     _max_capacity(max_capacity),
-    _alloc_nodes(ZValueIdTagType{}, this),
+    _partitions(ZValueIdTagType{}, this),
     _stalled(),
     _safe_destroy(),
     _initialized(false) {
@@ -1446,12 +1446,12 @@ bool ZPageAllocator::is_initialized() const {
 }
 
 bool ZPageAllocator::prime_cache(ZWorkers* workers, size_t size) {
-  ZPerNUMAIterator<ZAllocNode> iter = alloc_node_iterator();
-  for (ZAllocNode* node; iter.next(&node);) {
-    const uint32_t numa_id = node->numa_id();
+  ZPerNUMAIterator<ZPartition> iter = partition_iterator();
+  for (ZPartition* partition; iter.next(&partition);) {
+    const uint32_t numa_id = partition->numa_id();
     const size_t to_prime = ZNUMA::calculate_share(numa_id, size);
 
-    if (!node->prime(workers, to_prime)) {
+    if (!partition->prime(workers, to_prime)) {
       return false;
     }
   }
@@ -1479,9 +1479,9 @@ size_t ZPageAllocator::soft_max_capacity() const {
 
 size_t ZPageAllocator::current_max_capacity() const {
   size_t current_max_capacity = 0;
-  ZPerNUMAConstIterator<ZAllocNode> iter = alloc_node_iterator();
-  for (const ZAllocNode* node; iter.next(&node);) {
-    current_max_capacity += Atomic::load(&node->_current_max_capacity);
+  ZPerNUMAConstIterator<ZPartition> iter = partition_iterator();
+  for (const ZPartition* partition; iter.next(&partition);) {
+    current_max_capacity += Atomic::load(&partition->_current_max_capacity);
   }
 
   return current_max_capacity;
@@ -1489,9 +1489,9 @@ size_t ZPageAllocator::current_max_capacity() const {
 
 size_t ZPageAllocator::capacity() const {
   size_t capacity = 0;
-  ZPerNUMAConstIterator<ZAllocNode> iter = alloc_node_iterator();
-  for (const ZAllocNode* node; iter.next(&node);) {
-    capacity += Atomic::load(&node->_capacity);
+  ZPerNUMAConstIterator<ZPartition> iter = partition_iterator();
+  for (const ZPartition* partition; iter.next(&partition);) {
+    capacity += Atomic::load(&partition->_capacity);
   }
 
   return capacity;
@@ -1499,9 +1499,9 @@ size_t ZPageAllocator::capacity() const {
 
 size_t ZPageAllocator::used() const {
   size_t used = 0;
-  ZPerNUMAConstIterator<ZAllocNode> iter = alloc_node_iterator();
-  for (const ZAllocNode* node; iter.next(&node);) {
-    used += Atomic::load(&node->_used);
+  ZPerNUMAConstIterator<ZPartition> iter = partition_iterator();
+  for (const ZPartition* partition; iter.next(&partition);) {
+    used += Atomic::load(&partition->_used);
   }
 
   return used;
@@ -1509,9 +1509,9 @@ size_t ZPageAllocator::used() const {
 
 size_t ZPageAllocator::used_generation(ZGenerationId id) const {
   size_t used_generation = 0;
-  ZPerNUMAConstIterator<ZAllocNode> iter = alloc_node_iterator();
-  for (const ZAllocNode* node; iter.next(&node);) {
-    used_generation += Atomic::load(&node->_used_generations[(int)id]);
+  ZPerNUMAConstIterator<ZPartition> iter = partition_iterator();
+  for (const ZPartition* partition; iter.next(&partition);) {
+    used_generation += Atomic::load(&partition->_used_generations[(int)id]);
   }
 
   return used_generation;
@@ -1522,11 +1522,11 @@ size_t ZPageAllocator::unused() const {
   ssize_t used = 0;
   ssize_t claimed = 0;
 
-  ZPerNUMAConstIterator<ZAllocNode> iter = alloc_node_iterator();
-  for (const ZAllocNode* node; iter.next(&node);) {
-    capacity += (ssize_t)Atomic::load(&node->_capacity);
-    used += (ssize_t)Atomic::load(&node->_used);
-    claimed += (ssize_t)Atomic::load(&node->_claimed);
+  ZPerNUMAConstIterator<ZPartition> iter = partition_iterator();
+  for (const ZPartition* partition; iter.next(&partition);) {
+    capacity += (ssize_t)Atomic::load(&partition->_capacity);
+    used += (ssize_t)Atomic::load(&partition->_used);
+    claimed += (ssize_t)Atomic::load(&partition->_claimed);
   }
 
   const ssize_t unused = capacity - used - claimed;
@@ -1544,15 +1544,15 @@ ZPageAllocatorStats ZPageAllocator::stats(ZGeneration* generation) const {
                             generation->compacted(),
                             _stalled.size());
 
-  // Aggregate per ZAllocNode stats
+  // Aggregate per ZPartition stats
   const int gen_id = (int)generation->id();
-  ZPerNUMAConstIterator<ZAllocNode> iter(&_alloc_nodes);
-  for (const ZAllocNode* node; iter.next(&node);) {
-    stats.increment_stats(node->_capacity,
-                          node->_used,
-                          node->_collection_stats[gen_id]._used_high,
-                          node->_collection_stats[gen_id]._used_low,
-                          node->_used_generations[gen_id]);
+  ZPerNUMAConstIterator<ZPartition> iter(&_partitions);
+  for (const ZPartition* partition; iter.next(&partition);) {
+    stats.increment_stats(partition->_capacity,
+                          partition->_used,
+                          partition->_collection_stats[gen_id]._used_high,
+                          partition->_collection_stats[gen_id]._used_low,
+                          partition->_used_generations[gen_id]);
   }
 
   return stats;
@@ -1561,9 +1561,9 @@ ZPageAllocatorStats ZPageAllocator::stats(ZGeneration* generation) const {
 void ZPageAllocator::reset_statistics(ZGenerationId id) {
   assert(SafepointSynchronize::is_at_safepoint(), "Should be at safepoint");
 
-  ZPerNUMAIterator<ZAllocNode> iter(&_alloc_nodes);
-  for (ZAllocNode* node; iter.next(&node);) {
-    node->reset_statistics(id);
+  ZPerNUMAIterator<ZPartition> iter(&_partitions);
+  for (ZPartition* partition; iter.next(&partition);) {
+    partition->reset_statistics(id);
   }
 }
 
@@ -1571,12 +1571,12 @@ void ZPageAllocator::promote_used(const ZPage* from, const ZPage* to) {
   assert(from->size() == to->size(), "pages are the same size");
   assert(from->start() == to->start(), "pages start at same offset");
 
-  if (from->is_multi_node()) {
-    ZMultiNodeTracker::promote(from, to);
+  if (from->is_multi_partition()) {
+    ZMultiPartitionTracker::promote(from, to);
   } else {
     const size_t size = from->size();
-    ZAllocNode &node = node_from_vmem(from->virtual_memory());
-    node.promote_used(size);
+    ZPartition &partition = partition_from_vmem(from->virtual_memory());
+    partition.promote_used(size);
   }
 }
 
@@ -1697,9 +1697,9 @@ retry:
     goto retry;
   }
 
-  // We need to keep track of the physical memory's original alloc nodes
-  ZMultiNodeTracker* const tracker = allocation->is_multi_node()
-      ? ZMultiNodeTracker::create(allocation->multi_node_allocation(), vmem)
+  // We need to keep track of the physical memory's original partitions
+  ZMultiPartitionTracker* const tracker = allocation->is_multi_partition()
+      ? ZMultiPartitionTracker::create(allocation->multi_partition_allocation(), vmem)
       : nullptr;
 
   return new ZPage(allocation->type(), vmem, tracker);
@@ -1732,47 +1732,47 @@ bool ZPageAllocator::claim_capacity(ZPageAllocation* allocation) {
   const uint32_t start_node = allocation->initiating_numa_id();
   const uint32_t numa_nodes = ZNUMA::count();
 
-  // Round robin single-node claiming
+  // Round robin single-partition claiming
 
   for (uint32_t i = 0; i < numa_nodes; ++i) {
     const uint32_t numa_id = (start_node + i) % numa_nodes;
 
-    if (claim_capacity_single_node(allocation->single_node_allocation(), numa_id)) {
+    if (claim_capacity_single_partition(allocation->single_partition_allocation(), numa_id)) {
       return true;
     }
   }
 
-  if (!is_multi_node_enabled() || sum_available() < allocation->size()) {
-    // Multi-node claiming is not possible
+  if (!is_multi_partition_enabled() || sum_available() < allocation->size()) {
+    // Multi-partition claiming is not possible
     return false;
   }
 
-  // Multi-node claiming
+  // Multi-partition claiming
 
-  // Flip allocation to multi-node allocation
-  allocation->initiate_multi_node_allocation();
+  // Flip allocation to multi-partition allocation
+  allocation->initiate_multi_partition_allocation();
 
-  ZMultiNodeAllocation* const multi_node_allocation = allocation->multi_node_allocation();
+  ZMultiPartitionAllocation* const multi_partition_allocation = allocation->multi_partition_allocation();
 
-  claim_capacity_multi_node(multi_node_allocation, start_node);
+  claim_capacity_multi_partition(multi_partition_allocation, start_node);
 
   return true;
 }
 
-bool ZPageAllocator::claim_capacity_single_node(ZSingleNodeAllocation* single_node_allocation, uint32_t numa_id) {
-  ZAllocNode& node = _alloc_nodes.get(numa_id);
+bool ZPageAllocator::claim_capacity_single_partition(ZSinglePartitionAllocation* single_partition_allocation, uint32_t partition_id) {
+  ZPartition& partition = _partitions.get(partition_id);
 
-  return node.claim_capacity(single_node_allocation->allocation());
+  return partition.claim_capacity(single_partition_allocation->allocation());
 }
 
-void ZPageAllocator::claim_capacity_multi_node(ZMultiNodeAllocation* multi_node_allocation, uint32_t start_node) {
-  const size_t size = multi_node_allocation->size();
+void ZPageAllocator::claim_capacity_multi_partition(ZMultiPartitionAllocation* multi_partition_allocation, uint32_t start_partition) {
+  const size_t size = multi_partition_allocation->size();
   const uint32_t numa_nodes = ZNUMA::count();
   const size_t split_size = align_up(size / numa_nodes, ZGranuleSize);
 
   size_t remaining = size;
 
-  const auto do_claim_one_node = [&](ZAllocNode& node, bool claim_evenly) {
+  const auto do_claim_one_partition = [&](ZPartition& partition, bool claim_evenly) {
     if (remaining == 0) {
       // All memory claimed
       return false;
@@ -1781,7 +1781,7 @@ void ZPageAllocator::claim_capacity_multi_node(ZMultiNodeAllocation* multi_node_
     const size_t max_alloc_size = claim_evenly ? MIN2(split_size, remaining) : remaining;
 
     // This guarantees that claim_physical below will succeed
-    const size_t alloc_size = MIN2(max_alloc_size, node.available());
+    const size_t alloc_size = MIN2(max_alloc_size, partition.available());
 
     // Skip over empty allocations
     if (alloc_size == 0) {
@@ -1792,11 +1792,11 @@ void ZPageAllocator::claim_capacity_multi_node(ZMultiNodeAllocation* multi_node_
     ZMemoryAllocation partial_allocation(alloc_size);
 
     // Claim capacity for this allocation - this should succeed
-    const bool result = node.claim_capacity(&partial_allocation);
+    const bool result = partition.claim_capacity(&partial_allocation);
     assert(result, "Should have succeeded");
 
     // Register allocation
-    multi_node_allocation->register_allocation(partial_allocation);
+    multi_partition_allocation->register_allocation(partial_allocation);
 
     // Update remaining
     remaining -= alloc_size;
@@ -1805,33 +1805,33 @@ void ZPageAllocator::claim_capacity_multi_node(ZMultiNodeAllocation* multi_node_
     return true;
   };
 
-  // Loops over every node and claims memory
-  const auto do_claim_each_node = [&](bool claim_evenly) {
+  // Loops over every partition and claims memory
+  const auto do_claim_each_partition = [&](bool claim_evenly) {
     for (uint32_t i = 0; i < numa_nodes; ++i) {
-      const uint32_t numa_id = (start_node + i) % numa_nodes;
-      ZAllocNode& node = _alloc_nodes.get(numa_id);
+      const uint32_t numa_id = (start_partition + i) % numa_nodes;
+      ZPartition& partition = _partitions.get(numa_id);
 
-      if (!do_claim_one_node(node, claim_evenly)) {
+      if (!do_claim_one_partition(partition, claim_evenly)) {
         // All memory claimed
         break;
       }
     }
   };
 
-  // Try to claim from multiple nodes
+  // Try to claim from multiple partitions
 
-  // Try to claim up to split_size on each node
-  do_claim_each_node(true  /* claim_evenly */);
+  // Try to claim up to split_size on each partition
+  do_claim_each_partition(true  /* claim_evenly */);
 
   // Try claim the remaining
-  do_claim_each_node(false /* claim_evenly */);
+  do_claim_each_partition(false /* claim_evenly */);
 
   assert(remaining == 0, "Must have claimed capacity for the whole allocation");
 }
 
 ZVirtualMemory ZPageAllocator::satisfied_from_cache_vmem(const ZPageAllocation* allocation) const {
-  if (allocation->is_multi_node()) {
-    // Multi-node allocations are always harvested and/or committed, so there's never a
+  if (allocation->is_multi_partition()) {
+    // Multi-partition allocations are always harvested and/or committed, so there's never a
     // satisfying vmem from the caches.
     return {};
   }
@@ -1840,63 +1840,63 @@ ZVirtualMemory ZPageAllocator::satisfied_from_cache_vmem(const ZPageAllocation* 
 }
 
 ZVirtualMemory ZPageAllocator::claim_virtual_memory(ZPageAllocation* allocation) {
-  // Note: that the single-node performs "shuffling" of already harvested
-  // vmem(s), while the multi-node searches for available virtual memory
+  // Note: that the single-partition performs "shuffling" of already harvested
+  // vmem(s), while the multi-partition searches for available virtual memory
   // area without shuffling.
 
-  if (allocation->is_multi_node()) {
-    return claim_virtual_memory_multi_node(allocation->multi_node_allocation());
+  if (allocation->is_multi_partition()) {
+    return claim_virtual_memory_multi_partition(allocation->multi_partition_allocation());
   } else {
-    return claim_virtual_memory_single_node(allocation->single_node_allocation());
+    return claim_virtual_memory_single_partition(allocation->single_partition_allocation());
   }
 }
 
-ZVirtualMemory ZPageAllocator::claim_virtual_memory_single_node(ZSingleNodeAllocation* single_node_allocation) {
-  ZMemoryAllocation* const allocation = single_node_allocation->allocation();
-  ZAllocNode& node = allocation->node();
+ZVirtualMemory ZPageAllocator::claim_virtual_memory_single_partition(ZSinglePartitionAllocation* single_partition_allocation) {
+  ZMemoryAllocation* const allocation = single_partition_allocation->allocation();
+  ZPartition& partition = allocation->partition();
 
   if (allocation->harvested() > 0) {
     // If we have harvested anything, we claim virtual memory from the harvested
     // vmems, and perhaps also allocate more to match the allocation request.
-    return node.prepare_harvested_and_claim_virtual(allocation);
+    return partition.prepare_harvested_and_claim_virtual(allocation);
   } else {
     // Just try to claim virtual memory
-    return node.claim_virtual(allocation->size());
+    return partition.claim_virtual(allocation->size());
   }
 }
 
-ZVirtualMemory ZPageAllocator::claim_virtual_memory_multi_node(ZMultiNodeAllocation* multi_node_allocation) {
-  const size_t size = multi_node_allocation->size();
+ZVirtualMemory ZPageAllocator::claim_virtual_memory_multi_partition(ZMultiPartitionAllocation* multi_partition_allocation) {
+  const size_t size = multi_partition_allocation->size();
 
-  const ZVirtualMemory vmem = _virtual.remove_from_low_multi_node(size);
+  const ZVirtualMemory vmem = _virtual.remove_from_low_multi_partition(size);
   if (!vmem.is_null()) {
-    // Copy claimed multi-node vmems, we leave the old vmems mapped until after
+    // Copy claimed multi-partition vmems, we leave the old vmems mapped until after
     // we have committed. In case committing fails we can simply reinsert the
     // initial vmems.
-    copy_claimed_physical_multi_node(multi_node_allocation, vmem);
+    copy_claimed_physical_multi_partition(multi_partition_allocation, vmem);
   }
 
   return vmem;
 }
 
-void ZPageAllocator::copy_claimed_physical_multi_node(ZMultiNodeAllocation* multi_node_allocation, const ZVirtualMemory& vmem) {
+void ZPageAllocator::copy_claimed_physical_multi_partition(ZMultiPartitionAllocation* multi_partition_allocation, const ZVirtualMemory& vmem) {
   // Start at the new dest offset
   ZVirtualMemory remaining_dest_vmem = vmem;
 
-  for (const ZMemoryAllocation* partial_allocation : *multi_node_allocation->allocations()) {
+  for (const ZMemoryAllocation* partial_allocation : *multi_partition_allocation->allocations()) {
     // Split off the partial allocation's partial
     ZVirtualMemory partial_dest_vmem = remaining_dest_vmem.shrink_from_front(partial_allocation->size());
 
-    // Get the partial allocation's node
-    ZAllocNode& node = partial_allocation->node();
+    // Get the partial allocation's partition
+    ZPartition& partition = partial_allocation->partition();
 
-    // Copy all physical segments from the node to the destination vmem
+    // Copy all physical segments from the partition to the destination vmem
     for (const ZVirtualMemory from_vmem : *partial_allocation->partial_vmems()) {
       // Split off destination
       const ZVirtualMemory to_vmem = partial_dest_vmem.shrink_from_front(from_vmem.size());
 
       // Copy physical segments
-      node.copy_physical_segments_from_node(from_vmem, to_vmem);
+      partition.copy_physical_segments_from_partition(from_vmem, to_vmem);
     }
   }
 }
@@ -1904,21 +1904,21 @@ void ZPageAllocator::copy_claimed_physical_multi_node(ZMultiNodeAllocation* mult
 void ZPageAllocator::claim_physical_for_increased_capacity(ZPageAllocation* allocation, const ZVirtualMemory& vmem) {
   assert(allocation->size() == vmem.size(), "vmem should be the final entry");
 
-  if (allocation->is_multi_node()) {
-    claim_physical_for_increased_capacity_multi_node(allocation->multi_node_allocation(), vmem);
+  if (allocation->is_multi_partition()) {
+    claim_physical_for_increased_capacity_multi_partition(allocation->multi_partition_allocation(), vmem);
   } else {
-    claim_physical_for_increased_capacity_single_node(allocation->single_node_allocation(), vmem);
+    claim_physical_for_increased_capacity_single_partition(allocation->single_partition_allocation(), vmem);
   }
 }
 
-void ZPageAllocator::claim_physical_for_increased_capacity_single_node(ZSingleNodeAllocation* single_node_allocation, const ZVirtualMemory& vmem) {
-  claim_physical_for_increased_capacity(single_node_allocation->allocation(), vmem);
+void ZPageAllocator::claim_physical_for_increased_capacity_single_partition(ZSinglePartitionAllocation* single_partition_allocation, const ZVirtualMemory& vmem) {
+  claim_physical_for_increased_capacity(single_partition_allocation->allocation(), vmem);
 }
 
-void ZPageAllocator::claim_physical_for_increased_capacity_multi_node(const ZMultiNodeAllocation* multi_node_allocation, const ZVirtualMemory& vmem) {
+void ZPageAllocator::claim_physical_for_increased_capacity_multi_partition(const ZMultiPartitionAllocation* multi_partition_allocation, const ZVirtualMemory& vmem) {
   ZVirtualMemory remaining = vmem;
 
-  for (ZMemoryAllocation* allocation : *multi_node_allocation->allocations()) {
+  for (ZMemoryAllocation* allocation : *multi_partition_allocation->allocations()) {
     const ZVirtualMemory partial = remaining.shrink_from_front(allocation->size());
     claim_physical_for_increased_capacity(allocation, partial);
   }
@@ -1938,78 +1938,78 @@ void ZPageAllocator::claim_physical_for_increased_capacity(ZMemoryAllocation* al
          non_committed, increased_capacity);
 
   if (non_committed > 0) {
-    ZAllocNode& node = allocation->node();
+    ZPartition& partition = allocation->partition();
     ZVirtualMemory non_committed_vmem = vmem.last_part(already_committed);
-    node.claim_physical(non_committed_vmem);
+    partition.claim_physical(non_committed_vmem);
   }
 }
 
 bool ZPageAllocator::commit_and_map_memory(ZPageAllocation* allocation, const ZVirtualMemory& vmem) {
   assert(allocation->size() == vmem.size(), "vmem should be the final entry");
 
-  if (allocation->is_multi_node()) {
-    return commit_and_map_memory_multi_node(allocation->multi_node_allocation(), vmem);
+  if (allocation->is_multi_partition()) {
+    return commit_and_map_memory_multi_partition(allocation->multi_partition_allocation(), vmem);
   } else {
-    return commit_and_map_memory_single_node(allocation->single_node_allocation(), vmem);
+    return commit_and_map_memory_single_partition(allocation->single_partition_allocation(), vmem);
   }
 }
 
-bool ZPageAllocator::commit_and_map_memory_single_node(ZSingleNodeAllocation* single_node_allocation, const ZVirtualMemory& vmem) {
-  const bool commit_successful = commit_memory_single_node(single_node_allocation, vmem);
+bool ZPageAllocator::commit_and_map_memory_single_partition(ZSinglePartitionAllocation* single_partition_allocation, const ZVirtualMemory& vmem) {
+  const bool commit_successful = commit_memory_single_partition(single_partition_allocation, vmem);
 
   // Map the vmem
-  map_committed_memory_single_node(single_node_allocation, vmem);
+  map_committed_memory_single_partition(single_partition_allocation, vmem);
 
   if (commit_successful) {
     return true;
   }
 
   // Commit failed
-  cleanup_failed_commit_single_node(single_node_allocation, vmem);
+  cleanup_failed_commit_single_partition(single_partition_allocation, vmem);
 
   return false;
 }
 
-bool ZPageAllocator::commit_and_map_memory_multi_node(ZMultiNodeAllocation* multi_node_allocation, const ZVirtualMemory& vmem) {
-  if (commit_memory_multi_node(multi_node_allocation, vmem)) {
+bool ZPageAllocator::commit_and_map_memory_multi_partition(ZMultiPartitionAllocation* multi_partition_allocation, const ZVirtualMemory& vmem) {
+  if (commit_memory_multi_partition(multi_partition_allocation, vmem)) {
     // Commit successful
 
     // Unmap harvested vmems
-    unmap_harvested_memory_multi_node(multi_node_allocation);
+    unmap_harvested_memory_multi_partition(multi_partition_allocation);
 
     // Map the vmem
-    map_committed_memory_multi_node(multi_node_allocation, vmem);
+    map_committed_memory_multi_partition(multi_partition_allocation, vmem);
 
     return true;
   }
 
   // Commit failed
-  cleanup_failed_commit_multi_node(multi_node_allocation, vmem);
+  cleanup_failed_commit_multi_partition(multi_partition_allocation, vmem);
 
   return false;
 }
 
 void ZPageAllocator::commit_memory(ZMemoryAllocation* allocation, const ZVirtualMemory& vmem) {
-  ZAllocNode& node = allocation->node();
+  ZPartition& partition = allocation->partition();
 
   if (allocation->increased_capacity() > 0) {
     // Commit memory
-    node.commit_increased_capacity(allocation, vmem);
+    partition.commit_increased_capacity(allocation, vmem);
   }
 }
 
-bool ZPageAllocator::commit_memory_single_node(ZSingleNodeAllocation* single_node_allocation, const ZVirtualMemory& vmem) {
-  ZMemoryAllocation* const allocation = single_node_allocation->allocation();
+bool ZPageAllocator::commit_memory_single_partition(ZSinglePartitionAllocation* single_partition_allocation, const ZVirtualMemory& vmem) {
+  ZMemoryAllocation* const allocation = single_partition_allocation->allocation();
 
   commit_memory(allocation, vmem);
 
   return !allocation->commit_failed();
 }
 
-bool ZPageAllocator::commit_memory_multi_node(ZMultiNodeAllocation* multi_node_allocation, const ZVirtualMemory& vmem) {
+bool ZPageAllocator::commit_memory_multi_partition(ZMultiPartitionAllocation* multi_partition_allocation, const ZVirtualMemory& vmem) {
   bool commit_failed = false;
   ZVirtualMemory remaining = vmem;
-  for (ZMemoryAllocation* const allocation : *multi_node_allocation->allocations()) {
+  for (ZMemoryAllocation* const allocation : *multi_partition_allocation->allocations()) {
     // Split off the partial allocation's memory range
     const ZVirtualMemory partial_vmem = remaining.shrink_from_front(allocation->size());
 
@@ -2024,52 +2024,52 @@ bool ZPageAllocator::commit_memory_multi_node(ZMultiNodeAllocation* multi_node_a
   return !commit_failed;
 }
 
-void ZPageAllocator::unmap_harvested_memory_multi_node(ZMultiNodeAllocation* multi_node_allocation) {
-  for (ZMemoryAllocation* const allocation : *multi_node_allocation->allocations()) {
-    ZAllocNode& node = allocation->node();
+void ZPageAllocator::unmap_harvested_memory_multi_partition(ZMultiPartitionAllocation* multi_partition_allocation) {
+  for (ZMemoryAllocation* const allocation : *multi_partition_allocation->allocations()) {
+    ZPartition& partition = allocation->partition();
     ZArray<ZVirtualMemory>* const partial_vmems = allocation->partial_vmems();
 
     // Unmap harvested vmems
     while (!partial_vmems->is_empty()) {
       const ZVirtualMemory to_unmap = partial_vmems->pop();
-      node.unmap_virtual(to_unmap);
-      node.free_virtual(to_unmap);
+      partition.unmap_virtual(to_unmap);
+      partition.free_virtual(to_unmap);
     }
   }
 }
 
-void ZPageAllocator::map_committed_memory_single_node(ZSingleNodeAllocation* single_node_allocation, const ZVirtualMemory& vmem) {
-  ZMemoryAllocation* const allocation = single_node_allocation->allocation();
-  ZAllocNode& node = allocation->node();
+void ZPageAllocator::map_committed_memory_single_partition(ZSinglePartitionAllocation* single_partition_allocation, const ZVirtualMemory& vmem) {
+  ZMemoryAllocation* const allocation = single_partition_allocation->allocation();
+  ZPartition& partition = allocation->partition();
 
   const size_t total_committed = allocation->harvested() + allocation->committed_capacity();
   const ZVirtualMemory total_committed_vmem = vmem.first_part(total_committed);
 
   if (total_committed_vmem.size() > 0)  {
     // Map all the committed memory
-    node.map_memory(allocation, total_committed_vmem);
+    partition.map_memory(allocation, total_committed_vmem);
   }
 }
 
-void ZPageAllocator::map_committed_memory_multi_node(ZMultiNodeAllocation* multi_node_allocation, const ZVirtualMemory& vmem) {
+void ZPageAllocator::map_committed_memory_multi_partition(ZMultiPartitionAllocation* multi_partition_allocation, const ZVirtualMemory& vmem) {
   ZVirtualMemory remaining = vmem;
-  for (ZMemoryAllocation* const allocation : *multi_node_allocation->allocations()) {
+  for (ZMemoryAllocation* const allocation : *multi_partition_allocation->allocations()) {
     assert(!allocation->commit_failed(), "Sanity check");
 
-    ZAllocNode& node = allocation->node();
+    ZPartition& partition = allocation->partition();
 
     // Split off the partial allocation's memory range
     const ZVirtualMemory to_vmem = remaining.shrink_from_front(allocation->size());
 
     // Map the partial_allocation to partial_vmem
-    node.map_virtual_from_multi_node(to_vmem);
+    partition.map_virtual_from_multi_partition(to_vmem);
   }
 
   assert(remaining.size() == 0, "all memory must be accounted for");
 }
 
-void ZPageAllocator::cleanup_failed_commit_single_node(ZSingleNodeAllocation* single_node_allocation, const ZVirtualMemory& vmem) {
-  ZMemoryAllocation* const allocation = single_node_allocation->allocation();
+void ZPageAllocator::cleanup_failed_commit_single_partition(ZSinglePartitionAllocation* single_partition_allocation, const ZVirtualMemory& vmem) {
+  ZMemoryAllocation* const allocation = single_partition_allocation->allocation();
 
   assert(allocation->commit_failed(), "Must have failed to commit");
 
@@ -2086,14 +2086,14 @@ void ZPageAllocator::cleanup_failed_commit_single_node(ZSingleNodeAllocation* si
   }
 
   // Free the virtual and physical memory we were supposed to use but failed to commit
-  ZAllocNode& node = allocation->node();
-  node.free_physical(non_committed_vmem);
-  node.free_virtual(non_committed_vmem);
+  ZPartition& partition = allocation->partition();
+  partition.free_physical(non_committed_vmem);
+  partition.free_virtual(non_committed_vmem);
 }
 
-void ZPageAllocator::cleanup_failed_commit_multi_node(ZMultiNodeAllocation* multi_node_allocation, const ZVirtualMemory& vmem) {
+void ZPageAllocator::cleanup_failed_commit_multi_partition(ZMultiPartitionAllocation* multi_partition_allocation, const ZVirtualMemory& vmem) {
   ZVirtualMemory remaining = vmem;
-  for (ZMemoryAllocation* const allocation : *multi_node_allocation->allocations()) {
+  for (ZMemoryAllocation* const allocation : *multi_partition_allocation->allocations()) {
     // Split off the partial allocation's memory range
     const ZVirtualMemory partial_vmem = remaining.shrink_from_front(allocation->size());
 
@@ -2108,13 +2108,13 @@ void ZPageAllocator::cleanup_failed_commit_multi_node(ZMultiNodeAllocation* mult
     const ZVirtualMemory committed_vmem = non_harvested_vmem.first_part(committed);
     const ZVirtualMemory non_committed_vmem = non_harvested_vmem.last_part(committed);
 
-    ZAllocNode& node = allocation->node();
+    ZPartition& partition = allocation->partition();
 
     if (allocation->commit_failed()) {
       // Free the physical memory we failed to commit. Virtual memory is later
-      // freed for the entire multi-node allocation after all memory allocations
+      // freed for the entire multi-partition allocation after all memory allocations
       // have been visited.
-      node.free_physical(non_committed_vmem);
+      partition.free_physical(non_committed_vmem);
     }
 
     if (committed_vmem.size() == 0) {
@@ -2131,9 +2131,9 @@ void ZPageAllocator::cleanup_failed_commit_multi_node(ZMultiNodeAllocation* mult
     const int start_index = partial_vmems->length();
 
     // Claim virtual memory for the committed part
-    const size_t claimed_virtual = node.claim_virtual(committed, partial_vmems);
+    const size_t claimed_virtual = partition.claim_virtual(committed, partial_vmems);
 
-    // We are holding memory associated with this node, and we do not overcommit
+    // We are holding memory associated with this partition, and we do not overcommit
     // virtual memory claiming. So virtual memory must always be available.
     assert(claimed_virtual == committed, "must succeed");
 
@@ -2144,10 +2144,10 @@ void ZPageAllocator::cleanup_failed_commit_multi_node(ZMultiNodeAllocation* mult
       const ZVirtualMemory from_vmem = remaining_committed_vmem.shrink_from_front(to_vmem.size());
 
       // Copy physical mappings
-      node.copy_physical_segments_to_node(to_vmem, from_vmem);
+      partition.copy_physical_segments_to_partition(to_vmem, from_vmem);
 
       // Map memory
-      node.map_virtual(to_vmem);
+      partition.map_virtual(to_vmem);
     }
 
     assert(remaining_committed_vmem.size() == 0, "all memory must be accounted for");
@@ -2156,7 +2156,7 @@ void ZPageAllocator::cleanup_failed_commit_multi_node(ZMultiNodeAllocation* mult
   assert(remaining.size() == 0, "all memory must be accounted for");
 
   // Free the unused virtual memory
-  _virtual.insert_multi_node(vmem);
+  _virtual.insert_multi_partition(vmem);
 }
 
 void ZPageAllocator::free_after_alloc_page_failed(ZPageAllocation* allocation) {
@@ -2176,10 +2176,10 @@ void ZPageAllocator::free_memory_alloc_failed(ZPageAllocation* allocation) {
   // The current max capacity may be decreased, store the value before freeing memory
   const size_t current_max_capacity_before = current_max_capacity();
 
-  if (allocation->is_multi_node()) {
-    free_memory_alloc_failed_multi_node(allocation->multi_node_allocation());
+  if (allocation->is_multi_partition()) {
+    free_memory_alloc_failed_multi_partition(allocation->multi_partition_allocation());
   } else {
-    free_memory_alloc_failed_single_node(allocation->single_node_allocation());
+    free_memory_alloc_failed_single_partition(allocation->single_partition_allocation());
   }
 
   const size_t current_max_capacity_after = current_max_capacity();
@@ -2192,20 +2192,20 @@ void ZPageAllocator::free_memory_alloc_failed(ZPageAllocation* allocation) {
   }
 }
 
-void ZPageAllocator::free_memory_alloc_failed_single_node(ZSingleNodeAllocation* single_node_allocation) {
-  free_memory_alloc_failed(single_node_allocation->allocation());
+void ZPageAllocator::free_memory_alloc_failed_single_partition(ZSinglePartitionAllocation* single_partition_allocation) {
+  free_memory_alloc_failed(single_partition_allocation->allocation());
 }
 
-void ZPageAllocator::free_memory_alloc_failed_multi_node(ZMultiNodeAllocation* multi_node_allocation) {
-  for (ZMemoryAllocation* allocation : *multi_node_allocation->allocations()) {
+void ZPageAllocator::free_memory_alloc_failed_multi_partition(ZMultiPartitionAllocation* multi_partition_allocation) {
+  for (ZMemoryAllocation* allocation : *multi_partition_allocation->allocations()) {
     free_memory_alloc_failed(allocation);
   }
 }
 
 void ZPageAllocator::free_memory_alloc_failed(ZMemoryAllocation* allocation) {
-  ZAllocNode& node = allocation->node();
+  ZPartition& partition = allocation->partition();
 
-  node.free_memory_alloc_failed(allocation);
+  partition.free_memory_alloc_failed(allocation);
 }
 
 void ZPageAllocator::alloc_page_age_update(ZPageAllocation* allocation, ZPage* page, ZPageAge age) {
@@ -2226,46 +2226,46 @@ void ZPageAllocator::alloc_page_age_update(ZPageAllocation* allocation, ZPage* p
 }
 
 void ZPageAllocator::increase_used_generation(const ZPageAllocation* allocation, ZGenerationId id) {
-  if (allocation->is_multi_node()) {
-    increase_used_generation_multi_node(allocation->multi_node_allocation(), id);
+  if (allocation->is_multi_partition()) {
+    increase_used_generation_multi_partition(allocation->multi_partition_allocation(), id);
   } else {
-    increase_used_generation_single_node(allocation->single_node_allocation(), id);
+    increase_used_generation_single_partition(allocation->single_partition_allocation(), id);
   }
 }
 
-void ZPageAllocator::increase_used_generation_multi_node(const ZMultiNodeAllocation* multi_node_allocation, ZGenerationId id) {
-  for (ZMemoryAllocation* allocation : *multi_node_allocation->allocations()) {
+void ZPageAllocator::increase_used_generation_multi_partition(const ZMultiPartitionAllocation* multi_partition_allocation, ZGenerationId id) {
+  for (ZMemoryAllocation* allocation : *multi_partition_allocation->allocations()) {
     increase_used_generation(allocation, id);
   }
 }
 
-void ZPageAllocator::increase_used_generation_single_node(const ZSingleNodeAllocation* single_mode_allocation, ZGenerationId id) {
+void ZPageAllocator::increase_used_generation_single_partition(const ZSinglePartitionAllocation* single_mode_allocation, ZGenerationId id) {
   increase_used_generation(single_mode_allocation->allocation(), id);
 }
 
 void ZPageAllocator::increase_used_generation(const ZMemoryAllocation* allocation, ZGenerationId id) {
-  ZAllocNode& node = allocation->node();
+  ZPartition& partition = allocation->partition();
   const size_t size = allocation->size();
-  node.increase_used_generation(id, size);
+  partition.increase_used_generation(id, size);
 }
 
 void ZPageAllocator::prepare_memory_for_free(ZPage* page, ZArray<ZVirtualMemory>* vmems) {
   // Extract memory and destroy the page
   const ZVirtualMemory vmem = page->virtual_memory();
   const ZPageType page_type = page->type();
-  const ZMultiNodeTracker* const tracker = page->multi_node_tracker();
+  const ZMultiPartitionTracker* const tracker = page->multi_partition_tracker();
 
   safe_destroy_page(page);
 
-  // Multi-node memory is always remapped
+  // Multi-partition memory is always remapped
   if (tracker != nullptr) {
     tracker->prepare_memory_for_free(vmem, vmems);
 
     // Free the virtual memory
-    _virtual.insert_multi_node(vmem);
+    _virtual.insert_multi_partition(vmem);
 
     // Destroy the tracker
-    ZMultiNodeTracker::destroy(tracker);
+    ZMultiPartitionTracker::destroy(tracker);
     return;
   }
 
@@ -2280,10 +2280,10 @@ void ZPageAllocator::prepare_memory_for_free(ZPage* page, ZArray<ZVirtualMemory>
 }
 
 void ZPageAllocator::remap_and_defragment(const ZVirtualMemory& vmem, ZArray<ZVirtualMemory>* vmems_out) {
-  ZAllocNode& node = node_from_vmem(vmem);
+  ZPartition& partition = partition_from_vmem(vmem);
 
   // If no lower address can be found, don't remap/defrag
-  if (_virtual.lowest_available_address(_virtual.get_numa_id(vmem)) > vmem.start()) {
+  if (_virtual.lowest_available_address(_virtual.get_partition_id(vmem)) > vmem.start()) {
     vmems_out->append(vmem);
     return;
   }
@@ -2291,7 +2291,7 @@ void ZPageAllocator::remap_and_defragment(const ZVirtualMemory& vmem, ZArray<ZVi
   ZStatInc(ZCounterDefragment);
 
   // Synchronously unmap the virtual memory
-  node.unmap_virtual(vmem);
+  partition.unmap_virtual(vmem);
 
   // Stash segments
   ZSegmentStash segments(&_physical_mappings, vmem.granule_count());
@@ -2299,7 +2299,7 @@ void ZPageAllocator::remap_and_defragment(const ZVirtualMemory& vmem, ZArray<ZVi
 
   // Shuffle vmem - put new vmems in entries
   const int start_index = vmems_out->length();
-  node.free_and_claim_virtual_from_low_many(vmem, vmems_out);
+  partition.free_and_claim_virtual_from_low_many(vmem, vmems_out);
 
   const int vmem_count = vmems_out->length() - start_index;
 
@@ -2309,7 +2309,7 @@ void ZPageAllocator::remap_and_defragment(const ZVirtualMemory& vmem, ZArray<ZVi
   // The entries array may contain entries from other defragmentations as well,
   // so we only operate on the last ranges that we have just inserted
   for (const ZVirtualMemory& claimed_vmem : vmems_out->slice_back(start_index)) {
-    node.map_virtual(claimed_vmem);
+    partition.map_virtual(claimed_vmem);
     pretouch_memory(claimed_vmem.start(), claimed_vmem.size());
   }
 }
@@ -2319,10 +2319,10 @@ void ZPageAllocator::free_memory(ZGenerationId id, ZArray<ZVirtualMemory>* vmems
 
   // Free the vmems
   for (const ZVirtualMemory vmem : *vmems) {
-    ZAllocNode& node = node_from_vmem(vmem);
+    ZPartition& partition = partition_from_vmem(vmem);
 
     // Free the vmem
-    node.free_memory(id, vmem);
+    partition.free_memory(id, vmem);
   }
 
   // Try satisfy stalled allocations
@@ -2350,20 +2350,20 @@ void ZPageAllocator::satisfy_stalled() {
   }
 }
 
-bool ZPageAllocator::is_multi_node_enabled() const {
-  return _virtual.is_multi_node_enabled();
+bool ZPageAllocator::is_multi_partition_enabled() const {
+  return _virtual.is_multi_partition_enabled();
 }
 
-const ZAllocNode& ZPageAllocator::node_from_numa_id(uint32_t numa_id) const {
-  return _alloc_nodes.get(numa_id);
+const ZPartition& ZPageAllocator::partition_from_partition_id(uint32_t numa_id) const {
+  return _partitions.get(numa_id);
 }
 
-ZAllocNode& ZPageAllocator::node_from_numa_id(uint32_t numa_id) {
-  return _alloc_nodes.get(numa_id);
+ZPartition& ZPageAllocator::partition_from_partition_id(uint32_t numa_id) {
+  return _partitions.get(numa_id);
 }
 
-ZAllocNode& ZPageAllocator::node_from_vmem(const ZVirtualMemory& vmem) {
-  return node_from_numa_id(_virtual.get_numa_id(vmem));
+ZPartition& ZPageAllocator::partition_from_vmem(const ZVirtualMemory& vmem) {
+  return partition_from_partition_id(_virtual.get_partition_id(vmem));
 }
 
 size_t ZPageAllocator::count_segments_physical(const ZVirtualMemory& vmem) {
@@ -2376,7 +2376,7 @@ size_t ZPageAllocator::sum_available() const {
   size_t total = 0;
 
   for (uint32_t i = 0; i < numa_nodes; ++i) {
-    total += _alloc_nodes.get(i).available();
+    total += _partitions.get(i).available();
   }
 
   return total;
@@ -2494,18 +2494,18 @@ void ZPageAllocator::handle_alloc_stalling_for_old(bool cleared_all_soft_refs) {
   restart_gc();
 }
 
-ZPerNUMAConstIterator<ZAllocNode> ZPageAllocator::alloc_node_iterator() const {
-  return ZPerNUMAConstIterator<ZAllocNode>(&_alloc_nodes);
+ZPerNUMAConstIterator<ZPartition> ZPageAllocator::partition_iterator() const {
+  return ZPerNUMAConstIterator<ZPartition>(&_partitions);
 }
 
-ZPerNUMAIterator<ZAllocNode> ZPageAllocator::alloc_node_iterator() {
-  return ZPerNUMAIterator<ZAllocNode>(&_alloc_nodes);
+ZPerNUMAIterator<ZPartition> ZPageAllocator::partition_iterator() {
+  return ZPerNUMAIterator<ZPartition>(&_partitions);
 }
 
 void ZPageAllocator::threads_do(ThreadClosure* tc) const {
-  ZPerNUMAConstIterator<ZAllocNode> iter = alloc_node_iterator();
-  for (const ZAllocNode* node; iter.next(&node);) {
-    node->threads_do(tc);
+  ZPerNUMAConstIterator<ZPartition> iter = partition_iterator();
+  for (const ZPartition* partition; iter.next(&partition);) {
+    partition->threads_do(tc);
   }
 }
 
@@ -2522,11 +2522,11 @@ void ZPageAllocator::print_extended_on_error(outputStream* st) const {
     return;
   }
 
-  // Print each node's cache content
+  // Print each partition's cache content
   st->print_cr("ZMappedCache:");
-  ZPerNUMAConstIterator<ZAllocNode> iter = alloc_node_iterator();
-  for (const ZAllocNode* node; iter.next(&node);) {
-    node->print_extended_on_error(st);
+  ZPerNUMAConstIterator<ZPartition> iter = partition_iterator();
+  for (const ZPartition* partition; iter.next(&partition);) {
+    partition->print_extended_on_error(st);
   }
 
   _lock.unlock();
@@ -2550,9 +2550,9 @@ void ZPageAllocator::print_on_inner(outputStream* st) const {
   st->print_cr(" ZHeap           used %zuM, capacity %zuM, max capacity %zuM",
                used() / M, capacity() / M, max_capacity() / M);
 
-  // Print per-node
-  ZPerNUMAConstIterator<ZAllocNode> iter = alloc_node_iterator();
-  for (const ZAllocNode* node; iter.next(&node);) {
-    node->print_on(st);
+  // Print per-partition
+  ZPerNUMAConstIterator<ZPartition> iter = partition_iterator();
+  for (const ZPartition* partition; iter.next(&partition);) {
+    partition->print_on(st);
   }
 }

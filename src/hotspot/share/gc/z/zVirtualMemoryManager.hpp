@@ -57,7 +57,7 @@ private:
 public:
   ZVirtualMemoryReserver(size_t size);
 
-  void initialize_node(ZMemoryManager* node, size_t size);
+  void initialize_partition(ZMemoryManager* partition, size_t size);
 
   void unreserve();
 
@@ -72,31 +72,31 @@ public:
   using ZMemoryManager = ZMemoryManagerImpl<ZVirtualMemory>;
 
 private:
-  ZPerNUMA<ZMemoryManager> _nodes;
-  ZMemoryManager           _multi_node;
+  ZPerNUMA<ZMemoryManager> _partitions;
+  ZMemoryManager           _multi_partition;
   bool                     _initialized;
 
 public:
   ZVirtualMemoryManager(size_t max_capacity);
 
-  void initialize_nodes(ZVirtualMemoryReserver* reserver, size_t reserved);
+  void initialize_partitions(ZVirtualMemoryReserver* reserver, size_t reserved);
 
   bool is_initialized() const;
-  bool is_multi_node_enabled() const;
-  bool is_in_multi_node(const ZVirtualMemory& vmem) const;
+  bool is_multi_partition_enabled() const;
+  bool is_in_multi_partition(const ZVirtualMemory& vmem) const;
 
-  uint32_t get_numa_id(const ZVirtualMemory& vmem) const;
-  zoffset lowest_available_address(uint32_t numa_id) const;
+  uint32_t get_partition_id(const ZVirtualMemory& vmem) const;
+  zoffset lowest_available_address(uint32_t partition_id) const;
 
-  void insert(const ZVirtualMemory& vmem, uint32_t numa_id);
-  void insert_multi_node(const ZVirtualMemory& vmem);
+  void insert(const ZVirtualMemory& vmem, uint32_t partition_id);
+  void insert_multi_partition(const ZVirtualMemory& vmem);
 
-  size_t remove_from_low_many_at_most(size_t size, uint32_t numa_id, ZArray<ZVirtualMemory>* vmems_out);
-  ZVirtualMemory remove_from_low(size_t size, uint32_t numa_id);
-  ZVirtualMemory remove_from_low_multi_node(size_t size);
+  size_t remove_from_low_many_at_most(size_t size, uint32_t partition_id, ZArray<ZVirtualMemory>* vmems_out);
+  ZVirtualMemory remove_from_low(size_t size, uint32_t partition_id);
+  ZVirtualMemory remove_from_low_multi_partition(size_t size);
 
-  void insert_and_remove_from_low_many(const ZVirtualMemory& vmem, uint32_t numa_id, ZArray<ZVirtualMemory>* vmems_out);
-  ZVirtualMemory insert_and_remove_from_low_exact_or_many(size_t size, uint32_t numa_id, ZArray<ZVirtualMemory>* vmems_in_out);
+  void insert_and_remove_from_low_many(const ZVirtualMemory& vmem, uint32_t partition_id, ZArray<ZVirtualMemory>* vmems_out);
+  ZVirtualMemory insert_and_remove_from_low_exact_or_many(size_t size, uint32_t partition_id, ZArray<ZVirtualMemory>* vmems_in_out);
 };
 
 #endif // SHARE_GC_Z_ZVIRTUALMEMORYMANAGER_HPP
