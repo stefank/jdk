@@ -148,17 +148,13 @@ public:
     stash(vmems);
   }
 
-  void pop_all(const ZArraySlice<ZVirtualMemory>& vmems) {
+  void pop_all(const ZArraySlice<const ZVirtualMemory>& vmems) {
     int stash_index = 0;
     for (const ZVirtualMemory& vmem : vmems) {
       copy_from_stash(stash_index, vmem);
       stash_index += vmem.granule_count();
     }
     assert(stash_index == _stash.length(), "Must have emptied the stash");
-  }
-
-  void pop_all(ZArray<ZVirtualMemory>* vmems) {
-    pop_all(vmems->slice_back(0));
   }
 
   void pop_all(const ZVirtualMemory& vmem) {
@@ -1225,7 +1221,7 @@ ZVirtualMemory ZPartition::prepare_harvested_and_claim_virtual(ZMemoryAllocation
     segments.pop_all(result.first_part(harvested));
   } else {
     // Got many partial vmems
-    segments.pop_all(allocation->partial_vmems());
+    segments.pop_all(*allocation->partial_vmems());
   }
 
   if (result.is_null()) {
