@@ -291,25 +291,6 @@ bool ZVirtualMemoryManager::is_initialized() const {
   return _initialized;
 }
 
-bool ZVirtualMemoryManager::is_multi_node_enabled() const {
-  return !_multi_node.is_empty();
-}
-
-bool ZVirtualMemoryManager::is_in_multi_node(const ZVirtualMemory& vmem) const {
-  return _multi_node.limits_contain(vmem);
-}
-
-uint32_t ZVirtualMemoryManager::get_numa_id(const ZVirtualMemory& vmem) const {
-  const uint32_t numa_nodes = ZNUMA::count();
-  for (uint32_t numa_id = 0; numa_id < numa_nodes; numa_id++) {
-    if (_nodes.get(numa_id).limits_contain(vmem)) {
-      return numa_id;
-    }
-  }
-
-  ShouldNotReachHere();
-}
-
 zoffset ZVirtualMemoryManager::lowest_available_address(uint32_t numa_id) const {
   return _nodes.get(numa_id).peek_low_address();
 }

@@ -46,7 +46,7 @@
 #include "gc/z/zUncommitter.hpp"
 #include "gc/z/zUtils.inline.hpp"
 #include "gc/z/zValue.inline.hpp"
-#include "gc/z/zVirtualMemoryManager.hpp"
+#include "gc/z/zVirtualMemoryManager.inline.hpp"
 #include "gc/z/zWorkers.hpp"
 #include "jfr/jfrEvents.hpp"
 #include "logging/log.hpp"
