@@ -68,6 +68,11 @@ ZArraySlice<const std::remove_const_t<T>> ZArraySlice<T>::slice(int start, int e
 }
 
 template <typename T>
+ZArraySlice<T>::operator ZArraySlice<const T>() const {
+  return slice(0, this->_len);
+}
+
+template <typename T>
 ZArraySlice<T> ZArray<T>::slice_front(int end) {
   return slice(0, end);
 }
@@ -111,6 +116,16 @@ inline bool ZArrayIteratorImpl<T, Parallel>::next_serial(size_t* index) {
   _next++;
 
   return true;
+}
+
+template <typename T>
+ZArray<T>::operator ZArraySlice<T>() {
+  return slice(0, this->_len);
+}
+
+template <typename T>
+ZArray<T>::operator ZArraySlice<const T>() const {
+  return slice(0, this->_len);
 }
 
 template <typename T, bool Parallel>

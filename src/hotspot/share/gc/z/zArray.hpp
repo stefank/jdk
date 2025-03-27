@@ -53,6 +53,9 @@ public:
 
   ZArraySlice<T> slice(int start, int end);
   ZArraySlice<const std::remove_const_t<T>> slice(int start, int end) const;
+
+  operator ZArraySlice<T>();
+  operator ZArraySlice<const T>() const;
 };
 
 template <typename T>
@@ -68,6 +71,9 @@ public:
 
   ZArraySlice<T> slice(int start, int end);
   ZArraySlice<const std::remove_const_t<T>> slice(int start, int end) const;
+
+  operator ZArraySlice<T>();
+  operator ZArraySlice<const T>() const;
 };
 
 template <typename T, bool Parallel>
