@@ -119,17 +119,12 @@ private:
     ZUtils::copy_disjoint(dest, src, granule_count);
   }
 
-public:
-  ZSegmentStash(ZGranuleMap<zbacking_index>* physical_mappings, int granule_count)
-    : _physical_mappings(physical_mappings),
-      _stash(granule_count, granule_count, zbacking_index::zero) {}
-
   void stash(const ZVirtualMemory& vmem) {
     copy_to_stash(0, vmem);
     sort_stashed_segments();
   }
 
-  void stash(ZArray<ZVirtualMemory>* vmems) {
+  void stash(const ZArray<ZVirtualMemory>* vmems) {
     int stash_index = 0;
     for (const ZVirtualMemory& vmem : *vmems) {
       const int granule_count = vmem.granule_count();
@@ -137,6 +132,19 @@ public:
       stash_index += granule_count;
     }
     sort_stashed_segments();
+  }
+
+public:
+  ZSegmentStash(ZGranuleMap<zbacking_index>* physical_mappings, const ZVirtualMemory& vmem)
+    : _physical_mappings(physical_mappings),
+      _stash(vmem.granule_count(), vmem.granule_count(), zbacking_index::zero) {
+    stash(vmem);
+  }
+
+  ZSegmentStash(ZGranuleMap<zbacking_index>* physical_mappings, const ZArray<ZVirtualMemory>* vmems, int granule_count)
+    : _physical_mappings(physical_mappings),
+      _stash(granule_count, granule_count, zbacking_index::zero) {
+    stash(vmems);
   }
 
   void pop_all(const ZArraySlice<ZVirtualMemory>& vmems) {
@@ -1195,10 +1203,7 @@ ZVirtualMemory ZPartition::prepare_harvested_and_claim_virtual(ZMemoryAllocation
   }
 
   const int granule_count = (int)(allocation->harvested() >> ZGranuleSizeShift);
-  ZSegmentStash segments(&physical_mappings(), granule_count);
-
-  // Stash segments
-  segments.stash(allocation->partial_vmems());
+  ZSegmentStash segments(&physical_mappings(), allocation->partial_vmems(), granule_count);
 
   // Shuffle virtual memory. We attempt to allocate enough memory to cover the entire
   // allocation size, not just for the harvested memory.
@@ -2289,8 +2294,7 @@ void ZPageAllocator::remap_and_defragment(const ZVirtualMemory& vmem, ZArray<ZVi
   partition.unmap_virtual(vmem);
 
   // Stash segments
-  ZSegmentStash segments(&_physical_mappings, vmem.granule_count());
-  segments.stash(vmem);
+  ZSegmentStash segments(&_physical_mappings, vmem);
 
   // Shuffle vmem - put new vmems in entries
   const int start_index = vmems_out->length();
