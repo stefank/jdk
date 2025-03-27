@@ -1336,8 +1336,6 @@ private:
 
 public:
   void prepare_memory_for_free(const ZVirtualMemory& vmem, ZArray<ZVirtualMemory>* vmems_out) const {
-    const uint32_t numa_nodes = ZNUMA::count();
-
     // Remap memory back to original partition
     for (const Element partial_allocation : *map()) {
       ZVirtualMemory remaining_vmem = partial_allocation._vmem;

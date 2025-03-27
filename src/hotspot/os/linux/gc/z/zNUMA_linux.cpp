@@ -28,16 +28,19 @@
 #include "gc/z/zSyscall_linux.hpp"
 #include "os_linux.hpp"
 #include "runtime/globals.hpp"
+#include "runtime/globals_extension.hpp"
 #include "runtime/os.hpp"
 #include "utilities/debug.hpp"
 
 void ZNUMA::pd_initialize() {
   _enabled = UseNUMA;
+
+  // UseNUMA and is_faked() are mutually excluded in zArguments.cpp.
   _count = UseNUMA
       ? os::Linux::numa_max_node() + 1
-      : 1;
-
-  NOT_PRODUCT(ZFakeNUMA = UseNUMA ? 1 : ZFakeNUMA;)
+      : !FLAG_IS_DEFAULT(ZFakeNUMA)
+          ? ZFakeNUMA
+          : 1;  // No NUMA nodes
 }
 
 uint32_t ZNUMA::id() {

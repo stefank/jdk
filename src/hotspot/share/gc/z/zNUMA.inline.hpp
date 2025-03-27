@@ -39,10 +39,6 @@ inline bool ZNUMA::is_enabled() {
 }
 
 inline uint32_t ZNUMA::count() {
-  if (is_faked()) {
-    return ZFakeNUMA;
-  }
-
   return _count;
 }
 
