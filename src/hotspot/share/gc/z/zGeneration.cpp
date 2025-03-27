@@ -160,7 +160,7 @@ void ZGeneration::free_empty_pages(ZRelocationSetSelector* selector, int bulk) {
   // the page allocator lock, and trying to satisfy stalled allocations
   // too frequently.
   if (selector->should_free_empty_pages(bulk)) {
-    const size_t freed = ZHeap::heap()->free_empty_pages(selector->empty_pages());
+    const size_t freed = ZHeap::heap()->free_empty_pages(_id, selector->empty_pages());
     increase_freed(freed);
     selector->clear_empty_pages();
   }

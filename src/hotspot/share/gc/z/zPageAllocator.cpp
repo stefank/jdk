@@ -2385,10 +2385,7 @@ void ZPageAllocator::free_page(ZPage* page) {
   free_memory(id, &vmems);
 }
 
-void ZPageAllocator::free_pages(const ZArray<ZPage*>* pages) {
-  // All pages belong to the same generation, so either only young or old.
-  const ZGenerationId id = pages->first()->generation_id();
-
+void ZPageAllocator::free_pages(ZGenerationId id, const ZArray<ZPage*>* pages) {
   // Prepare memory from pages to be cached
   ZArray<ZVirtualMemory> vmems;
   for (ZPage* page : *pages) {

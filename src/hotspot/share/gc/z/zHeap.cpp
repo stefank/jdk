@@ -251,7 +251,7 @@ void ZHeap::free_page(ZPage* page) {
   _page_allocator.free_page(page);
 }
 
-size_t ZHeap::free_empty_pages(const ZArray<ZPage*>* pages) {
+size_t ZHeap::free_empty_pages(ZGenerationId id, const ZArray<ZPage*>* pages) {
   size_t freed = 0;
   // Remove page table entries
   ZArrayIterator<ZPage*> iter(pages);
@@ -261,7 +261,7 @@ size_t ZHeap::free_empty_pages(const ZArray<ZPage*>* pages) {
   }
 
   // Free pages
-  _page_allocator.free_pages(pages);
+  _page_allocator.free_pages(id, pages);
 
   return freed;
 }
