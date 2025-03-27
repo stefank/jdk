@@ -139,10 +139,9 @@ public:
     sort_stashed_segments();
   }
 
-  void pop(ZArray<ZVirtualMemory>* vmems, int vmem_count) {
+  void pop_all(const ZArraySlice<ZVirtualMemory>& vmems) {
     int stash_index = 0;
-    const int pop_start_index = vmems->length() - vmem_count;
-    for (const ZVirtualMemory& vmem : vmems->slice_back(pop_start_index)) {
+    for (const ZVirtualMemory& vmem : vmems) {
       const int granule_count = vmem.granule_count();
       const int granules_left = _stash.length() - stash_index;
 
@@ -159,7 +158,7 @@ public:
   }
 
   void pop_all(ZArray<ZVirtualMemory>* vmems) {
-    pop(vmems, vmems->length());
+    pop_all(vmems->slice_back(0));
   }
 
   void pop_all(const ZVirtualMemory& vmem) {
@@ -2297,10 +2296,8 @@ void ZPageAllocator::remap_and_defragment(const ZVirtualMemory& vmem, ZArray<ZVi
   const int start_index = vmems_out->length();
   partition.free_and_claim_virtual_from_low_many(vmem, vmems_out);
 
-  const int vmem_count = vmems_out->length() - start_index;
-
   // Restore segments
-  segments.pop(vmems_out, vmem_count);
+  segments.pop_all(vmems_out->slice_back(start_index));
 
   // The entries array may contain entries from other defragmentations as well,
   // so we only operate on the last ranges that we have just inserted
