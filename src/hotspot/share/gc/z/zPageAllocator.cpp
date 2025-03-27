@@ -642,13 +642,16 @@ zbacking_index* ZAllocNode::physical_mappings_addr(const ZVirtualMemory& vmem) {
 }
 
 void ZAllocNode::verify_virtual_memory_multi_node_association(const ZVirtualMemory& vmem) const {
+#ifdef ASSERT
   const ZVirtualMemoryManager& manager = virtual_memory_manager();
 
   assert(manager.is_in_multi_node(vmem), "Virtual memory must be associated with the extra space "
                                          "actual: %u", virtual_memory_manager().get_numa_id(vmem));
+#endif // ASSERT
 }
 
 void ZAllocNode::verify_virtual_memory_association(const ZVirtualMemory& vmem, bool check_multi_node) const {
+#ifdef ASSERT
   const ZVirtualMemoryManager& manager = virtual_memory_manager();
 
   if (check_multi_node && manager.is_in_multi_node(vmem)) {
@@ -660,17 +663,22 @@ void ZAllocNode::verify_virtual_memory_association(const ZVirtualMemory& vmem, b
   const uint32_t vmem_numa_id = virtual_memory_manager().get_numa_id(vmem);
   assert(_numa_id == vmem_numa_id, "Virtual memory must be associated with the current node "
                                    "expected: %u, actual: %u", _numa_id, vmem_numa_id);
+#endif // ASSERT
 }
 
 void ZAllocNode::verify_virtual_memory_association(const ZArray<ZVirtualMemory>* vmems) const {
+#ifdef ASSERT
   for (const ZVirtualMemory& vmem : *vmems) {
     verify_virtual_memory_association(vmem);
   }
+#endif // ASSERT
 }
 
 void ZAllocNode::verify_memory_allocation_association(const ZMemoryAllocation* allocation) const {
+#ifdef ASSERT
   assert(this == &allocation->node(), "Memory allocation must be associated with the current node "
                                       "expected: %u, actual: %u", _numa_id, allocation->node().numa_id());
+#endif // ASSERT
 }
 
 void ZAllocNode::copy_physical_segments(const ZVirtualMemory& to, const ZVirtualMemory& from) {
