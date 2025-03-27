@@ -59,6 +59,7 @@
 #include "utilities/align.hpp"
 #include "utilities/debug.hpp"
 #include "utilities/globalDefinitions.hpp"
+#include "utilities/ticks.hpp"
 
 #include <cmath>
 
@@ -477,6 +478,7 @@ class ZPageAllocation : public StackObj {
   friend class ZList<ZPageAllocation>;
 
 private:
+  const Ticks                _start_timestamp;
   const ZPageType            _type;
   const size_t               _size;
   const ZAllocationFlags     _flags;
@@ -491,7 +493,8 @@ private:
 
 public:
   ZPageAllocation(ZPageType type, size_t size, ZAllocationFlags flags)
-    : _type(type),
+    : _start_timestamp(Ticks::now()),
+      _type(type),
       _size(size),
       _flags(flags),
       _young_seqnum(ZGeneration::young()->seqnum()),
@@ -599,6 +602,24 @@ public:
           _single_partition_allocation.allocation()->harvested(),
           _single_partition_allocation.allocation()->committed_capacity());
     }
+  }
+
+  void send_event(bool successful) {
+    EventZPageAllocation event;
+
+    Ticks end_timestamp = Ticks::now();
+    const ZPageAllocationStats st = stats();
+
+    event.commit(_start_timestamp,
+                 end_timestamp,
+                 (u8)_type,
+                 _size,
+                 st._total_harvested,
+                 st._total_committed_capacity,
+                 st._num_harvested_vmems,
+                 _is_multi_partition,
+                 successful,
+                 _flags.non_blocking());
   }
 };
 
@@ -1604,9 +1625,8 @@ ZPage* ZPageAllocator::alloc_page(ZPageType type, size_t size, ZAllocationFlags 
     log_debug(gc, heap)("Mapped Cache Harvest: %zuM from %d ranges", harvested / M, num_harvested_vmems);
   }
 
-  // Send event
-  event.commit((u8)type, size, harvested, committed,
-               (unsigned int)count_segments_physical(page->virtual_memory()), flags.non_blocking());
+  // Send event for successful allocation
+  allocation.send_event(true /* successful */);
 
   return page;
 }
@@ -2149,6 +2169,9 @@ void ZPageAllocator::cleanup_failed_commit_multi_partition(ZMultiPartitionAlloca
 }
 
 void ZPageAllocator::free_after_alloc_page_failed(ZPageAllocation* allocation) {
+  // Send event for failed allocation
+  allocation->send_event(false /* successful */);
+
   ZLocker<ZLock> locker(&_lock);
 
   // Free memory
