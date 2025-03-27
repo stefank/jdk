@@ -53,10 +53,10 @@ TEST(ZNUMA, calculate_share) {
   {
     // Test not enough for every node (WITH ignore_count)
     const size_t ignore_count = 2;
-    const size_t total = (nodes - ignore_count) * ZGranuleSize;
+    const size_t total = nodes * ZGranuleSize;
 
     for (uint32_t numa_id = 0; numa_id < (nodes - ignore_count); ++numa_id) {
-      EXPECT_EQ(ZNUMA::calculate_share(numa_id, total, ZGranuleSize, ignore_count), ZGranuleSize);
+      EXPECT_EQ(ZNUMA::calculate_share(numa_id, total, ZGranuleSize, ignore_count), nodes * ZGranuleSize / (nodes - ignore_count));
     }
   }
 
