@@ -264,30 +264,29 @@ public:
   static void pre_to_post(bool nmt_off);
 
   // Called from os::malloc.
-  // Returns true if allocation was handled here; in that case,
-  // *rc contains the return address.
-  static bool handle_malloc(void** rc, size_t size) {
-    size = MAX2((size_t)1, size);         // malloc(0)
+  static void* handle_malloc(size_t size) {
+    precond(size > 0);
+
     if (!MemTracker::is_initialized()) {
       // pre-NMT-init:
       // Allocate entry and add address to lookup table
       NMTPreInitAllocation* a = NMTPreInitAllocation::do_alloc(size);
       add_to_map(a);
-      (*rc) = a->payload;
       _num_mallocs_pre++;
-      return true;
+      return a->payload;
     }
-    return false;
+    return nullptr;
   }
 
   // Called from os::realloc.
   // Returns true if reallocation was handled here; in that case,
-  // *rc contains the return address.
-  static bool handle_realloc(void** rc, void* old_p, size_t new_size, MemTag mem_tag) {
+  static void* handle_realloc(void* old_p, size_t new_size, MemTag mem_tag) {
+    precond(new_size > 0);
+
     if (old_p == nullptr) {                  // realloc(null, n)
-      return handle_malloc(rc, new_size);
+      return handle_malloc(new_size);
     }
-    new_size = MAX2((size_t)1, new_size); // realloc(.., 0)
+
     switch (MemTracker::tracking_level()) {
       case NMT_unknown: {
         // pre-NMT-init:
@@ -295,17 +294,16 @@ public:
         // - find the old entry, remove from table, reallocate, add to table
         NMTPreInitAllocation* a = find_and_remove_in_map(old_p);
         a = NMTPreInitAllocation::do_reallocate(a, new_size);
-        add_to_map(a);
-        (*rc) = a->payload;
         _num_reallocs_pre++;
-        return true;
+        add_to_map(a);
+        return a->payload;
       }
       break;
       case NMT_off: {
         // post-NMT-init, NMT *disabled*:
         // Neither pre- nor post-init-allocation use malloc headers, therefore we can just
         // relegate the realloc to os::realloc.
-        return false;
+        return nullptr;
       }
       break;
       default: {
@@ -324,20 +322,19 @@ public:
         if (a != nullptr) { // this was originally a pre-init allocation
           void* p_new = do_os_malloc(new_size, mem_tag);
           ::memcpy(p_new, a->payload, MIN2(a->size, new_size));
-          (*rc) = p_new;
-          return true;
+          return p_new;
         }
+
+        return nullptr;
       }
     }
-    return false;
+
+    ShouldNotReachHere();
   }
 
   // Called from os::free.
   // Returns true if free was handled here.
   static bool handle_free(void* p) {
-    if (p == nullptr) { // free(null)
-      return true;
-    }
     switch (MemTracker::tracking_level()) {
       case NMT_unknown: {
         // pre-NMT-init:
