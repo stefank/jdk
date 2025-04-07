@@ -221,10 +221,7 @@ public:
   static void test(void (*function)(ZForwarding*), uint32_t size) {
     // Create page
     const ZVirtualMemory vmem(zoffset(_page_offset), ZPageSizeSmall);
-    const ZPhysicalMemory pmem(ZPhysicalMemorySegment(zoffset(0), ZPageSizeSmall, true));
-    ZPage page(ZPageType::small, vmem, pmem);
-
-    page.reset(ZPageAge::eden);
+    ZPage page(ZPageType::small, ZPageAge::eden, vmem, 0u);
 
     const size_t object_size = 16;
     const zaddress object = page.alloc_object(object_size);

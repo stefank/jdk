@@ -25,40 +25,49 @@
 #include "gc/z/zMemory.inline.hpp"
 #include "zunittest.hpp"
 
-TEST(ZMemory, accessors) {
+TEST(ZVirtualMemory, is_null) {
+  ZAddressOffsetMaxSetter setter(size_t(16) * G * 1024);
+
+  ZVirtualMemory mem;
+  EXPECT_TRUE(mem.is_null());
+}
+
+TEST(ZVirtualMemory, accessors) {
   ZAddressOffsetMaxSetter setter(size_t(16) * G * 1024);
 
   {
-    ZMemory mem(zoffset(0), ZGranuleSize);
+    ZVirtualMemory mem(zoffset(0), ZGranuleSize);
 
     EXPECT_EQ(mem.start(), zoffset(0));
     EXPECT_EQ(mem.end(), zoffset_end(ZGranuleSize));
     EXPECT_EQ(mem.size(), ZGranuleSize);
+    EXPECT_EQ(mem.granule_count(), 1);
   }
 
-
   {
-    ZMemory mem(zoffset(ZGranuleSize), ZGranuleSize);
+    ZVirtualMemory mem(zoffset(ZGranuleSize), ZGranuleSize);
 
     EXPECT_EQ(mem.start(), zoffset(ZGranuleSize));
     EXPECT_EQ(mem.end(), zoffset_end(ZGranuleSize + ZGranuleSize));
     EXPECT_EQ(mem.size(), ZGranuleSize);
+    EXPECT_EQ(mem.granule_count(), 1);
   }
 
   {
     // Max area - check end boundary
-    ZMemory mem(zoffset(0), ZAddressOffsetMax);
+    ZVirtualMemory mem(zoffset(0), ZAddressOffsetMax);
 
     EXPECT_EQ(mem.start(), zoffset(0));
     EXPECT_EQ(mem.end(), zoffset_end(ZAddressOffsetMax));
     EXPECT_EQ(mem.size(), ZAddressOffsetMax);
+    EXPECT_EQ(mem.granule_count(), (int)(ZAddressOffsetMax >> ZGranuleSizeShift));
   }
 }
 
-TEST(ZMemory, resize) {
+TEST(ZVirtualMemory, resize) {
   ZAddressOffsetMaxSetter setter(size_t(16) * G * 1024);
 
-  ZMemory mem(zoffset(ZGranuleSize * 2), ZGranuleSize * 2) ;
+  ZVirtualMemory mem(zoffset(ZGranuleSize * 2), ZGranuleSize * 2) ;
 
   mem.shrink_from_front(ZGranuleSize);
   EXPECT_EQ(mem.start(),   zoffset(ZGranuleSize * 3));
@@ -83,4 +92,55 @@ TEST(ZMemory, resize) {
   EXPECT_EQ(mem.end(), zoffset_end(ZGranuleSize * 5));
   EXPECT_EQ(mem.size(),            ZGranuleSize * 3);
   mem.shrink_from_back(ZGranuleSize);
+}
+
+TEST(ZVirtualMemory, shrink_from_front) {
+  ZAddressOffsetMaxSetter setter(size_t(16) * G * 1024);
+
+  ZVirtualMemory mem(zoffset(0), ZGranuleSize * 10);
+
+  ZVirtualMemory mem0 = mem.shrink_from_front(0);
+  EXPECT_EQ(mem0.size(), 0u);
+  EXPECT_EQ(mem.size(), ZGranuleSize * 10);
+
+  ZVirtualMemory mem1 = mem.shrink_from_front(ZGranuleSize * 5);
+  EXPECT_EQ(mem1.size(), ZGranuleSize * 5);
+  EXPECT_EQ(mem.size(), ZGranuleSize * 5);
+
+  ZVirtualMemory mem2 = mem.shrink_from_front(ZGranuleSize * 5);
+  EXPECT_EQ(mem2.size(), ZGranuleSize * 5);
+  EXPECT_EQ(mem.size(), 0u);
+
+  ZVirtualMemory mem3 = mem.shrink_from_front(0);
+  EXPECT_EQ(mem3.size(), 0u);
+}
+
+TEST(ZVirtualMemory, shrink_from_back) {
+  ZAddressOffsetMaxSetter setter(size_t(16) * G * 1024);
+
+  ZVirtualMemory mem(zoffset(0), ZGranuleSize * 10);
+
+  ZVirtualMemory mem1 = mem.shrink_from_back(ZGranuleSize * 5);
+  EXPECT_EQ(mem1.size(), ZGranuleSize * 5);
+  EXPECT_EQ(mem.size(), ZGranuleSize * 5);
+
+  ZVirtualMemory mem2 = mem.shrink_from_back(ZGranuleSize * 5);
+  EXPECT_EQ(mem2.size(), ZGranuleSize * 5);
+  EXPECT_EQ(mem.size(), 0u);
+}
+
+TEST(ZVirtualMemory, adjacent_to) {
+  ZAddressOffsetMaxSetter setter(size_t(16) * G * 1024);
+
+  ZVirtualMemory mem0(zoffset(0), ZGranuleSize);
+  ZVirtualMemory mem1(zoffset(ZGranuleSize), ZGranuleSize);
+  ZVirtualMemory mem2(zoffset(ZGranuleSize * 2), ZGranuleSize);
+
+  EXPECT_TRUE(mem0.adjacent_to(mem1));
+  EXPECT_TRUE(mem1.adjacent_to(mem0));
+  EXPECT_TRUE(mem1.adjacent_to(mem2));
+  EXPECT_TRUE(mem2.adjacent_to(mem1));
+
+  EXPECT_FALSE(mem0.adjacent_to(mem2));
+  EXPECT_FALSE(mem2.adjacent_to(mem0));
 }

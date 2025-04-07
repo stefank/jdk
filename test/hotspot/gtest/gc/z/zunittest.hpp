@@ -27,6 +27,8 @@
 #include "gc/z/zAddress.hpp"
 #include "gc/z/zArguments.hpp"
 #include "gc/z/zInitialize.hpp"
+#include "gc/z/zNUMA.hpp"
+#include "runtime/os.hpp"
 #include "unittest.hpp"
 
 class ZAddressOffsetMaxSetter {
@@ -52,10 +54,12 @@ public:
 class ZTest : public testing::Test {
 private:
   ZAddressOffsetMaxSetter _zaddress_offset_max_setter;
+  unsigned int _rand_seed;
 
 protected:
   ZTest()
-    : _zaddress_offset_max_setter(ZAddressOffsetMax) {
+    : _zaddress_offset_max_setter(ZAddressOffsetMax),
+	  _rand_seed(static_cast<unsigned int>(::testing::UnitTest::GetInstance()->random_seed())) {
     if (!is_os_supported()) {
       // If the OS does not support ZGC do not run initialization, as it may crash the VM.
       return;
@@ -65,6 +69,7 @@ protected:
     static bool runs_once = [&]() {
       ZInitialize::pd_initialize();
       ZGlobalsPointers::initialize();
+      ZNUMA::pd_initialize();
 
       // ZGlobalsPointers::initialize() sets ZAddressOffsetMax, make sure the
       // first test fixture invocation has a correct ZAddressOffsetMaxSetter.
@@ -72,6 +77,12 @@ protected:
       _zaddress_offset_max_setter._old_mask = ZAddressOffsetMask;
       return true;
     }();
+  }
+
+  int random() {
+    const int next_seed = os::next_random(_rand_seed);
+    _rand_seed = static_cast<unsigned int>(next_seed);
+    return next_seed;
   }
 
   bool is_os_supported() {

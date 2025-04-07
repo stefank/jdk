@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2025, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2025, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -21,26 +21,31 @@
  * questions.
  */
 
-#include "gc/z/zVirtualMemory.inline.hpp"
-#include "zunittest.hpp"
+#ifndef SHARE_GC_Z_ZVIRTUALMEMORYMANAGER_INLINE_HPP
+#define SHARE_GC_Z_ZVIRTUALMEMORYMANAGER_INLINE_HPP
 
-TEST(ZVirtualMemory, split) {
-  ZAddressOffsetMaxSetter setter(size_t(16) * G * 1024);
+#include "gc/z/zVirtualMemoryManager.hpp"
 
-  ZVirtualMemory vmem(zoffset(0), 10);
+#include "gc/z/zMemory.inline.hpp"
+#include "utilities/globalDefinitions.hpp"
 
-  ZVirtualMemory vmem0 = vmem.split(0);
-  EXPECT_EQ(vmem0.size(), 0u);
-  EXPECT_EQ(vmem.size(), 10u);
-
-  ZVirtualMemory vmem1 = vmem.split(5);
-  EXPECT_EQ(vmem1.size(), 5u);
-  EXPECT_EQ(vmem.size(), 5u);
-
-  ZVirtualMemory vmem2 = vmem.split(5);
-  EXPECT_EQ(vmem2.size(), 5u);
-  EXPECT_EQ(vmem.size(), 0u);
-
-  ZVirtualMemory vmem3 = vmem.split(0);
-  EXPECT_EQ(vmem3.size(), 0u);
+inline bool ZVirtualMemoryManager::is_multi_partition_enabled() const {
+  return !_multi_partition.is_empty();
 }
+
+inline bool ZVirtualMemoryManager::is_in_multi_partition(const ZVirtualMemory& vmem) const {
+  return _multi_partition.limits_contain(vmem);
+}
+
+inline uint32_t ZVirtualMemoryManager::lookup_partition_id(const ZVirtualMemory& vmem) const {
+  const uint32_t num_partitions = _partitions.count();
+  for (uint32_t partition_id = 0; partition_id < num_partitions; partition_id++) {
+    if (_partitions.get(partition_id).limits_contain(vmem)) {
+      return partition_id;
+    }
+  }
+
+  ShouldNotReachHere();
+}
+
+#endif // SHARE_GC_Z_ZVIRTUALMEMORYMANAGER_INLINE_HPP
