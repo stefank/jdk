@@ -85,7 +85,7 @@ private:
     // Called when a memory area is going to be handed out to be used.
     //
     // Splits the memory area into granule-sized placeholders.
-    static void prepare_for_hand_out_callback(const ZMemory& area) {
+    static void prepare_for_hand_out_callback(const ZVirtualMemory& area) {
       assert(is_aligned(area.size(), ZGranuleSize), "Must be granule aligned");
 
       split_into_granule_sized_placeholders(area.start(), area.size());
@@ -94,7 +94,7 @@ private:
     // Called when a memory area is handed back to the memory manager.
     //
     // Combines the granule-sized placeholders into one placeholder.
-    static void prepare_for_hand_back_callback(const ZMemory& area) {
+    static void prepare_for_hand_back_callback(const ZVirtualMemory& area) {
       assert(is_aligned(area.size(), ZGranuleSize), "Must be granule aligned");
 
       coalesce_into_one_placeholder(area.start(), area.size());
@@ -104,7 +104,7 @@ private:
     // existing, adjacent memory area.
     //
     // Coalesces the underlying placeholders into one.
-    static void grow_callback(const ZMemory& from, const ZMemory& to) {
+    static void grow_callback(const ZVirtualMemory& from, const ZVirtualMemory& to) {
       assert(is_aligned(from.size(), ZGranuleSize), "Must be granule aligned");
       assert(is_aligned(to.size(), ZGranuleSize), "Must be granule aligned");
       assert(from != to, "Must have grown");
@@ -117,7 +117,7 @@ private:
     // memory area.
     //
     // Splits the memory into two placeholders.
-    static void shrink_callback(const ZMemory& from, const ZMemory& to) {
+    static void shrink_callback(const ZVirtualMemory& from, const ZVirtualMemory& to) {
       assert(is_aligned(from.size(), ZGranuleSize), "Must be granule aligned");
       assert(is_aligned(to.size(), ZGranuleSize), "Must be granule aligned");
       assert(from != to, "Must have shrunk");
@@ -130,7 +130,7 @@ private:
     }
 
   public:
-    static ZMemoryManager::Callbacks callbacks() {
+    static ZVirtualMemoryManager::ZMemoryManager::Callbacks callbacks() {
       // Each reserved virtual memory address area registered in _manager is
       // exactly covered by a single placeholder. Callbacks are installed so
       // that whenever a memory area changes, the corresponding placeholder

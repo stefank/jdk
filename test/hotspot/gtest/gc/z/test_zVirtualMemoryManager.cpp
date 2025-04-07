@@ -37,10 +37,6 @@ using namespace testing;
 
 #define ASSERT_REMOVAL_OK(range, sz) ASSERT_FALSE(range.is_null()); ASSERT_EQ(range.size(), (sz))
 
-std::ostream& operator<<(std::ostream& str, const ZVirtualMemory& vmem) {
-  return str << "ZVirtualMemory{start=" << (void*)untype(vmem.start()) << ", size=" << vmem.size() << "}";
-}
-
 using ZMemoryManager = ZVirtualMemoryManager::ZMemoryManager;
 
 class ZCallbacksResetter {
@@ -100,7 +96,7 @@ public:
     // ---------------       unreserved   - to allow reservation of 3 granules
     //
     // If we then asks for 4 granules starting at the first granule above,
-    // then we won't be able to allocate 4 consecutive granules and the code
+    // then we won't be able to reserve 4 consecutive granules and the code
     // reverts into the discontiguous mode. This mode uses interval halving
     // to find the limits of memory areas that have already been reserved.
     // This will lead to the first 2 granules being reserved, then the third
@@ -146,7 +142,7 @@ public:
       // first. In previous implementations this resulted in two separate
       // placeholders (4MB and 2MB). This was a bug, because the manager is
       // designed to have one placeholder per memory area. This in turn would
-      // lead to a subsequent failure when _vmm->alloc tried to split off the
+      // lead to a subsequent failure when _vmr->remove* tried to split off the
       // 4MB that is already covered by its own placeholder. You can't place
       // a placeholder over an already existing placeholder.
 
@@ -199,7 +195,7 @@ public:
     }
 
     {
-      // Alloc something larger than a granule and free it
+      // Remove something larger than a granule and then insert it
       const ZVirtualMemory removed = _va->remove_from_low(3 * ZGranuleSize);
       ASSERT_REMOVAL_OK(removed, 3 * ZGranuleSize);
 
@@ -207,7 +203,7 @@ public:
     }
 
     {
-      // Free with more memory allocated
+      // Insert with more memory removed
       const ZVirtualMemory removed = _va->remove_from_low(ZGranuleSize);
       ASSERT_REMOVAL_OK(removed, ZGranuleSize);
 
@@ -233,7 +229,7 @@ public:
     }
 
     {
-      // Alloc something larger than a granule and return it
+      // Remove something larger than a granule and return it
       const ZVirtualMemory high = _va->remove_from_high(2 * ZGranuleSize);
       ASSERT_REMOVAL_OK(high, 2 * ZGranuleSize);
 
@@ -245,14 +241,14 @@ public:
     // Need a local variable to appease gtest
     const size_t reservation_size = ReservationSize;
 
-    // Alloc the whole reservation
+    // Remove the whole reservation
     const ZVirtualMemory reserved = _va->remove_from_low(reservation_size);
     ASSERT_REMOVAL_OK(reserved, reservation_size);
 
     const ZVirtualMemory first(reserved.start(), 4 * ZGranuleSize);
     const ZVirtualMemory second(reserved.start() + 6 * ZGranuleSize, 6 * ZGranuleSize);
 
-    // Free two chunks and then allocate them again
+    // Insert two chunks and then remove them again
     _va->insert(first);
     _va->insert(second);
 
@@ -262,7 +258,7 @@ public:
     const ZVirtualMemory removed_second = _va->remove_from_low(second.size());
     ASSERT_EQ(removed_second, second);
 
-    // Now free it all, and verify it can be re-allocated
+    // Now insert it all, and verify it can be re-removed
     _va->insert(reserved);
 
     const ZVirtualMemory removed_reserved = _va->remove_from_low(reservation_size);

@@ -24,12 +24,19 @@
 #ifndef ZUNITTEST_HPP
 #define ZUNITTEST_HPP
 
-#include "gc/z/zAddress.hpp"
+#include "gc/z/zAddress.inline.hpp"
 #include "gc/z/zArguments.hpp"
 #include "gc/z/zInitialize.hpp"
 #include "gc/z/zNUMA.hpp"
+#include "gc/z/zMemory.hpp"
 #include "runtime/os.hpp"
 #include "unittest.hpp"
+
+#include <ostream>
+
+inline std::ostream& operator<<(std::ostream& str, const ZVirtualMemory& vmem) {
+  return str << "ZVirtualMemory{start=" << (void*)untype(vmem.start()) << ", size=" << vmem.size() << "}";
+}
 
 class ZAddressOffsetMaxSetter {
   friend class ZTest;
