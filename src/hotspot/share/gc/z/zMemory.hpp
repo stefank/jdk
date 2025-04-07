@@ -166,8 +166,6 @@ public:
   Range remove_from_high(size_t size);
 
   void transfer_from_low(ZMemoryManagerImpl* other, size_t size);
-  void register_range(zoffset start, size_t size);
-  bool unregister_first(zoffset* start_out, size_t* size_out);
 };
 
 #endif // SHARE_GC_Z_ZMEMORY_HPP

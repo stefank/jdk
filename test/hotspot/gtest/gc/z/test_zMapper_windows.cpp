@@ -35,6 +35,8 @@
 
 using namespace testing;
 
+using ZMemoryManager = ZVirtualMemoryManager::ZMemoryManager;
+
 class ZMapperTest : public ZTest {
 private:
   static constexpr size_t ReservationSize = 32 * M;
