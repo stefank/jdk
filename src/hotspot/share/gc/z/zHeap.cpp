@@ -324,15 +324,13 @@ void ZHeap::print_on(outputStream* st) const {
 }
 
 void ZHeap::print_on_error(outputStream* st) const {
-  streamIndentor indentor(st, 1);
-  _page_allocator.print_on_error(st);
-
   {
-    // Metaspace printing prepends spaces instead of using outputStream indentation
-    streamIndentor indentor_back(st, -1);
-    MetaspaceUtils::print_on(st);
-    st->cr();
+    streamIndentor indentor(st, 1);
+    _page_allocator.print_on_error(st);
   }
+
+  MetaspaceUtils::print_on(st);
+  st->cr();
 
   print_globals_on(st);
   st->cr();
