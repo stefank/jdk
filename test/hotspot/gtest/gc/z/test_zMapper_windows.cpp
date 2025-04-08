@@ -23,12 +23,8 @@
 
 #ifdef _WINDOWS
 
-#include "gc/z/zAddress.inline.hpp"
 #include "gc/z/zGlobals.hpp"
 #include "gc/z/zList.inline.hpp"
-#include "gc/z/zMapper_windows.hpp"
-#include "gc/z/zNMT.hpp"
-#include "gc/z/zSyscall_windows.hpp"
 #include "gc/z/zVirtualMemory.inline.hpp"
 #include "gc/z/zVirtualMemoryManager.inline.hpp"
 #include "runtime/os.hpp"
@@ -77,14 +73,11 @@ public:
     ASSERT_EQ(top,    ZVirtualMemory(bottom.start() + 2 * ZGranuleSize, ZGranuleSize));
 
     // Unreserve the middle part
-    ZNMT::unreserve(ZOffset::address_unsafe(middle.start()), middle.size());
-    ZMapper::unreserve(ZOffset::address_unsafe(middle.start()), middle.size());
+    _reserver->unreserve(middle);
 
     // Make sure that we still can unreserve the memory before and after
-    ZNMT::unreserve(ZOffset::address_unsafe(bottom.start()), bottom.size());
-    ZMapper::unreserve(ZOffset::address_unsafe(bottom.start()), bottom.size());
-    ZNMT::unreserve(ZOffset::address_unsafe(top.start()), top.size());
-    ZMapper::unreserve(ZOffset::address_unsafe(top.start()), top.size());
+    _reserver->unreserve(bottom);
+    _reserver->unreserve(top);
   }
 };
 
