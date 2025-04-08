@@ -41,9 +41,9 @@ public:
 
 // Implements small pages (paged) support using placeholder reservation.
 //
-// When a memory range is available (kept by the virtual memory manager) a
-// single placeholder is covering that memory range. When memory is
-// removed from the manager the placeholder is split into granule
+// When a memory area is available (kept by the virtual memory manager) a
+// single placeholder is covering that memory area. When memory is
+// removed from the registry the placeholder is split into granule
 // sized placeholders to allow mapping operations on that granularity.
 class ZVirtualMemoryReserverSmallPages : public ZVirtualMemoryReserverImpl {
 private:

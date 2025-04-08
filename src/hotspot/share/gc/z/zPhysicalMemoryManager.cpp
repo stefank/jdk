@@ -132,9 +132,10 @@ void ZPhysicalMemoryManager::alloc(const ZVirtualMemory& vmem, uint32_t numa_id)
     const ZBackingIndexRange range = registry.remove_from_low_at_most(remaining_segments);
     assert(!range.is_null(), "Allocation should never fail");
 
+    const size_t num_allocated_segments = range.size();
+
     // Insert backing segment indices in pmem
     const zbacking_index start_i = range.start();
-    const size_t num_allocated_segments = range.size();
     for (size_t i = 0; i < num_allocated_segments; i++) {
       pmem[current_segment + i] = start_i + i;
     }
@@ -177,6 +178,7 @@ bool for_each_segment_apply(const zbacking_index* pmem, size_t size, Function fu
     while (i + 1 < num_segments && to_zbacking_index_end(pmem[i], 1) == pmem[i + 1]) {
       i++;
     }
+
     const size_t last_i = i;
 
     // [start_i, last_i] now forms a consecutive range of indicies in pmem
@@ -212,12 +214,14 @@ size_t ZPhysicalMemoryManager::commit(const ZVirtualMemory& vmem, uint32_t numa_
   const size_t size = vmem.size();
 
   size_t total_committed = 0;
+
   // Commit segments
   for_each_segment_apply(pmem, size, [&](zbacking_offset segment_start, size_t segment_size) {
     // Commit segment
     const size_t committed = _backing.commit(segment_start, segment_size, numa_id);
 
     total_committed += committed;
+
     // Register with NMT
     if (committed > 0) {
       ZNMT::commit(segment_start, committed);
@@ -235,11 +239,14 @@ size_t ZPhysicalMemoryManager::uncommit(const ZVirtualMemory& vmem) {
   const size_t size = vmem.size();
 
   size_t total_uncommitted = 0;
+
   // Uncommit segments
   for_each_segment_apply(pmem, size, [&](zbacking_offset segment_start, size_t segment_size) {
     // Uncommit segment
     const size_t uncommitted = _backing.uncommit(segment_start, segment_size);
+
     total_uncommitted += uncommitted;
+
     // Unregister with NMT
     if (uncommitted > 0) {
       ZNMT::uncommit(segment_start, uncommitted);
@@ -259,10 +266,12 @@ void ZPhysicalMemoryManager::map(const ZVirtualMemory& vmem, uint32_t numa_id) c
   const size_t size = vmem.size();
 
   size_t mapped = 0;
+
   for_each_segment_apply(pmem, size, [&](zbacking_offset segment_start, size_t segment_size) {
     _backing.map(addr + mapped, segment_size, segment_start);
     mapped += segment_size;
   });
+
   postcond(mapped == size);
 
   // Setup NUMA preferred for large pages
@@ -280,6 +289,7 @@ void ZPhysicalMemoryManager::unmap(const ZVirtualMemory& vmem) const {
 
 void ZPhysicalMemoryManager::copy_physical_segments(const ZVirtualMemory& to, const ZVirtualMemory& from) {
   assert(to.size() == from.size(), "must be of the same size");
+
   zbacking_index* const dest = _physical_mappings.addr(to.start());
   const zbacking_index* const src = _physical_mappings.addr(from.start());
   const int granule_count = from.granule_count();
@@ -335,6 +345,7 @@ void ZPhysicalMemoryManager::stash_segments(const ZVirtualMemory& vmem, ZArray<z
 
 void ZPhysicalMemoryManager::restore_segments(const ZVirtualMemory& vmem, const ZArray<zbacking_index>& stash) {
   assert(vmem.granule_count() == stash.length(), "Must match stash size");
+
   copy_from_stash(stash, vmem);
 }
 
@@ -348,15 +359,18 @@ void ZPhysicalMemoryManager::stash_segments(const ZArraySlice<const ZVirtualMemo
     copy_to_stash(stash_out->slice_back(stash_index), vmem);
     stash_index += granule_count;
   }
+
   sort_zbacking_index_array(stash_out->adr_at(0), stash_out->length());
 
 }
 
 void ZPhysicalMemoryManager::restore_segments(const ZArraySlice<const ZVirtualMemory>& vmems, const ZArray<zbacking_index>& stash) {
   int stash_index = 0;
+
   for (const ZVirtualMemory& vmem : vmems) {
     copy_from_stash(stash.slice_back(stash_index), vmem);
     stash_index += vmem.granule_count();
   }
+
   assert(stash_index == stash.length(), "Must have emptied the stash");
 }

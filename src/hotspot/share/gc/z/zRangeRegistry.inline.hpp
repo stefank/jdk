@@ -21,8 +21,8 @@
  * questions.
  */
 
-#ifndef SHARE_GC_Z_ZMEMORY_INLINE_HPP
-#define SHARE_GC_Z_ZMEMORY_INLINE_HPP
+#ifndef SHARE_GC_Z_ZRANGEREGISTRY_INLINE_HPP
+#define SHARE_GC_Z_ZRANGEREGISTRY_INLINE_HPP
 
 #include "gc/z/zRangeRegistry.hpp"
 
@@ -237,8 +237,8 @@ void ZRangeRegistry<Range>::register_range(const Range& range) {
 
 template <typename Range>
 bool ZRangeRegistry<Range>::unregister_first(Range* out) {
-  // This intentionally does not call the "remove" callback.
-  // This call is typically used to unregister memory before unreserving a surplus.
+  // Unregistering a range doesn't call a "prepare_to_hand_out" callback
+  // becaue the range is unregistered and not handed out to be used.
 
   ZLocker<ZLock> locker(&_lock);
 
@@ -246,7 +246,7 @@ bool ZRangeRegistry<Range>::unregister_first(Range* out) {
     return false;
   }
 
-  // Don't invoke the "remove" callback
+  // Don't invoke the "prepare_to_hand_out" callback
 
   Node* const node = _list.remove_first();
 
@@ -466,4 +466,4 @@ void ZRangeRegistry<Range>::transfer_from_low(ZRangeRegistry* other, size_t size
   assert(to_move == 0, "Should have transferred requested size");
 }
 
-#endif // SHARE_GC_Z_ZMEMORY_INLINE_HPP
+#endif // SHARE_GC_Z_ZRANGEREGISTRY_INLINE_HPP

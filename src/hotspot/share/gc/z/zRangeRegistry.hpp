@@ -147,5 +147,4 @@ public:
   }
 };
 
-
 #endif // SHARE_GC_Z_ZRANGEREGISTRY_HPP
