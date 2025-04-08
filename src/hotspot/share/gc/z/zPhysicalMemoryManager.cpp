@@ -27,12 +27,13 @@
 #include "gc/z/zGlobals.hpp"
 #include "gc/z/zLargePages.inline.hpp"
 #include "gc/z/zList.inline.hpp"
-#include "gc/z/zMemory.inline.hpp"
 #include "gc/z/zNMT.hpp"
 #include "gc/z/zNUMA.inline.hpp"
 #include "gc/z/zPhysicalMemoryManager.hpp"
+#include "gc/z/zRangeRegistry.inline.hpp"
 #include "gc/z/zUtils.inline.hpp"
 #include "gc/z/zValue.inline.hpp"
+#include "gc/z/zVirtualMemory.inline.hpp"
 #include "logging/log.hpp"
 #include "runtime/globals.hpp"
 #include "runtime/globals_extension.hpp"
@@ -52,12 +53,12 @@ ZPhysicalMemoryManager::ZPhysicalMemoryManager(size_t max_capacity)
   ZBackingOffsetMax = max_capacity;
   ZBackingIndexMax = checked_cast<uint32_t>(max_capacity >> ZGranuleSizeShift);
 
-  // Install capacity into manager(s)
+  // Install capacity into the registry
   const size_t num_segments_total = max_capacity >> ZGranuleSizeShift;
   zbacking_index_end next_index = zbacking_index_end::zero;
   uint32_t numa_id;
-  ZPerNUMAIterator<ZMemoryManager> iter(&_partitions);
-  for (ZMemoryManager* manager; iter.next(&manager, &numa_id);) {
+  ZPerNUMAIterator<ZBackingIndexRegistry> iter(&_partition_registries);
+  for (ZBackingIndexRegistry* registry; iter.next(&registry, &numa_id);) {
     const size_t num_segments = ZNUMA::calculate_share(numa_id, num_segments_total, 1 /* granule */);
 
     if (num_segments == 0) {
@@ -68,8 +69,8 @@ ZPhysicalMemoryManager::ZPhysicalMemoryManager(size_t max_capacity)
 
     const zbacking_index index = to_zbacking_index(next_index);
 
-    // Insert the next number of segment indices into id's manager
-    manager->insert({index, num_segments});
+    // Insert the next number of segment indices into id's partition's registry
+    registry->insert({index, num_segments});
 
     // Advance to next index by the inserted number of segment indices
     next_index += num_segments;
@@ -127,7 +128,8 @@ void ZPhysicalMemoryManager::alloc(const ZVirtualMemory& vmem, uint32_t numa_id)
 
   while (remaining_segments != 0) {
     // Allocate a range of backing segment indices
-    const ZBackingIndexRange range = _partitions.get(numa_id).remove_from_low_at_most(remaining_segments);
+    ZBackingIndexRegistry& registry = _partition_registries.get(numa_id);
+    const ZBackingIndexRange range = registry.remove_from_low_at_most(remaining_segments);
     assert(!range.is_null(), "Allocation should never fail");
 
     // Insert backing segment indices in pmem
@@ -201,7 +203,7 @@ void ZPhysicalMemoryManager::free(const ZVirtualMemory& vmem, uint32_t numa_id) 
     const zbacking_index index = to_zbacking_index(segment_start);
 
     // Insert the free segment indices
-    _partitions.get(numa_id).insert({index, num_segments});
+    _partition_registries.get(numa_id).insert({index, num_segments});
   });
 }
 

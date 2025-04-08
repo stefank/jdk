@@ -25,6 +25,7 @@
 #define SHARE_GC_Z_ZLIST_HPP
 
 #include "memory/allocation.hpp"
+#include "utilities/debug.hpp"
 #include "utilities/globalDefinitions.hpp"
 
 template <typename T> class ZList;
@@ -46,7 +47,12 @@ private:
 
 public:
   ZListNode();
-  ~ZListNode();
+  ~ZListNode() {
+    // Implementation placed here to make it easier easier to embed ZListNode
+    // instances without having to include zListNode.inline.hpp.
+    assert(_next == this, "Should not be in a list");
+    assert(_prev == this, "Should not be in a list");
+  }
 };
 
 // Doubly linked list

@@ -25,16 +25,16 @@
 #include "gc/z/zGlobals.hpp"
 #include "gc/z/zLargePages.inline.hpp"
 #include "gc/z/zMapper_windows.hpp"
-#include "gc/z/zMemory.inline.hpp"
 #include "gc/z/zSyscall_windows.hpp"
 #include "gc/z/zValue.inline.hpp"
-#include "gc/z/zVirtualMemoryManager.hpp"
+#include "gc/z/zVirtualMemory.inline.hpp"
+#include "gc/z/zVirtualMemoryManager.inline.hpp"
 #include "utilities/align.hpp"
 #include "utilities/debug.hpp"
 
 class ZVirtualMemoryReserverImpl : public CHeapObj<mtGC> {
 public:
-  virtual void register_callbacks(ZVirtualMemoryManager::ZMemoryManager* manager) {}
+  virtual void register_callbacks(ZVirtualMemoryRegistry* registry) {}
   virtual bool reserve(zaddress_unsafe addr, size_t size) = 0;
   virtual void unreserve(zaddress_unsafe addr, size_t size) = 0;
 };
@@ -130,7 +130,7 @@ private:
     }
 
   public:
-    static ZVirtualMemoryManager::ZMemoryManager::Callbacks callbacks() {
+    static ZVirtualMemoryRegistry::Callbacks callbacks() {
       // Each reserved virtual memory address area registered in _manager is
       // exactly covered by a single placeholder. Callbacks are installed so
       // that whenever a memory area changes, the corresponding placeholder
@@ -154,7 +154,7 @@ private:
       // See comment in zMapper_windows.cpp explaining why placeholders are
       // split into ZGranuleSize sized placeholders.
 
-      ZVirtualMemoryManager::ZMemoryManager::Callbacks callbacks;
+      ZVirtualMemoryRegistry::Callbacks callbacks;
 
       callbacks._prepare_for_hand_out = &prepare_for_hand_out_callback;
       callbacks._prepare_for_hand_back = &prepare_for_hand_back_callback;
@@ -165,8 +165,8 @@ private:
     }
   };
 
-  virtual void register_callbacks(ZVirtualMemoryManager::ZMemoryManager* manager) {
-    manager->register_callbacks(PlaceholderCallbacks::callbacks());
+  virtual void register_callbacks(ZVirtualMemoryRegistry* registry) {
+    registry->register_callbacks(PlaceholderCallbacks::callbacks());
   }
 
   virtual bool reserve(zaddress_unsafe addr, size_t size) {
@@ -217,8 +217,8 @@ void ZVirtualMemoryReserverImpl_initialize() {
   }
 }
 
-void ZVirtualMemoryReserver::pd_register_callbacks(ZVirtualMemoryManager::ZMemoryManager* manager) {
-  _impl->register_callbacks(manager);
+void ZVirtualMemoryReserver::pd_register_callbacks(ZVirtualMemoryRegistry* registry) {
+  _impl->register_callbacks(registry);
 }
 
 bool ZVirtualMemoryReserver::pd_reserve(zaddress_unsafe addr, size_t size) {

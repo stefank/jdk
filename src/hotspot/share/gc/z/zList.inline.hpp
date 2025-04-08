@@ -34,11 +34,6 @@ inline ZListNode<T>::ZListNode()
     _prev(this) {}
 
 template <typename T>
-inline ZListNode<T>::~ZListNode() {
-  verify_links_unlinked();
-}
-
-template <typename T>
 inline void ZListNode<T>::verify_links() const {
   assert(_next->_prev == this, "Corrupt list node");
   assert(_prev->_next == this, "Corrupt list node");

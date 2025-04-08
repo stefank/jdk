@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023, 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2025, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -21,31 +21,20 @@
  * questions.
  */
 
-#ifndef SHARE_GC_Z_ZNMT_HPP
-#define SHARE_GC_Z_ZNMT_HPP
+#ifndef SHARE_GC_Z_ZVIRTUALMEMORY_HPP
+#define SHARE_GC_Z_ZVIRTUALMEMORY_HPP
 
 #include "gc/z/zAddress.hpp"
-#include "gc/z/zGlobals.hpp"
-#include "memory/allStatic.hpp"
-#include "nmt/memTracker.hpp"
-#include "nmt/memoryFileTracker.hpp"
+#include "gc/z/zRange.hpp"
 #include "utilities/globalDefinitions.hpp"
 
-class ZNMT : public AllStatic {
-private:
-  static MemoryFileTracker::MemoryFile* _device;
-
+class ZVirtualMemory : public ZRange<zoffset, zoffset_end> {
 public:
-  static void initialize();
+  ZVirtualMemory();
+  ZVirtualMemory(zoffset start, size_t size);
+  ZVirtualMemory(const ZRange<zoffset, zoffset_end>& range);
 
-  static void reserve(zaddress_unsafe start, size_t size);
-  static void unreserve(zaddress_unsafe start, size_t size);
-
-  static void commit(zbacking_offset offset, size_t size);
-  static void uncommit(zbacking_offset offset, size_t size);
-
-  static void map(zaddress_unsafe addr, size_t size, zbacking_offset offset);
-  static void unmap(zaddress_unsafe addr, size_t size);
+  int granule_count() const;
 };
 
-#endif // SHARE_GC_Z_ZNMT_HPP
+#endif // SHARE_GC_Z_ZVIRTUALMEMORY_HPP

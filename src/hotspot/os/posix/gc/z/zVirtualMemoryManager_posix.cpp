@@ -27,7 +27,7 @@
 
 #include <sys/mman.h>
 
-void ZVirtualMemoryReserver::pd_register_callbacks(ZMemoryManager* manager) {
+void ZVirtualMemoryReserver::pd_register_callbacks(ZVirtualMemoryRegistry* registry) {
   // Does nothing
 }
 

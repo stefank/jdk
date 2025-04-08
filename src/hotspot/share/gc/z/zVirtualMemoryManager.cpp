@@ -28,27 +28,28 @@
 #include "gc/z/zArray.hpp"
 #include "gc/z/zGlobals.hpp"
 #include "gc/z/zInitialize.hpp"
-#include "gc/z/zMemory.inline.hpp"
 #include "gc/z/zNMT.hpp"
 #include "gc/z/zNUMA.inline.hpp"
 #include "gc/z/zValue.inline.hpp"
+#include "gc/z/zVirtualMemory.inline.hpp"
+#include "gc/z/zVirtualMemoryManager.inline.hpp"
 #include "utilities/align.hpp"
 #include "utilities/debug.hpp"
 
 ZVirtualMemoryReserver::ZVirtualMemoryReserver(size_t size)
-  : _virtual_memory_reservation(),
+  : _registry(),
     _reserved(reserve(size)) {}
 
-void ZVirtualMemoryReserver::initialize_partition(ZMemoryManager* partition, size_t size) {
-  assert(partition->is_empty(), "Should be empty when initializing");
+void ZVirtualMemoryReserver::initialize_partition_registry(ZVirtualMemoryRegistry* partition_registry, size_t size) {
+  assert(partition_registry->is_empty(), "Should be empty when initializing");
 
   // Registers the Windows callbacks
-  pd_register_callbacks(partition);
+  pd_register_callbacks(partition_registry);
 
-  _virtual_memory_reservation.transfer_from_low(partition, size);
+  _registry.transfer_from_low(partition_registry, size);
 
   // Set the limits according to the virtual memory given to this partition
-  partition->anchor_limits();
+  partition_registry->anchor_limits();
 }
 
 void ZVirtualMemoryReserver::unreserve(const ZVirtualMemory& vmem) {
@@ -62,17 +63,17 @@ void ZVirtualMemoryReserver::unreserve(const ZVirtualMemory& vmem) {
 }
 
 void ZVirtualMemoryReserver::unreserve_all() {
-  for (ZVirtualMemory vmem; _virtual_memory_reservation.unregister_first(&vmem);) {
+  for (ZVirtualMemory vmem; _registry.unregister_first(&vmem);) {
     unreserve(vmem);
   }
 }
 
 bool ZVirtualMemoryReserver::is_empty() const {
-  return _virtual_memory_reservation.is_empty();
+  return _registry.is_empty();
 }
 
 bool ZVirtualMemoryReserver::is_contiguous() const {
-  return _virtual_memory_reservation.is_contiguous();
+  return _registry.is_contiguous();
 }
 
 size_t ZVirtualMemoryReserver::reserved() const {
@@ -80,7 +81,7 @@ size_t ZVirtualMemoryReserver::reserved() const {
 }
 
 zoffset_end ZVirtualMemoryReserver::highest_available_address_end() const {
-  return _virtual_memory_reservation.peak_high_address_end();
+  return _registry.peak_high_address_end();
 }
 
 void ZVirtualMemoryManager::initialize_partitions(ZVirtualMemoryReserver* reserver, size_t size_for_partitions) {
@@ -91,10 +92,10 @@ void ZVirtualMemoryManager::initialize_partitions(ZVirtualMemoryReserver* reserv
   const uint32_t first_empty_numa_id = MIN2(static_cast<uint32_t>(size_for_partitions >> ZGranuleSizeShift), ZNUMA::count());
   const uint32_t ignore_count = ZNUMA::count() - first_empty_numa_id;
 
-  // Install reserved memory into manager(s)
+  // Install reserved memory into registry(s)
   uint32_t numa_id;
-  ZPerNUMAIterator<ZMemoryManager> iter(&_partitions);
-  for (ZMemoryManager* partition; iter.next(&partition, &numa_id);) {
+  ZPerNUMAIterator<ZVirtualMemoryRegistry> iter(&_partition_registries);
+  for (ZVirtualMemoryRegistry* registry; iter.next(&registry, &numa_id);) {
     if (numa_id == first_empty_numa_id) {
       break;
     }
@@ -103,7 +104,7 @@ void ZVirtualMemoryManager::initialize_partitions(ZVirtualMemoryReserver* reserv
     const size_t reserved_for_partition = ZNUMA::calculate_share(numa_id, size_for_partitions, ZGranuleSize, ignore_count);
 
     // Transfer reserved memory
-    reserver->initialize_partition(partition, reserved_for_partition);
+    reserver->initialize_partition_registry(registry, reserved_for_partition);
   }
 }
 
@@ -203,7 +204,7 @@ bool ZVirtualMemoryReserver::reserve_contiguous(zoffset start, size_t size) {
   ZNMT::reserve(addr, size);
 
   // Register the memory reservation
-  _virtual_memory_reservation.register_range({start, size});
+  _registry.register_range({start, size});
 
   return true;
 }
@@ -226,7 +227,7 @@ bool ZVirtualMemoryReserver::reserve_contiguous(size_t size) {
 
 size_t ZVirtualMemoryReserver::reserve(size_t size) {
   // Register Windows callbacks
-  pd_register_callbacks(&_virtual_memory_reservation);
+  pd_register_callbacks(&_registry);
 
   // Reserve address space
 
@@ -246,8 +247,8 @@ size_t ZVirtualMemoryReserver::reserve(size_t size) {
 }
 
 ZVirtualMemoryManager::ZVirtualMemoryManager(size_t max_capacity)
-  : _partitions(),
-    _multi_partition(),
+  : _partition_registries(),
+    _multi_partition_registry(),
     _initialized(false) {
 
   assert(max_capacity <= ZAddressOffsetMax, "Too large max_capacity");
@@ -283,7 +284,7 @@ ZVirtualMemoryManager::ZVirtualMemoryManager(size_t max_capacity)
 
   if (desired_for_multi_partition > 0 && reserved == desired) {
     // Enough left to setup the multi-partition memory reservation
-    reserver.initialize_partition(&_multi_partition, max_capacity);
+    reserver.initialize_partition_registry(&_multi_partition_registry, max_capacity);
   } else {
     // Failed to reserve enough memory for multi-partition, unreserve unused memory
     reserver.unreserve_all();
@@ -305,35 +306,43 @@ bool ZVirtualMemoryManager::is_initialized() const {
   return _initialized;
 }
 
+ZVirtualMemoryRegistry& ZVirtualMemoryManager::registry(uint32_t partition_id) {
+  return _partition_registries.get(partition_id);
+}
+
+const ZVirtualMemoryRegistry& ZVirtualMemoryManager::registry(uint32_t partition_id) const {
+  return _partition_registries.get(partition_id);
+}
+
 zoffset ZVirtualMemoryManager::lowest_available_address(uint32_t partition_id) const {
-  return _partitions.get(partition_id).peek_low_address();
+  return registry(partition_id).peek_low_address();
 }
 
 void ZVirtualMemoryManager::insert(const ZVirtualMemory& vmem, uint32_t partition_id) {
   assert(partition_id == lookup_partition_id(vmem), "wrong partition_id for vmem");
-  _partitions.get(partition_id).insert(vmem);
+  registry(partition_id).insert(vmem);
 }
 
 void ZVirtualMemoryManager::insert_multi_partition(const ZVirtualMemory& vmem) {
-  _multi_partition.insert(vmem);
+  _multi_partition_registry.insert(vmem);
 }
 
 size_t ZVirtualMemoryManager::remove_from_low_many_at_most(size_t size, uint32_t partition_id, ZArray<ZVirtualMemory>* vmems_out) {
-  return _partitions.get(partition_id).remove_from_low_many_at_most(size, vmems_out);
+  return registry(partition_id).remove_from_low_many_at_most(size, vmems_out);
 }
 
 ZVirtualMemory ZVirtualMemoryManager::remove_from_low(size_t size, uint32_t partition_id) {
-  return _partitions.get(partition_id).remove_from_low(size);
+  return registry(partition_id).remove_from_low(size);
 }
 
 ZVirtualMemory ZVirtualMemoryManager::remove_from_low_multi_partition(size_t size) {
-  return _multi_partition.remove_from_low(size);
+  return _multi_partition_registry.remove_from_low(size);
 }
 
 void ZVirtualMemoryManager::insert_and_remove_from_low_many(const ZVirtualMemory& vmem, uint32_t partition_id, ZArray<ZVirtualMemory>* vmems_out) {
-  _partitions.get(partition_id).insert_and_remove_from_low_many(vmem, vmems_out);
+  registry(partition_id).insert_and_remove_from_low_many(vmem, vmems_out);
 }
 
 ZVirtualMemory ZVirtualMemoryManager::insert_and_remove_from_low_exact_or_many(size_t size, uint32_t partition_id, ZArray<ZVirtualMemory>* vmems_in_out) {
-  return _partitions.get(partition_id).insert_and_remove_from_low_exact_or_many(size, vmems_in_out);
+  return registry(partition_id).insert_and_remove_from_low_exact_or_many(size, vmems_in_out);
 }

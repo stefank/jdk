@@ -26,21 +26,22 @@
 
 #include "gc/z/zVirtualMemoryManager.hpp"
 
-#include "gc/z/zMemory.inline.hpp"
 #include "utilities/globalDefinitions.hpp"
+#include "gc/z/zRangeRegistry.inline.hpp"
+
 
 inline bool ZVirtualMemoryManager::is_multi_partition_enabled() const {
-  return !_multi_partition.is_empty();
+  return !_multi_partition_registry.is_empty();
 }
 
 inline bool ZVirtualMemoryManager::is_in_multi_partition(const ZVirtualMemory& vmem) const {
-  return _multi_partition.limits_contain(vmem);
+  return _multi_partition_registry.limits_contain(vmem);
 }
 
 inline uint32_t ZVirtualMemoryManager::lookup_partition_id(const ZVirtualMemory& vmem) const {
-  const uint32_t num_partitions = _partitions.count();
+  const uint32_t num_partitions = _partition_registries.count();
   for (uint32_t partition_id = 0; partition_id < num_partitions; partition_id++) {
-    if (_partitions.get(partition_id).limits_contain(vmem)) {
+    if (registry(partition_id).limits_contain(vmem)) {
       return partition_id;
     }
   }
