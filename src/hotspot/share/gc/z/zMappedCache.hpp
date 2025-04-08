@@ -24,9 +24,11 @@
 #ifndef SHARE_GC_Z_ZMAPPEDCACHE_HPP
 #define SHARE_GC_Z_ZMAPPEDCACHE_HPP
 
+#include "gc/z/zAddress.hpp"
 #include "gc/z/zArray.hpp"
 #include "gc/z/zGlobals.hpp"
 #include "gc/z/zIntrusiveRBTree.hpp"
+#include "gc/z/zList.hpp"
 #include "utilities/globalDefinitions.hpp"
 #include "utilities/ostream.hpp"
 
