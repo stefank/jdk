@@ -28,10 +28,11 @@
 #include "gc/z/zArray.hpp"
 #include "gc/z/zGlobals.hpp"
 #include "gc/z/zInitialize.hpp"
-#include "gc/z/zMemory.inline.hpp"
 #include "gc/z/zNMT.hpp"
 #include "gc/z/zNUMA.inline.hpp"
 #include "gc/z/zValue.inline.hpp"
+#include "gc/z/zVirtualMemory.inline.hpp"
+#include "gc/z/zVirtualMemoryManager.inline.hpp"
 #include "utilities/align.hpp"
 #include "utilities/debug.hpp"
 
@@ -39,7 +40,7 @@ ZVirtualMemoryReserver::ZVirtualMemoryReserver(size_t size)
   : _virtual_memory_reservation(),
     _reserved(reserve(size)) {}
 
-void ZVirtualMemoryReserver::initialize_partition(ZMemoryManager* partition, size_t size) {
+void ZVirtualMemoryReserver::initialize_partition(ZVirtualMemoryRegistry* partition, size_t size) {
   assert(partition->is_empty(), "Should be empty when initializing");
 
   // Registers the Windows callbacks
@@ -93,8 +94,8 @@ void ZVirtualMemoryManager::initialize_partitions(ZVirtualMemoryReserver* reserv
 
   // Install reserved memory into manager(s)
   uint32_t numa_id;
-  ZPerNUMAIterator<ZMemoryManager> iter(&_partitions);
-  for (ZMemoryManager* partition; iter.next(&partition, &numa_id);) {
+  ZPerNUMAIterator<ZVirtualMemoryRegistry> iter(&_partitions);
+  for (ZVirtualMemoryRegistry* partition; iter.next(&partition, &numa_id);) {
     if (numa_id == first_empty_numa_id) {
       break;
     }

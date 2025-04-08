@@ -32,7 +32,6 @@
 #include "gc/z/zList.hpp"
 #include "gc/z/zLock.hpp"
 #include "gc/z/zMappedCache.hpp"
-#include "gc/z/zMemory.hpp"
 #include "gc/z/zPage.hpp"
 #include "gc/z/zPageAge.hpp"
 #include "gc/z/zPageType.hpp"
@@ -52,6 +51,7 @@ class ZPageAllocator;
 class ZPageAllocatorStats;
 class ZSegmentStash;
 class ZSinglePartitionAllocation;
+class ZVirtualMemory;
 class ZWorkers;
 
 class ZPartition {

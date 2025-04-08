@@ -31,6 +31,7 @@
 #include "gc/z/zGlobals.hpp"
 #include "gc/z/zLiveMap.inline.hpp"
 #include "gc/z/zRememberedSet.inline.hpp"
+#include "gc/z/zVirtualMemory.inline.hpp"
 #include "logging/logStream.hpp"
 #include "runtime/atomic.hpp"
 #include "runtime/os.hpp"

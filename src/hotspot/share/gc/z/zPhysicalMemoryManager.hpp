@@ -27,18 +27,23 @@
 #include "gc/z/zAddress.hpp"
 #include "gc/z/zArray.hpp"
 #include "gc/z/zGranuleMap.hpp"
-#include "gc/z/zMemory.hpp"
+#include "gc/z/zRange.hpp"
+#include "gc/z/zRangeRegistry.hpp"
 #include "gc/z/zValue.hpp"
 #include "memory/allocation.hpp"
 #include OS_HEADER(gc/z/zPhysicalMemoryBacking)
 
+class ZVirtualMemory;
+
+using ZBackingIndexRange = ZRange<zbacking_index, zbacking_index_end>;
+
 class ZPhysicalMemoryManager {
 private:
-  using ZMemoryManager = ZMemoryManagerImpl<ZBackingIndexRange>;
+  using ZBackingIndexRegistry = ZRangeRegistry<ZBackingIndexRange>;
 
-  ZPhysicalMemoryBacking      _backing;
-  ZPerNUMA<ZMemoryManager>    _partitions;
-  ZGranuleMap<zbacking_index> _physical_mappings;
+  ZPhysicalMemoryBacking          _backing;
+  ZPerNUMA<ZBackingIndexRegistry> _partitions;
+  ZGranuleMap<zbacking_index>     _physical_mappings;
 
   void copy_to_stash(ZArraySlice<zbacking_index> stash, const ZVirtualMemory& vmem) const;
   void copy_from_stash(const ZArraySlice<const zbacking_index> stash, const ZVirtualMemory& vmem);

@@ -26,10 +26,10 @@
 
 #include "gc/z/zGenerationId.hpp"
 #include "gc/z/zLiveMap.hpp"
-#include "gc/z/zMemory.hpp"
 #include "gc/z/zPageAge.hpp"
 #include "gc/z/zPageType.hpp"
 #include "gc/z/zRememberedSet.hpp"
+#include "gc/z/zVirtualMemory.hpp"
 #include "memory/allocation.hpp"
 #include "oops/oopsHierarchy.hpp"
 

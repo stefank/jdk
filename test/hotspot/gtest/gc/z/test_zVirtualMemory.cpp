@@ -22,7 +22,7 @@
  */
 
 #include "gc/z/zGlobals.hpp"
-#include "gc/z/zMemory.inline.hpp"
+#include "gc/z/zVirtualMemory.inline.hpp"
 #include "zunittest.hpp"
 
 TEST(ZVirtualMemory, is_null) {

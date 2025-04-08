@@ -27,11 +27,11 @@
 #include "gc/z/zArray.hpp"
 #include "gc/z/zGlobals.hpp"
 #include "gc/z/zIntrusiveRBTree.hpp"
-#include "gc/z/zMemory.hpp"
 #include "utilities/globalDefinitions.hpp"
 #include "utilities/ostream.hpp"
 
 class ZMappedCacheEntry;
+class ZVirtualMemory;
 
 class ZMappedCache {
   friend class ZMappedCacheEntry;

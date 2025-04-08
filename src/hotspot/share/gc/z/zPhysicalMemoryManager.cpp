@@ -27,12 +27,13 @@
 #include "gc/z/zGlobals.hpp"
 #include "gc/z/zLargePages.inline.hpp"
 #include "gc/z/zList.inline.hpp"
-#include "gc/z/zMemory.inline.hpp"
 #include "gc/z/zNMT.hpp"
 #include "gc/z/zNUMA.inline.hpp"
 #include "gc/z/zPhysicalMemoryManager.hpp"
+#include "gc/z/zRangeRegistry.inline.hpp"
 #include "gc/z/zUtils.inline.hpp"
 #include "gc/z/zValue.inline.hpp"
+#include "gc/z/zVirtualMemory.inline.hpp"
 #include "logging/log.hpp"
 #include "runtime/globals.hpp"
 #include "runtime/globals_extension.hpp"
@@ -56,8 +57,8 @@ ZPhysicalMemoryManager::ZPhysicalMemoryManager(size_t max_capacity)
   const size_t num_segments_total = max_capacity >> ZGranuleSizeShift;
   zbacking_index_end next_index = zbacking_index_end::zero;
   uint32_t numa_id;
-  ZPerNUMAIterator<ZMemoryManager> iter(&_partitions);
-  for (ZMemoryManager* manager; iter.next(&manager, &numa_id);) {
+  ZPerNUMAIterator<ZBackingIndexRegistry> iter(&_partitions);
+  for (ZBackingIndexRegistry* registry; iter.next(&registry, &numa_id);) {
     const size_t num_segments = ZNUMA::calculate_share(numa_id, num_segments_total, 1 /* granule */);
 
     if (num_segments == 0) {
@@ -69,7 +70,7 @@ ZPhysicalMemoryManager::ZPhysicalMemoryManager(size_t max_capacity)
     const zbacking_index index = to_zbacking_index(next_index);
 
     // Insert the next number of segment indices into id's manager
-    manager->insert({index, num_segments});
+    registry->insert({index, num_segments});
 
     // Advance to next index by the inserted number of segment indices
     next_index += num_segments;

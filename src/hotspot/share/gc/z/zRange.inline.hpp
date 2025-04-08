@@ -21,15 +21,11 @@
  * questions.
  */
 
-#ifndef SHARE_GC_Z_ZMEMORY_INLINE_HPP
-#define SHARE_GC_Z_ZMEMORY_INLINE_HPP
+#ifndef SHARE_GC_Z_ZRANGE_INLINE_HPP
+#define SHARE_GC_Z_ZRANGE_INLINE_HPP
 
-#include "gc/z/zMemory.hpp"
+#include "gc/z/zRange.hpp"
 
-#include "gc/z/zAddress.inline.hpp"
-#include "gc/z/zGlobals.hpp"
-#include "gc/z/zList.inline.hpp"
-#include "utilities/align.hpp"
 #include "utilities/debug.hpp"
 #include "utilities/globalDefinitions.hpp"
 
@@ -145,45 +141,4 @@ inline bool ZRange<Start, End>::adjacent_to(const ZRange<Start, End>& other) con
   return end() == other.start() || other.end() == start();
 }
 
-inline ZVirtualMemory::ZVirtualMemory()
-  : ZRange() {}
-
-inline ZVirtualMemory::ZVirtualMemory(zoffset start, size_t size)
-  : ZRange(start, size) {
-  // ZVirtualMemory is only used for ZGranuleSize multiple ranges
-  assert(is_aligned(untype(start), ZGranuleSize), "must be multiple of ZGranuleSize");
-  assert(is_aligned(size, ZGranuleSize), "must be multiple of ZGranuleSize");
-}
-
-inline ZVirtualMemory::ZVirtualMemory(const ZRange<zoffset, zoffset_end>& range)
-  : ZVirtualMemory(range.start(), range.size()) {}
-
-inline int ZVirtualMemory::granule_count() const {
-  const size_t granule_count = size() >> ZGranuleSizeShift;
-
-  assert(granule_count <= static_cast<size_t>(std::numeric_limits<int>::max()),
-         "must not overflow an int %zu", granule_count);
-
-  return static_cast<int>(granule_count);
-}
-
-template <typename Range>
-inline bool ZMemoryManagerImpl<Range>::is_empty() const {
-  return _list.is_empty();
-}
-
-template <typename Range>
-bool ZMemoryManagerImpl<Range>::is_contiguous() const {
-  return _list.size() == 1;
-}
-
-template <typename Range>
-bool ZMemoryManagerImpl<Range>::limits_contain(const Range& range) const {
-  if (_limits.is_null() || range.is_null()) {
-    return false;
-  }
-
-  return range.start() >= _limits.start() && range.end() <= _limits.end();
-}
-
-#endif // SHARE_GC_Z_ZMEMORY_INLINE_HPP
+#endif // SHARE_GC_Z_ZRANGE_INLINE_HPP

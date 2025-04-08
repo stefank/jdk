@@ -33,6 +33,7 @@
 #include "gc/z/zPageAllocator.hpp"
 #include "gc/z/zPageType.hpp"
 #include "gc/z/zValue.hpp"
+#include "gc/z/zVirtualMemory.hpp"
 #include "utilities/macros.hpp"
 
 // Expose some ZGC globals to the SA agent.

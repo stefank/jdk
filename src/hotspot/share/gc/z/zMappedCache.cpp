@@ -26,7 +26,7 @@
 #include "gc/z/zIntrusiveRBTree.inline.hpp"
 #include "gc/z/zList.inline.hpp"
 #include "gc/z/zMappedCache.hpp"
-#include "gc/z/zMemory.inline.hpp"
+#include "gc/z/zVirtualMemory.inline.hpp"
 #include "utilities/align.hpp"
 #include "utilities/debug.hpp"
 #include "utilities/globalDefinitions.hpp"

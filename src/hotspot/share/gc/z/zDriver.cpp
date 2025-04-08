@@ -32,6 +32,7 @@
 #include "gc/z/zGCIdPrinter.hpp"
 #include "gc/z/zGeneration.inline.hpp"
 #include "gc/z/zHeap.inline.hpp"
+#include "gc/z/zList.inline.hpp"
 #include "gc/z/zLock.inline.hpp"
 #include "gc/z/zServiceability.hpp"
 #include "gc/z/zStat.hpp"

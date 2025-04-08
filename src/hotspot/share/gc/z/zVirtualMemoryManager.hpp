@@ -26,23 +26,25 @@
 
 #include "gc/z/zAddress.hpp"
 #include "gc/z/zArray.hpp"
-#include "gc/z/zMemory.hpp"
+#include "gc/z/zRangeRegistry.hpp"
 #include "gc/z/zValue.hpp"
+#include "gc/z/zVirtualMemory.hpp"
+
+using ZVirtualMemoryRegistry = ZRangeRegistry<ZVirtualMemory>;
 
 class ZVirtualMemoryReserver {
   friend class ZMapperTest;
   friend class ZVirtualMemoryManagerTest;
 
 private:
-  using ZMemoryManager = ZMemoryManagerImpl<ZVirtualMemory>;
 
-  ZMemoryManager _virtual_memory_reservation;
-  const size_t   _reserved;
+  ZVirtualMemoryRegistry _virtual_memory_reservation;
+  const size_t           _reserved;
 
   static size_t calculate_min_range(size_t size);
 
   // Platform specific implementation
-  void pd_register_callbacks(ZMemoryManager* manager);
+  void pd_register_callbacks(ZVirtualMemoryRegistry* registry);
   bool pd_reserve(zaddress_unsafe addr, size_t size);
   void pd_unreserve(zaddress_unsafe addr, size_t size);
 
@@ -59,7 +61,7 @@ private:
 public:
   ZVirtualMemoryReserver(size_t size);
 
-  void initialize_partition(ZMemoryManager* partition, size_t size);
+  void initialize_partition(ZVirtualMemoryRegistry* partition, size_t size);
 
   void unreserve_all();
 
@@ -72,13 +74,10 @@ public:
 };
 
 class ZVirtualMemoryManager {
-public:
-  using ZMemoryManager = ZMemoryManagerImpl<ZVirtualMemory>;
-
 private:
-  ZPerNUMA<ZMemoryManager> _partitions;
-  ZMemoryManager           _multi_partition;
-  bool                     _initialized;
+  ZPerNUMA<ZVirtualMemoryRegistry> _partitions;
+  ZVirtualMemoryRegistry           _multi_partition;
+  bool                             _initialized;
 
 public:
   ZVirtualMemoryManager(size_t max_capacity);

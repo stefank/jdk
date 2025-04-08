@@ -28,7 +28,8 @@
 #include "gc/z/zArguments.hpp"
 #include "gc/z/zInitialize.hpp"
 #include "gc/z/zNUMA.hpp"
-#include "gc/z/zMemory.hpp"
+#include "gc/z/zRangeRegistry.hpp"
+#include "gc/z/zVirtualMemory.inline.hpp"
 #include "runtime/os.hpp"
 #include "unittest.hpp"
 
