@@ -204,12 +204,12 @@ void ZGeneration::select_relocation_set(bool promote_all) {
 
         // An active iterator blocks immediate deletion of pages. The intent is
         // to allow the code that iterates over pages to safely read properties
-        // of the pages without them being freed/deleted. However, this function
-        // both iterates over the pages AND frees them. We "yield" the iterator,
-        // so that we can perform immediate deletion (as long as no other thread
-        // is iterating over the pages). The contract is that the pages that are
-        // about to be freed are "owned" by this thread, and no other thread will
-        // change their states.
+        // of the pages without them being freed/deleted. However, this
+        // function both iterates over the pages AND frees them. We "yield" the
+        // iterator, so that we can perform immediate deletion (as long as no
+        // other thread is iterating over the pages). The contract is that the
+        // pages that are about to be freed are "owned" by this thread, and no
+        // other thread will change their states.
         pt_iter.yield([&]() {
           free_empty_pages(&selector, 64 /* bulk */);
         });

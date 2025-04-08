@@ -563,8 +563,9 @@ ZPhysicalMemoryManager& ZPartition::physical_memory_manager() {
 void ZPartition::verify_virtual_memory_multi_partition_association(const ZVirtualMemory& vmem) const {
   const ZVirtualMemoryManager& manager = virtual_memory_manager();
 
-  assert(manager.is_in_multi_partition(vmem), "Virtual memory must be associated with the extra space "
-                                         "actual: %u", virtual_memory_manager().lookup_partition_id(vmem));
+  assert(manager.is_in_multi_partition(vmem),
+         "Virtual memory must be associated with the extra space "
+         "actual: %u", virtual_memory_manager().lookup_partition_id(vmem));
 }
 
 void ZPartition::verify_virtual_memory_association(const ZVirtualMemory& vmem, bool check_multi_partition) const {
@@ -577,8 +578,9 @@ void ZPartition::verify_virtual_memory_association(const ZVirtualMemory& vmem, b
   }
 
   const uint32_t vmem_numa_id = virtual_memory_manager().lookup_partition_id(vmem);
-  assert(_numa_id == vmem_numa_id, "Virtual memory must be associated with the current partition "
-                                   "expected: %u, actual: %u", _numa_id, vmem_numa_id);
+  assert(_numa_id == vmem_numa_id,
+         "Virtual memory must be associated with the current partition "
+         "expected: %u, actual: %u", _numa_id, vmem_numa_id);
 }
 
 void ZPartition::verify_virtual_memory_association(const ZArray<ZVirtualMemory>* vmems) const {
@@ -588,8 +590,9 @@ void ZPartition::verify_virtual_memory_association(const ZArray<ZVirtualMemory>*
 }
 
 void ZPartition::verify_memory_allocation_association(const ZMemoryAllocation* allocation) const {
-  assert(this == &allocation->partition(), "Memory allocation must be associated with the current partition "
-                                           "expected: %u, actual: %u", _numa_id, allocation->partition().numa_id());
+  assert(this == &allocation->partition(),
+         "Memory allocation must be associated with the current partition "
+         "expected: %u, actual: %u", _numa_id, allocation->partition().numa_id());
 }
 
 #endif // ASSERT
@@ -633,7 +636,7 @@ size_t ZPartition::increase_capacity(size_t size) {
 }
 
 void ZPartition::decrease_capacity(size_t size, bool set_max_capacity) {
-  // Update state atomically since we have concurrent readers
+  // Update capacity atomically since we have concurrent readers
   Atomic::sub(&_capacity, size);
 
   // Adjust current max capacity to avoid further attempts to increase capacity
@@ -740,8 +743,8 @@ size_t ZPartition::uncommit(uint64_t* timeout) {
   size_t flushed = 0;
 
   {
-    // We need to join the suspendible thread set while manipulating capacity and
-    // used, to make sure GC safepoints will have a consistent view.
+    // We need to join the suspendible thread set while manipulating capacity
+    // and used, to make sure GC safepoints will have a consistent view.
     SuspendibleThreadSetJoiner sts_joiner;
     ZLocker<ZLock> locker(&_page_allocator->_lock);
 
@@ -1048,8 +1051,8 @@ ZVirtualMemory ZPartition::prepare_harvested_and_claim_virtual(ZMemoryAllocation
   ZArray<zbacking_index> stash(granule_count);
   manager.stash_segments(*allocation->partial_vmems(), &stash);
 
-  // Shuffle virtual memory. We attempt to allocate enough memory to cover the entire
-  // allocation size, not just for the harvested memory.
+  // Shuffle virtual memory. We attempt to allocate enough memory to cover the
+  // entire allocation size, not just for the harvested memory.
   const ZVirtualMemory result = free_and_claim_virtual_from_low_exact_or_many(allocation->size(), allocation->partial_vmems());
 
   // Restore segments
@@ -1313,6 +1316,7 @@ size_t ZPageAllocator::soft_max_capacity() const {
 
 size_t ZPageAllocator::current_max_capacity() const {
   size_t current_max_capacity = 0;
+
   ZPartitionConstIterator iter = partition_iterator();
   for (const ZPartition* partition; iter.next(&partition);) {
     current_max_capacity += Atomic::load(&partition->_current_max_capacity);
@@ -1323,6 +1327,7 @@ size_t ZPageAllocator::current_max_capacity() const {
 
 size_t ZPageAllocator::capacity() const {
   size_t capacity = 0;
+
   ZPartitionConstIterator iter = partition_iterator();
   for (const ZPartition* partition; iter.next(&partition);) {
     capacity += Atomic::load(&partition->_capacity);
@@ -1357,21 +1362,18 @@ size_t ZPageAllocator::unused() const {
 ZPageAllocatorStats ZPageAllocator::stats(ZGeneration* generation) const {
   ZLocker<ZLock> locker(&_lock);
 
-  const int gen_id = (int)generation->id();
-  ZPageAllocatorStats stats(_min_capacity,
-                            _max_capacity,
-                            soft_max_capacity(),
-                            capacity(),
-                            _used,
-                            _collection_stats[gen_id]._used_high,
-                            _collection_stats[gen_id]._used_low,
-                            used_generation(generation->id()),
-                            generation->freed(),
-                            generation->promoted(),
-                            generation->compacted(),
-                            _stalled.size());
-
-  return stats;
+  return ZPageAllocatorStats(_min_capacity,
+                             _max_capacity,
+                             soft_max_capacity(),
+                             capacity(),
+                             _used,
+                             _collection_stats[(int)generation->id()]._used_high,
+                             _collection_stats[(int)generation->id()]._used_low,
+                             used_generation(generation->id()),
+                             generation->freed(),
+                             generation->promoted(),
+                             generation->compacted(),
+                             _stalled.size());
 }
 
 void ZPageAllocator::reset_statistics(ZGenerationId id) {
@@ -1382,19 +1384,21 @@ void ZPageAllocator::reset_statistics(ZGenerationId id) {
     // consistent values.
     ZLocker<ZLock> locker(&_lock);
     size_t total_used = 0;
+
     ZPartitionIterator iter(&_partitions);
     for (ZPartition* partition; iter.next(&partition);) {
       total_used += partition->_used;
     }
+
     assert(total_used == _used, "Must be consistent at safepoint %zu == %zu", total_used, _used);
   }
 #endif
 
   // Read once, we may have concurrent writers.
-  const size_t total_used = Atomic::load(&_used);
+  const size_t used = Atomic::load(&_used);
 
-  _collection_stats[(int)id]._used_high = total_used;
-  _collection_stats[(int)id]._used_low = total_used;
+  _collection_stats[(int)id]._used_high = used;
+  _collection_stats[(int)id]._used_low = used;
 }
 
 void ZPageAllocator::increase_used_generation(ZGenerationId id, size_t size) {
@@ -1408,10 +1412,10 @@ void ZPageAllocator::decrease_used_generation(ZGenerationId id, size_t size) {
 }
 
 void ZPageAllocator::promote_used(const ZPage* from, const ZPage* to) {
-  assert(from->size() == to->size(), "pages are the same size");
   assert(from->start() == to->start(), "pages start at same offset");
+  assert(from->size() == to->size(),   "pages are the same size");
   assert(from->age() != ZPageAge::old, "must be promotion");
-  assert(to->age() == ZPageAge::old, "must be promotion");
+  assert(to->age() == ZPageAge::old,   "must be promotion");
 
   decrease_used_generation(ZGenerationId::young, to->size());
   increase_used_generation(ZGenerationId::old, to->size());
@@ -1427,6 +1431,8 @@ ZPage* ZPageAllocator::alloc_page(ZPageType type, size_t size, ZAllocationFlags 
   EventZPageAllocation event;
 
   ZPageAllocation allocation(type, size, flags, age);
+
+  // Allocate the page
   ZPage* const page = alloc_page_inner(&allocation);
   if (page == nullptr) {
     return nullptr;
@@ -1494,7 +1500,7 @@ retry:
   //
   // The claimed capacity comes from memory already mapped in the cache, or
   // from increasing the capacity. The increased capacity allows us to allocate
-  // physical memory from the underlying memory manager later on.
+  // physical memory from the physical memory manager later on.
   //
   // Note that this call might block in a safepoint if the non-blocking flag is
   // not set.
@@ -1513,7 +1519,7 @@ retry:
   // We couldn't find a satisfying vmem in the cache, so we need to build one.
 
   // Claim virtual memory, either from remapping harvested vmems from the
-  // mapped cache or by claiming it straight from the virtual manager.
+  // mapped cache or by claiming it straight from the virtual memory manager.
   const ZVirtualMemory vmem = claim_virtual_memory(allocation);
   if (vmem.is_null()) {
     log_error(gc)("Out of address space");
@@ -1664,8 +1670,8 @@ void ZPageAllocator::claim_capacity_multi_partition(ZMultiPartitionAllocation* m
 
 ZVirtualMemory ZPageAllocator::satisfied_from_cache_vmem(const ZPageAllocation* allocation) const {
   if (allocation->is_multi_partition()) {
-    // Multi-partition allocations are always harvested and/or committed, so there's never a
-    // satisfying vmem from the caches.
+    // Multi-partition allocations are always harvested and/or committed, so
+    // there's never a satisfying vmem from the caches.
     return {};
   }
 
@@ -1689,8 +1695,8 @@ ZVirtualMemory ZPageAllocator::claim_virtual_memory_single_partition(ZSinglePart
   ZPartition& partition = allocation->partition();
 
   if (allocation->harvested() > 0) {
-    // If we have harvested anything, we claim virtual memory from the harvested
-    // vmems, and perhaps also allocate more to match the allocation request.
+    // We claim virtual memory from the harvested vmems and perhaps also
+    // allocate more to match the allocation request.
     return partition.prepare_harvested_and_claim_virtual(allocation);
   } else {
     // Just try to claim virtual memory
@@ -1703,9 +1709,9 @@ ZVirtualMemory ZPageAllocator::claim_virtual_memory_multi_partition(ZMultiPartit
 
   const ZVirtualMemory vmem = _virtual.remove_from_low_multi_partition(size);
   if (!vmem.is_null()) {
-    // Copy claimed multi-partition vmems, we leave the old vmems mapped until after
-    // we have committed. In case committing fails we can simply reinsert the
-    // initial vmems.
+    // Copy claimed multi-partition vmems, we leave the old vmems mapped until
+    // after we have committed. In case committing fails we can simply
+    // reinsert the initial vmems.
     copy_claimed_physical_multi_partition(multi_partition_allocation, vmem);
   }
 
@@ -1717,7 +1723,7 @@ void ZPageAllocator::copy_claimed_physical_multi_partition(ZMultiPartitionAlloca
   ZVirtualMemory remaining_dest_vmem = vmem;
 
   for (const ZMemoryAllocation* partial_allocation : *multi_partition_allocation->allocations()) {
-    // Split off the partial allocation's partial
+    // Split off the partial allocation's destination vmem
     ZVirtualMemory partial_dest_vmem = remaining_dest_vmem.shrink_from_front(partial_allocation->size());
 
     // Get the partial allocation's partition
@@ -1918,7 +1924,7 @@ void ZPageAllocator::cleanup_failed_commit_single_partition(ZSinglePartitionAllo
     allocation->partial_vmems()->append(committed_vmem);
   }
 
-  // Free the virtual and physical memory we were supposed to use but failed to commit
+  // Free the virtual and physical memory we fetched to use but failed to commit
   ZPartition& partition = allocation->partition();
   partition.free_physical(non_committed_vmem);
   partition.free_virtual(non_committed_vmem);
@@ -1945,8 +1951,8 @@ void ZPageAllocator::cleanup_failed_commit_multi_partition(ZMultiPartitionAlloca
 
     if (allocation->commit_failed()) {
       // Free the physical memory we failed to commit. Virtual memory is later
-      // freed for the entire multi-partition allocation after all memory allocations
-      // have been visited.
+      // freed for the entire multi-partition allocation after all memory
+      // allocations have been visited.
       partition.free_physical(non_committed_vmem);
     }
 
@@ -1966,8 +1972,9 @@ void ZPageAllocator::cleanup_failed_commit_multi_partition(ZMultiPartitionAlloca
     // Claim virtual memory for the committed part
     const size_t claimed_virtual = partition.claim_virtual(committed, partial_vmems);
 
-    // We are holding memory associated with this partition, and we do not overcommit
-    // virtual memory claiming. So virtual memory must always be available.
+    // We are holding memory associated with this partition, and we do not
+    // overcommit virtual memory claiming. So virtual memory must always be
+    // available.
     assert(claimed_virtual == committed, "must succeed");
 
     // Associate and map the physical memory with the partial vmems

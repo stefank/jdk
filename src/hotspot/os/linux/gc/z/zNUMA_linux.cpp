@@ -39,8 +39,8 @@ void ZNUMA::pd_initialize() {
   _count = UseNUMA
       ? os::Linux::numa_max_node() + 1
       : !FLAG_IS_DEFAULT(ZFakeNUMA)
-          ? ZFakeNUMA
-          : 1;  // No NUMA nodes
+            ? ZFakeNUMA
+            : 1;  // No NUMA nodes
 }
 
 uint32_t ZNUMA::id() {

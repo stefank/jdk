@@ -84,30 +84,6 @@ zoffset_end ZVirtualMemoryReserver::highest_available_address_end() const {
   return _registry.peak_high_address_end();
 }
 
-void ZVirtualMemoryManager::initialize_partitions(ZVirtualMemoryReserver* reserver, size_t size_for_partitions) {
-  precond(is_aligned(size_for_partitions, ZGranuleSize));
-
-  // If the capacity consist of less granules than the number of partitions some
-  // partitions will be empty. Distribute these shares on the none empty partitions.
-  const uint32_t first_empty_numa_id = MIN2(static_cast<uint32_t>(size_for_partitions >> ZGranuleSizeShift), ZNUMA::count());
-  const uint32_t ignore_count = ZNUMA::count() - first_empty_numa_id;
-
-  // Install reserved memory into registry(s)
-  uint32_t numa_id;
-  ZPerNUMAIterator<ZVirtualMemoryRegistry> iter(&_partition_registries);
-  for (ZVirtualMemoryRegistry* registry; iter.next(&registry, &numa_id);) {
-    if (numa_id == first_empty_numa_id) {
-      break;
-    }
-
-    // Calculate how much reserved memory this partition gets
-    const size_t reserved_for_partition = ZNUMA::calculate_share(numa_id, size_for_partitions, ZGranuleSize, ignore_count);
-
-    // Transfer reserved memory
-    reserver->initialize_partition_registry(registry, reserved_for_partition);
-  }
-}
-
 #ifdef ASSERT
 size_t ZVirtualMemoryReserver::force_reserve_discontiguous(size_t size) {
   const size_t min_range = calculate_min_range(size);
@@ -300,6 +276,31 @@ ZVirtualMemoryManager::ZVirtualMemoryManager(size_t max_capacity)
 
   // Successfully initialized
   _initialized = true;
+}
+
+void ZVirtualMemoryManager::initialize_partitions(ZVirtualMemoryReserver* reserver, size_t size_for_partitions) {
+  precond(is_aligned(size_for_partitions, ZGranuleSize));
+
+  // If the capacity consist of less granules than the number of partitions
+  // some partitions will be empty. Distribute these shares on the none empty
+  // partitions.
+  const uint32_t first_empty_numa_id = MIN2(static_cast<uint32_t>(size_for_partitions >> ZGranuleSizeShift), ZNUMA::count());
+  const uint32_t ignore_count = ZNUMA::count() - first_empty_numa_id;
+
+  // Install reserved memory into registry(s)
+  uint32_t numa_id;
+  ZPerNUMAIterator<ZVirtualMemoryRegistry> iter(&_partition_registries);
+  for (ZVirtualMemoryRegistry* registry; iter.next(&registry, &numa_id);) {
+    if (numa_id == first_empty_numa_id) {
+      break;
+    }
+
+    // Calculate how much reserved memory this partition gets
+    const size_t reserved_for_partition = ZNUMA::calculate_share(numa_id, size_for_partitions, ZGranuleSize, ignore_count);
+
+    // Transfer reserved memory
+    reserver->initialize_partition_registry(registry, reserved_for_partition);
+  }
 }
 
 bool ZVirtualMemoryManager::is_initialized() const {

@@ -33,8 +33,8 @@
 #include "memory/allocation.hpp"
 #include "oops/oopsHierarchy.hpp"
 
-class ZMultiPartitionTracker;
 class ZGeneration;
+class ZMultiPartitionTracker;
 
 class ZPage : public CHeapObj<mtGC> {
   friend class VMStructs;

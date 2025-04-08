@@ -147,9 +147,9 @@ using ZPartitionConstIterator = ZPerNUMAConstIterator<ZPartition>;
 
 class ZPageAllocator {
   friend class VMStructs;
+  friend class ZMultiPartitionTracker;
   friend class ZPartition;
   friend class ZUncommitter;
-  friend class ZMultiPartitionTracker;
 
 private:
   mutable ZLock               _lock;

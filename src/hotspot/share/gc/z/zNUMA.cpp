@@ -36,8 +36,8 @@ void ZNUMA::initialize() {
 
   if (_enabled) {
     assert(!is_faked(), "Currently not supported");
-
     log_info_p(gc, init)("NUMA Nodes: %u", _count);
+
   } else if (is_faked()) {
     log_info_p(gc, init)("Fake NUMA Nodes: %u", count());
   }
