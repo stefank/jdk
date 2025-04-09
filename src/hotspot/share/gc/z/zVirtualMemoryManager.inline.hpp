@@ -31,10 +31,12 @@
 
 
 inline bool ZVirtualMemoryManager::is_multi_partition_enabled() const {
-  return !_multi_partition_registry.is_empty();
+  return _is_multi_partition_enabled;
 }
 
 inline bool ZVirtualMemoryManager::is_in_multi_partition(const ZVirtualMemory& vmem) const {
+  precond(_is_multi_partition_enabled);
+
   return _multi_partition_registry.limits_contain(vmem);
 }
 

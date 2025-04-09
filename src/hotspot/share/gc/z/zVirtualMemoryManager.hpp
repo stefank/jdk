@@ -77,6 +77,7 @@ class ZVirtualMemoryManager {
 private:
   ZPerNUMA<ZVirtualMemoryRegistry> _partition_registries;
   ZVirtualMemoryRegistry           _multi_partition_registry;
+  bool                             _is_multi_partition_enabled;
   bool                             _initialized;
 
   ZVirtualMemoryRegistry& registry(uint32_t partition_id);

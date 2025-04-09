@@ -225,6 +225,7 @@ size_t ZVirtualMemoryReserver::reserve(size_t size) {
 ZVirtualMemoryManager::ZVirtualMemoryManager(size_t max_capacity)
   : _partition_registries(),
     _multi_partition_registry(),
+    _is_multi_partition_enabled(false),
     _initialized(false) {
 
   assert(max_capacity <= ZAddressOffsetMax, "Too large max_capacity");
@@ -263,9 +264,11 @@ ZVirtualMemoryManager::ZVirtualMemoryManager(size_t max_capacity)
   // Divide size_for_partitions virtual memory over the NUMA nodes
   initialize_partitions(&reserver, size_for_partitions);
 
+  // Set up multi-partition or unreserve the surplus memory
   if (desired_for_multi_partition > 0 && reserved == desired) {
     // Enough left to setup the multi-partition memory reservation
     reserver.initialize_partition_registry(&_multi_partition_registry, desired_for_multi_partition);
+    _is_multi_partition_enabled = true;
   } else {
     // Failed to reserve enough memory for multi-partition, unreserve unused memory
     reserver.unreserve_all();
