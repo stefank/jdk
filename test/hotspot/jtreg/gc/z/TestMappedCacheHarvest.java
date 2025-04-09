@@ -91,6 +91,7 @@ public class TestMappedCacheHarvest {
                 .outputTo(System.out)
                 .errorTo(System.out)
                 .shouldContain("Mapped Cache Harvest:")
+                .shouldNotContain("Out of address space")
                 .shouldHaveExitValue(0);
     }
 }
