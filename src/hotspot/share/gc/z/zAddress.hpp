@@ -322,6 +322,8 @@ public:
   static void flip_young_relocate_start();
   static void flip_old_mark_start();
   static void flip_old_relocate_start();
+
+  static size_t min_address_offset_request();
 };
 
 #endif // SHARE_GC_Z_ZADDRESS_HPP
