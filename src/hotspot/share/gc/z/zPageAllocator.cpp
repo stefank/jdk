@@ -1530,6 +1530,10 @@ retry:
   if (vmem.is_null()) {
     log_error(gc)("Out of address space");
     free_after_alloc_page_failed(allocation);
+
+    // Crash in debug builds for more information
+    DEBUG_ONLY(fatal("Out of address space");)
+
     return nullptr;
   }
 

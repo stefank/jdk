@@ -232,7 +232,7 @@ ZVirtualMemoryManager::ZVirtualMemoryManager(size_t max_capacity)
   const size_t limit = MIN2(ZAddressOffsetMax, ZAddressSpaceLimit::heap());
 
   const size_t desired_for_partitions = max_capacity * ZVirtualToPhysicalRatio;
-  const size_t desired_for_multi_partition = ZNUMA::count() > 1 ? max_capacity : 0;
+  const size_t desired_for_multi_partition = ZNUMA::count() > 1 ? desired_for_partitions : 0;
 
   const size_t desired = desired_for_partitions + desired_for_multi_partition;
   const size_t requested = desired <= limit
@@ -260,7 +260,7 @@ ZVirtualMemoryManager::ZVirtualMemoryManager(size_t max_capacity)
 
   if (desired_for_multi_partition > 0 && reserved == desired) {
     // Enough left to setup the multi-partition memory reservation
-    reserver.initialize_partition_registry(&_multi_partition_registry, max_capacity);
+    reserver.initialize_partition_registry(&_multi_partition_registry, desired_for_multi_partition);
   } else {
     // Failed to reserve enough memory for multi-partition, unreserve unused memory
     reserver.unreserve_all();
@@ -271,7 +271,7 @@ ZVirtualMemoryManager::ZVirtualMemoryManager(size_t max_capacity)
   log_info_p(gc, init)("Address Space Type: %s/%s/%s",
                        (is_contiguous ? "Contiguous" : "Discontiguous"),
                        (limit == ZAddressOffsetMax ? "Unrestricted" : "Restricted"),
-                       (reserved >= desired_for_partitions ? "Complete" : "Degraded"));
+                       (reserved == desired ? "Complete" : ((reserved < desired_for_partitions) ? "Degraded"  : "NUMA-Degraded")));
   log_info_p(gc, init)("Address Space Size: %zuM", reserved / M);
 
   // Successfully initialized
