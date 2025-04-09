@@ -90,7 +90,7 @@ public class TestMappedCacheHarvest {
             Test.class.getName())
                 .outputTo(System.out)
                 .errorTo(System.out)
-                .shouldContain("Mapped Cache Harvest:")
+                .shouldContain("Mapped Cache Harvested:")
                 .shouldNotContain("Out of address space")
                 .shouldHaveExitValue(0);
     }

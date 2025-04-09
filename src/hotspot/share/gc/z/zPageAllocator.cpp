@@ -67,6 +67,7 @@
 class ZMemoryAllocation;
 
 static const ZStatCounter       ZCounterMutatorAllocationRate("Memory", "Allocation Rate", ZStatUnitBytesPerSecond);
+static const ZStatCounter       ZCounterMappedCacheHarvest("Memory", "Mapped Cache Harvest", ZStatUnitBytesPerSecond);
 static const ZStatCounter       ZCounterDefragment("Memory", "Defragment", ZStatUnitOpsPerSecond);
 static const ZStatCriticalPhase ZCriticalPhaseAllocationStall("Allocation Stall");
 
@@ -1459,7 +1460,8 @@ ZPage* ZPageAllocator::alloc_page(ZPageType type, size_t size, ZAllocationFlags 
   const size_t committed = stats._total_committed_capacity;
 
   if (harvested > 0) {
-    log_debug(gc, heap)("Mapped Cache Harvest: %zuM from %d ranges", harvested / M, num_harvested_vmems);
+    ZStatInc(ZCounterMappedCacheHarvest, harvested);
+    log_debug(gc, heap)("Mapped Cache Harvested: %zuM (%d)", harvested / M, num_harvested_vmems);
   }
 
   // Send event for successful allocation
