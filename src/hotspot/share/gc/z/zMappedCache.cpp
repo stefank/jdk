@@ -577,7 +577,7 @@ void ZMappedCache::print_on(outputStream* st) const {
 
   st->print("Cache");
   st->fill_to(17);
-  st->print_cr("size %zuM, entries %zu", _size / M, entry_count);
+  st->print_cr("%zuM (%zu)", _size / M, entry_count);
 
   if (entry_count == 0) {
     // Empty cache, skip printing size classes
@@ -600,7 +600,7 @@ void ZMappedCache::print_on(outputStream* st) const {
   const size_t small_entry_size_count = entry_count - size_class_entry_count;
   bool first = true;
   if (small_entry_size_count != 0) {
-    st->print(EXACTFMT " %zu", EXACTFMTARGS(ZGranuleSize), small_entry_size_count);
+    st->print(EXACTFMT " (%zu)", EXACTFMTARGS(ZGranuleSize), small_entry_size_count);
     first = false;
   }
 
@@ -610,7 +610,7 @@ void ZMappedCache::print_on(outputStream* st) const {
       const int shift = index + MinSizeClassShift + (int)ZGranuleSizeShift;
       const size_t size = (size_t)1 << shift;
 
-      st->print("%s" EXACTFMT " %zu", first ? "" : ", ", EXACTFMTARGS(size), list.size_error_reporter_safe());
+      st->print("%s" EXACTFMT " (%zu)", first ? "" : ", ", EXACTFMTARGS(size), list.size_error_reporter_safe());
       first = false;
     }
   }
