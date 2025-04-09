@@ -577,7 +577,7 @@ void ZMappedCache::print_on(outputStream* st) const {
 
   st->print("Cache");
   st->fill_to(17);
-  st->print_cr("size %zuM, entry count %zu", _size / M, entry_count);
+  st->print_cr("size %zuM, entries %zu", _size / M, entry_count);
 
   if (entry_count == 0) {
     // Empty cache, skip printing size classes
