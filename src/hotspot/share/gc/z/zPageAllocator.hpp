@@ -139,6 +139,7 @@ public:
   void threads_do(ThreadClosure* tc) const;
 
   void print_on(outputStream* st) const;
+  void print_cache_on(outputStream* st) const;
   void print_extended_on_error(outputStream* st) const;
 };
 

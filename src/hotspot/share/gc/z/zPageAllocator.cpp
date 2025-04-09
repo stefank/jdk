@@ -1153,6 +1153,10 @@ void ZPartition::print_on(outputStream* st) const {
                _used / M, _capacity / M, _max_capacity / M);
 
   streamIndentor indentor(st, 1);
+  print_cache_on(st);
+}
+
+void ZPartition::print_cache_on(outputStream* st) const {
   _cache.print_on(st);
 }
 
@@ -2433,7 +2437,15 @@ void ZPageAllocator::print_on_inner(outputStream* st) const {
                used() / M, capacity() / M, max_capacity() / M);
 
   // Print per-partition
+
   streamIndentor indentor(st, 1);
+
+  if (_partitions.count() == 1) {
+    // The summary printing is redundant if we only have one partition
+    _partitions.get(0).print_cache_on(st);
+    return;
+  }
+
   ZPartitionConstIterator iter = partition_iterator();
   for (const ZPartition* partition; iter.next(&partition);) {
     partition->print_on(st);
