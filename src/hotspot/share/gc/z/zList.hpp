@@ -65,6 +65,7 @@ private:
   NONCOPYABLE(ZList);
 
   void verify_head() const;
+  void verify_head_error_reporter_safe() const;
 
   void insert(ZListNode<T>* before, ZListNode<T>* node);
 
@@ -73,6 +74,9 @@ private:
 
 public:
   ZList();
+
+  size_t size_error_reporter_safe() const;
+  bool is_empty_error_reporter_safe() const;
 
   size_t size() const;
   bool is_empty() const;

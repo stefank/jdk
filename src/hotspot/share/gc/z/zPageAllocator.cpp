@@ -60,6 +60,7 @@
 #include "utilities/debug.hpp"
 #include "utilities/globalDefinitions.hpp"
 #include "utilities/ticks.hpp"
+#include "utilities/vmError.hpp"
 
 #include <cmath>
 
@@ -2377,16 +2378,29 @@ void ZPageAllocator::print_on(outputStream* st) const {
   print_on_inner(st);
 }
 
+static bool try_lock_on_error(ZLock* lock) {
+  if (VMError::is_error_reported() && VMError::is_error_reported_in_current_thread()) {
+    return lock->try_lock();
+  }
+
+  lock->lock();
+
+  return true;
+}
+
 void ZPageAllocator::print_extended_on_error(outputStream* st) const {
-  if(!_lock.try_lock()) {
+  st->print_cr("ZMappedCache:");
+
+  if (!try_lock_on_error(&_lock)) {
     // We can't print without taking the lock since printing the contents of
     // the cache requires iterating over the nodes in the cache's tree, which
     // is not thread-safe.
+    st->print_cr(" <Skipped>");
+
     return;
   }
 
   // Print each partition's cache content
-  st->print_cr("ZMappedCache:");
   ZPartitionConstIterator iter = partition_iterator();
   for (const ZPartition* partition; iter.next(&partition);) {
     partition->print_extended_on_error(st);
@@ -2396,16 +2410,19 @@ void ZPageAllocator::print_extended_on_error(outputStream* st) const {
 }
 
 void ZPageAllocator::print_on_error(outputStream* st) const {
-  if(!_lock.try_lock()) {
-    // Print information even though we have not successfully taken the lock.
-    // This is thread-safe, but may produce inconsistent results.
-    print_on_inner(st);
-    return;
+  const bool locked = try_lock_on_error(&_lock);
+
+  if (!locked) {
+    st->print_cr("<Without lock>");
   }
 
+  // Print information even though we have not successfully taken the lock.
+  // This is thread-safe, but may produce inconsistent results.
   print_on_inner(st);
 
-  _lock.unlock();
+  if (locked) {
+    _lock.unlock();
+  }
 }
 
 void ZPageAllocator::print_on_inner(outputStream* st) const {

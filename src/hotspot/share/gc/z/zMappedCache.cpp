@@ -569,11 +569,17 @@ size_t ZMappedCache::remove_from_min(size_t max_size, ZArray<ZVirtualMemory>* ou
 }
 
 void ZMappedCache::print_on(outputStream* st) const {
+  // This may be called from error printing where we may not hold the lock, so
+  // values may be inconsistent. As such we read the _entry_count only once. And
+  // use is_empty_error_reporter_safe and size_error_reporter_safe on the size
+  // class lists.
+  const size_t entry_count = Atomic::load(&_entry_count);
+
   st->print("Cache");
   st->fill_to(17);
-  st->print_cr("size %zuM, entry count %zu", _size / M, _entry_count);
+  st->print_cr("size %zuM, entry count %zu", _size / M, entry_count);
 
-  if (_entry_count == 0) {
+  if (entry_count == 0) {
     // Empty cache, skip printing size classes
     return;
   }
@@ -581,7 +587,7 @@ void ZMappedCache::print_on(outputStream* st) const {
   // Aggregate the number of size class entries
   size_t size_class_entry_count = 0;
   for (int index = 0; index < NumSizeClasses; ++index) {
-    size_class_entry_count += _size_class_lists[index].size();
+    size_class_entry_count += _size_class_lists[index].size_error_reporter_safe();
   }
 
   // Print information on size classes
@@ -591,7 +597,7 @@ void ZMappedCache::print_on(outputStream* st) const {
   st->fill_to(17);
 
   // Print the number of entries smaller than the min size class's size
-  const size_t small_entry_size_count = _entry_count - size_class_entry_count;
+  const size_t small_entry_size_count = entry_count - size_class_entry_count;
   bool first = true;
   if (small_entry_size_count != 0) {
     st->print(EXACTFMT " %zu", EXACTFMTARGS(ZGranuleSize), small_entry_size_count);
@@ -600,11 +606,11 @@ void ZMappedCache::print_on(outputStream* st) const {
 
   for (int index = 0; index < NumSizeClasses; ++index) {
     const ZList<ZSizeClassListNode>& list = _size_class_lists[index];
-    if (!list.is_empty()) {
+    if (!list.is_empty_error_reporter_safe()) {
       const int shift = index + MinSizeClassShift + (int)ZGranuleSizeShift;
       const size_t size = (size_t)1 << shift;
 
-      st->print("%s" EXACTFMT " %zu", first ? "" : ", ", EXACTFMTARGS(size), list.size());
+      st->print("%s" EXACTFMT " %zu", first ? "" : ", ", EXACTFMTARGS(size), list.size_error_reporter_safe());
       first = false;
     }
   }
