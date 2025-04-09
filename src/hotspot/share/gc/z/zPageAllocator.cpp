@@ -1585,11 +1585,13 @@ bool ZPageAllocator::claim_capacity(ZPageAllocation* allocation) {
 
   // Round robin single-partition claiming
 
-  for (uint32_t i = 0; i < num_partitions; ++i) {
-    const uint32_t partition_id = (start_partition + i) % num_partitions;
+  if (!is_multi_partition_enabled()) {
+    for (uint32_t i = 0; i < num_partitions; ++i) {
+      const uint32_t partition_id = (start_partition + i) % num_partitions;
 
-    if (claim_capacity_single_partition(allocation->single_partition_allocation(), partition_id)) {
-      return true;
+      if (claim_capacity_single_partition(allocation->single_partition_allocation(), partition_id)) {
+        return true;
+      }
     }
   }
 
