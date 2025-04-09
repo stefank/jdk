@@ -76,8 +76,8 @@ protected:
     // Initialize ZGC subsystems for gtests, may only be called once per process.
     static bool runs_once = [&]() {
       ZInitialize::pd_initialize();
-      ZGlobalsPointers::initialize();
       ZNUMA::pd_initialize();
+      ZGlobalsPointers::initialize();
 
       // ZGlobalsPointers::initialize() sets ZAddressOffsetMax, make sure the
       // first test fixture invocation has a correct ZAddressOffsetMaxSetter.
