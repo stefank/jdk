@@ -229,6 +229,8 @@ ZVirtualMemoryManager::ZVirtualMemoryManager(size_t max_capacity)
 
   assert(max_capacity <= ZAddressOffsetMax, "Too large max_capacity");
 
+  ZAddressSpaceLimit::print_limits();
+
   const size_t limit = MIN2(ZAddressOffsetMax, ZAddressSpaceLimit::heap());
 
   const size_t desired_for_partitions = max_capacity * ZVirtualToPhysicalRatio;
@@ -239,17 +241,14 @@ ZVirtualMemoryManager::ZVirtualMemoryManager(size_t max_capacity)
       ? desired
       : MIN2(desired_for_partitions, limit);
 
-  log_debug_p(gc, init)("Limit     to reserve " EXACTFMT, EXACTFMTARGS(limit));
-  log_debug_p(gc, init)("Desired   to reserve " EXACTFMT, EXACTFMTARGS(desired));
-  log_debug_p(gc, init)("Requested to reserve " EXACTFMT, EXACTFMTARGS(requested));
-
   // Reserve virtual memory for the heap
   ZVirtualMemoryReserver reserver(requested);
 
   const size_t reserved = reserver.reserved();
   const bool is_contiguous = reserver.is_contiguous();
 
-  log_debug_p(gc, init)("Reserved             " EXACTFMT, EXACTFMTARGS(reserved));
+  log_debug_p(gc, init)("Reserved Space: limit " EXACTFMT ", desired " EXACTFMT ", requested " EXACTFMT,
+                        EXACTFMTARGS(limit), EXACTFMTARGS(desired), EXACTFMTARGS(requested));
 
   if (reserved < max_capacity) {
     ZInitialize::error_d("Failed to reserve " EXACTFMT " address space for Java heap", EXACTFMTARGS(max_capacity));
@@ -273,9 +272,6 @@ ZVirtualMemoryManager::ZVirtualMemoryManager(size_t max_capacity)
   }
 
   assert(reserver.is_empty(), "Must have handled all reserved memory");
-
-
-  ZAddressSpaceLimit::print_limits();
 
   log_info_p(gc, init)("Reserved Space Type: %s/%s/%s",
                        (is_contiguous ? "Contiguous" : "Discontiguous"),
