@@ -1161,9 +1161,10 @@ void ZPartition::print_cache_on(outputStream* st) const {
 }
 
 void ZPartition::print_extended_on_error(outputStream* st) const {
+  st->print_cr("Partition %u", _numa_id);
+
   streamIndentor indentor(st, 1);
 
-  st->print_cr("Partition %u", _numa_id);
   _cache.print_extended_on(st);
 }
 
@@ -2395,11 +2396,13 @@ static bool try_lock_on_error(ZLock* lock) {
 void ZPageAllocator::print_extended_on_error(outputStream* st) const {
   st->print_cr("ZMappedCache:");
 
+  streamIndentor indentor(st, 1);
+
   if (!try_lock_on_error(&_lock)) {
     // We can't print without taking the lock since printing the contents of
     // the cache requires iterating over the nodes in the cache's tree, which
     // is not thread-safe.
-    st->print_cr(" <Skipped>");
+    st->print_cr("<Skipped>");
 
     return;
   }

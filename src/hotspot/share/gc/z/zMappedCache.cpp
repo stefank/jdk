@@ -619,8 +619,6 @@ void ZMappedCache::print_on(outputStream* st) const {
 }
 
 void ZMappedCache::print_extended_on(outputStream* st) const {
-  streamIndentor indentor(st, 1);
-
   // Print the ranges and size of all nodes in the tree
   for (ZMappedCache::TreeNode* node = _tree.first(); node != nullptr; node = node->next()) {
     const ZVirtualMemory vmem = ZMappedCacheEntry::cast_to_entry(node)->vmem();
