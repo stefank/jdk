@@ -764,7 +764,7 @@ static void* realloc_with_nmt(void* memblock, size_t size, MemTag mem_tag, const
   return new_inner_ptr;
 }
 
-static void* realloc_impl(void* memblock, size_t size, MemTag mem_tag, const NativeCallStack& stack) {
+static void* realloc_inner(void* memblock, size_t size, MemTag mem_tag, const NativeCallStack& stack) {
   if (MemTracker::enabled()) {
     // NMT realloc handling
     return realloc_with_nmt(memblock, size, mem_tag, stack);
@@ -792,7 +792,7 @@ void* os::realloc(void* memblock, size_t size, MemTag mem_tag, const NativeCallS
     return pre_init_ptr;
   }
 
-  void* const ptr = realloc_impl(memblock, size, mem_tag, stack);
+  void* const ptr = realloc_inner(memblock, size, mem_tag, stack);
 
   DEBUG_ONLY(break_if_ptr_caught(ptr);)
 
