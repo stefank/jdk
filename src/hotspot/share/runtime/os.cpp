@@ -685,6 +685,9 @@ void* os::malloc(size_t size, MemTag mem_tag, const NativeCallStack& stack) {
   }
 
   void* const ptr = malloc_inner(size, mem_tag, stack);
+  if (ptr == nullptr) {
+    return nullptr;
+  }
 
   if (CDSConfig::is_dumping_static_archive()) {
     // Need to deterministically fill all the alignment gaps in C++ structures.
