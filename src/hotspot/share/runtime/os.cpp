@@ -654,12 +654,9 @@ static void* malloc_with_nmt(size_t size, MemTag mem_tag, const NativeCallStack&
     return nullptr;
   }
 
-  void* const inner_ptr = MemTracker::record_malloc(outer_ptr, size, mem_tag, stack);
+  // Return the inner pointer
+  return MemTracker::record_malloc(outer_ptr, size, mem_tag, stack);
 
-  // INVESTIGATE: Here we don't clear bits, but realloc_with_nmt does.
-  //              This could be an indication of a pre-existing bug.
-
-  return inner_ptr;
 }
 
 static void* malloc_inner(size_t size, MemTag mem_tag, const NativeCallStack& stack) {
@@ -735,6 +732,8 @@ static void* realloc_with_nmt(void* memblock, size_t size, MemTag mem_tag, const
          NMTUtil::tag_to_name(mem_tag), NMTUtil::tag_to_name(header->mem_tag()));
   const MallocHeader::FreeInfo free_info = header->free_info();
 
+  assert(old_size == free_info.size, "Sanity");
+
   header->mark_block_as_dead();
 
   // the real realloc
@@ -755,9 +754,7 @@ static void* realloc_with_nmt(void* memblock, size_t size, MemTag mem_tag, const
   void* const new_inner_ptr = MemTracker::record_malloc(new_outer_ptr, size, mem_tag, stack);
 
 #ifdef ASSERT
-  assert(old_size == free_info.size, "Sanity");
-
-  // Clear bits
+  // Zap bits
   if (old_size < size) {
     // We also zap the newly extended region.
     ::memset((char*)new_inner_ptr + old_size, uninitBlockPad, size - old_size);

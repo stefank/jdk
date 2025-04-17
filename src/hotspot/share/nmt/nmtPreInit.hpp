@@ -264,6 +264,7 @@ public:
   static void pre_to_post(bool nmt_off);
 
   // Called from os::malloc.
+  // Returns non-null if allocation was handled here.
   static void* handle_malloc(size_t size) {
     precond(size > 0);
 
@@ -279,7 +280,7 @@ public:
   }
 
   // Called from os::realloc.
-  // Returns true if reallocation was handled here; in that case,
+  // Returns non-null if reallocation was handled here.
   static void* handle_realloc(void* old_p, size_t new_size, MemTag mem_tag) {
     precond(new_size > 0);
 
