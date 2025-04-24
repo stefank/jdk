@@ -27,23 +27,30 @@
 #define SHARE_RUNTIME_THREADHEAPSAMPLER_HPP
 
 #include "memory/allocation.hpp"
+#include "oops/oopsHierarchy.hpp"
 
 class ThreadHeapSampler {
  private:
-  size_t _bytes_until_sample;
+  // Amount of bytes to allocate before taking the next sample
+  size_t _sample_threshold;
+
+  // Since last sample point
+  size_t _outside_tlab_bytes;
+
   // Cheap random number generator
   static uint64_t _rnd;
 
   static volatile int _sampling_interval;
 
   void pick_next_geometric_sample();
-  void pick_next_sample(size_t overflowed_bytes = 0);
+  void pick_next_sample();
 
   static double fast_log2(const double& d);
   uint64_t next_random(uint64_t rnd);
 
  public:
-  ThreadHeapSampler() {
+  ThreadHeapSampler() :
+      _outside_tlab_bytes(0) {
     _rnd = static_cast<uint32_t>(reinterpret_cast<uintptr_t>(this));
     if (_rnd == 0) {
       _rnd = 1;
@@ -53,9 +60,25 @@ class ThreadHeapSampler {
     pick_next_sample();
   }
 
-  size_t bytes_until_sample()                    { return _bytes_until_sample;   }
+  size_t sample_threshold() {
+    return _sample_threshold;
+  }
 
-  void check_for_sampling(oop obj, size_t size_in_bytes, size_t bytes_allocated_before);
+  void reset_after_sampling() {
+    _outside_tlab_bytes = 0;
+  }
+
+  void inc_outside_tlab_bytes(size_t size) {
+    _outside_tlab_bytes += size;
+  }
+
+  size_t outside_tlab_bytes() const {
+    return _outside_tlab_bytes;
+  }
+
+  void report_sample(const char* message, size_t unaccounted_tlab_bytes);
+
+  void sample(oop obj);
 
   static void set_sampling_interval(int sampling_interval);
   static int get_sampling_interval();

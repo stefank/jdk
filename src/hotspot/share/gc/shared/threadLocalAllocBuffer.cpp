@@ -46,10 +46,11 @@ ThreadLocalAllocBuffer::ThreadLocalAllocBuffer() :
   _pf_top(nullptr),
   _end(nullptr),
   _allocation_end(nullptr),
+  _sample_start(nullptr),
   _desired_size(0),
   _refill_waste_limit(0),
   _allocated_before_last_gc(0),
-  _bytes_since_last_sample_point(0),
+  _accumulated_bytes_since_sample(0),
   _number_of_refills(0),
   _refill_waste(0),
   _gc_waste(0),
@@ -141,6 +142,7 @@ void ThreadLocalAllocBuffer::retire(ThreadLocalAllocStats* stats) {
   if (end() != nullptr) {
     invariants();
     thread()->incr_allocated_bytes(used_bytes());
+    accumulate_unsampled();
     insert_filler();
     initialize(nullptr, nullptr, nullptr);
   }
@@ -201,6 +203,7 @@ void ThreadLocalAllocBuffer::initialize(HeapWord* start,
   set_pf_top(top);
   set_end(end);
   set_allocation_end(end);
+  set_sample_start(start);
   invariants();
 }
 
@@ -312,22 +315,28 @@ void ThreadLocalAllocBuffer::print_stats(const char* tag) {
             _refill_waste * HeapWordSize);
 }
 
-void ThreadLocalAllocBuffer::set_sample_end(bool reset_byte_accumulation) {
-  size_t heap_words_remaining = pointer_delta(_end, _top);
-  size_t bytes_until_sample = thread()->heap_sampler().bytes_until_sample();
-  size_t words_until_sample = bytes_until_sample / HeapWordSize;
-
-  if (reset_byte_accumulation) {
-    _bytes_since_last_sample_point = 0;
-  }
+void ThreadLocalAllocBuffer::set_sample_end(size_t bytes_until_sample) {
+  const size_t heap_words_remaining = pointer_delta(_end, _top);
+  const size_t words_until_sample = bytes_until_sample / HeapWordSize;
 
   if (heap_words_remaining > words_until_sample) {
+    // The new sample point fits in the current tlab - set it.
     HeapWord* new_end = _top + words_until_sample;
     set_end(new_end);
-    _bytes_since_last_sample_point += bytes_until_sample;
-  } else {
-    _bytes_since_last_sample_point += heap_words_remaining * HeapWordSize;
   }
+}
+
+void ThreadLocalAllocBuffer::reset_after_sample() {
+  _accumulated_bytes_since_sample = 0;
+  _sample_start = top();
+}
+
+void ThreadLocalAllocBuffer::accumulate_unsampled() {
+  _accumulated_bytes_since_sample += used_bytes_since_sample_start();
+}
+
+size_t ThreadLocalAllocBuffer::bytes_since_sample() {
+  return _accumulated_bytes_since_sample + used_bytes_since_sample_start();
 }
 
 Thread* ThreadLocalAllocBuffer::thread() {
