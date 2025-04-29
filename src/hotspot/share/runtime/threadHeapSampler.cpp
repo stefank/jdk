@@ -433,12 +433,12 @@ void ThreadHeapSampler::report_sample(const char* message, size_t tlab_bytes) {
                       _outside_tlab_bytes);
 }
 
-void ThreadHeapSampler::sample(oop obj) {
+void ThreadHeapSampler::sample(oop obj, HeapWord* tlab_top) {
   JvmtiExport::sampled_object_alloc_event_collector(obj);
 
   pick_next_sample();
 
-  reset_after_sampling();
+  reset_after_sampling(tlab_top);
 }
 
 int ThreadHeapSampler::get_sampling_interval() {

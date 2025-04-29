@@ -175,7 +175,7 @@ void MemAllocator::Allocation::notify_allocation_jvmti_sampler() {
   ThreadHeapSampler& heap_sampler = _thread->heap_sampler();
   ThreadLocalAllocBuffer& tlab = _thread->tlab();
 
-  const size_t tlab_bytes = tlab.bytes_since_sample();
+  const size_t tlab_bytes = heap_sampler.tlab_bytes_since_sample(tlab.top());
   const size_t outside_tlab_bytes = heap_sampler.outside_tlab_bytes();
   const size_t bytes_since_sample = tlab_bytes + outside_tlab_bytes;
 
@@ -192,10 +192,7 @@ void MemAllocator::Allocation::notify_allocation_jvmti_sampler() {
     JvmtiSampledObjectAllocEventCollector collector;
 
     // Perform the sampling
-    heap_sampler.sample(obj_h());
-
-    // Record in the TLAB the location we took the last sample
-    tlab.reset_after_sample();
+    heap_sampler.sample(obj_h(), tlab.top());
   }
 
   const size_t unsampled_bytes = (time_to_sample ? 0 : bytes_since_sample);

@@ -52,12 +52,10 @@ private:
   HeapWord* _pf_top;                             // allocation prefetch watermark
   HeapWord* _end;                                // allocation end (can be the sampling end point or _allocation_end)
   HeapWord* _allocation_end;                     // end for allocations (actual TLAB end, excluding alignment_reserve)
-  HeapWord* _sample_start;                       // sample start or _start if no samples in this TLAB
 
   size_t    _desired_size;                       // desired size   (including alignment_reserve)
   size_t    _refill_waste_limit;                 // hold onto tlab if free() is larger than this
   size_t    _allocated_before_last_gc;           // total bytes allocated up until the last gc
-  size_t    _accumulated_bytes_since_sample;     // bytes since last sample point.
 
   static size_t   _max_size;                          // maximum size of any TLAB
   static int      _reserve_for_allocation_prefetch;   // Reserve at the end of the TLAB
@@ -78,7 +76,6 @@ private:
   void set_allocation_end(HeapWord* ptr)         { _allocation_end = ptr; }
   void set_top(HeapWord* top)                    { _top = top; }
   void set_pf_top(HeapWord* pf_top)              { _pf_top = pf_top; }
-  void set_sample_start(HeapWord* ptr)           { _sample_start = ptr; }
   void set_desired_size(size_t desired_size)     { _desired_size = desired_size; }
   void set_refill_waste_limit(size_t waste)      { _refill_waste_limit = waste;  }
 
@@ -120,11 +117,9 @@ public:
   HeapWord* top() const                          { return _top; }
   HeapWord* hard_end();
   HeapWord* pf_top() const                       { return _pf_top; }
-  HeapWord* sample_start() const                 { return _sample_start; }
   size_t desired_size() const                    { return _desired_size; }
   size_t used() const                            { return pointer_delta(top(), start()); }
   size_t used_bytes() const                      { return pointer_delta(top(), start(), 1); }
-  size_t used_bytes_since_sample_start()const    { return pointer_delta(top(), sample_start(), 1); }
   size_t free() const                            { return pointer_delta(end(), top()); }
   // Don't discard tlab if remaining space is larger than this.
   size_t refill_waste_limit() const              { return _refill_waste_limit; }
@@ -172,9 +167,6 @@ public:
 
   void set_back_allocation_end();
   void set_sample_end(size_t bytes_until_sample);
-  void reset_after_sample();
-  void accumulate_unsampled();
-  size_t bytes_since_sample();
 
   static size_t refill_waste_limit_increment();
 
