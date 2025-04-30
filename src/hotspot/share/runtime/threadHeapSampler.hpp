@@ -36,14 +36,14 @@ class ThreadHeapSampler {
 
   // The TLAB top address when the last sampling happened, or
   // TLAB start if a new TLAB is allocated
-  HeapWord* _tlab_sample_start;
+  HeapWord* _tlab_top_at_sample_start;
 
   // The accumulated amount of allocated bytes in a TLAB since the last sampling
   // excluding the amount between _tlab_sample_start and top
-  size_t _tlab_bytes;
+  size_t _accumulated_tlab_bytes_since_sample;
 
   // The accumulated amount of allocated bytes outside TLABs since last sample point
-  size_t _outside_tlab_bytes;
+  size_t _accumulated_outside_tlab_bytes_since_sample;
 
   // Cheap random number generator
   static uint64_t _rnd;
@@ -56,11 +56,23 @@ class ThreadHeapSampler {
   static double fast_log2(const double& d);
   uint64_t next_random(uint64_t rnd);
 
+  size_t unsampled_in_current_tlab(HeapWord* tlab_top)  const {
+    return pointer_delta(tlab_top, _tlab_top_at_sample_start, 1);
+  }
+
+  size_t tlab_bytes_since_last_sample(HeapWord* tlab_top) const {
+    return _accumulated_tlab_bytes_since_sample + unsampled_in_current_tlab(tlab_top);
+  }
+
+  size_t outside_tlab_bytes_since_last_sample() const {
+    return _accumulated_outside_tlab_bytes_since_sample;
+  }
+
  public:
   ThreadHeapSampler() :
-      _tlab_sample_start(nullptr),
-      _tlab_bytes(0),
-      _outside_tlab_bytes(0) {
+      _tlab_top_at_sample_start(nullptr),
+      _accumulated_tlab_bytes_since_sample(0),
+      _accumulated_outside_tlab_bytes_since_sample(0) {
     _rnd = static_cast<uint32_t>(reinterpret_cast<uintptr_t>(this));
     if (_rnd == 0) {
       _rnd = 1;
@@ -70,41 +82,39 @@ class ThreadHeapSampler {
     pick_next_sample();
   }
 
-  size_t sample_threshold() const {
-    return _sample_threshold;
+  size_t bytes_since_last_sample(HeapWord* tlab_top) const {
+    return tlab_bytes_since_last_sample(tlab_top) +
+           outside_tlab_bytes_since_last_sample();
   }
 
-  void set_tlab_sample_start(HeapWord* ptr) {
-    _tlab_sample_start = ptr;
+  size_t bytes_until_sample(HeapWord* tlab_top) const {
+    const size_t unsampled = bytes_since_last_sample(tlab_top);
+    return _sample_threshold - MIN2(unsampled, _sample_threshold);
+  }
+
+  bool should_sample(HeapWord* tlab_top) const {
+    return bytes_until_sample(tlab_top) == 0;
+  }
+
+  void set_tlab_top_at_sample_start(HeapWord* tlab_top) {
+    _tlab_top_at_sample_start = tlab_top;
   }
 
   void reset_after_sampling(HeapWord* tlab_top) {
-    _tlab_sample_start = tlab_top;
-    _tlab_bytes = 0;
-    _outside_tlab_bytes = 0;
+    _tlab_top_at_sample_start = tlab_top;
+    _accumulated_tlab_bytes_since_sample = 0;
+    _accumulated_outside_tlab_bytes_since_sample = 0;
   }
 
-  size_t tlab_unsampled(HeapWord* tlab_top)  const {
-    return pointer_delta(tlab_top, _tlab_sample_start, 1);
-  }
-
-  size_t tlab_bytes_since_sample(HeapWord* tlab_top) const {
-    return _tlab_bytes + tlab_unsampled(tlab_top);
-  }
-
-  void accumulate_tlab_unsampled(HeapWord* tlab_top) {
-    _tlab_bytes += tlab_unsampled(tlab_top);
+  void accumulate_unsampled_in_current_tlab(HeapWord* tlab_top) {
+    _accumulated_tlab_bytes_since_sample += unsampled_in_current_tlab(tlab_top);
   }
 
   void inc_outside_tlab_bytes(size_t size) {
-    _outside_tlab_bytes += size;
+    _accumulated_outside_tlab_bytes_since_sample += size;
   }
 
-  size_t outside_tlab_bytes() const {
-    return _outside_tlab_bytes;
-  }
-
-  void report_sample(const char* message, size_t unaccounted_tlab_bytes);
+  void log_sample_decision(HeapWord* tlab_top) PRODUCT_RETURN;
 
   void sample(oop obj, HeapWord* tlab_top);
 

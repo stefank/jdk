@@ -140,7 +140,7 @@ void ThreadLocalAllocBuffer::retire(ThreadLocalAllocStats* stats) {
   if (end() != nullptr) {
     invariants();
     thread()->incr_allocated_bytes(used_bytes());
-    thread()->heap_sampler().accumulate_tlab_unsampled(top());
+    thread()->heap_sampler().accumulate_unsampled_in_current_tlab(top());
     insert_filler();
     initialize(nullptr, nullptr, nullptr);
   }
@@ -196,12 +196,14 @@ void ThreadLocalAllocBuffer::fill(HeapWord* start,
 void ThreadLocalAllocBuffer::initialize(HeapWord* start,
                                         HeapWord* top,
                                         HeapWord* end) {
+  // Sampling support
+  thread()->heap_sampler().set_tlab_top_at_sample_start(start);
+
   set_start(start);
   set_top(top);
   set_pf_top(top);
   set_end(end);
   set_allocation_end(end);
-  thread()->heap_sampler().set_tlab_sample_start(start);
   invariants();
 }
 
@@ -319,6 +321,14 @@ Thread* ThreadLocalAllocBuffer::thread() {
 
 void ThreadLocalAllocBuffer::set_back_allocation_end() {
   _end = _allocation_end;
+}
+
+void ThreadLocalAllocBuffer::set_sampling_point(HeapWord* sampling_point) {
+  precond(sampling_point >= _top);
+  precond(sampling_point <= _allocation_end);
+
+  // This will trigger a slow-path, which in turn might take a sample.
+  _end = sampling_point;
 }
 
 HeapWord* ThreadLocalAllocBuffer::hard_end() {

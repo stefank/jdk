@@ -165,7 +165,9 @@ public:
   void fill(HeapWord* start, HeapWord* top, size_t new_size);
   void initialize();
 
+  // Support for TLAB sampling
   void set_back_allocation_end();
+  void set_sampling_point(HeapWord* sampling_point);
 
   static size_t refill_waste_limit_increment();
 

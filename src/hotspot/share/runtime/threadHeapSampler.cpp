@@ -416,22 +416,21 @@ void ThreadHeapSampler::pick_next_sample() {
   pick_next_geometric_sample();
 }
 
-void ThreadHeapSampler::report_sample(const char* message, size_t tlab_bytes) {
-  size_t total_allocated_bytes = tlab_bytes
-                               + _outside_tlab_bytes;
-
-  log_debug(gc, tlab)("report sample: "
-                      "(%s) "
-                      "_sample_threshold: %zu "
-                      "total_allocated_bytes: %zu "
-                      "_tlab_bytes: %zu "
-                      "_outside_tlab_bytes: %zu",
-                      message,
-                      _sample_threshold,
-                      total_allocated_bytes,
-                      tlab_bytes,
-                      _outside_tlab_bytes);
+#ifndef PRODUCT
+void ThreadHeapSampler::log_sample_decision(HeapWord* tlab_top) {
+  LogTarget(Debug, gc, tlab) log;
+  if (log.is_enabled()) {
+    const bool should_sample = bytes_since_last_sample(tlab_top) >= _sample_threshold;
+    log_debug(gc, tlab)("Should sample: %s _sample_threshold: %zu total: %zu tlab: %zu unsampled: %zu outside_tlab: %zu",
+                        should_sample ? "yes" : "no ",
+                        _sample_threshold,
+                        bytes_since_last_sample(tlab_top),
+                        tlab_bytes_since_last_sample(tlab_top),
+                        unsampled_in_current_tlab(tlab_top),
+                        outside_tlab_bytes_since_last_sample());
+  }
 }
+#endif
 
 void ThreadHeapSampler::sample(oop obj, HeapWord* tlab_top) {
   JvmtiExport::sampled_object_alloc_event_collector(obj);
