@@ -106,8 +106,9 @@ class ThreadHeapSampler {
     _accumulated_outside_tlab_bytes_since_sample = 0;
   }
 
-  void accumulate_unsampled_in_current_tlab(HeapWord* tlab_top) {
+  void retire_tlab(HeapWord* tlab_top) {
     _accumulated_tlab_bytes_since_sample += unsampled_in_current_tlab(tlab_top);
+    _tlab_top_at_sample_start = nullptr;
   }
 
   void inc_outside_tlab_bytes(size_t size) {

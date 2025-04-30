@@ -161,7 +161,7 @@ void Thread::retire_tlab(ThreadLocalAllocStats* stats) {
   // Sampling and serviceability support
   if (tlab().end() != nullptr) {
     incr_allocated_bytes(tlab().used_bytes());
-    heap_sampler().accumulate_unsampled_in_current_tlab(tlab().top());
+    heap_sampler().retire_tlab(tlab().top());
   }
 
   // Retire the TLAB
