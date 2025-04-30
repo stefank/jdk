@@ -313,17 +313,6 @@ void ThreadLocalAllocBuffer::print_stats(const char* tag) {
             _refill_waste * HeapWordSize);
 }
 
-void ThreadLocalAllocBuffer::set_sample_end(size_t bytes_until_sample) {
-  const size_t heap_words_remaining = pointer_delta(_end, _top);
-  const size_t words_until_sample = bytes_until_sample / HeapWordSize;
-
-  if (heap_words_remaining > words_until_sample) {
-    // The new sample point fits in the current tlab - set it.
-    HeapWord* new_end = _top + words_until_sample;
-    set_end(new_end);
-  }
-}
-
 Thread* ThreadLocalAllocBuffer::thread() {
   return (Thread*)(((char*)this) + in_bytes(start_offset()) - in_bytes(Thread::tlab_start_offset()));
 }

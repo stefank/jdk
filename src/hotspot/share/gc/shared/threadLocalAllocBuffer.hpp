@@ -166,7 +166,6 @@ public:
   void initialize();
 
   void set_back_allocation_end();
-  void set_sample_end(size_t bytes_until_sample);
 
   static size_t refill_waste_limit_increment();
 

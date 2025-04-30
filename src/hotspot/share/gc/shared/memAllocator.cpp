@@ -197,7 +197,13 @@ void MemAllocator::Allocation::notify_allocation_jvmti_sampler() {
 
   const size_t unsampled_bytes = (time_to_sample ? 0 : bytes_since_sample);
   const size_t bytes_until_sample = heap_sampler.sample_threshold() - unsampled_bytes;
-  tlab.set_sample_end(bytes_until_sample);
+  const size_t words_until_sample = bytes_until_sample / HeapWordSize;
+
+  if (words_until_sample <= tlab.free()) {
+    // The new sample point fits in the current TLAB, adjust end so we take the
+    // slow path when we cross that boundary.
+    tlab.set_end(tlab.top() + words_until_sample);
+  }
 }
 
 void MemAllocator::Allocation::notify_allocation_low_memory_detector() {
