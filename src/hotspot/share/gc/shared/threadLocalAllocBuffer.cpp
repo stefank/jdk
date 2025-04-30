@@ -124,11 +124,7 @@ void ThreadLocalAllocBuffer::insert_filler() {
 void ThreadLocalAllocBuffer::make_parsable() {
   if (end() != nullptr) {
     invariants();
-    if (ZeroTLAB) {
-      retire();
-    } else {
-      insert_filler();
-    }
+    insert_filler();
   }
 }
 
@@ -139,16 +135,13 @@ void ThreadLocalAllocBuffer::retire(ThreadLocalAllocStats* stats) {
 
   if (end() != nullptr) {
     invariants();
-    thread()->incr_allocated_bytes(used_bytes());
-    thread()->heap_sampler().accumulate_unsampled_in_current_tlab(top());
     insert_filler();
     initialize(nullptr, nullptr, nullptr);
   }
 }
 
-void ThreadLocalAllocBuffer::retire_before_allocation() {
+void ThreadLocalAllocBuffer::record_refill_waste() {
   _refill_waste += (unsigned int)remaining();
-  retire();
 }
 
 void ThreadLocalAllocBuffer::resize() {
@@ -196,9 +189,6 @@ void ThreadLocalAllocBuffer::fill(HeapWord* start,
 void ThreadLocalAllocBuffer::initialize(HeapWord* start,
                                         HeapWord* top,
                                         HeapWord* end) {
-  // Sampling support
-  thread()->heap_sampler().set_tlab_top_at_sample_start(start);
-
   set_start(start);
   set_top(top);
   set_pf_top(top);

@@ -276,10 +276,15 @@ HeapWord* MemAllocator::mem_allocate_inside_tlab_slow(Allocation& allocation) co
   }
 
   // Discard tlab and allocate a new one.
+
+  // Record the amount wasted
+  tlab.record_refill_waste();
+
+  // Retire the current TLAB
+  _thread->retire_tlab();
+
   // To minimize fragmentation, the last TLAB may be smaller than the rest.
   size_t new_tlab_size = tlab.compute_size(_word_size);
-
-  tlab.retire_before_allocation();
 
   if (new_tlab_size == 0) {
     return nullptr;
@@ -311,7 +316,8 @@ HeapWord* MemAllocator::mem_allocate_inside_tlab_slow(Allocation& allocation) co
     Copy::fill_to_words(mem + hdr_size, allocation._allocated_tlab_size - hdr_size, badHeapWordVal);
   }
 
-  tlab.fill(mem, mem + _word_size, allocation._allocated_tlab_size);
+  _thread->fill_tlab(mem, _word_size, allocation._allocated_tlab_size);
+
   return mem;
 }
 

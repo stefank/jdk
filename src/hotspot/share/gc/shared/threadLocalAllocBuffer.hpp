@@ -156,8 +156,8 @@ public:
   // Retire an in-use tlab and optionally collect statistics.
   void retire(ThreadLocalAllocStats* stats = nullptr);
 
-  // Retire in-use tlab before allocation of a new tlab
-  void retire_before_allocation();
+  // Record refill waste before allocating (refilling) with a new tlab.
+  void record_refill_waste();
 
   // Resize based on amount of allocation, etc.
   void resize();
