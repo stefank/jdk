@@ -705,7 +705,7 @@ void* os::realloc(void *memblock, size_t size, MemTag mem_tag) {
 static void* realloc_raw(void* memblock, size_t size) {
   precond(size > 0);
 
-  return permit_forbidden_function::realloc(memblock, size);)
+  return permit_forbidden_function::realloc(memblock, size);
 }
 
 static void* realloc_with_nmt(void* memblock, size_t size, MemTag mem_tag, const NativeCallStack& stack) {
