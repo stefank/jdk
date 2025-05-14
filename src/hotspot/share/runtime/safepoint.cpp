@@ -472,8 +472,6 @@ void SafepointSynchronize::disarm_safepoint() {
 // operation has been carried out
 void SafepointSynchronize::end() {
   assert(Threads_lock->owned_by_self(), "must hold Threads_lock");
-  SafepointTracing::leave();
-
   EventSafepointEnd event;
   assert(Thread::current()->is_VM_thread(), "Only VM thread can execute a safepoint");
 
@@ -868,7 +866,6 @@ void ThreadSafepointState::handle_polling_page_exception() {
 
 jlong SafepointTracing::_last_safepoint_begin_time_ns = 0;
 jlong SafepointTracing::_last_safepoint_sync_time_ns = 0;
-jlong SafepointTracing::_last_safepoint_leave_time_ns = 0;
 jlong SafepointTracing::_last_safepoint_end_time_ns = 0;
 jlong SafepointTracing::_last_app_time_ns = 0;
 int SafepointTracing::_nof_threads = 0;
@@ -970,10 +967,6 @@ void SafepointTracing::synchronized(int nof_threads, int nof_running, int traps)
   RuntimeService::record_safepoint_synchronized(_last_safepoint_sync_time_ns - _last_safepoint_begin_time_ns);
 }
 
-void SafepointTracing::leave() {
-  _last_safepoint_leave_time_ns = os::javaTimeNanos();
-}
-
 void SafepointTracing::end() {
   _last_safepoint_end_time_ns = os::javaTimeNanos();
 
@@ -992,14 +985,12 @@ void SafepointTracing::end() {
      "Time since last: " JLONG_FORMAT " ns, "
      "Reaching safepoint: " JLONG_FORMAT " ns, "
      "At safepoint: " JLONG_FORMAT " ns, "
-     "Leaving safepoint: " JLONG_FORMAT " ns, "
      "Total: " JLONG_FORMAT " ns",
       VM_Operation::name(_current_type),
       _last_app_time_ns,
-      _last_safepoint_sync_time_ns  - _last_safepoint_begin_time_ns,
-      _last_safepoint_leave_time_ns - _last_safepoint_sync_time_ns,
-      _last_safepoint_end_time_ns   - _last_safepoint_leave_time_ns,
-      _last_safepoint_end_time_ns   - _last_safepoint_begin_time_ns
+      _last_safepoint_sync_time_ns    - _last_safepoint_begin_time_ns,
+      _last_safepoint_end_time_ns     - _last_safepoint_sync_time_ns,
+      _last_safepoint_end_time_ns     - _last_safepoint_begin_time_ns
      );
 
   RuntimeService::record_safepoint_end(_last_safepoint_end_time_ns - _last_safepoint_sync_time_ns);
