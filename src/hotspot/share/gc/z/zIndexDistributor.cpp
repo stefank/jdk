@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2023, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2021, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -21,29 +21,15 @@
  * questions.
  */
 
-#ifndef SHARE_GC_Z_ZFORWARDINGTABLE_HPP
-#define SHARE_GC_Z_ZFORWARDINGTABLE_HPP
+#include "gc/z/zIndexDistributor.inline.hpp"
 
-#include "gc/z/zGranuleMap.hpp"
+ZIndexDistributor::ZIndexDistributor(int count)
+  : _strategy(create_strategy(count)) {}
 
-class ZForwarding;
-
-class ZForwardingTable {
-  friend class ZRemsetTableIterator;
-  friend class VMStructs;
-
-private:
-  ZGranuleMap<ZForwarding*> _map;
-
-  ZForwarding* at(size_t index) const;
-
-public:
-  ZForwardingTable();
-
-  ZForwarding* get(zaddress_unsafe addr) const;
-
-  void insert(ZForwarding* forwarding);
-  void remove(ZForwarding* forwarding);
-};
-
-#endif // SHARE_GC_Z_ZFORWARDINGTABLE_HPP
+ZIndexDistributor::~ZIndexDistributor() {
+  switch (ZIndexDistributorStrategy) {
+  case 0: delete static_cast<ZIndexDistributorClaimTree*>(_strategy); break;
+  case 1: delete static_cast<ZIndexDistributorStriped*>(_strategy); break;
+  default: fatal("Unknown ZIndexDistributorStrategy"); break;
+  };
+}

@@ -28,7 +28,6 @@
 
 #include "gc/z/zAddress.inline.hpp"
 #include "gc/z/zGranuleMap.inline.hpp"
-#include "gc/z/zIndexDistributor.inline.hpp"
 #include "gc/z/zPage.inline.hpp"
 #include "gc/z/zPageAllocator.inline.hpp"
 
