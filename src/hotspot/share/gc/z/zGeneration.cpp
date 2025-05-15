@@ -40,6 +40,7 @@
 #include "gc/z/zForwardingTable.inline.hpp"
 #include "gc/z/zGeneration.inline.hpp"
 #include "gc/z/zHeap.inline.hpp"
+#include "gc/z/zIndexDistributor.inline.hpp"
 #include "gc/z/zJNICritical.hpp"
 #include "gc/z/zMark.inline.hpp"
 #include "gc/z/zPageAllocator.hpp"
