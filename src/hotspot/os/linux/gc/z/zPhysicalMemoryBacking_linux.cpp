@@ -147,28 +147,31 @@ bool ZPhysicalMemoryBacking::reserve_anon_memory_mapping(size_t max_capacity) {
 }
 
 static void do_mremap(char* from, char* to, size_t size) {
-  const size_t granule_size = ZGranuleSize;
-  assert(size % granule_size == 0, "%zu", size);
+  assert(is_aligned(size, ZGranuleSize), "%zu", size);
 
-  char* old_addr = from;
-  char* new_addr = to;
+  char* const to_end = to + size;
+
+
+
 #if ZANONYMOUS_COMBINED_MREMAP
-  if (mremap(old_addr, size, size, MREMAP_MAYMOVE | MREMAP_DONTUNMAP | MREMAP_FIXED, new_addr) == MAP_FAILED) {
+  if (mremap(from, size, size, MREMAP_MAYMOVE | MREMAP_DONTUNMAP | MREMAP_FIXED, to) == MAP_FAILED) {
     ZErrno err;
-    fatal("Failed to map memory (%s) " PTR_FORMAT ", " PTR_FORMAT ", %zu", err.to_string(), p2i(old_addr), p2i(new_addr), size);
+    fatal("Failed to map memory (%s) " PTR_FORMAT ", " PTR_FORMAT ", %zu", err.to_string(), p2i(from), p2i(to), size);
   }
 #else
-  for (char* const end = to + size; new_addr != end; new_addr += granule_size, old_addr += granule_size) {
-    if (mremap(old_addr, granule_size, granule_size, MREMAP_MAYMOVE | MREMAP_DONTUNMAP | MREMAP_FIXED, new_addr) == MAP_FAILED) {
-      ZErrno err;
-      fatal("Failed to map memory (%s) " PTR_FORMAT ", " PTR_FORMAT, err.to_string(), p2i(old_addr), p2i(new_addr));
+  {
+    for (char* from_addr = from, *to_addr = to; to_addr != to_end; to_addr += ZGranuleSize, from_addr += ZGranuleSize) {
+      if (mremap(from_addr, ZGranuleSize, ZGranuleSize, MREMAP_MAYMOVE | MREMAP_DONTUNMAP | MREMAP_FIXED, to_addr) == MAP_FAILED) {
+        ZErrno err;
+        fatal("Failed to map memory (%s) " PTR_FORMAT ", " PTR_FORMAT, err.to_string(), p2i(from_addr), p2i(to_addr));
+      }
     }
   }
 #endif
-  const void* const res = mmap(old_addr, size, PROT_NONE, MAP_FIXED | MAP_ANONYMOUS | MAP_PRIVATE | MAP_NORESERVE, -1, 0);
+  const void* const res = mmap(from, size, PROT_NONE, MAP_FIXED | MAP_ANONYMOUS | MAP_PRIVATE | MAP_NORESERVE, -1, 0);
   if (res == MAP_FAILED) {
     ZErrno err;
-    fatal("Failed to map memory (%s) " PTR_FORMAT ", " PTR_FORMAT ", %zu", err.to_string(), p2i(old_addr), p2i(new_addr), size);
+    fatal("Failed to unmap memory (%s) " PTR_FORMAT ", %zu", err.to_string(), p2i(from), size);
   }
 }
 
