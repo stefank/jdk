@@ -113,7 +113,7 @@
 // Java heap filename
 #define ZFILENAME_HEAP                   "java_heap"
 
-#define ZANONYMOUS_COMBINED_MREMAP         1
+#define ZANONYMOUS_COMBINED_MREMAP         0
 #define ZANONYMOUS_USE_BACKING_AREA        1
 #define ZANONYMOUS_UNCOMMIT_WITH_MADV_FREE 0
 
@@ -174,6 +174,10 @@ static void do_mremap(char* from, char* to, size_t size) {
 
 DEBUG_ONLY(NOINLINE) static void validate_combined_mremap() {
 #ifdef ASSERT
+#if !ZANONYMOUS_COMBINED_MREMAP
+  return;
+#endif
+
   const size_t backing_size = 4 * ZGranuleSize;
   const size_t heap_size = 4 * ZGranuleSize;
 
@@ -233,9 +237,7 @@ ZPhysicalMemoryBacking::ZPhysicalMemoryBacking(size_t max_capacity)
     _initialized(false) {
 
   if (ZAnonymousMemoryBacking) {
-#if ZANONYMOUS_COMBINED_MREMAP
     validate_combined_mremap();
-#endif
 
     guarantee(_reserved_anon_memory_mapping != nullptr, "anonymous memory backing does not exist");
     // Use anonymous memory backing when available, no filesystem needed
