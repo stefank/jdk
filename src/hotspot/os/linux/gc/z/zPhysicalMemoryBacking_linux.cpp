@@ -113,6 +113,10 @@
 // Java heap filename
 #define ZFILENAME_HEAP                   "java_heap"
 
+#define ZANONYMOUS_COMBINED_MREMAP         1
+#define ZANONYMOUS_USE_BACKING_AREA        1
+#define ZANONYMOUS_UNCOMMIT_WITH_MADV_FREE 0
+
 // Preferred tmpfs mount points, ordered by priority
 static const char* ZPreferredTmpfsMountpoints[] = {
   "/dev/shm",
@@ -142,6 +146,84 @@ bool ZPhysicalMemoryBacking::reserve_anon_memory_mapping(size_t max_capacity) {
   return true;
 }
 
+static void do_mremap(char* from, char* to, size_t size) {
+  const size_t granule_size = ZGranuleSize;
+  assert(size % granule_size == 0, "%zu", size);
+
+  char* old_addr = from;
+  char* new_addr = to;
+#if ZANONYMOUS_COMBINED_MREMAP
+  if (mremap(old_addr, size, size, MREMAP_MAYMOVE | MREMAP_DONTUNMAP | MREMAP_FIXED, new_addr) == MAP_FAILED) {
+    ZErrno err;
+    fatal("Failed to map memory (%s) " PTR_FORMAT ", " PTR_FORMAT ", %zu", err.to_string(), p2i(old_addr), p2i(new_addr), size);
+  }
+#else
+  for (char* const end = to + size; new_addr != end; new_addr += granule_size, old_addr += granule_size) {
+    if (mremap(old_addr, granule_size, granule_size, MREMAP_MAYMOVE | MREMAP_DONTUNMAP | MREMAP_FIXED, new_addr) == MAP_FAILED) {
+      ZErrno err;
+      fatal("Failed to map memory (%s) " PTR_FORMAT ", " PTR_FORMAT, err.to_string(), p2i(old_addr), p2i(new_addr));
+    }
+  }
+#endif
+  const void* const res = mmap(old_addr, size, PROT_NONE, MAP_FIXED | MAP_ANONYMOUS | MAP_PRIVATE | MAP_NORESERVE, -1, 0);
+  if (res == MAP_FAILED) {
+    ZErrno err;
+    fatal("Failed to map memory (%s) " PTR_FORMAT ", " PTR_FORMAT ", %zu", err.to_string(), p2i(old_addr), p2i(new_addr), size);
+  }
+}
+
+DEBUG_ONLY(NOINLINE) static void validate_combined_mremap() {
+#ifdef ASSERT
+  const size_t backing_size = 4 * ZGranuleSize;
+  const size_t heap_size = 4 * ZGranuleSize;
+
+  char* backing = (char*)mmap(0, backing_size, PROT_WRITE | PROT_READ, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+  if (backing == MAP_FAILED) {
+    perror("Failed to create initial memory");
+    return;
+  }
+
+  for (size_t offset = 0; offset < backing_size; offset += ZGranuleSize) {
+    backing[offset] = 1;
+  }
+
+  char* heap = (char*)mmap(0, heap_size, PROT_NONE, MAP_PRIVATE | MAP_ANONYMOUS | MAP_NORESERVE, -1, 0);
+  if (heap == MAP_FAILED) {
+    perror("Couldn't reserve heap");
+    return;
+  }
+
+  char* backing_section = backing + ZGranuleSize;
+  char* heap_section = heap + ZGranuleSize;
+  size_t section_size = 2 * ZGranuleSize;
+
+  for (size_t offset = 0; offset < section_size; offset += ZGranuleSize) {
+    do_mremap(backing_section + offset, heap_section + offset, ZGranuleSize);
+  }
+
+  // Touch heap memory
+  heap_section[0] = 1;
+  heap_section[ZGranuleSize] = 1;
+
+  // Time to hand back memory
+
+  if (mprotect(heap_section, section_size, PROT_NONE) != 0) {
+    perror("mprotect heap_section failed");
+    return;
+  }
+
+  // Unless running on newer kernels, this will fail when two VMAs are mremaped together.
+  do_mremap(heap_section, backing_section, section_size);
+
+  if (munmap(backing_section, backing_size) != 0) {
+    perror("Failed to unmap backing section");
+  }
+  if (munmap(heap_section, heap_size) != 0) {
+    perror("Failed to unmap heap section");
+  }
+#endif
+}
+
 ZPhysicalMemoryBacking::ZPhysicalMemoryBacking(size_t max_capacity)
   : _fd(-1),
     _filesystem(0),
@@ -151,6 +233,10 @@ ZPhysicalMemoryBacking::ZPhysicalMemoryBacking(size_t max_capacity)
     _initialized(false) {
 
   if (ZAnonymousMemoryBacking) {
+#if ZANONYMOUS_COMBINED_MREMAP
+    validate_combined_mremap();
+#endif
+
     guarantee(_reserved_anon_memory_mapping != nullptr, "anonymous memory backing does not exist");
     // Use anonymous memory backing when available, no filesystem needed
     _physical_mapping = _reserved_anon_memory_mapping;
@@ -643,7 +729,7 @@ bool ZPhysicalMemoryBacking::commit_inner(zbacking_offset offset, size_t length)
                       untype(offset) / M, untype(to_zbacking_offset_end(offset, length)) / M, length / M);
 
   if (is_anonymous()) {
-#if 1
+#if ZANONYMOUS_USE_BACKING_AREA
     // Step 1: Try grabbing the memory in a way that commits the memory to the system
     void* const res = mmap(0, length, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
     if (res == MAP_FAILED) {
@@ -765,7 +851,7 @@ size_t ZPhysicalMemoryBacking::uncommit(zbacking_offset offset, size_t length) c
   if (is_anonymous()) {
     // Uncommitting with MADV_FREE should be a bit cheaper then synchronously unmapping
     void* const file_addr = _physical_mapping + untype(offset);
-#if 0
+#if ZANONYMOUS_UNCOMMIT_WITH_MADV_FREE
     if (mprotect(file_addr, length, PROT_NONE) != 0) {
       ZErrno err;
       fatal("Failed to protect memory (%s) " PTR_FORMAT " PROT_NONE", err.to_string(), p2i(file_addr));
@@ -788,32 +874,6 @@ size_t ZPhysicalMemoryBacking::uncommit(zbacking_offset offset, size_t length) c
   }
 
   return length;
-}
-
-static void do_mremap(char* from, char* to, size_t size) {
-  const size_t granule_size = ZGranuleSize;
-  assert(size % granule_size == 0, "%zu", size);
-
-  char* old_addr = from;
-  char* new_addr = to;
-#if 1
-  if (mremap(old_addr, size, size, MREMAP_MAYMOVE | MREMAP_DONTUNMAP | MREMAP_FIXED, new_addr) == MAP_FAILED) {
-    ZErrno err;
-    fatal("Failed to map memory (%s) " PTR_FORMAT ", " PTR_FORMAT ", %zu", err.to_string(), p2i(old_addr), p2i(new_addr), size);
-  }
-#else
-  for (char* const end = to + size; new_addr != end; new_addr += granule_size, old_addr += granule_size) {
-    if (mremap(old_addr, granule_size, granule_size, MREMAP_MAYMOVE | MREMAP_DONTUNMAP | MREMAP_FIXED, new_addr) == MAP_FAILED) {
-      ZErrno err;
-      fatal("Failed to map memory (%s) " PTR_FORMAT ", " PTR_FORMAT, err.to_string(), p2i(old_addr), p2i(new_addr));
-    }
-  }
-#endif
-  const void* const res = mmap(old_addr, size, PROT_NONE, MAP_FIXED | MAP_ANONYMOUS | MAP_PRIVATE | MAP_NORESERVE, -1, 0);
-  if (res == MAP_FAILED) {
-    ZErrno err;
-    fatal("Failed to map memory (%s) " PTR_FORMAT ", " PTR_FORMAT ", %zu", err.to_string(), p2i(old_addr), p2i(new_addr), size);
-  }
 }
 
 void ZPhysicalMemoryBacking::map(zaddress_unsafe addr, size_t size, zbacking_offset offset) const {
