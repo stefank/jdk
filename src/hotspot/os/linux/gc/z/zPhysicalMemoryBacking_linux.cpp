@@ -151,8 +151,6 @@ static void do_mremap(char* from, char* to, size_t size) {
 
   char* const to_end = to + size;
 
-
-
 #if ZANONYMOUS_COMBINED_MREMAP
   if (mremap(from, size, size, MREMAP_MAYMOVE | MREMAP_DONTUNMAP | MREMAP_FIXED, to) == MAP_FAILED) {
     ZErrno err;
@@ -222,11 +220,11 @@ DEBUG_ONLY(NOINLINE) static void validate_combined_mremap() {
   // Unless running on newer kernels, this will fail when two VMAs are mremaped together.
   do_mremap(heap_section, backing_section, section_size);
 
-  if (munmap(backing_section, backing_size) != 0) {
-    perror("Failed to unmap backing section");
+  if (munmap(backing, backing_size) != 0) {
+    perror("Failed to unmap backing region");
   }
-  if (munmap(heap_section, heap_size) != 0) {
-    perror("Failed to unmap heap section");
+  if (munmap(heap, heap_size) != 0) {
+    perror("Failed to unmap heap region");
   }
 #endif
 }
