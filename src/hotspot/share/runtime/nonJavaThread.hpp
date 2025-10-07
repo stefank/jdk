@@ -31,20 +31,12 @@
 
 class NonJavaThread: public Thread {
   friend class Threads;
-  class List {
-   public:
-    NonJavaThread* volatile _head;
-    SingleWriterSynchronizer _protect;
 
-    List() : _head(nullptr), _protect() {}
-  };
-
+  class List;
   static DeferredStatic<List> _the_list;
 
   // Deferred static initialization
-  static void init() {
-    _the_list.initialize();
-  }
+  static void init();
 
   NonJavaThread* volatile _next;
 
