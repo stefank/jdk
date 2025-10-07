@@ -27,7 +27,6 @@
 
 #include "runtime/thread.hpp"
 #include "utilities/deferredStatic.hpp"
-#include "utilities/singleWriterSynchronizer.hpp"
 
 class NonJavaThread: public Thread {
   friend class Threads;
