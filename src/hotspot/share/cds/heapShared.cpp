@@ -873,7 +873,7 @@ void HeapShared::start_scanning_for_oops() {
     // Cache for recording where the archived objects are copied to
     create_archived_object_cache();
 
-    if (HeapShared::is_writing_mapping_mode()) {
+    if (HeapShared::is_writing_mapping_mode() && (UseG1GC || UseCompressedOops)) {
       aot_log_info(aot)("Heap range = [" PTR_FORMAT " - "  PTR_FORMAT "]",
                     UseCompressedOops ? p2i(CompressedOops::begin()) :
                                         p2i((address)G1CollectedHeap::heap()->reserved().start()),
