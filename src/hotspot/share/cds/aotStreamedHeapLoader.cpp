@@ -62,7 +62,6 @@ FileMapRegion* AOTStreamedHeapLoader::_bitmap_region;
 int* AOTStreamedHeapLoader::_roots_archive;
 OopHandle AOTStreamedHeapLoader::_roots;
 BitMapView AOTStreamedHeapLoader::_oopmap;
-bool AOTStreamedHeapLoader::_is_in_use;
 int AOTStreamedHeapLoader::_previous_batch_last_object_index;
 int AOTStreamedHeapLoader::_current_batch_last_object_index;
 int AOTStreamedHeapLoader::_current_root_index;
@@ -912,6 +911,10 @@ void AOTStreamedHeapLoader::enable_gc() {
   }
 }
 
+void AOTStreamedHeapLoader::materialize_thread_object() {
+  AOTThread::materialize_thread_object();
+}
+
 void AOTStreamedHeapLoader::finish_materialize_objects() {
   Ticks start = Ticks::now();
 
@@ -923,7 +926,6 @@ void AOTStreamedHeapLoader::finish_materialize_objects() {
     }
   } else {
     assert(!AOTEagerlyLoadObjects, "sanity");
-    assert(!AOTThread::aot_thread_initialized(), "sanity");
     assert(_current_root_index == 0, "sanity");
     // Without the full module graph we have done only lazy tracing materialization.
     // Ensure all roots are processed here by triggering root loading on every root.
@@ -953,8 +955,6 @@ void AOTStreamedHeapLoader::initialize() {
   _bitmap_region = FileMapInfo::current_info()->region_at(AOTMetaspace::bm);
 
   assert(_heap_region->used() > 0, "empty heap archive?");
-
-  _is_in_use = true;
 
   // archived roots are at this offset in the stream.
   size_t roots_offset = FileMapInfo::current_info()->streamed_heap()->roots_offset();
@@ -1066,6 +1066,10 @@ void AOTStreamedHeapLoader::await_gc_enabled() {
   }
 }
 
+void AOTStreamedHeapLoader::finish_initialization(FileMapInfo* static_mapinfo) {
+  static_mapinfo->stream_heap_region();
+}
+
 AOTMapLogger::OopDataIterator* AOTStreamedHeapLoader::oop_iterator(FileMapInfo* info, address buffer_start, address buffer_end) {
   class StreamedLoaderOopIterator : public AOTMapLogger::OopDataIterator {
   private:
@@ -1148,7 +1152,7 @@ AOTMapLogger::OopDataIterator* AOTStreamedHeapLoader::oop_iterator(FileMapInfo* 
     }
   };
 
-  assert(_is_in_use, "printing before initializing?");
+  assert(HeapShared::is_loading_streaming_mode(), "printing before initializing?");
 
   return new StreamedLoaderOopIterator(buffer_start, (int)info->streamed_heap()->num_archived_objects());
 }

@@ -27,7 +27,7 @@
 #include "cds/aotMetaspace.hpp"
 #include "cds/cdsConstants.hpp"
 #include "cds/filemap.hpp"
-#include "cds/heapShared.hpp"
+#include "cds/heapShared.inline.hpp"
 #include "classfile/classLoader.hpp"
 #include "classfile/classLoaderDataGraph.hpp"
 #include "classfile/classLoaderStats.hpp"
@@ -2213,10 +2213,10 @@ WB_ENTRY(jboolean, WB_IsSharedClass(JNIEnv* env, jobject wb, jclass clazz))
 WB_END
 
 WB_ENTRY(jboolean, WB_AreSharedStringsMapped(JNIEnv* env))
-  if (!HeapShared::is_loading_mapping_mode()) {
-    return false;
+  if (HeapShared::is_loading() && HeapShared::is_loading_mapping_mode()) {
+    return AOTMappedHeapLoader::is_mapped();
   }
-  return AOTMappedHeapLoader::is_mapped();
+  return false;
 WB_END
 
 WB_ENTRY(void, WB_LinkClass(JNIEnv* env, jobject wb, jclass clazz))
@@ -2229,10 +2229,10 @@ WB_ENTRY(void, WB_LinkClass(JNIEnv* env, jobject wb, jclass clazz))
 WB_END
 
 WB_ENTRY(jboolean, WB_AreOpenArchiveHeapObjectsMapped(JNIEnv* env))
-  if (!HeapShared::is_loading_mapping_mode()) {
-    return false;
+  if (HeapShared::is_loading() && HeapShared::is_loading_mapping_mode()) {
+    return AOTMappedHeapLoader::is_mapped();
   }
-  return AOTMappedHeapLoader::is_mapped();
+  return false;
 WB_END
 
 WB_ENTRY(jboolean, WB_IsCDSIncluded(JNIEnv* env))

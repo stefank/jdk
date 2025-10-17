@@ -22,11 +22,9 @@
  *
  */
 
-#include "cds/aotMappedHeapLoader.hpp"
-#include "cds/aotMappedHeapWriter.hpp"
 #include "cds/archiveBuilder.hpp"
 #include "cds/cdsConfig.hpp"
-#include "cds/heapShared.hpp"
+#include "cds/heapShared.inline.hpp"
 #include "classfile/altHashing.hpp"
 #include "classfile/compactHashtable.hpp"
 #include "classfile/javaClasses.inline.hpp"
@@ -80,7 +78,7 @@ OopHandle StringTable::_shared_strings_array;
 int StringTable::_shared_strings_array_root_index;
 
 inline oop StringTable::read_string_from_compact_hashtable(address base_address, u4 index) {
-  assert(HeapShared::is_archived_heap_in_use(), "sanity");
+  assert(HeapShared::is_loading(), "sanity");
   objArrayOop array = (objArrayOop)(_shared_strings_array.resolve());
   oop s;
 
@@ -937,7 +935,7 @@ size_t StringTable::shared_entry_count() {
 }
 
 oop StringTable::lookup_shared(const StringWrapper& name, unsigned int hash) {
-  if (!HeapShared::is_loading_mapping_mode()) {
+  if (!HeapShared::is_loading() || !HeapShared::is_loading_mapping_mode()) {
     return nullptr;
   }
   assert(hash == hash_wrapped_string(name),
@@ -947,7 +945,7 @@ oop StringTable::lookup_shared(const StringWrapper& name, unsigned int hash) {
 }
 
 oop StringTable::lookup_shared(const jchar* name, int len) {
-  if (!HeapShared::is_loading_mapping_mode()) {
+  if (!HeapShared::is_loading() || !HeapShared::is_loading_mapping_mode()) {
     return nullptr;
   }
   StringWrapper wrapped_name(name, len);
@@ -1059,8 +1057,8 @@ void StringTable::verify_secondary_array_index_bits() {
 // [1] Store it into _shared_strings_array. Encode its position as a 32-bit index.
 // [2] Store the index and hashcode into _shared_table.
 oop StringTable::init_shared_strings_array() {
-  assert(HeapShared::is_writing_mapping_mode(), "should not reach here");
   assert(CDSConfig::is_dumping_heap(), "must be");
+  assert(HeapShared::is_writing_mapping_mode(), "should not reach here");
   objArrayOop array = (objArrayOop)(_shared_strings_array.resolve());
 
   verify_secondary_array_index_bits();
@@ -1070,11 +1068,11 @@ oop StringTable::init_shared_strings_array() {
     oop string = val->peek();
     if (string != nullptr && !HeapShared::is_string_too_large_to_archive(string)) {
       // If string is too large, don't put it into the string table.
-      // - If there are no other refernences to it, it won't be stored into the archive,
+      // - If there are no other references to it, it won't be stored into the archive,
       //   so we are all good.
-      // - If there's a referece to it, we will report an error inside HeapShared.cpp and
+      // - If there's a reference to it, we will report an error inside HeapShared.cpp and
       //   dumping will fail.
-      AOTMappedHeapWriter::add_to_dumped_interned_strings(string);
+      HeapShared::add_to_dumped_interned_strings(string);
       if (!_is_two_dimensional_shared_strings_array) {
         assert(index < array->length(), "no strings should have been added");
         array->obj_at_put(index, string);
@@ -1130,7 +1128,7 @@ void StringTable::serialize_shared_table_header(SerializeClosure* soc) {
   if (soc->writing()) {
     // Sanity. Make sure we don't use the shared table at dump time
     _shared_table.reset();
-  } else if (!AOTMappedHeapLoader::is_in_use()) {
+  } else if (!HeapShared::is_loading() || !HeapShared::is_loading_mapping_mode()) {
     _shared_table.reset();
   }
 

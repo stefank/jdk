@@ -25,7 +25,7 @@
 #include "cds/aotConstantPoolResolver.hpp"
 #include "cds/archiveBuilder.hpp"
 #include "cds/cdsConfig.hpp"
-#include "cds/heapShared.hpp"
+#include "cds/heapShared.inline.hpp"
 #include "classfile/classLoader.hpp"
 #include "classfile/classLoaderData.hpp"
 #include "classfile/javaClasses.inline.hpp"
@@ -396,7 +396,7 @@ void ConstantPool::restore_unshareable_info(TRAPS) {
   if (vmClasses::Object_klass_is_loaded()) {
     ClassLoaderData* loader_data = pool_holder()->class_loader_data();
 #if INCLUDE_CDS_JAVA_HEAP
-    if (HeapShared::is_archived_heap_in_use() &&
+    if (HeapShared::is_loading() &&
         _cache->archived_references() != nullptr) {
       oop archived = _cache->archived_references();
       // Create handle for the archived resolved reference array object

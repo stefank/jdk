@@ -385,7 +385,7 @@ public:
 
   // Object loading support
   void  stream_heap_region() NOT_CDS_JAVA_HEAP_RETURN;
-  void  map_or_load_heap_region() NOT_CDS_JAVA_HEAP_RETURN;
+  bool  map_or_load_heap_region() NOT_CDS_JAVA_HEAP_RETURN;
 
   bool  has_heap_region()  NOT_CDS_JAVA_HEAP_RETURN_(false);
   bool  read_region(int i, char* base, size_t size, bool do_commit);

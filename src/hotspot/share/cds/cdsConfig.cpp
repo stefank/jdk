@@ -27,7 +27,7 @@
 #include "cds/cdsConfig.hpp"
 #include "cds/classListWriter.hpp"
 #include "cds/filemap.hpp"
-#include "cds/heapShared.hpp"
+#include "cds/heapShared.inline.hpp"
 #include "classfile/classLoaderDataShared.hpp"
 #include "classfile/moduleEntry.hpp"
 #include "code/aotCodeCache.hpp"
@@ -962,7 +962,7 @@ bool CDSConfig::is_dumping_heap() {
 }
 
 bool CDSConfig::is_loading_heap() {
-  return HeapShared::is_archived_heap_in_use();
+  return HeapShared::is_loading();
 }
 
 bool CDSConfig::is_using_full_module_graph() {

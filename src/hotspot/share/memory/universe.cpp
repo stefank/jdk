@@ -25,7 +25,7 @@
 #include "cds/aotMetaspace.hpp"
 #include "cds/cdsConfig.hpp"
 #include "cds/dynamicArchive.hpp"
-#include "cds/heapShared.hpp"
+#include "cds/heapShared.inline.hpp"
 #include "classfile/classLoader.hpp"
 #include "classfile/classLoaderDataGraph.hpp"
 #include "classfile/classLoaderDataShared.hpp"
@@ -319,7 +319,7 @@ void Universe::archive_exception_instances() {
 }
 
 void Universe::load_archived_object_instances() {
-  if (HeapShared::is_archived_heap_in_use()) {
+  if (HeapShared::is_loading()) {
     for (int i = T_BOOLEAN; i < T_VOID+1; i++) {
       int index = _archived_basic_type_mirror_indices[i];
       if (!is_reference_type((BasicType)i) && index >= 0) {
@@ -553,7 +553,7 @@ void Universe::genesis(TRAPS) {
 void Universe::initialize_basic_type_mirrors(TRAPS) {
 #if INCLUDE_CDS_JAVA_HEAP
     if (CDSConfig::is_using_archive() &&
-        HeapShared::is_archived_heap_in_use() &&
+        HeapShared::is_loading() &&
         _basic_type_mirrors[T_INT].resolve() != nullptr) {
       // check that all basic type mirrors are mapped also
       for (int i = T_BOOLEAN; i < T_VOID+1; i++) {

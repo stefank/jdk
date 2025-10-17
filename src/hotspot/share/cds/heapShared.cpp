@@ -291,14 +291,6 @@ void HeapShared::reset_archived_object_states(TRAPS) {
 
 HeapShared::ArchivedObjectCache* HeapShared::_archived_object_cache = nullptr;
 
-bool HeapShared::is_archived_heap_in_use() {
-  if (HeapShared::is_loading_streaming_mode()) {
-    return AOTStreamedHeapLoader::is_in_use();
-  } else {
-    return AOTMappedHeapLoader::is_in_use();
-  }
-}
-
 bool HeapShared::can_use_archived_heap() {
   FileMapInfo* static_mapinfo = FileMapInfo::current_info();
   if (static_mapinfo == nullptr) {
@@ -338,43 +330,26 @@ bool HeapShared::is_string_too_large_to_archive(oop string) {
   return is_too_large_to_archive(value);
 }
 
-bool HeapShared::is_loading_streaming_mode() {
-  assert(_heap_load_mode != HeapArchiveMode::_uninitialized, "not initialized yet");
-  return _heap_load_mode == HeapArchiveMode::_streaming;
-}
-
-bool HeapShared::is_writing_streaming_mode() {
-  assert(_heap_write_mode != HeapArchiveMode::_uninitialized, "not initialized yet");
-  return _heap_write_mode == HeapArchiveMode::_streaming;
-}
-
-bool HeapShared::is_loading_mode_uninitialized() {
-  return _heap_load_mode == HeapArchiveMode::_uninitialized;
-}
-
-bool HeapShared::is_loading_mapping_mode() {
-  assert(_heap_load_mode != HeapArchiveMode::_uninitialized, "not initialized yet");
-  return _heap_load_mode == HeapArchiveMode::_mapping;
-}
-
-bool HeapShared::is_writing_mapping_mode() {
-  assert(_heap_write_mode != HeapArchiveMode::_uninitialized, "not initialized yet");
-  return _heap_write_mode == HeapArchiveMode::_mapping;
-}
-
 void HeapShared::initialize_loading_mode(HeapArchiveMode mode) {
   assert(_heap_load_mode == HeapArchiveMode::_uninitialized, "already set?");
   _heap_load_mode = mode;
 };
 
-void HeapShared::initialize_loading_mode_if_not_set() {
-  if (_heap_load_mode == HeapArchiveMode::_uninitialized) {
-    _heap_load_mode = HeapArchiveMode::_none;
-  }
-}
-
 void HeapShared::initialize_writing_mode() {
   assert(!FLAG_IS_ERGO(AOTStreamableObjects), "Should not have been ergonomically set yet");
+
+  if (!CDSConfig::is_dumping_archive()) {
+    // We use FLAG_IS_CMDLINE below because we are specifically looking to warn
+    // a user that explicitly sets the flag on the command line for a JVM that is
+    // not dumping an archive.
+    if (FLAG_IS_CMDLINE(AOTStreamableObjects)) {
+      log_info(cds)("-XX:%cAOTStreamableObjects was specified, "
+                    "AOTStreamableObjects is only used for writing "
+                    "the AOT cache.",
+                    AOTStreamableObjects ? '+' : '-');
+    }
+    return;
+  }
 
   // The below checks use !FLAG_IS_DEFAULT instead of FLAG_IS_CMDLINE
   // because the one step AOT cache creation transfers the AOTStreamableObjects
@@ -393,23 +368,8 @@ void HeapShared::initialize_writing_mode() {
     FLAG_SET_ERGO(AOTStreamableObjects, true);
   }
 
-  if (!CDSConfig::is_dumping_archive()) {
-    assert(_heap_write_mode == HeapArchiveMode::_uninitialized, "already initialized?");
-
-    // We use FLAG_IS_CMDLINE below because we are specifically looking to warn
-    // a user that explicitly sets the flag on the command line for a JVM that is
-    // not dumping an archive.
-    if (FLAG_IS_CMDLINE(AOTStreamableObjects)) {
-      log_info(cds)("-XX:%cAOTStreamableObjects was specified, "
-                    "AOTStreamableObjects is only used for writing "
-                    "the AOT cache.",
-                    AOTStreamableObjects ? '+' : '-');
-    }
-    _heap_write_mode = HeapArchiveMode::_none;
-    return;
-  }
-
   // Select default mode
+  assert(_heap_write_mode == HeapArchiveMode::_uninitialized, "already initialized?");
   _heap_write_mode = AOTStreamableObjects ? HeapArchiveMode::_streaming : HeapArchiveMode::_mapping;
 }
 
@@ -423,6 +383,28 @@ void HeapShared::initialize_streaming() {
 void HeapShared::enable_gc() {
   if (HeapShared::is_loading_streaming_mode()) {
     AOTStreamedHeapLoader::enable_gc();
+  }
+}
+
+void HeapShared::materialize_thread_object() {
+  if (HeapShared::is_loading_streaming_mode()) {
+    AOTStreamedHeapLoader::materialize_thread_object();
+  }
+}
+
+void HeapShared::add_to_dumped_interned_strings(oop string) {
+  assert(HeapShared::is_writing_mapping_mode(), "Only used by this mode");
+  AOTMappedHeapWriter::add_to_dumped_interned_strings(string);
+}
+
+void HeapShared::finalize_initialization(FileMapInfo* static_mapinfo) {
+  if (HeapShared::is_loading_streaming_mode()) {
+    // Heap initialization can be done only after vtables are initialized by ReadClosure.
+    AOTStreamedHeapLoader::finish_initialization(static_mapinfo);
+  } else {
+    // Finish up archived heap initialization. These must be
+    // done after ReadClosure.
+    AOTMappedHeapLoader::finish_initialization(static_mapinfo);
   }
 }
 
@@ -452,7 +434,7 @@ int HeapShared::append_root(oop obj) {
 oop HeapShared::get_root(int index, bool clear) {
   assert(index >= 0, "sanity");
   assert(!CDSConfig::is_dumping_heap() && CDSConfig::is_using_archive(), "runtime only");
-  assert(is_archived_heap_in_use(), "getting roots into heap that is not used");
+  assert(is_loading(), "getting roots into heap that is not used");
 
   oop result;
   if (HeapShared::is_loading_streaming_mode()) {
@@ -479,7 +461,7 @@ void HeapShared::finish_materialize_objects() {
 void HeapShared::clear_root(int index) {
   assert(index >= 0, "sanity");
   assert(CDSConfig::is_using_archive(), "must be");
-  if (is_archived_heap_in_use()) {
+  if (is_loading()) {
     if (log_is_enabled(Debug, aot, heap)) {
       log_debug(aot, heap)("Clearing root %d: was %zu", index, p2i(get_root(index, false /* clear */)));
     }
@@ -1298,7 +1280,7 @@ static void verify_the_heap(Klass* k, const char* which) {
 // this case, we will not load the ArchivedKlassSubGraphInfoRecord and will clear its roots.
 void HeapShared::resolve_classes(JavaThread* current) {
   assert(CDSConfig::is_using_archive(), "runtime only!");
-  if (!is_archived_heap_in_use()) {
+  if (!is_loading()) {
     return; // nothing to do
   }
   resolve_classes_for_subgraphs(current, archive_subgraph_entry_fields);
@@ -1357,7 +1339,7 @@ void HeapShared::initialize_java_lang_invoke(TRAPS) {
 // should be initialized before any Java code can access the Fruit class. Note that
 // HashSet itself doesn't necessary need to be an aot-initialized class.
 void HeapShared::init_classes_for_special_subgraph(Handle class_loader, TRAPS) {
-  if (!is_archived_heap_in_use()) {
+  if (!is_loading()) {
     return;
   }
 
@@ -1389,7 +1371,7 @@ void HeapShared::init_classes_for_special_subgraph(Handle class_loader, TRAPS) {
 
 void HeapShared::initialize_from_archived_subgraph(JavaThread* current, Klass* k) {
   JavaThread* THREAD = current;
-  if (!is_archived_heap_in_use()) {
+  if (!is_loading()) {
     return; // nothing to do
   }
 
@@ -1663,7 +1645,7 @@ HeapShared::CachedOopInfo HeapShared::make_cached_oop_info(oop obj, oop referrer
 }
 
 void HeapShared::init_box_classes(TRAPS) {
-  if (is_archived_heap_in_use()) {
+  if (is_loading()) {
     vmClasses::Boolean_klass()->initialize(CHECK);
     vmClasses::Character_klass()->initialize(CHECK);
     vmClasses::Float_klass()->initialize(CHECK);
@@ -2209,7 +2191,7 @@ bool HeapShared::is_a_test_class_in_unnamed_module(Klass* ik) {
 
 void HeapShared::initialize_test_class_from_archive(JavaThread* current) {
   Klass* k = _test_class;
-  if (k != nullptr && is_archived_heap_in_use()) {
+  if (k != nullptr && is_loading()) {
     JavaThread* THREAD = current;
     ExceptionMark em(THREAD);
     const ArchivedKlassSubGraphInfoRecord* record =

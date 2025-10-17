@@ -139,8 +139,7 @@ class ArchivedKlassSubGraphInfoRecord {
 enum class HeapArchiveMode {
   _uninitialized,
   _mapping,
-  _streaming,
-  _none
+  _streaming
 };
 
 class ArchiveMappedHeapHeader {
@@ -270,15 +269,18 @@ class HeapShared: AllStatic {
   friend class VerifySharedOopClosure;
 
 public:
-  static bool is_loading_streaming_mode() NOT_CDS_JAVA_HEAP_RETURN_(false);
-  static bool is_loading_mapping_mode() NOT_CDS_JAVA_HEAP_RETURN_(false);
-  static bool is_loading_mode_uninitialized() NOT_CDS_JAVA_HEAP_RETURN_(false);
-  static bool is_writing_streaming_mode() NOT_CDS_JAVA_HEAP_RETURN_(false);
-  static bool is_writing_mapping_mode() NOT_CDS_JAVA_HEAP_RETURN_(false);
-
-  static void initialize_writing_mode() NOT_CDS_JAVA_HEAP_RETURN;
   static void initialize_loading_mode(HeapArchiveMode mode) NOT_CDS_JAVA_HEAP_RETURN;
-  static void initialize_loading_mode_if_not_set() NOT_CDS_JAVA_HEAP_RETURN;
+  static void initialize_writing_mode() NOT_CDS_JAVA_HEAP_RETURN;
+
+  inline static bool is_loading() NOT_CDS_JAVA_HEAP_RETURN_(false);
+
+  inline static bool is_loading_streaming_mode() NOT_CDS_JAVA_HEAP_RETURN_(false);
+  inline static bool is_loading_mapping_mode() NOT_CDS_JAVA_HEAP_RETURN_(false);
+
+  inline static bool is_writing() NOT_CDS_JAVA_HEAP_RETURN_(false);
+
+  inline static bool is_writing_streaming_mode() NOT_CDS_JAVA_HEAP_RETURN_(false);
+  inline static bool is_writing_mapping_mode() NOT_CDS_JAVA_HEAP_RETURN_(false);
 
   static bool is_subgraph_root_class(InstanceKlass* ik);
 
@@ -288,14 +290,16 @@ public:
   static oop scratch_java_mirror(oop java_mirror) NOT_CDS_JAVA_HEAP_RETURN_(nullptr);
   static bool is_archived_boot_layer_available(JavaThread* current) NOT_CDS_JAVA_HEAP_RETURN_(false);
 
-  static bool is_archived_heap_in_use() NOT_CDS_JAVA_HEAP_RETURN_(false);
   static bool can_use_archived_heap() NOT_CDS_JAVA_HEAP_RETURN_(false);
   static bool is_too_large_to_archive(size_t size);
   static bool is_string_too_large_to_archive(oop string);
   static bool is_too_large_to_archive(oop obj);
 
-  static void initialize_streaming() NOT_CDS_JAVA_HEAP_RETURN;;
-  static void enable_gc() NOT_CDS_JAVA_HEAP_RETURN;;
+  static void initialize_streaming() NOT_CDS_JAVA_HEAP_RETURN;
+  static void enable_gc() NOT_CDS_JAVA_HEAP_RETURN;
+  static void materialize_thread_object() NOT_CDS_JAVA_HEAP_RETURN;
+  static void add_to_dumped_interned_strings(oop string) NOT_CDS_JAVA_HEAP_RETURN;
+  static void finalize_initialization(FileMapInfo* static_mapinfo) NOT_CDS_JAVA_HEAP_RETURN;
 
 private:
 #if INCLUDE_CDS_JAVA_HEAP
@@ -535,7 +539,7 @@ private:
   template <typename T> static void do_metadata_offsets(oop src_obj, T callback);
   static void remap_dumped_metadata(oop src_obj, address archived_object);
   inline static void remap_loaded_metadata(oop obj);
-  static oop maybe_remap_referent(bool is_java_lang_ref, size_t field_offset, oop referent);
+  inline static oop maybe_remap_referent(bool is_java_lang_ref, size_t field_offset, oop referent);
   static void get_pointer_info(oop src_obj, bool& has_oop_pointers, bool& has_native_pointers);
   static void set_has_native_pointers(oop src_obj);
   static uintptr_t archive_location(oop src_obj);

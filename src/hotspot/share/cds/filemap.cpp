@@ -33,7 +33,7 @@
 #include "cds/cdsConfig.hpp"
 #include "cds/dynamicArchive.hpp"
 #include "cds/filemap.hpp"
-#include "cds/heapShared.hpp"
+#include "cds/heapShared.inline.hpp"
 #include "classfile/altHashing.hpp"
 #include "classfile/classFileStream.hpp"
 #include "classfile/classLoader.hpp"
@@ -1510,7 +1510,7 @@ void FileMapInfo::stream_heap_region() {
   }
 }
 
-void FileMapInfo::map_or_load_heap_region() {
+bool FileMapInfo::map_or_load_heap_region() {
   assert(!object_streaming_mode(), "This should only be done for the mapping approach");
   bool success = false;
 
@@ -1523,6 +1523,8 @@ void FileMapInfo::map_or_load_heap_region() {
   if (!success) {
     on_heap_region_loading_error();
   }
+
+  return success;
 }
 
 bool FileMapInfo::can_use_heap_region() {

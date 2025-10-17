@@ -23,7 +23,7 @@
  */
 
 #include "cds/cdsEnumKlass.hpp"
-#include "cds/heapShared.hpp"
+#include "cds/heapShared.inline.hpp"
 #include "classfile/systemDictionaryShared.hpp"
 #include "classfile/vmClasses.hpp"
 #include "memory/resourceArea.hpp"
@@ -108,7 +108,7 @@ void CDSEnumKlass::archive_static_field(int level, KlassSubGraphInfo* subgraph_i
 }
 
 bool CDSEnumKlass::initialize_enum_klass(InstanceKlass* k, TRAPS) {
-  if (!HeapShared::is_archived_heap_in_use()) {
+  if (!HeapShared::is_loading()) {
     return false;
   }
 
