@@ -25,10 +25,9 @@
 
 #include "cds/aotLinkedClassBulkLoader.hpp"
 #include "cds/aotMetaspace.hpp"
-#include "cds/aotThread.hpp"
 #include "cds/cds_globals.hpp"
 #include "cds/cdsConfig.hpp"
-#include "cds/heapShared.hpp"
+#include "cds/heapShared.inline.hpp"
 #include "classfile/classLoader.hpp"
 #include "classfile/javaClasses.hpp"
 #include "classfile/javaThreadStatus.hpp"
@@ -384,8 +383,8 @@ void Threads::initialize_java_lang_classes(JavaThread* main_thread, TRAPS) {
   initialize_class(vmSymbols::java_lang_reflect_Method(), CHECK);
   initialize_class(vmSymbols::java_lang_ref_Finalizer(), CHECK);
 
-  if (HeapShared::is_loading_streaming_mode()) {
-    AOTThread::materialize_thread_object();
+  if (HeapShared::is_loading()) {
+    HeapShared::materialize_thread_object();
   }
 
   // Phase 1 of the system initialization in the library, java.lang.System class initialization
