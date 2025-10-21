@@ -344,6 +344,7 @@ bool HeapShared::is_string_too_large_to_archive(oop string) {
 
 void HeapShared::initialize_loading_mode(HeapArchiveMode mode) {
   assert(_heap_load_mode == HeapArchiveMode::_uninitialized, "already set?");
+  assert(mode != HeapArchiveMode::_uninitialized, "sanity");
   _heap_load_mode = mode;
 };
 
@@ -392,13 +393,13 @@ void HeapShared::initialize_streaming() {
 }
 
 void HeapShared::enable_gc() {
-  if (HeapShared::is_loading_streaming_mode()) {
+  if (AOTStreamedHeapLoader::is_in_use()) {
     AOTStreamedHeapLoader::enable_gc();
   }
 }
 
 void HeapShared::materialize_thread_object() {
-  if (HeapShared::is_loading_streaming_mode()) {
+  if (AOTStreamedHeapLoader::is_in_use()) {
     AOTStreamedHeapLoader::materialize_thread_object();
   }
 }
@@ -409,13 +410,15 @@ void HeapShared::add_to_dumped_interned_strings(oop string) {
 }
 
 void HeapShared::finalize_initialization(FileMapInfo* static_mapinfo) {
-  if (HeapShared::is_loading_streaming_mode()) {
-    // Heap initialization can be done only after vtables are initialized by ReadClosure.
-    AOTStreamedHeapLoader::finish_initialization(static_mapinfo);
-  } else {
-    // Finish up archived heap initialization. These must be
-    // done after ReadClosure.
-    AOTMappedHeapLoader::finish_initialization(static_mapinfo);
+  if (HeapShared::is_loading()) {
+    if (HeapShared::is_loading_streaming_mode()) {
+      // Heap initialization can be done only after vtables are initialized by ReadClosure.
+      AOTStreamedHeapLoader::finish_initialization(static_mapinfo);
+    } else {
+      // Finish up archived heap initialization. These must be
+      // done after ReadClosure.
+      AOTMappedHeapLoader::finish_initialization(static_mapinfo);
+    }
   }
 }
 
@@ -463,8 +466,7 @@ oop HeapShared::get_root(int index, bool clear) {
 }
 
 void HeapShared::finish_materialize_objects() {
-  if (HeapShared::is_loading_streaming_mode()) {
-    // Finish materializing objects
+  if (AOTStreamedHeapLoader::is_in_use()) {
     AOTStreamedHeapLoader::finish_materialize_objects();
   }
 }

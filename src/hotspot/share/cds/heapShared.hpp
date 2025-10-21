@@ -567,7 +567,6 @@ private:
   // Dump-time and runtime
   static objArrayOop root_segment(int segment_idx);
   static oop get_root(int index, bool clear=false);
-  static void finish_materialize_objects();
 
   // Run-time only
   static void clear_root(int index);
@@ -576,6 +575,8 @@ private:
 
   static void setup_test_class(const char* test_class_name) PRODUCT_RETURN;
 #endif // INCLUDE_CDS_JAVA_HEAP
+
+  static void finish_materialize_objects() NOT_CDS_JAVA_HEAP_RETURN;
 
  public:
   static void write_heap(ArchiveMappedHeapInfo* mapped_heap_info, ArchiveStreamedHeapInfo* streamed_heap_info) NOT_CDS_JAVA_HEAP_RETURN;

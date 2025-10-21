@@ -1994,9 +1994,7 @@ void AOTMetaspace::unmap_archive(FileMapInfo* mapinfo) {
   assert(CDSConfig::is_using_archive(), "must be runtime");
   if (mapinfo != nullptr) {
     mapinfo->unmap_regions(archive_regions, archive_regions_count);
-    if (!HeapShared::is_loading() || HeapShared::is_loading_mapping_mode()) {
-      mapinfo->unmap_region(AOTMetaspace::bm);
-    }
+    mapinfo->unmap_region(AOTMetaspace::bm);
     mapinfo->set_is_mapped(false);
   }
 }
@@ -2029,11 +2027,9 @@ void AOTMetaspace::initialize_shared_spaces() {
   serialize(&rc);
 
   // Finish initializing the heap dump mode used in the archive
-  if (HeapShared::is_loading()) {
-    // Heap initialization can be done only after vtables are initialized by ReadClosure.
-    HeapShared::finalize_initialization(static_mapinfo);
-    Universe::load_archived_object_instances();
-  }
+  // Heap initialization can be done only after vtables are initialized by ReadClosure.
+  HeapShared::finalize_initialization(static_mapinfo);
+  Universe::load_archived_object_instances();
 
   AOTCodeCache::initialize();
 
