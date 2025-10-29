@@ -212,10 +212,9 @@ protected:
   // Default implementation does nothing.
   virtual void print_tracing_info() const = 0;
 
+ public:
   // Stop any onging concurrent work and prepare for exit.
   virtual void stop() = 0;
-
- public:
 
   static inline size_t filler_array_max_size() {
     return _filler_array_max_size;
@@ -250,7 +249,7 @@ protected:
 
   static bool is_shutting_down();
 
-  void before_exit();
+  void initiate_shutdown();
 
   // Stop and resume concurrent GC threads interfering with safepoint operations
   virtual void safepoint_synchronize_begin() {}
