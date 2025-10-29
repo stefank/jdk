@@ -476,6 +476,15 @@ void before_exit(JavaThread* thread, bool halt) {
 
   NativeHeapTrimmer::cleanup();
 
+  if (JvmtiExport::should_post_thread_life()) {
+    JvmtiExport::post_thread_end(thread);
+  }
+
+  // Always call even when there are not JVMTI environments yet, since environments
+  // may be attached late and JVMTI must track phases of VM execution
+  JvmtiExport::post_vm_death();
+  JvmtiAgentList::unload_agents();
+
   // Run before exit and then stop concurrent GC threads
   Universe::before_exit();
 
@@ -491,15 +500,6 @@ void before_exit(JavaThread* thread, bool halt) {
     MemMapPrinter::print_all_mappings(tty);
   }
 #endif
-
-  if (JvmtiExport::should_post_thread_life()) {
-    JvmtiExport::post_thread_end(thread);
-  }
-
-  // Always call even when there are not JVMTI environments yet, since environments
-  // may be attached late and JVMTI must track phases of VM execution
-  JvmtiExport::post_vm_death();
-  JvmtiAgentList::unload_agents();
 
   // Terminate the signal thread
   // Note: we don't wait until it actually dies.
