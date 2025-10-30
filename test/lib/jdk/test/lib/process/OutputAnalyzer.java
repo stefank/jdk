@@ -33,6 +33,7 @@ import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -147,17 +148,55 @@ public final class OutputAnalyzer {
 
     /**
      * Verify that the stderr contents of output buffer is empty,
+     * after filtering out some lines
+     *
+     * @throws RuntimeException
+     *             If stderr was not empty
+     */
+    public OutputAnalyzer stderrShouldBeEmptyIgnore(String... ignoreRegexStrings) {
+        Pattern[] ignorePattern = new Pattern[ignoreRegexStrings.length];
+        for (int i = 0; i < ignorePattern.length; i++) {
+            ignorePattern[i] = Pattern.compile(ignoreRegexStrings[i]);
+        }
+
+        Predicate<String> isIgnored = (String line) -> {
+            if (line.equals("")) {
+                // Empty lines are always ignored
+                return true;
+            }
+
+            for (Pattern ignore : ignorePattern) {
+                if (ignore.matcher(line).matches()) {
+                    // Ignore this line
+                    return true;
+                }
+            }
+
+            return false;
+        };
+
+        for (String line : getStderr().split("\\R")) {
+            if (isIgnored.test(line)) {
+                continue;
+            }
+
+            // The line was not ignored
+            reportDiagnosticSummary();
+            throw new RuntimeException("stderr was not empty - line: " + line);
+        }
+
+        return this;
+    }
+
+    /**
+     * Verify that the stderr contents of output buffer is empty,
      * after filtering out the Hotspot warning messages
      *
      * @throws RuntimeException
      *             If stderr was not empty
      */
     public OutputAnalyzer stderrShouldBeEmptyIgnoreVMWarnings() {
-        if (!getStderr().replaceAll(jvmwarningmsg + "\\R", "").isEmpty()) {
-            reportDiagnosticSummary();
-            throw new RuntimeException("stderr was not empty");
-        }
-        return this;
+        return stderrShouldBeEmptyIgnore(jvmwarningmsg);
     }
 
     /**
@@ -168,11 +207,7 @@ public final class OutputAnalyzer {
      *             If stderr was not empty
      */
     public OutputAnalyzer stderrShouldBeEmptyIgnoreWarnings() {
-        if (!getStderr().replaceAll("(?i).*warning.*\\R", "").isEmpty()) {
-            reportDiagnosticSummary();
-            throw new RuntimeException("stderr was not empty");
-        }
-        return this;
+        return stderrShouldBeEmptyIgnore("(?i).*warning.*");
     }
 
     /**
@@ -183,11 +218,7 @@ public final class OutputAnalyzer {
      *             If stderr was not empty
      */
     public OutputAnalyzer stderrShouldBeEmptyIgnoreDeprecatedWarnings() {
-        if (!getStderrNoDeprecatedWarnings().isEmpty()) {
-            reportDiagnosticSummary();
-            throw new RuntimeException("stderr was not empty");
-        }
-        return this;
+        return stderrShouldBeEmptyIgnore(VM_DEPRECATED_MSG, OTHER_DEPRECATED_MSG);
     }
 
     /**

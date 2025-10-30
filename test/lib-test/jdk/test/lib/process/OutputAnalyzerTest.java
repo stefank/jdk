@@ -34,7 +34,13 @@ import jdk.test.lib.process.ProcessTools;
 public class OutputAnalyzerTest {
 
     public static void main(String args[]) throws Exception {
+        testStderrShouldBeEmptyIgnore();
+        testStderrShouldBeEmptyIgnoreWithEmptyString();
+        testStderrShouldBeEmptyIgnoreWithNewline();
+        testOverall();
+    }
 
+    private static void testOverall() throws Exception {
         String stdout = "aaaaaa";
         String stderr = "bbbbbb";
         String nonExistingString = "cccc";
@@ -242,6 +248,79 @@ public class OutputAnalyzerTest {
                 }
             }
         }
+    }
+
+    private static void testStderrShouldBeEmptyIgnore() {
+        String stdout = "some stdoutput";
+        String stderr = "Java VM warning: something is deprecated right now\n"
+                      + "Java VM warning: something went wrong";
+
+        OutputAnalyzer output = new OutputAnalyzer(stdout, stderr);
+
+        // Ignore everything
+        output.stderrShouldBeEmptyIgnore(".*");
+
+        // Ignore warnings
+        output.stderrShouldBeEmptyIgnore(".*VM warning:.*");
+
+        output.stderrShouldBeEmptyIgnore(".*non-matching pattern.*",
+                                         ".*VM warning:.*");
+
+        output.stderrShouldBeEmptyIgnore(".*VM warning:.*",
+                                         ".*non-matching pattern.*");
+
+
+        // Test negative case with one ignored line
+        try {
+            output.stderrShouldBeEmptyIgnore(".*deprecated.*");
+            throw new RuntimeException("Should have thrown an exception");
+        } catch (Exception e) {
+            // Succcess
+        }
+
+        // Test negative case with no ignored line
+        try {
+            output.stderrShouldBeEmptyIgnore(".*obsoleted.*");
+            throw new RuntimeException("Should have thrown an exception");
+        } catch (Exception e) {
+            // Succcess
+        }
+
+        // Test functions implemented with stderrShouldBeEmptyIgnore 
+        
+        output.stderrShouldBeEmptyIgnoreWarnings();
+        output.stderrShouldBeEmptyIgnoreVMWarnings();
+
+        try {
+            output.stderrShouldBeEmptyIgnoreDeprecatedWarnings();        
+            throw new RuntimeException("Should have thrown exception");
+        } catch (Exception e) { 
+            // Success
+        }
+    }
+
+    private static void testStderrShouldBeEmptyIgnoreWithEmptyString() {
+        String stdout = "some stdout";
+        String stderr = "";
+
+        OutputAnalyzer output = new OutputAnalyzer(stdout, stderr);
+
+        output.stderrShouldBeEmptyIgnore(".*");
+        output.stderrShouldBeEmptyIgnoreWarnings();
+        output.stderrShouldBeEmptyIgnoreVMWarnings();
+        output.stderrShouldBeEmptyIgnoreDeprecatedWarnings();        
+    }
+
+    private static void testStderrShouldBeEmptyIgnoreWithNewline() {
+        String stdout = "some stdout";
+        String stderr = "\n";
+
+        OutputAnalyzer output = new OutputAnalyzer(stdout, stderr);
+
+        output.stderrShouldBeEmptyIgnore(".*");
+        output.stderrShouldBeEmptyIgnoreWarnings();
+        output.stderrShouldBeEmptyIgnoreVMWarnings();
+        output.stderrShouldBeEmptyIgnoreDeprecatedWarnings();        
     }
 
 }
