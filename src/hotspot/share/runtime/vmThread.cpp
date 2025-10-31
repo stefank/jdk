@@ -202,10 +202,6 @@ void VMThread::run() {
 
   CompileBroker::set_should_block();
 
-  // wait for threads (compiler threads or daemon threads) in the
-  // _thread_in_native state to block.
-  VM_Exit::wait_for_threads_in_native_to_block();
-
   // The ObjectMonitor subsystem uses perf counters so do this before
   // we signal that the VM thread is gone. We don't want to run afoul
   // of perfMemory_exit() in exit_globals().

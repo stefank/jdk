@@ -251,7 +251,6 @@ class VM_Exit: public VM_Operation {
   VM_Exit(int exit_code) {
     _exit_code = exit_code;
   }
-  static int wait_for_threads_in_native_to_block();
   static int set_vm_exited();
   static bool vm_exited()                      { return _vm_exited; }
   static Thread * shutdown_thread()            { return _shutdown_thread; }

@@ -494,82 +494,6 @@ int VM_Exit::set_vm_exited() {
   return num_active;
 }
 
-int VM_Exit::wait_for_threads_in_native_to_block() {
-  // VM exits at safepoint. This function must be called at the final safepoint
-  // to wait for threads in _thread_in_native state to be quiescent.
-  assert(SafepointSynchronize::is_at_safepoint(), "must be at safepoint already");
-
-  Thread * thr_cur = Thread::current();
-
-  // Compiler threads need longer wait because they can access VM data directly
-  // while in native. If they are active and some structures being used are
-  // deleted by the shutdown sequence, they will crash. On the other hand, user
-  // threads must go through native=>Java/VM transitions first to access VM
-  // data, and they will be stopped during state transition. In theory, we
-  // don't have to wait for user threads to be quiescent, but it's always
-  // better to terminate VM when current thread is the only active thread, so
-  // wait for user threads too.
-
-  // Time per attempt. It is practical to start waiting with 10us delays
-  // (around scheduling delay / timer slack), and exponentially ramp up
-  // to 10ms if compiler threads are not responding.
-  jlong max_wait_time = millis_to_nanos(10);
-  jlong wait_time = 10000;
-
-  jlong start_time = os::javaTimeNanos();
-
-  // Deadline for user threads in native code.
-  // User-settable flag counts "attempts" in 10ms units, to a maximum of 10s.
-  jlong user_threads_deadline = start_time + (UserThreadWaitAttemptsAtExit * millis_to_nanos(10));
-
-  // Deadline for compiler threads: at least 10 seconds.
-  jlong compiler_threads_deadline = start_time + millis_to_nanos(10000);
-
-  JavaThreadIteratorWithHandle jtiwh;
-  while (true) {
-    int num_active = 0;
-    int num_active_compiler_thread = 0;
-
-    jtiwh.rewind();
-    for (; JavaThread *thr = jtiwh.next(); ) {
-      if (thr!=thr_cur && thr->thread_state() == _thread_in_native) {
-        num_active++;
-        if (thr->is_Compiler_thread()) {
-#if INCLUDE_JVMCI
-          CompilerThread* ct = (CompilerThread*) thr;
-          if (ct->compiler() == nullptr || !ct->compiler()->is_jvmci()) {
-            num_active_compiler_thread++;
-          } else {
-            // A JVMCI compiler thread never accesses VM data structures
-            // while in _thread_in_native state so there's no need to wait
-            // for it and potentially add a 300 millisecond delay to VM
-            // shutdown.
-            num_active--;
-          }
-#else
-          num_active_compiler_thread++;
-#endif
-        }
-      }
-    }
-
-    jlong time = os::javaTimeNanos();
-
-    if (num_active == 0) {
-      return 0;
-    }
-    if (time >= compiler_threads_deadline) {
-      return num_active;
-    }
-    if ((num_active_compiler_thread == 0) && (time >= user_threads_deadline)) {
-      return num_active;
-    }
-
-    os::naked_short_nanosleep(wait_time);
-    wait_time = MIN2(max_wait_time, wait_time * 2);
-  }
-}
-
 void VM_Exit::doit() {
 
   if (VerifyBeforeExit) {
@@ -582,13 +506,6 @@ void VM_Exit::doit() {
   }
 
   CompileBroker::set_should_block();
-
-  // Wait for a short period for threads in native to block. Any thread
-  // still executing native code after the wait will be stopped at
-  // native==>Java/VM barriers.
-  // Among 16276 JCK tests, 94% of them come here without any threads still
-  // running in native; the other 6% are quiescent within 250ms (Ultra 80).
-  wait_for_threads_in_native_to_block();
 
   set_vm_exited();
 
