@@ -186,12 +186,14 @@ class os: AllStatic {
     size_t _v; // actually a bitmap.
   public:
     PageSizes() : _v(0) {}
-    void add(size_t pagesize);
-    bool contains(size_t pagesize) const;
+    void add(size_t page_size);
+    bool contains(size_t page_size) const;
     // Given a page size, return the next smaller page size in this set, or 0.
-    size_t next_smaller(size_t pagesize) const;
+    size_t next_smaller(size_t page_size) const;
+    // Given a page size, return the provided or next smaller page size in this set, or 0.
+    size_t matching_or_next_smaller(size_t page_size) const;
     // Given a page size, return the next larger page size in this set, or 0.
-    size_t next_larger(size_t pagesize) const;
+    size_t next_larger(size_t page_size) const;
     // Returns the largest page size in this set, or 0 if set is empty.
     size_t largest() const;
     // Returns the smallest page size in this set, or 0 if set is empty.

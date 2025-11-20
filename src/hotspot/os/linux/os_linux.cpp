@@ -3887,37 +3887,56 @@ void os::Linux::large_page_init() {
     // - os::pagesizes() contains all hugepage sizes the kernel supports, regardless whether there
     //   are pages configured in the pool or not (from /sys/kernel/hugepages/hugepage-xxxx ...)
     os::PageSizes all_large_pages = HugePages::explicit_hugepage_info().pagesizes();
-    const size_t default_large_page_size = HugePages::default_explicit_hugepage_size();
+    const size_t os_default_large_page_size = HugePages::default_explicit_hugepage_size();
 
     // 3) Consistency check and post-processing
 
     size_t large_page_size = 0;
 
-    // Check LargePageSizeInBytes matches an available page size and if so set _large_page_size
-    // using LargePageSizeInBytes as the maximum allowed large page size. If LargePageSizeInBytes
-    // doesn't match an available page size set _large_page_size to default_large_page_size
-    // and use it as the maximum.
-   if (FLAG_IS_DEFAULT(LargePageSizeInBytes) ||
-       LargePageSizeInBytes == 0 ||
-       LargePageSizeInBytes == default_large_page_size) {
-     large_page_size = default_large_page_size;
-     log_info(pagesize)("Using the default large page size: " EXACTFMT,
-                        EXACTFMTARGS(large_page_size));
-    } else {
-      if (all_large_pages.contains(LargePageSizeInBytes)) {
-        large_page_size = LargePageSizeInBytes;
-        log_info(pagesize)("Overriding default large page size (" EXACTFMT ") "
-                           "using LargePageSizeInBytes: " EXACTFMT,
-                           EXACTFMTARGS(default_large_page_size),
-                           EXACTFMTARGS(large_page_size));
-      } else {
-        large_page_size = default_large_page_size;
-        log_info(pagesize)("LargePageSizeInBytes is not a valid large page size (" EXACTFMT ") "
-                           "using the default large page size: " EXACTFMT,
-                           EXACTFMTARGS(LargePageSizeInBytes),
-                           EXACTFMTARGS(large_page_size));
+    if (FLAG_IS_DEFAULT(LargePageSizeInBytes) || LargePageSizeInBytes == 0) {
+      // Default to a reasonably-sized large page.
+      //
+      // Reasons for selecting this value as the upper limit:
+      //  - 2M large pages is commonly available
+      //  - Higher values can interact badly with heap sizing values
+      const size_t reasonably_sized = 2 * M;
+
+      large_page_size = all_large_pages.matching_or_next_smaller(reasonably_sized);
+
+      if (large_page_size == 0) {
+        // No resonably-sized large pages
+
+        if (all_large_pages.next_larger(reasonably_sized) != 0) {
+          // Larger page sizes are configured in the OS
+          log_warning(pagesize)("Large pages above " EXACTFMT
+                                " needs to be explicitly enabled with -XX:LargePageSizeInBytes",
+                                EXACTFMTARGS(reasonably_sized));
+        }
+
+        // Turn off large pages
+        warn_no_large_pages_configured();
+        UseLargePages = false;
+        return;
+      }
+
+    } else { // User-provided upper limit for the large page size
+      large_page_size = all_large_pages.matching_or_next_smaller(LargePageSizeInBytes);
+
+      if (large_page_size == 0) {
+        // No matching large page sizes
+
+        log_warning(pagesize)("The provided LargePageSizeInBytes: " EXACTFMT
+                              " does not match any configured large page sizes",
+                              EXACTFMTARGS(LargePageSizeInBytes));
+
+        warn_no_large_pages_configured();
+        UseLargePages = false;
+        return;
       }
     }
+
+    log_info(pagesize)("Setting large page size: " EXACTFMT,
+                       EXACTFMTARGS(large_page_size));
 
     // Do an additional sanity check to see if we can use the desired large page size
     if (!hugetlbfs_sanity_check(large_page_size)) {

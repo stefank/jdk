@@ -2463,6 +2463,14 @@ size_t os::PageSizes::next_smaller(size_t page_size) const {
   return round_down_power_of_2(v2);
 }
 
+size_t os::PageSizes::matching_or_next_smaller(size_t page_size) const {
+  assert(is_power_of_2(page_size), "page_size must be a power of 2: 0x%zx", page_size);
+  if (contains(page_size)) {
+    return page_size;
+  }
+  return next_smaller(page_size);
+}
+
 size_t os::PageSizes::next_larger(size_t page_size) const {
   assert(is_power_of_2(page_size), "page_size must be a power of 2: 0x%zx", page_size);
   if (page_size == max_power_of_2<size_t>()) { // Shift by 32/64 would be UB
