@@ -3814,6 +3814,76 @@ void os::large_page_init() {
   Linux::large_page_init();
 }
 
+static size_t select_preferred_explicit_huge_pages_size() {
+  const os::PageSizes all_sizes = HugePages::explicit_hugepage_info().pagesizes();
+  const size_t os_default = HugePages::default_explicit_hugepage_size();
+
+  if (!FLAG_IS_DEFAULT(LargePageSizeInBytes) && LargePageSizeInBytes != 0) {
+    // User-provided upper limit for the large page size
+    const size_t size = all_sizes.matching_or_next_smaller(LargePageSizeInBytes);
+
+    if (size == 0) {
+      // No matching large page sizes
+      log_warning(pagesize)("The provided LargePageSizeInBytes: " EXACTFMT
+          " does not match any configured large page sizes",
+          EXACTFMTARGS(LargePageSizeInBytes));
+    }
+
+    return size;
+  }
+
+  // Let the JVM choose the selected large page size
+
+  // Default to a reasonably-sized large page
+  //
+  // Reasons for selecting this value as the upper limit:
+  //  - 2M large pages is commonly available
+  //  - Higher values can interact badly with heap sizing values
+  const size_t reasonably_sized = 2 * M;
+
+  const size_t size = all_sizes.matching_or_next_smaller(reasonably_sized);
+
+  if (size != 0) {
+    // Found a reasonably-sized large page size
+
+    if (os_default > size) {
+      // The default is different from what we've chosen
+      log_warning(pagesize)("Ignoring system default large page size of " EXACTFMT "."
+          " Using " EXACTFMT " instead. Explicitly enable larger sizes"
+          " with -XX:LargePageSizeInBytes",
+          EXACTFMTARGS(os_default), EXACTFMTARGS(size));
+    }
+
+    return size;
+  }
+
+  // No resonably-sized large page sizes
+
+  if (all_sizes.next_larger(reasonably_sized) != 0) {
+    // Larger page sizes are configured in the OS
+    log_warning(pagesize)("Large pages above " EXACTFMT
+        " needs to be explicitly enabled with -XX:LargePageSizeInBytes",
+        EXACTFMTARGS(reasonably_sized));
+  } else {
+    warn_no_large_pages_configured();
+  }
+
+  return 0;
+}
+
+static os::PageSizes explicit_huge_page_sizes_at_or_below(size_t upper_limit) {
+  const os::PageSizes all_sizes = HugePages::explicit_hugepage_info().pagesizes();
+  os::PageSizes result;
+
+  for (size_t current = all_sizes.matching_or_next_smaller(upper_limit);
+       current != 0;
+       current = all_sizes.next_smaller(current)) {
+    result.add(current);
+  }
+
+  return result;
+}
+
 void os::Linux::large_page_init() {
   LargePageInitializationLoggerMark logger;
 
@@ -3881,78 +3951,31 @@ void os::Linux::large_page_init() {
     UseLargePages = true;
 
   } else {
-
     // In explicit hugepage mode:
-    // - os::large_page_size() is the default explicit hugepage size (/proc/meminfo "Hugepagesize")
-    // - os::pagesizes() contains all hugepage sizes the kernel supports, regardless whether there
-    //   are pages configured in the pool or not (from /sys/kernel/hugepages/hugepage-xxxx ...)
-    os::PageSizes all_large_pages = HugePages::explicit_hugepage_info().pagesizes();
-    const size_t os_default_large_page_size = HugePages::default_explicit_hugepage_size();
+    // - os::large_page_size() is the JVM or user selected preferred explicit hugepage size
+    // - os::pagesizes() contains the hugepage sizes the kernel supports up to the selected preferred hugepage size,
+    //   regardless whether there are pages configured in the pool or not (from /sys/kernel/hugepages/hugepage-xxxx ...)
 
-    // 3) Consistency check and post-processing
+    const size_t selected_size = select_preferred_explicit_huge_pages_size();
 
-    size_t large_page_size = 0;
-
-    if (FLAG_IS_DEFAULT(LargePageSizeInBytes) || LargePageSizeInBytes == 0) {
-      // Default to a reasonably-sized large page.
-      //
-      // Reasons for selecting this value as the upper limit:
-      //  - 2M large pages is commonly available
-      //  - Higher values can interact badly with heap sizing values
-      const size_t reasonably_sized = 2 * M;
-
-      large_page_size = all_large_pages.matching_or_next_smaller(reasonably_sized);
-
-      if (large_page_size == 0) {
-        // No resonably-sized large pages
-
-        if (all_large_pages.next_larger(reasonably_sized) != 0) {
-          // Larger page sizes are configured in the OS
-          log_warning(pagesize)("Large pages above " EXACTFMT
-                                " needs to be explicitly enabled with -XX:LargePageSizeInBytes",
-                                EXACTFMTARGS(reasonably_sized));
-        }
-
-        // Turn off large pages
-        warn_no_large_pages_configured();
-        UseLargePages = false;
-        return;
-      }
-
-    } else { // User-provided upper limit for the large page size
-      large_page_size = all_large_pages.matching_or_next_smaller(LargePageSizeInBytes);
-
-      if (large_page_size == 0) {
-        // No matching large page sizes
-
-        log_warning(pagesize)("The provided LargePageSizeInBytes: " EXACTFMT
-                              " does not match any configured large page sizes",
-                              EXACTFMTARGS(LargePageSizeInBytes));
-
-        warn_no_large_pages_configured();
-        UseLargePages = false;
-        return;
-      }
+    if (selected_size == 0) {
+      // Turn off large pages - no selected large page sizes
+      UseLargePages = false;
+      return;
     }
 
     log_info(pagesize)("Setting large page size: " EXACTFMT,
-                       EXACTFMTARGS(large_page_size));
+                       EXACTFMTARGS(selected_size));
 
     // Do an additional sanity check to see if we can use the desired large page size
-    if (!hugetlbfs_sanity_check(large_page_size)) {
+    if (!hugetlbfs_sanity_check(selected_size)) {
       warn_no_large_pages_configured();
       UseLargePages = false;
       return;
     }
 
-    _large_page_size = large_page_size;
-
-    // Populate _page_sizes with large page sizes less than or equal to
-    // _large_page_size.
-    for (size_t page_size = _large_page_size; page_size != 0;
-           page_size = all_large_pages.next_smaller(page_size)) {
-      _page_sizes.add(page_size);
-    }
+    _large_page_size = selected_size;
+    _page_sizes = explicit_huge_page_sizes_at_or_below(selected_size);
   }
 
   set_coredump_filter(LARGEPAGES_BIT);
