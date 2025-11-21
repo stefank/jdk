@@ -3976,6 +3976,7 @@ void os::Linux::large_page_init() {
 
     _large_page_size = selected_size;
     _page_sizes = explicit_huge_page_sizes_at_or_below(selected_size);
+    _page_sizes.add(os::vm_page_size());
   }
 
   set_coredump_filter(LARGEPAGES_BIT);
