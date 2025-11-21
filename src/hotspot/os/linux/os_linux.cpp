@@ -3769,7 +3769,7 @@ struct LargePageInitializationLoggerMark {
         ls.print_cr("UseLargePages=1, UseTransparentHugePages=%d", UseTransparentHugePages);
         ls.print("Large page support enabled. Usable page sizes: ");
         os::page_sizes().print_on(&ls);
-        ls.print_cr(". Default large page size: " EXACTFMT ".", EXACTFMTARGS(os::large_page_size()));
+        ls.print_cr(". Preferred large page size: " EXACTFMT ".", EXACTFMTARGS(os::large_page_size()));
       } else {
         ls.print("Large page support %sdisabled.", uses_zgc_shmem_thp() ? "partially " : "");
       }
