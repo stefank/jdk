@@ -34,6 +34,9 @@
 #if INCLUDE_PARALLELGC
 #include "gc/parallel/jvmFlagConstraintsParallel.hpp"
 #endif
+#if INCLUDE_SHENANDOAHGC
+#include "gc/shenandoah/jvmFlagConstraintsShenandoah.hpp"
+#endif
 
 /*
  * Here we have GC arguments constraints functions, which are called automatically
@@ -72,9 +75,10 @@ SHARED_GC_CONSTRAINTS(DECLARE_CONSTRAINT)
 
 JVMFlag::Error MaxPLABSizeBounds(const char* name, size_t value, bool verbose);
 
-#define GC_CONSTRAINTS(f)                      \
-  SHARED_GC_CONSTRAINTS(f)                     \
-  G1GC_ONLY(G1_GC_CONSTRAINTS(f))              \
-  PARALLELGC_ONLY(PARALLEL_GC_CONSTRAINTS(f))
+#define GC_CONSTRAINTS(f)                          \
+  SHARED_GC_CONSTRAINTS(f)                         \
+  G1GC_ONLY(G1_GC_CONSTRAINTS(f))                  \
+  PARALLELGC_ONLY(PARALLEL_GC_CONSTRAINTS(f))      \
+  SHENANDOAHGC_ONLY(SHENANDOAH_GC_CONSTRAINTS(f))
 
 #endif // SHARE_GC_SHARED_JVMFLAGCONSTRAINTSGC_HPP

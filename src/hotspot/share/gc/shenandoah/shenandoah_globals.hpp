@@ -139,6 +139,7 @@
   product(size_t, ShenandoahMaxRegionSize, 32 * M, EXPERIMENTAL,            \
           "With automatic region sizing, the regions would be at most "     \
           "this large.")                                                    \
+          constraint(ShenandoahMaxRegionSizeConstraintFunc, AtParse)        \
                                                                             \
   product(ccstr, ShenandoahGCMode, "satb",                                  \
           "GC mode to use.  Among other things, this defines which "        \
