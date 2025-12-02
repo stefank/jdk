@@ -33,6 +33,8 @@
 
 class GenerationCounters: public CHeapObj<mtGC> {
   PerfVariable*      _current_size;
+  const size_t _min_capacity;
+  const size_t _max_capacity;
 
   // Constant PerfData types don't need to retain a reference.
   // However, it's a good idea to document them here.

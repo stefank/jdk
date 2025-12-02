@@ -92,6 +92,8 @@ jint ParallelScavengeHeap::initialize() {
   // Set up WorkerThreads
   _workers.initialize_workers();
 
+  assert(MinOldSize <= OldSize, "MinOldSize: %zu OldSize: %zu", MinOldSize, OldSize);
+
   // Create and initialize the generations.
   _young_gen = new PSYoungGen(
       young_rs,

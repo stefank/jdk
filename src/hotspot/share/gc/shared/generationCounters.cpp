@@ -23,6 +23,7 @@
  */
 
 #include "gc/shared/generationCounters.hpp"
+#include "logging/log.hpp"
 #include "memory/allocation.inline.hpp"
 #include "memory/resourceArea.hpp"
 #include "memory/virtualspace.hpp"
@@ -31,7 +32,13 @@
 GenerationCounters::GenerationCounters(const char* name,
                                        int ordinal, int spaces,
                                        size_t min_capacity, size_t max_capacity,
-                                       size_t curr_capacity) {
+                                       size_t curr_capacity)
+  : _min_capacity(min_capacity),
+    _max_capacity(max_capacity) {
+
+  assert(min_capacity <= curr_capacity, "min_capacity: %zu curr_capacity: %zu", min_capacity, curr_capacity);
+  log_info(gc, init)("GenerationCounters(min: %zu, curr: %zu, max: %zu)", min_capacity, curr_capacity, max_capacity);
+
   if (UsePerfData) {
     EXCEPTION_MARK;
     ResourceMark rm;
@@ -68,6 +75,8 @@ GenerationCounters::~GenerationCounters() {
 }
 
 void GenerationCounters::update_capacity(size_t curr_capacity) {
+  assert(_min_capacity <= curr_capacity, "min: %zu, curr: %zu", _min_capacity, curr_capacity);
+  assert(curr_capacity <= _max_capacity, "curr: %zu, max: %zu", curr_capacity, _max_capacity);
   _current_size->set_value(curr_capacity);
 }
 

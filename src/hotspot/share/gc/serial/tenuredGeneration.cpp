@@ -123,8 +123,13 @@ void TenuredGeneration::shrink(size_t bytes) {
     return;
   }
 
+  size_t left = _virtual_space.committed_size() - size;
+  assert(MinOldSize <= left, "min: %zu, left: %zu", MinOldSize, left);
+
   // Shrink committed space
   _virtual_space.shrink_by(size);
+  assert(MinOldSize <= _virtual_space.committed_size(), "min: %zu, com: %zu", MinOldSize, _virtual_space.committed_size());
+
   // Shrink space; this also shrinks the space's BOT
   space()->set_end((HeapWord*) _virtual_space.high());
   size_t new_word_size = heap_word_size(space()->capacity());

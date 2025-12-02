@@ -111,6 +111,8 @@ void PSOldGen::initialize_work() {
 
 void PSOldGen::initialize_performance_counters() {
   const char* perf_data_name = "old";
+
+  assert(min_gen_size() <= virtual_space()->committed_size(), "Failed");
   _gen_counters = new GenerationCounters(perf_data_name, 1, 1, min_gen_size(),
                                          max_gen_size(), virtual_space()->committed_size());
   _space_counters = new SpaceCounters(perf_data_name, 0,
@@ -299,6 +301,8 @@ void PSOldGen::shrink(size_t bytes) {
   size_t size = align_down(bytes, virtual_space()->alignment());
   if (size > 0) {
     virtual_space()->shrink_by(bytes);
+    assert(MinOldSize <= virtual_space()->committed_size(), "min: %zu, com: %zu bytes: %zu", MinOldSize, virtual_space()->committed_size(), bytes);
+
     post_resize();
 
     size_t new_mem_size = virtual_space()->committed_size();
