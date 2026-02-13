@@ -44,9 +44,8 @@ class ObjArrayKlass : public ArrayKlass {
  private:
   // If you add a new field that points to any metaspace object, you
   // must add this field to ObjArrayKlass::metaspace_pointers_do().
-  Klass* _bottom_klass;             // The one-dimensional type (InstanceKlass or TypeArrayKlass)
- protected:
   Klass* _element_klass;            // The klass of the elements of this array type
+  Klass* _bottom_klass;             // The one-dimensional type (InstanceKlass or TypeArrayKlass)
   ObjArrayKlass* _next_refined_array_klass;
 
  protected:
