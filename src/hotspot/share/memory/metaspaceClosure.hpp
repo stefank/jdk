@@ -251,6 +251,41 @@ private:
     virtual MetaspaceClosureType type()    const { return as_type(MetaspaceObj::array_type(sizeof(T))); }
   };
 
+  // GARef -- iterate an instance of AOTGrowableArray<T>.
+  template <class T> class GARef : public Ref {
+    AOTGrowableArray<T>** _mpp;
+
+  public:
+    GARef(AOTGrowableArray<T>** mpp, Writability w) : Ref(w), _mpp(mpp) {}
+
+    AOTGrowableArray<T>* dereference() const {
+      return strip_tags(*_mpp);
+    }
+    virtual void** mpp() const {
+      return (void**)_mpp;
+    }
+
+    virtual void metaspace_pointers_do(MetaspaceClosure *it) const {
+      metaspace_pointers_do_at_impl(it, dereference());
+    }
+
+  private:
+    void metaspace_pointers_do_at_impl(MetaspaceClosure *it, AOTGrowableArray<T>* array) const {
+      log_trace(aot)("Iter(GA): %p [%d]", array, array->length());
+      it->push_c_array(array->data_addr(), array->capacity());
+    }
+
+    // Bug or feature?: Why is this using different const?
+    // Copy from ArrayRef
+    virtual bool is_read_only_by_default() const { return true; }
+    // Copy from AOTGrowableArray
+    virtual bool is_read_only_by_default() { return false; }
+
+    virtual bool not_null()                const { return dereference() != nullptr;  }
+    virtual int size()                     const { return (int)heap_word_size(sizeof(*dereference())); }
+    virtual MetaspaceClosureType type()    const { return MetaspaceClosureType::GrowableArrayType; }
+  };
+
   // OtherArrayRef -- iterate an instance of Array<T>, where T does NOT have metaspace_pointer_do().
   // T can be a primitive type, such as int, or a structure. However, we do not scan
   // the fields inside T, so you should not embed any pointers inside T.
@@ -457,6 +492,11 @@ public:
   void push(T** mpp, Writability w = _default) {
     static_assert(HAS_METASPACE_POINTERS_DO(T), "Do not push pointers of arbitrary types");
     push_with_ref<MSORef<T>>(mpp, w);
+  }
+
+  template <typename T>
+  void push(AOTGrowableArray<T>** mpp, Writability w = _default) {
+    push_with_ref<GARef<T>>(mpp, w);
   }
 
   // --- Array<T>

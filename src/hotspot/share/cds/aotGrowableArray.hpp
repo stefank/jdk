@@ -25,8 +25,7 @@
 #ifndef SHARE_AOT_AOTGROWABLEARRAY_HPP
 #define SHARE_AOT_AOTGROWABLEARRAY_HPP
 
-#include <memory/metaspaceClosureType.hpp>
-#include <utilities/growableArray.hpp>
+#include "utilities/growableArray.hpp"
 
 class AOTGrowableArrayHelper {
 public:
@@ -65,12 +64,6 @@ public:
           initial_capacity) {}
 
   AOTGrowableArray() : AOTGrowableArray(0, mtClassShared) {}
-
-  // methods required by MetaspaceClosure
-  void metaspace_pointers_do(MetaspaceClosure* it);
-  int size_in_heapwords() const { return (int)heap_word_size(sizeof(*this)); }
-  MetaspaceClosureType type() const { return MetaspaceClosureType::GrowableArrayType; }
-  static bool is_read_only_by_default() { return false; }
 };
 
 #endif // SHARE_AOT_AOTGROWABLEARRAY_HPP

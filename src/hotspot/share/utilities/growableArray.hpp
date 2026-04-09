@@ -116,13 +116,12 @@ protected:
 
   ~GrowableArrayView() {}
 
-protected:
-  // Used by AOTGrowableArray for MetaspaceClosure support.
+public:
+  // Used by MetaspaceClosure for AOT support.
   E** data_addr() {
     return &_data;
   }
 
-public:
   bool operator==(const GrowableArrayView& rhs) const {
     if (_len != rhs._len)
       return false;

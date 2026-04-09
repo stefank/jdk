@@ -29,9 +29,4 @@
 
 #include "memory/metaspaceClosure.hpp"
 
-template <typename E>
-void AOTGrowableArray<E>::metaspace_pointers_do(MetaspaceClosure* it) {
-  it->push_c_array(AOTGrowableArray<E>::data_addr(), AOTGrowableArray<E>::capacity());
-}
-
 #endif // SHARE_CDS_AOTGROWABLEARRAY_INLINE_HPP
