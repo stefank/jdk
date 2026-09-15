@@ -256,19 +256,6 @@ public final class Unsafe {
 
     private native boolean hasNullMarker0(Object o);
 
-    /* Returns the offset of the null marker of the field,
-    * or -1 if the field doesn't have a null marker
-    */
-
-    public int nullMarkerOffset(Field f) {
-        if (f == null) {
-            throw new NullPointerException();
-        }
-        return nullMarkerOffset0(f);
-    }
-
-    private native int nullMarkerOffset0(Object o);
-
     /**
      * The layout value for a "reference pointer" layout. This is the only
      * value layout values should check against; all other layout values
