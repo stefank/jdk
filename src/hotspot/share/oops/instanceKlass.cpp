@@ -175,9 +175,6 @@ void ValueFieldLayoutInfo::print_on(outputStream* st) const {
 
   st->print("_layout: ");
   LayoutKindHelper::print_on(_kind, st);
-  st->cr();
-
-  st->print("_null_marker_offset: %d", _null_marker_offset);
 }
 
 // A value class is considered naturally atomic if its layout,

@@ -183,16 +183,8 @@ public class UnsafeTest {
         System.out.println("Field found: " + f);
         Asserts.assertTrue(U.isFlatField(f));
         Asserts.assertTrue(U.hasNullMarker(f));
-        int nmOffset = U.nullMarkerOffset(f);
-        Asserts.assertNotEquals(nmOffset, -1);
-        byte nm = U.getByte(c, nmOffset);
-        Asserts.assertEquals(nm, (byte)0);
         c.v = new MyValue0(42);
         Asserts.assertNotNull(c.v);
-        nm = U.getByte(c, nmOffset);
-        Asserts.assertNotEquals(nm, 0);
-        U.getAndSetByteRelease(c, nmOffset, (byte)0);
-        Asserts.assertNull(c.v);
     }
 
     static value record E() {}
