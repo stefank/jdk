@@ -47,14 +47,14 @@ inline ValuePayload::StorageImpl<OopOrHandle>::StorageImpl()
     : _container(nullptr),
       _offset(BAD_OFFSET),
       _klass(nullptr),
-      _layout_kind(LayoutKind::UNKNOWN),
+      _layout_kind(ValuePayloadLayoutKind::UNKNOWN),
       _uses_absolute_addr(false) {}
 
 template <typename OopOrHandle>
 inline ValuePayload::StorageImpl<OopOrHandle>::StorageImpl(OopOrHandle container,
                                                            ptrdiff_t offset,
                                                            ValueKlass* klass,
-                                                           LayoutKind layout_kind)
+                                                           ValuePayloadLayoutKind layout_kind)
     : _container(container),
       _offset(offset),
       _klass(klass),
@@ -64,7 +64,7 @@ inline ValuePayload::StorageImpl<OopOrHandle>::StorageImpl(OopOrHandle container
 template <typename OopOrHandle>
 inline ValuePayload::StorageImpl<OopOrHandle>::StorageImpl(address absolute_addr,
                                                            ValueKlass* klass,
-                                                           LayoutKind layout_kind)
+                                                           ValuePayloadLayoutKind layout_kind)
     : _absolute_addr(absolute_addr),
       _klass(klass),
       _layout_kind(layout_kind),
@@ -154,7 +154,7 @@ inline ValueKlass* ValuePayload::StorageImpl<OopOrHandle>::klass() const {
 }
 
 template <typename OopOrHandle>
-inline LayoutKind ValuePayload::StorageImpl<OopOrHandle>::layout_kind() const {
+inline ValuePayloadLayoutKind ValuePayload::StorageImpl<OopOrHandle>::layout_kind() const {
   return _layout_kind;
 }
 
@@ -166,14 +166,14 @@ inline bool ValuePayload::StorageImpl<OopOrHandle>::uses_absolute_addr() const {
 inline ValuePayload::ValuePayload(oop container,
                                   ptrdiff_t offset,
                                   ValueKlass* klass,
-                                  LayoutKind layout_kind)
+                                  ValuePayloadLayoutKind layout_kind)
     : _storage{container, offset, klass, layout_kind} {
   assert_post_construction_invariants();
 }
 
 inline ValuePayload::ValuePayload(address absolute_addr,
                                   ValueKlass* klass,
-                                  LayoutKind layout_kind)
+                                  ValuePayloadLayoutKind layout_kind)
     : _storage{absolute_addr, klass, layout_kind} {
   assert_post_construction_invariants();
 }
@@ -182,25 +182,54 @@ inline void ValuePayload::set_offset(ptrdiff_t offset) {
   _storage.offset() = offset;
 }
 
+static inline const char* layout_kind_as_string(ValuePayloadLayoutKind vplk) {
+  if (vplk == ValuePayloadLayoutKind::BUFFERED) {
+    return "BUFFERED";
+  }
+  return LayoutKindHelper::layout_kind_as_string(to_layout_kind(vplk));
+}
+
+inline ValuePayloadLayoutKind ValuePayload::get_copy_layout(ValuePayloadLayoutKind src,
+                                                           ValuePayloadLayoutKind dst) {
+  assert(src == dst || src == ValuePayloadLayoutKind::BUFFERED || dst == ValuePayloadLayoutKind::BUFFERED,
+        "Only same or from/to BUFFERED is supported. src: %s, dst: %s",
+        layout_kind_as_string(src), layout_kind_as_string(dst));
+  return src == ValuePayloadLayoutKind::BUFFERED ? dst : src;
+}
+
+inline static size_t layout_size_in_bytes(const ValueKlass* klass, ValuePayloadLayoutKind vplk) {
+  if (vplk == ValuePayloadLayoutKind::BUFFERED) {
+    return klass->payload_size_in_bytes();
+  }
+  return klass->layout_size_in_bytes(to_layout_kind(vplk));
+}
+
+inline int ValuePayload::copy_size_in_bytes(const ValuePayload& src,
+                                            const ValuePayload& dst) {
+  precond(src.klass() == dst.klass());
+  ValuePayloadLayoutKind copy_layout = get_copy_layout(src.layout_kind(), dst.layout_kind());
+  return layout_size_in_bytes(src.klass(), copy_layout);
+}
+
 inline void ValuePayload::copy(const ValuePayload& src,
                                const ValuePayload& dst,
-                               LayoutKind copy_layout_kind) {
+                               ValuePayloadLayoutKind copy_layout_kind) {
   assert_pre_copy_invariants(src, dst, copy_layout_kind);
 
   ValueKlass* const klass = src.klass();
 
   switch (copy_layout_kind) {
-  case LayoutKind::NULLABLE_ATOMIC_FLAT:
-  case LayoutKind::NULLABLE_NON_ATOMIC_FLAT: {
+  case ValuePayloadLayoutKind::NULLABLE_ATOMIC_FLAT:
+  case ValuePayloadLayoutKind::NULLABLE_NON_ATOMIC_FLAT: {
     if (src.is_payload_null()) {
       HeapAccess<>::value_store_null(dst);
     } else {
       HeapAccess<>::value_copy(src, dst);
     }
   } break;
-  case LayoutKind::BUFFERED:
-  case LayoutKind::NULL_FREE_ATOMIC_FLAT:
-  case LayoutKind::NULL_FREE_NON_ATOMIC_FLAT: {
+  case ValuePayloadLayoutKind::BUFFERED:
+  case ValuePayloadLayoutKind::NULL_FREE_ATOMIC_FLAT:
+  case ValuePayloadLayoutKind::NULL_FREE_NON_ATOMIC_FLAT: {
     if (!klass->is_empty_value_type()) {
       HeapAccess<>::value_copy(src, dst);
     }
@@ -267,11 +296,11 @@ inline void ValuePayload::print_on(outputStream* st) const {
     }
   }
   {
-    const LayoutKind layout_kind = _storage.layout_kind();
+    const ValuePayloadLayoutKind layout_kind = _storage.layout_kind();
     st->print_cr("--- layout_kind ---");
     StreamIndentor si(st);
     st->print_cr("_layout_kind: %u", (uint32_t)layout_kind);
-    LayoutKindHelper::print_on(layout_kind, st);
+    ValuePayloadLayoutKindHelper::print_on(layout_kind, st);
     st->cr();
   }
 }
@@ -325,17 +354,16 @@ inline void ValuePayload::assert_post_construction_invariants() const {
     st->cr();
   });
 
-  postcond(layout_kind() != LayoutKind::REFERENCE);
-  postcond(layout_kind() != LayoutKind::UNKNOWN);
-  postcond(klass()->is_layout_supported(layout_kind()));
+  postcond(layout_kind() != ValuePayloadLayoutKind::UNKNOWN);
+  postcond(klass()->is_layout_supported(to_layout_kind(layout_kind())));
 
   if (!uses_absolute_addr()) {
     postcond(container() != nullptr);
     const Klass* const container_klass = container()->klass();
     if (container_klass == klass()) {
-      postcond(layout_kind() == LayoutKind::BUFFERED);
+      postcond(layout_kind() == ValuePayloadLayoutKind::BUFFERED);
     } else {
-      postcond(layout_kind() != LayoutKind::BUFFERED);
+      postcond(layout_kind() != ValuePayloadLayoutKind::BUFFERED);
       if (container_klass->is_mirror_instance_klass()) {
         fatal("java.lang.Class has no flat fields. Static fields are not flattened");
       } else if (container_klass->is_instance_klass()) {
@@ -361,7 +389,7 @@ inline void ValuePayload::assert_post_construction_invariants() const {
 
 inline void ValuePayload::assert_pre_copy_invariants(const ValuePayload& src,
                                                      const ValuePayload& dst,
-                                                     LayoutKind copy_layout_kind) {
+                                                     ValuePayloadLayoutKind copy_layout_kind) {
   OnVMError on_assertion_failuire([&](outputStream* st) {
     st->print_cr("=== assert_post_construction_invariants failure ===");
     StreamIndentor si(st);
@@ -380,7 +408,7 @@ inline void ValuePayload::assert_pre_copy_invariants(const ValuePayload& src,
     {
       st->print_cr("--- copy layout kind ---");
       StreamIndentor si(st);
-      LayoutKindHelper::print_on(copy_layout_kind, st);
+      ValuePayloadLayoutKindHelper::print_on(copy_layout_kind, st);
       st->cr();
     }
   });
@@ -390,8 +418,8 @@ inline void ValuePayload::assert_pre_copy_invariants(const ValuePayload& src,
 
   precond(src_klass == dst_klass);
 
-  const bool src_is_buffered = src.layout_kind() == LayoutKind::BUFFERED;
-  const bool dst_is_buffered = dst.layout_kind() == LayoutKind::BUFFERED;
+  const bool src_is_buffered = src.layout_kind() == ValuePayloadLayoutKind::BUFFERED;
+  const bool dst_is_buffered = dst.layout_kind() == ValuePayloadLayoutKind::BUFFERED;
   const bool src_and_dst_same_layout_kind = src.layout_kind() == dst.layout_kind();
   const bool src_has_copy_layout = src.layout_kind() == copy_layout_kind;
   const bool dst_has_copy_layout = dst.layout_kind() == copy_layout_kind;
@@ -407,8 +435,8 @@ inline void ValuePayload::assert_pre_copy_invariants(const ValuePayload& src,
     precond(!src_klass->supports_nullable_layouts() || container != src_klass->null_reset_value());
   }
 
-  const int src_layout_size_in_bytes = src_klass->layout_size_in_bytes(src.layout_kind());
-  const int dst_layout_size_in_bytes = dst_klass->layout_size_in_bytes(dst.layout_kind());
+  const int src_layout_size_in_bytes = layout_size_in_bytes(src_klass, src.layout_kind());
+  const int dst_layout_size_in_bytes = layout_size_in_bytes(dst_klass, dst.layout_kind());
   const int copy_layout_size_in_bytes =
       src_has_copy_layout
           ? src_layout_size_in_bytes
@@ -416,8 +444,8 @@ inline void ValuePayload::assert_pre_copy_invariants(const ValuePayload& src,
 
   precond(copy_layout_size_in_bytes <= src_layout_size_in_bytes);
   precond(copy_layout_size_in_bytes <= dst_layout_size_in_bytes);
-  precond(LayoutKindHelper::get_copy_layout(src.layout_kind(),
-                                            dst.layout_kind()) == copy_layout_kind);
+  precond(get_copy_layout(src.layout_kind(),
+                          dst.layout_kind()) == copy_layout_kind);
 }
 
 #endif // ASSERT
@@ -431,7 +459,7 @@ inline ptrdiff_t ValuePayload::offset() const {
   return _storage.offset();
 }
 
-inline LayoutKind ValuePayload::layout_kind() const {
+inline ValuePayloadLayoutKind ValuePayload::layout_kind() const {
   return _storage.layout_kind();
 }
 
@@ -442,23 +470,28 @@ inline address ValuePayload::addr() const {
 }
 
 inline bool ValuePayload::has_null_marker() const {
-  return klass()->layout_has_null_marker(layout_kind());
+  return LayoutKindHelper::is_nullable_flat(to_layout_kind(layout_kind())) ||
+         (layout_kind() == ValuePayloadLayoutKind::BUFFERED && klass()->supports_nullable_layouts());
 }
 
 inline bool ValuePayload::is_payload_null() const {
   return has_null_marker() && klass()->is_payload_marked_as_null(addr());
 }
 
+inline bool ValuePayload::is_nullable_flat() const {
+  return LayoutKindHelper::is_nullable_flat(to_layout_kind(layout_kind()));
+}
+
 inline ValuePayload ValuePayload::construct_from_parts(address absolute_addr,
                                                        ValueKlass* klass,
                                                        LayoutKind layout_kind) {
-  return ValuePayload(absolute_addr, klass, layout_kind);
+  return ValuePayload(absolute_addr, klass, to_value_payload_layout_kind(layout_kind));
 }
 
 inline BufferedValuePayload::BufferedValuePayload(valueOop container,
                                                   ptrdiff_t offset,
                                                   ValueKlass* klass,
-                                                  LayoutKind layout_kind)
+                                                  ValuePayloadLayoutKind layout_kind)
     : ValuePayload(container, offset, klass, layout_kind) {}
 
 inline BufferedValuePayload::BufferedValuePayload(valueOop buffer)
@@ -466,21 +499,21 @@ inline BufferedValuePayload::BufferedValuePayload(valueOop buffer)
 
 inline BufferedValuePayload::BufferedValuePayload(valueOop buffer,
                                                   ValueKlass* klass)
-    : ValuePayload(buffer, klass->payload_offset(), klass, LayoutKind::BUFFERED) {}
+    : ValuePayload(buffer, klass->payload_offset(), klass, ValuePayloadLayoutKind::BUFFERED) {}
 
 inline valueOop BufferedValuePayload::container() const {
   return valueOop(ValuePayload::container());
 }
 
 inline void BufferedValuePayload::copy_to(const BufferedValuePayload& dst) {
-  copy(*this, dst, LayoutKind::BUFFERED);
+  copy(*this, dst, ValuePayloadLayoutKind::BUFFERED);
 }
 
 inline FlatValuePayload::FlatValuePayload(oop container,
                                           ptrdiff_t offset,
                                           ValueKlass* klass,
                                           LayoutKind layout_kind)
-    : ValuePayload(container, offset, klass, layout_kind) {}
+    : ValuePayload(container, offset, klass, to_value_payload_layout_kind(layout_kind)) {}
 
 inline valueOop FlatValuePayload::allocate_instance(TRAPS) {
   // Preserve the container oop across the instance allocation.
@@ -532,14 +565,14 @@ inline void FlatValuePayload::copy_to(const FlatValuePayload& dst) {
 
 inline valueOop FlatValuePayload::read(TRAPS) {
   switch (layout_kind()) {
-  case LayoutKind::NULLABLE_ATOMIC_FLAT:
-  case LayoutKind::NULLABLE_NON_ATOMIC_FLAT: {
+  case ValuePayloadLayoutKind::NULLABLE_ATOMIC_FLAT:
+  case ValuePayloadLayoutKind::NULLABLE_NON_ATOMIC_FLAT: {
     if (is_payload_null()) {
       return nullptr;
     }
   } // Fallthrough
-  case LayoutKind::NULL_FREE_ATOMIC_FLAT:
-  case LayoutKind::NULL_FREE_NON_ATOMIC_FLAT: {
+  case ValuePayloadLayoutKind::NULL_FREE_ATOMIC_FLAT:
+  case ValuePayloadLayoutKind::NULL_FREE_NON_ATOMIC_FLAT: {
     valueOop res = allocate_instance(CHECK_NULL);
     BufferedValuePayload dst(res, klass());
     if (!copy_to(dst)) {
@@ -748,7 +781,7 @@ inline ptrdiff_t ValuePayload::Handle::offset() const {
   return _storage.offset();
 }
 
-inline LayoutKind ValuePayload::Handle::layout_kind() const {
+inline ValuePayloadLayoutKind ValuePayload::Handle::layout_kind() const {
   return _storage.layout_kind();
 }
 
@@ -774,7 +807,7 @@ inline ptrdiff_t ValuePayload::OopHandle::offset() const {
   return _storage.offset();
 }
 
-inline LayoutKind ValuePayload::OopHandle::layout_kind() const {
+inline ValuePayloadLayoutKind ValuePayload::OopHandle::layout_kind() const {
   return _storage.layout_kind();
 }
 
@@ -813,7 +846,7 @@ inline FlatValuePayload::Handle::Handle(const FlatValuePayload& payload, JavaThr
     : ValuePayload::Handle(payload, thread) {}
 
 inline FlatValuePayload FlatValuePayload::Handle::operator()() const {
-  return FlatValuePayload(container(), offset(), klass(), layout_kind());
+  return FlatValuePayload(container(), offset(), klass(), to_layout_kind(layout_kind()));
 }
 
 inline FlatValuePayload::Handle FlatValuePayload::make_handle(JavaThread* thread) const {
@@ -824,7 +857,7 @@ inline FlatValuePayload::OopHandle::OopHandle(const FlatValuePayload& payload, O
     : ValuePayload::OopHandle(payload, storage) {}
 
 inline FlatValuePayload FlatValuePayload::OopHandle::operator()() const {
-  return FlatValuePayload(container(), offset(), klass(), layout_kind());
+  return FlatValuePayload(container(), offset(), klass(), to_layout_kind(layout_kind()));
 }
 
 inline FlatValuePayload::OopHandle FlatValuePayload::make_oop_handle(OopStorage* storage) const {
@@ -835,7 +868,7 @@ inline FlatFieldPayload::Handle::Handle(const FlatFieldPayload& payload, JavaThr
     : FlatValuePayload::Handle(payload, thread) {}
 
 inline FlatFieldPayload FlatFieldPayload::Handle::operator()() const {
-  return FlatFieldPayload(container(), offset(), klass(), layout_kind());
+  return FlatFieldPayload(container(), offset(), klass(), to_layout_kind(layout_kind()));
 }
 
 inline instanceOop FlatFieldPayload::Handle::container() const {
@@ -850,7 +883,7 @@ inline FlatFieldPayload::OopHandle::OopHandle(const FlatFieldPayload& payload, O
     : FlatValuePayload::OopHandle(payload, storage) {}
 
 inline FlatFieldPayload FlatFieldPayload::OopHandle::operator()() const {
-  return FlatFieldPayload(container(), offset(), klass(), layout_kind());
+  return FlatFieldPayload(container(), offset(), klass(), to_layout_kind(layout_kind()));
 }
 
 inline instanceOop FlatFieldPayload::OopHandle::container() const {
@@ -868,7 +901,7 @@ inline FlatArrayPayload FlatArrayPayload::Handle::operator()() const {
   return FlatArrayPayload(container(),
                           offset(),
                           klass(),
-                          layout_kind(),
+                          to_layout_kind(layout_kind()),
                           _storage._layout_helper,
                           _storage._element_size);
 }
@@ -889,7 +922,7 @@ inline FlatArrayPayload FlatArrayPayload::OopHandle::operator()() const {
   return FlatArrayPayload(container(),
                           offset(),
                           klass(),
-                          layout_kind(),
+                          to_layout_kind(layout_kind()),
                           _storage._layout_helper,
                           _storage._element_size);
 }

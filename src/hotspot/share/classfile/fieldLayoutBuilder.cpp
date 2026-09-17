@@ -126,7 +126,6 @@ static bool field_is_inlineable(FieldInfo fieldinfo, LayoutKind lk, Array<ValueF
   }
 
   if (lk != LayoutKind::REFERENCE) {
-    assert(lk != LayoutKind::BUFFERED, "Sanity check");
     assert(lk != LayoutKind::UNKNOWN, "Sanity check");
     // We've chosen a layout that isn't a normal reference
     return true;
@@ -874,7 +873,7 @@ int FieldLayoutBuilder::add_field_to_group(FieldInfo fieldinfo, int idx, FieldGr
     }
 
     assert(group != _static_fields, "Static fields are not flattened");
-    assert(lk != LayoutKind::BUFFERED && lk != LayoutKind::UNKNOWN,
+    assert(lk != LayoutKind::UNKNOWN,
            "Invalid layout kind for flat field: %s", LayoutKindHelper::layout_kind_as_string(lk));
 
     const int field_index = (int)fieldinfo.index();
@@ -1609,7 +1608,7 @@ void FieldLayoutBuilder::epilogue() {
     st.print_cr("Instance size = %d bytes", _info->_instance_size * wordSize);
     if (_is_concrete_value) {
       st.print_cr("First field offset = %d", _payload_offset);
-      st.print_cr("%s layout: %d/%d", LayoutKindHelper::layout_kind_as_string(LayoutKind::BUFFERED),
+      st.print_cr("BUFFERED layout: %d/%d",
                   _payload_size_in_bytes, _payload_alignment);
       if (has_null_free_non_atomic_flat_layout()) {
         st.print_cr("%s layout: %d/%d",

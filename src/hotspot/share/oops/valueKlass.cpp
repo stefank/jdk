@@ -524,6 +524,10 @@ void ValueKlass::print_on(outputStream* st) const {
   InstanceKlass::print_on(st);
   members().print_on(st);
   st->print_cr(BULLET"---- LayoutKinds:");
+  auto print_buffered_layout = [&]() {
+    st->print_cr(BULLET"BUFFERED layout %d/%d",
+                 payload_size_in_bytes(), payload_alignment());
+  };
   auto print_layout_kind = [&](LayoutKind lk) {
     if (is_layout_supported(lk)) {
       st->print_cr(BULLET"%s layout: %d/%d",
@@ -534,7 +538,7 @@ void ValueKlass::print_on(outputStream* st) const {
                    LayoutKindHelper::layout_kind_as_string(lk));
     }
   };
-  print_layout_kind(LayoutKind::BUFFERED);
+  print_buffered_layout();
   print_layout_kind(LayoutKind::NULL_FREE_NON_ATOMIC_FLAT);
   print_layout_kind(LayoutKind::NULL_FREE_ATOMIC_FLAT);
   print_layout_kind(LayoutKind::NULLABLE_ATOMIC_FLAT);

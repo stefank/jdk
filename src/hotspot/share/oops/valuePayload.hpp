@@ -41,6 +41,41 @@ class JavaThread;
 class outputStream;
 class ResolvedFieldEntry;
 
+enum class ValuePayloadLayoutKind : uint32_t {
+  //REFERENCE                 = (int)LayoutKind::REFERENCE,
+  BUFFERED                  = 1,    // layout used in heap allocated standalone instances
+  NULL_FREE_NON_ATOMIC_FLAT = (int)LayoutKind::NULL_FREE_NON_ATOMIC_FLAT,
+  NULL_FREE_ATOMIC_FLAT     = (int)LayoutKind::NULL_FREE_ATOMIC_FLAT,
+  NULLABLE_ATOMIC_FLAT      = (int)LayoutKind::NULLABLE_ATOMIC_FLAT,
+  NULLABLE_NON_ATOMIC_FLAT  = (int)LayoutKind::NULLABLE_NON_ATOMIC_FLAT,
+  UNKNOWN                   = (int)LayoutKind::UNKNOWN
+};
+
+inline bool operator==(LayoutKind lk, ValuePayloadLayoutKind vplk) {
+  return (int)lk == (int)vplk;
+}
+
+inline LayoutKind to_layout_kind(ValuePayloadLayoutKind vplk) {
+  assert(vplk != ValuePayloadLayoutKind::BUFFERED, "Can't convert with this value");
+  return LayoutKind((int)vplk);
+}
+
+inline ValuePayloadLayoutKind to_value_payload_layout_kind(LayoutKind lk) {
+  assert(lk != LayoutKind::REFERENCE, "Can't convert with this value");
+  return ValuePayloadLayoutKind((int)lk);
+}
+
+class ValuePayloadLayoutKindHelper {
+public:
+  static void print_on(ValuePayloadLayoutKind layout_kind, outputStream* st) {
+    if (layout_kind == ValuePayloadLayoutKind::BUFFERED) {
+      st->print("LayoutKind: BUFFERED");
+    } else {
+      LayoutKindHelper::print_on((LayoutKind)(int)layout_kind, st);
+    }
+  }
+};
+
 class ValuePayload {
 private:
   template <typename OopOrHandle> class StorageImpl {
@@ -53,7 +88,7 @@ private:
       address _absolute_addr;
     };
     ValueKlass* _klass;
-    LayoutKind _layout_kind;
+    ValuePayloadLayoutKind _layout_kind;
     bool _uses_absolute_addr;
 
   public:
@@ -61,10 +96,10 @@ private:
     inline StorageImpl(OopOrHandle container,
                        ptrdiff_t offset,
                        ValueKlass* klass,
-                       LayoutKind layout_kind);
+                       ValuePayloadLayoutKind layout_kind);
     inline StorageImpl(address absolute_addr,
                        ValueKlass* klass,
-                       LayoutKind layout_kind);
+                       ValuePayloadLayoutKind layout_kind);
     inline ~StorageImpl();
     inline StorageImpl(const StorageImpl& other);
     inline StorageImpl& operator=(const StorageImpl& other);
@@ -80,7 +115,7 @@ private:
 
     inline ValueKlass* klass() const;
 
-    inline LayoutKind layout_kind() const;
+    inline ValuePayloadLayoutKind layout_kind() const;
 
     inline bool uses_absolute_addr() const;
   };
@@ -100,18 +135,21 @@ protected:
   inline ValuePayload(oop container,
                       ptrdiff_t offset,
                       ValueKlass* klass,
-                      LayoutKind layout_kind);
+                      ValuePayloadLayoutKind layout_kind);
 
   // Constructed from parts absolute_addr
   inline ValuePayload(address absolute_addr,
                       ValueKlass* klass,
-                      LayoutKind layout_kind);
+                      ValuePayloadLayoutKind layout_kind);
 
   inline void set_offset(ptrdiff_t offset);
 
+  static inline ValuePayloadLayoutKind get_copy_layout(ValuePayloadLayoutKind src,
+                                                       ValuePayloadLayoutKind dst);
+
   static inline void copy(const ValuePayload& src,
                           const ValuePayload& dst,
-                          LayoutKind copy_layout_kind);
+                          ValuePayloadLayoutKind copy_layout_kind);
 
   inline void mark_as_non_null();
   inline void mark_as_null();
@@ -128,17 +166,21 @@ private:
   inline void assert_post_construction_invariants() const NOT_DEBUG_RETURN;
   static inline void assert_pre_copy_invariants(const ValuePayload& src,
                                                 const ValuePayload& dst,
-                                                LayoutKind copy_layout_kind) NOT_DEBUG_RETURN;
+                                                ValuePayloadLayoutKind copy_layout_kind) NOT_DEBUG_RETURN;
 
 public:
   inline ValueKlass* klass() const;
   inline ptrdiff_t offset() const;
-  inline LayoutKind layout_kind() const;
+  inline ValuePayloadLayoutKind layout_kind() const;
 
   inline address addr() const;
 
   inline bool has_null_marker() const;
   inline bool is_payload_null() const;
+  inline bool is_nullable_flat() const;
+
+  static inline int copy_size_in_bytes(const ValuePayload& src,
+                                       const ValuePayload& dst);
 
   class Handle;
   class OopHandle;
@@ -155,7 +197,7 @@ private:
   inline BufferedValuePayload(valueOop container,
                               ptrdiff_t offset,
                               ValueKlass* klass,
-                              LayoutKind layout_kind);
+                              ValuePayloadLayoutKind layout_kind);
 
 public:
   BufferedValuePayload() = default;
@@ -308,7 +350,7 @@ public:
 
   inline ValueKlass* klass() const;
   inline ptrdiff_t offset() const;
-  inline LayoutKind layout_kind() const;
+  inline ValuePayloadLayoutKind layout_kind() const;
 };
 
 class ValuePayload::OopHandle {
@@ -331,7 +373,7 @@ public:
 
   inline ValueKlass* klass() const;
   inline ptrdiff_t offset() const;
-  inline LayoutKind layout_kind() const;
+  inline ValuePayloadLayoutKind layout_kind() const;
 };
 
 class BufferedValuePayload::Handle : public ValuePayload::Handle {

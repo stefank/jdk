@@ -287,7 +287,7 @@ void FlatArrayKlass::copy_array(arrayOop s, int src_pos,
           src_payload = src_payload_handle();
           dst_payload = dst_payload_handle();
 
-          const bool dst_is_null_restricted = !LayoutKindHelper::is_nullable_flat(dst_payload.layout_kind());
+          const bool dst_is_null_restricted = !dst_payload.is_nullable_flat();
 
           // fsk->layout_kind() != fdk->layout_kind() implies that s != d, which
           // means that the copy is disjoint and we do not need to worry about
