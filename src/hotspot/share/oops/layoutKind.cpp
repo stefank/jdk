@@ -27,10 +27,6 @@
 
 const char* LayoutKindHelper::layout_kind_as_string(LayoutKind lk) {
   switch(lk) {
-    case LayoutKind::REFERENCE:
-      return "REFERENCE";
-    case LayoutKind::BUFFERED:
-      return "BUFFERED";
     case LayoutKind::NULL_FREE_NON_ATOMIC_FLAT:
       return "NULL_FREE_NON_ATOMIC_FLAT";
     case LayoutKind::NULL_FREE_ATOMIC_FLAT:
@@ -39,8 +35,6 @@ const char* LayoutKindHelper::layout_kind_as_string(LayoutKind lk) {
       return "NULLABLE_ATOMIC_FLAT";
     case LayoutKind::NULLABLE_NON_ATOMIC_FLAT:
       return "NULLABLE_NON_ATOMIC_FLAT";
-    case LayoutKind::UNKNOWN:
-      return "UNKNOWN";
     default:
       ShouldNotReachHere();
   }

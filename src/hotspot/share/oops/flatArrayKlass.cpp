@@ -60,14 +60,13 @@
 
 FlatArrayKlass::FlatArrayKlass(Klass* element_klass, Symbol* name, ArrayProperties props, LayoutKind lk)
     : ObjArrayKlass(1, element_klass, name, Kind, props),
-      _layout_kind(lk) {
+      _flat_layout(lk) {
   assert(element_klass->is_value_klass(), "Expected value klass");
   assert(lk != LayoutKind::NULLABLE_NON_ATOMIC_FLAT, "Layout not supported by arrays yet (needs frozen arrays)");
-  assert(LayoutKindHelper::is_flat(lk), "Must be a flat layout");
 
   assert(_class_loader_data == element_klass->class_loader_data(), "Sanity check");
 
-  set_layout_helper(array_layout_helper(ValueKlass::cast(element_klass), lk));
+  set_layout_helper(array_layout_helper(ValueKlass::cast(element_klass), _flat_layout));
   assert(is_array_klass(), "sanity");
   assert(is_flatArray_klass(), "sanity");
 
@@ -159,11 +158,11 @@ oop FlatArrayKlass::multi_allocate(int rank, jint* last_size, TRAPS) {
   ShouldNotReachHere();
 }
 
-jint FlatArrayKlass::array_layout_helper(ValueKlass* vk, LayoutKind lk) {
+jint FlatArrayKlass::array_layout_helper(ValueKlass* vk, FlatLayout fl) {
   BasicType etype = T_FLAT_ELEMENT;
-  int esize = log2i_exact(round_up_power_of_2(vk->layout_size_in_bytes(lk)));
+  int esize = log2i_exact(round_up_power_of_2(vk->layout_size_in_bytes(fl.layout_kind())));
   int hsize = arrayOopDesc::base_offset_in_bytes(etype);
-  bool null_free = !LayoutKindHelper::is_nullable_flat(lk);
+  bool null_free = !fl.is_nullable();
   int lh = Klass::array_layout_helper(_lh_array_tag_flat_value, null_free, hsize, etype, esize);
 
   assert(lh < (int)_lh_neutral_value, "must look like an array layout");
@@ -268,7 +267,7 @@ void FlatArrayKlass::copy_array(arrayOop s, int src_pos,
           }
 
           for (int i = 0; i < length; i++) {
-            HeapAccess<>::value_copy(src_payload, dst_payload);
+            src_payload.copy_to(dst_payload);
             src_payload.advance_index(index_delta);
             dst_payload.advance_index(index_delta);
           }
@@ -287,7 +286,7 @@ void FlatArrayKlass::copy_array(arrayOop s, int src_pos,
           src_payload = src_payload_handle();
           dst_payload = dst_payload_handle();
 
-          const bool dst_is_null_restricted = !LayoutKindHelper::is_nullable_flat(dst_payload.layout_kind());
+          const bool dst_is_null_restricted = !dst_payload.is_nullable_flat();
 
           // fsk->layout_kind() != fdk->layout_kind() implies that s != d, which
           // means that the copy is disjoint and we do not need to worry about

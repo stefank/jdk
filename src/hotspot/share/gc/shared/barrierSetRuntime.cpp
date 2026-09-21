@@ -29,13 +29,13 @@
 #include "utilities/macros.hpp"
 
 JRT_LEAF(void, BarrierSetRuntime::value_copy(address src, address dst, ValueFieldInfo* vfi))
-  ValuePayload src_payload = ValuePayload::construct_from_parts(src, vfi->klass(), vfi->kind());
-  ValuePayload dst_payload = ValuePayload::construct_from_parts(dst, vfi->klass(), vfi->kind());
+  FlatValuePayload src_payload = FlatValuePayload::construct_from_parts(src, vfi->klass(), vfi->flat_layout_kind());
+  FlatValuePayload dst_payload = FlatValuePayload::construct_from_parts(dst, vfi->klass(), vfi->flat_layout_kind());
   HeapAccess<>::value_copy(src_payload, dst_payload);
 JRT_END
 
 JRT_LEAF(void, BarrierSetRuntime::value_copy_is_dest_uninitialized(address src, address dst, ValueFieldInfo* vfi))
-  ValuePayload src_payload = ValuePayload::construct_from_parts(src, vfi->klass(), vfi->kind());
-  ValuePayload dst_payload = ValuePayload::construct_from_parts(dst, vfi->klass(), vfi->kind());
+  FlatValuePayload src_payload = FlatValuePayload::construct_from_parts(src, vfi->klass(), vfi->flat_layout_kind());
+  FlatValuePayload dst_payload = FlatValuePayload::construct_from_parts(dst, vfi->klass(), vfi->flat_layout_kind());
   HeapAccess<IS_DEST_UNINITIALIZED>::value_copy(src_payload, dst_payload);
 JRT_END
