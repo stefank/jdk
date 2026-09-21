@@ -48,24 +48,20 @@ template <typename OopOrHandle>
 inline ValuePayload::StorageImpl<OopOrHandle>::StorageImpl(OopOrHandle container,
                                                            ptrdiff_t offset,
                                                            ValueKlass* klass,
-                                                           bool is_buffered,
-                                                           LayoutKind layout_kind)
+                                                           Layout layout)
     : _container(container),
       _offset(offset),
       _klass(klass),
-      _is_buffered(is_buffered),
-      _layout_kind(layout_kind),
+      _layout(layout),
       _uses_absolute_addr(false) {}
 
 template <typename OopOrHandle>
 inline ValuePayload::StorageImpl<OopOrHandle>::StorageImpl(address absolute_addr,
                                                            ValueKlass* klass,
-                                                           bool is_buffered,
-                                                           LayoutKind layout_kind)
+                                                           Layout layout)
     : _absolute_addr(absolute_addr),
       _klass(klass),
-      _is_buffered(is_buffered),
-      _layout_kind(layout_kind),
+      _layout(layout),
       _uses_absolute_addr(true) {}
 
 template <typename OopOrHandle>
@@ -82,8 +78,7 @@ inline ValuePayload::StorageImpl<OopOrHandle>::~StorageImpl() {
 template <typename OopOrHandle>
 inline ValuePayload::StorageImpl<OopOrHandle>::StorageImpl(const StorageImpl& other)
     : _klass(other._klass),
-      _is_buffered(other._is_buffered),
-      _layout_kind(other._layout_kind),
+      _layout(other._layout),
       _uses_absolute_addr(other._uses_absolute_addr) {
   if (_uses_absolute_addr) {
     _absolute_addr = other._absolute_addr;
@@ -98,8 +93,7 @@ inline ValuePayload::StorageImpl<OopOrHandle>&
 ValuePayload::StorageImpl<OopOrHandle>::operator=(const StorageImpl& other) {
   if (&other != this) {
     _klass = other._klass;
-    _is_buffered = other._is_buffered;
-    _layout_kind = other._layout_kind;
+    _layout = other._layout;
     _uses_absolute_addr = other._uses_absolute_addr;
     if (_uses_absolute_addr) {
       _absolute_addr = other._absolute_addr;
@@ -154,13 +148,8 @@ inline ValueKlass* ValuePayload::StorageImpl<OopOrHandle>::klass() const {
 }
 
 template <typename OopOrHandle>
-inline bool ValuePayload::StorageImpl<OopOrHandle>::is_buffered() const {
-  return _is_buffered;
-}
-
-template <typename OopOrHandle>
-inline LayoutKind ValuePayload::StorageImpl<OopOrHandle>::layout_kind() const {
-  return _layout_kind;
+inline ValuePayload::Layout ValuePayload::StorageImpl<OopOrHandle>::layout() const {
+  return _layout;
 }
 
 template <typename OopOrHandle>
@@ -171,17 +160,15 @@ inline bool ValuePayload::StorageImpl<OopOrHandle>::uses_absolute_addr() const {
 inline ValuePayload::ValuePayload(oop container,
                                   ptrdiff_t offset,
                                   ValueKlass* klass,
-                                  bool is_buffered,
-                                  LayoutKind layout_kind)
-    : _storage{container, offset, klass, is_buffered, layout_kind} {
+                                  Layout layout)
+    : _storage{container, offset, klass, layout} {
   assert_post_construction_invariants();
 }
 
 inline ValuePayload::ValuePayload(address absolute_addr,
                                   ValueKlass* klass,
-                                  bool is_buffered,
-                                  LayoutKind layout_kind)
-    : _storage{absolute_addr, klass, is_buffered, layout_kind} {
+                                  Layout layout)
+    : _storage{absolute_addr, klass, layout} {
   assert_post_construction_invariants();
 }
 
@@ -253,12 +240,16 @@ inline void ValuePayload::print_on(outputStream* st) const {
     }
   }
   {
-    const LayoutKind layout_kind = _storage.layout_kind();
     st->print_cr("--- layout_kind ---");
-    StreamIndentor si(st);
-    st->print_cr("_layout_kind: %u", (uint32_t)layout_kind);
-    LayoutKindHelper::print_on(layout_kind, st);
-    st->cr();
+    if (_storage.layout().is_buffered()) {
+      st->print_cr(" buffered layout");
+    } else {
+      const LayoutKind layout_kind = _storage.layout().layout_kind();
+      StreamIndentor si(st);
+      st->print_cr("_layout_kind: %u", (uint32_t)layout_kind);
+      LayoutKindHelper::print_on(layout_kind, st);
+      st->cr();
+    }
   }
 }
 
@@ -403,11 +394,15 @@ inline ptrdiff_t ValuePayload::offset() const {
 }
 
 inline bool ValuePayload::is_buffered() const {
-  return _storage.is_buffered();
+  return _storage.layout().is_buffered();
+}
+
+inline ValuePayload::Layout ValuePayload::layout() const {
+  return _storage.layout();
 }
 
 inline LayoutKind ValuePayload::layout_kind() const {
-  return _storage.layout_kind();
+  return _storage.layout().layout_kind();
 }
 
 inline address ValuePayload::addr() const {
@@ -466,21 +461,23 @@ inline int ValuePayload::copy_size_in_bytes(const ValuePayload& src, const Value
 inline ValuePayload ValuePayload::construct_from_parts(address absolute_addr,
                                                        ValueKlass* klass,
                                                        LayoutKind layout_kind) {
-  return ValuePayload(absolute_addr, klass, layout_kind == LayoutKind::BUFFERED, layout_kind);
+  return ValuePayload(absolute_addr, klass,
+                      layout_kind == LayoutKind::BUFFERED
+                          ? Layout::buffered()
+                          : Layout::flat(layout_kind));
 }
 
 inline BufferedValuePayload::BufferedValuePayload(valueOop container,
                                                   ptrdiff_t offset,
-                                                  ValueKlass* klass,
-                                                  LayoutKind layout_kind)
-    : ValuePayload(container, offset, klass, true /* is_buffered */, layout_kind) {}
+                                                  ValueKlass* klass)
+    : ValuePayload(container, offset, klass, Layout::buffered()) {}
 
 inline BufferedValuePayload::BufferedValuePayload(valueOop buffer)
     : BufferedValuePayload(buffer, ValueKlass::cast(buffer->klass())) {}
 
 inline BufferedValuePayload::BufferedValuePayload(valueOop buffer,
                                                   ValueKlass* klass)
-    : ValuePayload(buffer, klass->payload_offset(), klass, true /* is_buffered */, LayoutKind::BUFFERED) {}
+    : ValuePayload(buffer, klass->payload_offset(), klass, Layout::buffered()) {}
 
 inline valueOop BufferedValuePayload::container() const {
   return valueOop(ValuePayload::container());
@@ -494,7 +491,7 @@ inline FlatValuePayload::FlatValuePayload(oop container,
                                           ptrdiff_t offset,
                                           ValueKlass* klass,
                                           LayoutKind layout_kind)
-    : ValuePayload(container, offset, klass, false /* is_buffered */, layout_kind) {}
+    : ValuePayload(container, offset, klass, Layout::flat(layout_kind)) {}
 
 inline valueOop FlatValuePayload::allocate_instance(TRAPS) {
   // Preserve the container oop across the instance allocation.
@@ -740,8 +737,7 @@ inline ValuePayload::Handle::Handle(const ValuePayload& payload, JavaThread* thr
     : _storage{::Handle(thread, payload.container()),
                payload.offset(),
                payload.klass(),
-               payload.is_buffered(),
-               payload.layout_kind()} {}
+               payload.layout()} {}
 
 inline oop ValuePayload::Handle::container() const {
   return _storage.container()();
@@ -756,15 +752,14 @@ inline ptrdiff_t ValuePayload::Handle::offset() const {
 }
 
 inline LayoutKind ValuePayload::Handle::layout_kind() const {
-  return _storage.layout_kind();
+  return _storage.layout().layout_kind();
 }
 
 inline ValuePayload::OopHandle::OopHandle(const ValuePayload& payload, OopStorage* storage)
     : _storage{::OopHandle(storage, payload.container()),
                payload.offset(),
                payload.klass(),
-               payload.is_buffered(),
-               payload.layout_kind()} {}
+               payload.layout()} {}
 
 inline oop ValuePayload::OopHandle::container() const {
   return _storage.container().resolve();
@@ -783,14 +778,14 @@ inline ptrdiff_t ValuePayload::OopHandle::offset() const {
 }
 
 inline LayoutKind ValuePayload::OopHandle::layout_kind() const {
-  return _storage.layout_kind();
+  return _storage.layout().layout_kind();
 }
 
 inline BufferedValuePayload::Handle::Handle(const BufferedValuePayload& payload, JavaThread* thread)
     : ValuePayload::Handle(payload, thread) {}
 
 inline BufferedValuePayload BufferedValuePayload::Handle::operator()() const {
-  return BufferedValuePayload(container(), offset(), klass(), layout_kind());
+  return BufferedValuePayload(container(), offset(), klass());
 }
 
 inline valueOop BufferedValuePayload::Handle::container() const {
@@ -806,7 +801,7 @@ inline BufferedValuePayload::OopHandle::OopHandle(const BufferedValuePayload& pa
     : ValuePayload::OopHandle(payload, storage) {}
 
 inline BufferedValuePayload BufferedValuePayload::OopHandle::operator()() const {
-  return BufferedValuePayload(container(), offset(), klass(), layout_kind());
+  return BufferedValuePayload(container(), offset(), klass());
 }
 
 inline valueOop BufferedValuePayload::OopHandle::container() const {

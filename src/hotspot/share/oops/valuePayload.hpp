@@ -42,6 +42,40 @@ class outputStream;
 class ResolvedFieldEntry;
 
 class ValuePayload {
+protected:
+  class Layout {
+    bool _is_buffered;
+    union OptionalLayoutKind {
+      LayoutKind _layout_kind;
+      bool _is_buffered_dummy;
+    } _optional_layout_kind;
+
+    Layout(bool is_buffered, OptionalLayoutKind optional_layout_kind)
+      : _is_buffered(is_buffered), _optional_layout_kind(optional_layout_kind) {}
+
+  public:
+    static Layout buffered() {
+      OptionalLayoutKind olk;
+      olk._is_buffered_dummy = true;
+      return Layout(true /* buffered */, olk);
+    }
+
+    static Layout flat(LayoutKind layout_kind) {
+      OptionalLayoutKind olk;
+      olk._layout_kind = layout_kind;
+      return Layout(false /* buffered */, olk);
+    }
+
+    bool is_buffered() const {
+      return _is_buffered;
+    }
+
+    LayoutKind layout_kind() const {
+      precond(!_is_buffered);
+      return _optional_layout_kind._layout_kind;
+    }
+  };
+
 private:
   template <typename OopOrHandle> class StorageImpl {
   private:
@@ -53,20 +87,17 @@ private:
       address _absolute_addr;
     };
     ValueKlass* _klass;
-    bool _is_buffered;
-    LayoutKind _layout_kind;
+    Layout _layout;
     bool _uses_absolute_addr;
 
   public:
     inline StorageImpl(OopOrHandle container,
                        ptrdiff_t offset,
                        ValueKlass* klass,
-                       bool is_buffered,
-                       LayoutKind layout_kind);
+                       Layout layout);
     inline StorageImpl(address absolute_addr,
                        ValueKlass* klass,
-                       bool is_buffered,
-                       LayoutKind layout_kind);
+                       Layout);
     inline ~StorageImpl();
     inline StorageImpl(const StorageImpl& other);
     inline StorageImpl& operator=(const StorageImpl& other);
@@ -82,9 +113,7 @@ private:
 
     inline ValueKlass* klass() const;
 
-    inline bool is_buffered() const;
-
-    inline LayoutKind layout_kind() const;
+    inline Layout layout() const;
 
     inline bool uses_absolute_addr() const;
   };
@@ -103,17 +132,16 @@ protected:
   inline ValuePayload(oop container,
                       ptrdiff_t offset,
                       ValueKlass* klass,
-                      bool is_buffered,
-                      LayoutKind layout_kind);
+                      Layout layout);
 
   // Constructed from parts absolute_addr
   inline ValuePayload(address absolute_addr,
                       ValueKlass* klass,
-                      bool is_buffered,
-                      LayoutKind layout_kind);
+                      Layout layout);
 
   inline bool is_buffered() const;
 
+  inline Layout layout() const;
   inline LayoutKind layout_kind() const;
 
   inline void set_offset(ptrdiff_t offset);
@@ -167,8 +195,7 @@ class BufferedValuePayload : public ValuePayload {
 private:
   inline BufferedValuePayload(valueOop container,
                               ptrdiff_t offset,
-                              ValueKlass* klass,
-                              LayoutKind layout_kind);
+                              ValueKlass* klass);
 
 public:
   BufferedValuePayload(const BufferedValuePayload&) = default;
