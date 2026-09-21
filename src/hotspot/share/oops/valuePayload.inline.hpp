@@ -428,13 +428,11 @@ inline bool ValuePayload::is_payload_null() const {
 
 inline bool ValuePayload::is_nullable() const {
   precond(!is_buffered());
-  precond(layout_kind() != LayoutKind::BUFFERED);
   return LayoutKindHelper::is_nullable_flat(layout_kind());
 }
 
 inline bool ValuePayload::is_atomic() const {
   precond(!is_buffered());
-  precond(layout_kind() != LayoutKind::BUFFERED);
   return LayoutKindHelper::is_atomic_flat(layout_kind());
 }
 
