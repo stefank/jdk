@@ -466,10 +466,7 @@ inline int ValuePayload::copy_size_in_bytes(const ValuePayload& src, const Value
 inline ValuePayload ValuePayload::construct_from_parts(address absolute_addr,
                                                        ValueKlass* klass,
                                                        LayoutKind layout_kind) {
-  return ValuePayload(absolute_addr, klass,
-                      layout_kind == LayoutKind::BUFFERED
-                          ? Layout::buffered()
-                          : Layout::flat(layout_kind));
+  return ValuePayload(absolute_addr, klass, Layout::flat(layout_kind));
 }
 
 inline BufferedValuePayload::BufferedValuePayload(valueOop container,

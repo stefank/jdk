@@ -1075,9 +1075,6 @@ void Klass::validate_array_description(const ArrayDescription& ad) {
     assert(is_value_klass(), "Must be");
     ValueKlass* vk = ValueKlass::cast(this);
     switch(ad._layout_kind) {
-      case LayoutKind::BUFFERED:
-        fatal("Invalid layout for an array");
-        break;
       case LayoutKind::NULL_FREE_ATOMIC_FLAT:
         assert(vk->has_null_free_atomic_layout(), "Sanity check");
         break;
