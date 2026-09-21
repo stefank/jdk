@@ -58,7 +58,6 @@ private:
     bool _uses_absolute_addr;
 
   public:
-    inline StorageImpl();
     inline StorageImpl(OopOrHandle container,
                        ptrdiff_t offset,
                        ValueKlass* klass,
@@ -97,7 +96,6 @@ private:
 protected:
   static constexpr ptrdiff_t BAD_OFFSET = -1;
 
-  ValuePayload() = default;
   ValuePayload(const ValuePayload&) = default;
   ValuePayload& operator=(const ValuePayload&) = default;
 
@@ -173,7 +171,6 @@ private:
                               LayoutKind layout_kind);
 
 public:
-  BufferedValuePayload() = default;
   BufferedValuePayload(const BufferedValuePayload&) = default;
   BufferedValuePayload& operator=(const BufferedValuePayload&) = default;
 
@@ -202,7 +199,6 @@ private:
   inline valueOop allocate_instance(TRAPS);
 
 public:
-  FlatValuePayload() = default;
   FlatValuePayload(const FlatValuePayload&) = default;
   FlatValuePayload& operator=(const FlatValuePayload&) = default;
 
@@ -244,8 +240,6 @@ private:
                                                   fieldDescriptor* field_descriptor) const NOT_DEBUG_RETURN;
 
 public:
-  FlatFieldPayload() = default;
-
   inline FlatFieldPayload(instanceOop container,
                           fieldDescriptor* field_descriptor);
 
@@ -276,7 +270,6 @@ private:
                           int element_size);
 
 public:
-  FlatArrayPayload() = default;
   FlatArrayPayload(const FlatArrayPayload&) = default;
   FlatArrayPayload& operator=(const FlatArrayPayload&) = default;
 
@@ -317,7 +310,6 @@ protected:
   inline oop container() const;
 
 public:
-  Handle() = default;
   Handle(const Handle&) = default;
   Handle& operator=(const Handle&) = default;
 
@@ -338,7 +330,6 @@ protected:
   inline oop container() const;
 
 public:
-  OopHandle() = default;
   OopHandle(const OopHandle&) = default;
   OopHandle& operator=(const OopHandle&) = default;
 

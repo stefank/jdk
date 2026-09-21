@@ -45,15 +45,6 @@
 #include "utilities/vmError.hpp"
 
 template <typename OopOrHandle>
-inline ValuePayload::StorageImpl<OopOrHandle>::StorageImpl()
-    : _container(nullptr),
-      _offset(BAD_OFFSET),
-      _klass(nullptr),
-      _is_buffered(),
-      _layout_kind(LayoutKind::UNKNOWN),
-      _uses_absolute_addr(false) {}
-
-template <typename OopOrHandle>
 inline ValuePayload::StorageImpl<OopOrHandle>::StorageImpl(OopOrHandle container,
                                                            ptrdiff_t offset,
                                                            ValueKlass* klass,
@@ -458,14 +449,18 @@ inline int ValuePayload::copy_size_in_bytes(const ValuePayload& src, const Value
   const LayoutKind src_lk = src.layout_kind();
   const LayoutKind dst_lk = dst.layout_kind();
 
-  assert(src_lk == dst_lk || src_lk == LayoutKind::BUFFERED || dst_lk == LayoutKind::BUFFERED,
+  assert(src_lk == dst_lk || src.is_buffered() || dst.is_buffered(),
          "Only same or from/to BUFFERED is supported. src: %s, dst: %s",
          LayoutKindHelper::layout_kind_as_string(src_lk),
          LayoutKindHelper::layout_kind_as_string(dst_lk));
 
-  const LayoutKind copy_lk = src_lk == LayoutKind::BUFFERED ? dst_lk : src_lk;
-
-  return klass->layout_size_in_bytes(copy_lk);
+  if (src.is_buffered() && dst.is_buffered()) {
+    return klass->payload_size_in_bytes();
+  } else {
+    // Only one payload is buffered - use that layout size
+    const LayoutKind copy_lk = src.is_buffered() ? dst_lk : src_lk;
+    return klass->layout_size_in_bytes(copy_lk);
+  }
 }
 
 inline ValuePayload ValuePayload::construct_from_parts(address absolute_addr,
