@@ -473,12 +473,6 @@ inline int ValuePayload::copy_size_in_bytes(const ValuePayload& src, const Value
   }
 }
 
-inline ValuePayload ValuePayload::construct_from_parts(address absolute_addr,
-                                                       ValueKlass* klass,
-                                                       LayoutKind layout_kind) {
-  return ValuePayload(absolute_addr, klass, Layout::flat(layout_kind));
-}
-
 inline BufferedValuePayload::BufferedValuePayload(valueOop container,
                                                   ptrdiff_t offset,
                                                   ValueKlass* klass)
@@ -504,6 +498,11 @@ inline FlatValuePayload::FlatValuePayload(oop container,
                                           ValueKlass* klass,
                                           LayoutKind layout_kind)
     : ValuePayload(container, offset, klass, Layout::flat(layout_kind)) {}
+
+inline FlatValuePayload::FlatValuePayload(address absolute_addr,
+                                          ValueKlass* klass,
+                                          LayoutKind layout_kind)
+    : ValuePayload(absolute_addr, klass, Layout::flat(layout_kind)) {}
 
 inline valueOop FlatValuePayload::allocate_instance(TRAPS) {
   // Preserve the container oop across the instance allocation.
@@ -599,6 +598,13 @@ inline FlatValuePayload FlatValuePayload::construct_from_parts(oop container,
                                                                LayoutKind layout_kind) {
   return FlatValuePayload(container, offset, klass, layout_kind);
 }
+
+inline FlatValuePayload FlatValuePayload::construct_from_parts(address absolute_addr,
+                                                               ValueKlass* klass,
+                                                               LayoutKind layout_kind) {
+  return FlatValuePayload(absolute_addr, klass, layout_kind);
+}
+
 
 inline FlatFieldPayload::FlatFieldPayload(instanceOop container,
                                           ptrdiff_t offset,

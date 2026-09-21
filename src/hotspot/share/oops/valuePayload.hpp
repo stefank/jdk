@@ -61,6 +61,7 @@ protected:
     }
 
     static Layout flat(LayoutKind layout_kind) {
+      precond(LayoutKindHelper::is_flat(layout_kind));
       OptionalLayoutKind olk;
       olk._layout_kind = layout_kind;
       return Layout(false /* buffered */, olk);
@@ -194,10 +195,6 @@ public:
   class OopHandle;
 
   static inline int copy_size_in_bytes(const ValuePayload& src, const ValuePayload& dst);
-
-  [[nodiscard]] static inline ValuePayload construct_from_parts(address absolute_addr,
-                                                                ValueKlass* klass,
-                                                                LayoutKind layout_kind);
 };
 
 class BufferedValuePayload : public ValuePayload {
@@ -233,6 +230,10 @@ protected:
                           ValueKlass* klass,
                           LayoutKind layout_kind);
 
+  inline FlatValuePayload(address absolute_addr,
+                          ValueKlass* klass,
+                          LayoutKind layout_kind);
+
 private:
   inline valueOop allocate_instance(TRAPS);
 
@@ -251,6 +252,10 @@ public:
 
   [[nodiscard]] static inline FlatValuePayload construct_from_parts(oop container,
                                                                     ptrdiff_t offset,
+                                                                    ValueKlass* klass,
+                                                                    LayoutKind layout_kind);
+
+  [[nodiscard]] static inline FlatValuePayload construct_from_parts(address absolute_addr,
                                                                     ValueKlass* klass,
                                                                     LayoutKind layout_kind);
 

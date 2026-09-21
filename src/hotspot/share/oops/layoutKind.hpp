@@ -78,8 +78,6 @@
 //             rest of the value atomically. If the null marker indicates a non-null value, the fields of the
 //             field's value can be read independently. Same rules for a putfield, no atomicity requirement,
 //             as long as all fields and the null marker are up to date at the end of the putfield.
-// BUFFERED:   This layout is only used in heap buffered instances of a value class. It is computed to be compatible
-//             in size and alignment with all other flat layouts supported by the value class.
 //
 //
 // IMPORTANT: The REFERENCE layout must always be associated with the numerical value zero, because the implementation
@@ -87,12 +85,11 @@
 
 enum class LayoutKind : uint32_t {
   REFERENCE                 = 0,    // indirection to a heap allocated instance
-  //BUFFERED                  = 1,    // layout used in heap allocated standalone instances
-  NULL_FREE_NON_ATOMIC_FLAT = 2,    // flat, null-free (no null marker), no guarantee of atomic updates
-  NULL_FREE_ATOMIC_FLAT     = 3,    // flat, null-free, size compatible with atomic updates, alignment requirement is equal to the size
-  NULLABLE_ATOMIC_FLAT      = 4,    // flat, include a null marker, plus same size/alignment properties as ATOMIC layout
-  NULLABLE_NON_ATOMIC_FLAT  = 5,    // flat, include a null marker, non-atomic, only used for strict final non-static fields
-  UNKNOWN                   = 6     // used for uninitialized fields of type LayoutKind
+  NULL_FREE_NON_ATOMIC_FLAT = 1,    // flat, null-free (no null marker), no guarantee of atomic updates
+  NULL_FREE_ATOMIC_FLAT     = 2,    // flat, null-free, size compatible with atomic updates, alignment requirement is equal to the size
+  NULLABLE_ATOMIC_FLAT      = 3,    // flat, include a null marker, plus same size/alignment properties as ATOMIC layout
+  NULLABLE_NON_ATOMIC_FLAT  = 4,    // flat, include a null marker, non-atomic, only used for strict final non-static fields
+  UNKNOWN                   = 5     // used for uninitialized fields of type LayoutKind
 };
 
 class outputStream;
