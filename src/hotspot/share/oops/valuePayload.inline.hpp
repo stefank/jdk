@@ -258,7 +258,7 @@ inline void ValuePayload::assert_post_construction_invariants() const {
     postcond(is_buffered());
   } else {
     postcond(!is_buffered());
-    postcond(klass()->is_layout_supported(flat_layout_kind()));
+      postcond(klass()->has_a(flat_layout_kind()));
 
     if (container_klass->is_mirror_instance_klass()) {
       fatal("java.lang.Class has no flat fields. Static fields are not flattened");
@@ -342,7 +342,7 @@ inline size_t ValuePayload::size_in_bytes() const {
     return integer_cast<size_t>(klass()->payload_size_in_bytes());
   }
 
-  return integer_cast<size_t>(klass()->layout_size_in_bytes(flat_layout_kind()));
+  return integer_cast<size_t>(klass()->size_in_bytes_of(flat_layout_kind()));
 }
 
 inline bool ValuePayload::is_nullable_flat() const {
