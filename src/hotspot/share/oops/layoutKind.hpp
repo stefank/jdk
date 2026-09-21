@@ -87,7 +87,7 @@
 
 enum class LayoutKind : uint32_t {
   REFERENCE                 = 0,    // indirection to a heap allocated instance
-  BUFFERED                  = 1,    // layout used in heap allocated standalone instances
+  //BUFFERED                  = 1,    // layout used in heap allocated standalone instances
   NULL_FREE_NON_ATOMIC_FLAT = 2,    // flat, null-free (no null marker), no guarantee of atomic updates
   NULL_FREE_ATOMIC_FLAT     = 3,    // flat, null-free, size compatible with atomic updates, alignment requirement is equal to the size
   NULLABLE_ATOMIC_FLAT      = 4,    // flat, include a null marker, plus same size/alignment properties as ATOMIC layout

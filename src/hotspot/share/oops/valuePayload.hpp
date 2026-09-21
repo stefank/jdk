@@ -74,6 +74,13 @@ protected:
       precond(!_is_buffered);
       return _optional_layout_kind._layout_kind;
     }
+
+    const char* as_string() {
+      if (_is_buffered) {
+        return "BUFFERED";
+      }
+      return LayoutKindHelper::layout_kind_as_string(layout_kind());
+    }
   };
 
 private:
@@ -114,6 +121,10 @@ private:
     inline ValueKlass* klass() const;
 
     inline Layout layout() const;
+
+    inline bool is_buffered() const;
+
+    inline LayoutKind layout_kind() const;
 
     inline bool uses_absolute_addr() const;
   };

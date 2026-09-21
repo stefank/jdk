@@ -153,6 +153,16 @@ inline ValuePayload::Layout ValuePayload::StorageImpl<OopOrHandle>::layout() con
 }
 
 template <typename OopOrHandle>
+inline bool ValuePayload::StorageImpl<OopOrHandle>::is_buffered() const {
+  return _layout.is_buffered();
+}
+
+template <typename OopOrHandle>
+inline LayoutKind ValuePayload::StorageImpl<OopOrHandle>::layout_kind() const {
+  return _layout.layout_kind();
+}
+
+template <typename OopOrHandle>
 inline bool ValuePayload::StorageImpl<OopOrHandle>::uses_absolute_addr() const {
   return _uses_absolute_addr;
 }
@@ -241,10 +251,10 @@ inline void ValuePayload::print_on(outputStream* st) const {
   }
   {
     st->print_cr("--- layout_kind ---");
-    if (_storage.layout().is_buffered()) {
+    if (is_buffered()) {
       st->print_cr(" buffered layout");
     } else {
-      const LayoutKind layout_kind = _storage.layout().layout_kind();
+      const LayoutKind layout_kind = this->layout_kind();
       StreamIndentor si(st);
       st->print_cr("_layout_kind: %u", (uint32_t)layout_kind);
       LayoutKindHelper::print_on(layout_kind, st);
@@ -302,17 +312,17 @@ inline void ValuePayload::assert_post_construction_invariants() const {
     st->cr();
   });
 
-  postcond(layout_kind() != LayoutKind::REFERENCE);
-  postcond(layout_kind() != LayoutKind::UNKNOWN);
-  postcond(klass()->is_layout_supported(layout_kind()));
-
   if (!uses_absolute_addr()) {
     postcond(container() != nullptr);
     const Klass* const container_klass = container()->klass();
     if (container_klass == klass()) {
       postcond(is_buffered());
     } else {
-      postcond(is_buffered());
+      postcond(!is_buffered());
+      postcond(layout_kind() != LayoutKind::REFERENCE);
+      postcond(layout_kind() != LayoutKind::UNKNOWN);
+      postcond(klass()->is_layout_supported(layout_kind()));
+
       if (container_klass->is_mirror_instance_klass()) {
         fatal("java.lang.Class has no flat fields. Static fields are not flattened");
       } else if (container_klass->is_instance_klass()) {
@@ -362,9 +372,8 @@ inline void ValuePayload::assert_pre_copy_invariants(const ValuePayload& src,
 
   const bool src_is_buffered = src.is_buffered();
   const bool dst_is_buffered = dst.is_buffered();
-  const bool src_and_dst_same_layout_kind = src.layout_kind() == dst.layout_kind();
 
-  precond(src_is_buffered || dst_is_buffered || src_and_dst_same_layout_kind);
+  precond(src_is_buffered || dst_is_buffered || src.layout_kind() == dst.layout_kind());
 
   if (src_is_buffered) {
     oop container = src.uses_absolute_addr()
@@ -394,7 +403,7 @@ inline ptrdiff_t ValuePayload::offset() const {
 }
 
 inline bool ValuePayload::is_buffered() const {
-  return _storage.layout().is_buffered();
+  return _storage.is_buffered();
 }
 
 inline ValuePayload::Layout ValuePayload::layout() const {
@@ -402,7 +411,7 @@ inline ValuePayload::Layout ValuePayload::layout() const {
 }
 
 inline LayoutKind ValuePayload::layout_kind() const {
-  return _storage.layout().layout_kind();
+  return _storage.layout_kind();
 }
 
 inline address ValuePayload::addr() const {
@@ -437,6 +446,9 @@ inline bool ValuePayload::is_atomic() const {
 }
 
 inline int ValuePayload::size_in_bytes() const {
+  if (is_buffered()) {
+    return klass()->payload_size_in_bytes();
+  }
   const LayoutKind lk = layout_kind();
   const ValueKlass* const klass = this->klass();
   return klass->layout_size_in_bytes(lk);
@@ -446,19 +458,17 @@ inline int ValuePayload::copy_size_in_bytes(const ValuePayload& src, const Value
   precond(src.klass() == dst.klass());
   const ValueKlass* const klass = src.klass();
 
-  const LayoutKind src_lk = src.layout_kind();
-  const LayoutKind dst_lk = dst.layout_kind();
-
-  assert(src_lk == dst_lk || src.is_buffered() || dst.is_buffered(),
-         "Only same or from/to BUFFERED is supported. src: %s, dst: %s",
-         LayoutKindHelper::layout_kind_as_string(src_lk),
-         LayoutKindHelper::layout_kind_as_string(dst_lk));
-
   if (src.is_buffered() && dst.is_buffered()) {
     return klass->payload_size_in_bytes();
   } else {
+    assert(src.is_buffered() || dst.is_buffered() || src.layout_kind() == dst.layout_kind(),
+         "Only same or from/to BUFFERED is supported. src: %s, dst: %s",
+         src.layout().as_string(),
+         dst.layout().as_string());
+
     // Only one payload is buffered - use that layout size
-    const LayoutKind copy_lk = src.is_buffered() ? dst_lk : src_lk;
+    const LayoutKind copy_lk = src.is_buffered() ? dst.layout_kind() : src.layout_kind();
+
     return klass->layout_size_in_bytes(copy_lk);
   }
 }
@@ -754,7 +764,7 @@ inline ptrdiff_t ValuePayload::Handle::offset() const {
 }
 
 inline LayoutKind ValuePayload::Handle::layout_kind() const {
-  return _storage.layout().layout_kind();
+  return _storage.layout_kind();
 }
 
 inline ValuePayload::OopHandle::OopHandle(const ValuePayload& payload, OopStorage* storage)
@@ -780,7 +790,7 @@ inline ptrdiff_t ValuePayload::OopHandle::offset() const {
 }
 
 inline LayoutKind ValuePayload::OopHandle::layout_kind() const {
-  return _storage.layout().layout_kind();
+  return _storage.layout_kind();
 }
 
 inline BufferedValuePayload::Handle::Handle(const BufferedValuePayload& payload, JavaThread* thread)
