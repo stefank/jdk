@@ -412,7 +412,14 @@ inline address ValuePayload::addr() const {
 }
 
 inline bool ValuePayload::has_null_marker() const {
-  return klass()->layout_has_null_marker(layout_kind());
+  if (is_buffered()) {
+    return klass()->supports_nullable_layouts();
+  }
+
+  LayoutKind lk = layout_kind();
+
+  assert(klass()->is_layout_supported(lk), "Must be");
+  return LayoutKindHelper::is_nullable_flat(lk);
 }
 
 inline bool ValuePayload::is_payload_null() const {

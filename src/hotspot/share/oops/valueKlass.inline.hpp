@@ -31,12 +31,6 @@
 #include "utilities/debug.hpp"
 #include "utilities/devirtualizer.inline.hpp"
 
-inline bool ValueKlass::layout_has_null_marker(LayoutKind lk) const {
-  assert(is_layout_supported(lk), "Must be");
-  return LayoutKindHelper::is_nullable_flat(lk) ||
-         (lk == LayoutKind::BUFFERED && supports_nullable_layouts());
-}
-
 inline bool ValueKlass::is_layout_supported(LayoutKind lk) const {
   switch(lk) {
     case LayoutKind::NULL_FREE_NON_ATOMIC_FLAT:
