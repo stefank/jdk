@@ -347,13 +347,14 @@ protected:
 
   inline oop container() const;
 
+  inline Layout layout() const;
+
 public:
   Handle(const Handle&) = default;
   Handle& operator=(const Handle&) = default;
 
   inline ValueKlass* klass() const;
   inline ptrdiff_t offset() const;
-  inline LayoutKind layout_kind() const;
 };
 
 class ValuePayload::OopHandle {
@@ -367,6 +368,8 @@ protected:
 
   inline oop container() const;
 
+  inline Layout layout() const;
+
 public:
   OopHandle(const OopHandle&) = default;
   OopHandle& operator=(const OopHandle&) = default;
@@ -375,7 +378,6 @@ public:
 
   inline ValueKlass* klass() const;
   inline ptrdiff_t offset() const;
-  inline LayoutKind layout_kind() const;
 };
 
 class BufferedValuePayload::Handle : public ValuePayload::Handle {
