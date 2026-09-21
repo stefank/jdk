@@ -268,7 +268,7 @@ void FlatArrayKlass::copy_array(arrayOop s, int src_pos,
           }
 
           for (int i = 0; i < length; i++) {
-            HeapAccess<>::value_copy(src_payload, dst_payload);
+            src_payload.copy_to(dst_payload);
             src_payload.advance_index(index_delta);
             dst_payload.advance_index(index_delta);
           }

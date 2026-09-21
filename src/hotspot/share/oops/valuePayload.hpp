@@ -53,6 +53,7 @@ private:
       address _absolute_addr;
     };
     ValueKlass* _klass;
+    bool _is_buffered;
     LayoutKind _layout_kind;
     bool _uses_absolute_addr;
 
@@ -61,9 +62,11 @@ private:
     inline StorageImpl(OopOrHandle container,
                        ptrdiff_t offset,
                        ValueKlass* klass,
+                       bool is_buffered,
                        LayoutKind layout_kind);
     inline StorageImpl(address absolute_addr,
                        ValueKlass* klass,
+                       bool is_buffered,
                        LayoutKind layout_kind);
     inline ~StorageImpl();
     inline StorageImpl(const StorageImpl& other);
@@ -79,6 +82,8 @@ private:
     inline address absolute_addr() const;
 
     inline ValueKlass* klass() const;
+
+    inline bool is_buffered() const;
 
     inline LayoutKind layout_kind() const;
 
@@ -100,20 +105,23 @@ protected:
   inline ValuePayload(oop container,
                       ptrdiff_t offset,
                       ValueKlass* klass,
+                      bool is_buffered,
                       LayoutKind layout_kind);
 
   // Constructed from parts absolute_addr
   inline ValuePayload(address absolute_addr,
                       ValueKlass* klass,
+                      bool is_buffered,
                       LayoutKind layout_kind);
+
+  inline bool is_buffered() const;
 
   inline LayoutKind layout_kind() const;
 
   inline void set_offset(ptrdiff_t offset);
 
   static inline void copy(const ValuePayload& src,
-                          const ValuePayload& dst,
-                          LayoutKind copy_layout_kind);
+                          const ValuePayload& dst);
 
   inline void mark_as_non_null();
   inline void mark_as_null();
@@ -129,8 +137,7 @@ private:
   inline void assert_is_flat_field(const InstanceKlass* klass, int offset) const NOT_DEBUG_RETURN;
   inline void assert_post_construction_invariants() const NOT_DEBUG_RETURN;
   static inline void assert_pre_copy_invariants(const ValuePayload& src,
-                                                const ValuePayload& dst,
-                                                LayoutKind copy_layout_kind) NOT_DEBUG_RETURN;
+                                                const ValuePayload& dst) NOT_DEBUG_RETURN;
 
 public:
   inline ValueKlass* klass() const;
