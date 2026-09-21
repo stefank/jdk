@@ -26,6 +26,7 @@
 #define SHARE_OOPS_KLASS_HPP
 
 #include "oops/klassFlags.hpp"
+#include "oops/layoutKind.hpp"
 #include "oops/markWord.hpp"
 #include "oops/metadata.hpp"
 #include "oops/oop.hpp"
@@ -59,6 +60,91 @@ class klassVtable;
 class ModuleEntry;
 class PackageEntry;
 class vtableEntry;
+
+class ValueFieldLayout {
+  OptionalFlatLayout _optional_flat_layout;
+
+  ValueFieldLayout(OptionalFlatLayout optional_flat_layout)
+    : _optional_flat_layout(optional_flat_layout) {}
+
+public:
+  static ValueFieldLayout flat(FlatLayout flat_layout) {
+    return ValueFieldLayout(OptionalFlatLayout::flat(flat_layout));
+  }
+
+  static ValueFieldLayout reference() {
+    return ValueFieldLayout(OptionalFlatLayout::non_flat());
+  }
+
+  // Used to find uninitialized values.
+  static ValueFieldLayout uninitialized() {
+    return ValueFieldLayout(OptionalFlatLayout::uninitialized());
+  }
+
+  static bool is_valid_unsafe_layout_value(int layout_value) {
+    if (layout_value == 0) {
+      // Means non-flat field layout
+      return true;
+    } else {
+      // The flat values are shifted one step in order to make place for the non-flat values
+      const uint32_t layout_kind_value = (uint32_t)layout_value - 1;
+      return LayoutKindHelper::is_valid_underlying_value(layout_kind_value);
+    }
+  }
+
+  static ValueFieldLayout from_unsafe(int layout_value) {
+    assert(is_valid_unsafe_layout_value(layout_value),
+           "invalid unsafe layout value %d", layout_value);
+
+    if (layout_value == 0) {
+      return ValueFieldLayout::reference();
+    } else {
+      // The flat values are shifted one step in order to make place for the non-flat values
+      const uint32_t layout_kind_value = (uint32_t)layout_value - 1;
+      const FlatLayout flat_layout(static_cast<LayoutKind>(layout_kind_value));
+      return ValueFieldLayout::flat(flat_layout);
+    }
+  }
+
+  // Opposite operation of from_unsafe
+  jint to_unsafe_layout_value() const {
+    if (!is_flat()) {
+      // Unsafe.nonFlatValue == 0
+      return 0;
+    }
+    return static_cast<jint>(flat_layout_kind()) + 1;
+  }
+
+  bool is_initialized() const {
+    return _optional_flat_layout.is_initialized();
+  }
+
+  bool is_flat() const {
+    return _optional_flat_layout.is_flat();
+  }
+
+  FlatLayout flat_layout() const {
+    return _optional_flat_layout.get();
+  }
+
+  LayoutKind flat_layout_kind() const {
+    return flat_layout().layout_kind();
+  }
+
+  bool is_nullable_flat() const {
+    precond(is_flat());
+    return flat_layout().is_nullable();
+  }
+
+  bool is_atomic_flat() const {
+    precond(is_flat());
+    return flat_layout().is_atomic();
+  }
+
+  bool operator==(const ValueFieldLayout& other) const {
+    return _optional_flat_layout == other._optional_flat_layout;
+  }
+};
 
 class Klass : public Metadata {
 

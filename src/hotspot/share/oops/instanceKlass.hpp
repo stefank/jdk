@@ -131,19 +131,18 @@ class ValueFieldInfo : public MetaspaceObj {
   friend class VMStructs;
 
   ValueKlass* _klass;
-  LayoutKind _kind;
+  ValueFieldLayout _layout;
 
  public:
-  ValueFieldInfo(): _klass(nullptr), _kind(LayoutKind::UNKNOWN)  {}
+  ValueFieldInfo(): _klass(nullptr), _layout(ValueFieldLayout::uninitialized())  {}
 
   ValueKlass* klass() const { return _klass; }
   void set_klass(ValueKlass* k) { _klass = k; }
 
-  LayoutKind kind() const {
-    assert(_kind != LayoutKind::UNKNOWN, "Not set");
-    return _kind;
-  }
-  void set_kind(LayoutKind lk) { _kind = lk; }
+  FlatLayout flat_layout() const        { return _layout.flat_layout(); }
+  void set_layout(ValueFieldLayout vfl) { _layout = vfl; }
+
+  LayoutKind flat_layout_kind() const   { return _layout.flat_layout_kind(); }
 
   void metaspace_pointers_do(MetaspaceClosure* it);
   MetaspaceObj::Type type() const { return ValueFieldInfoType; }
