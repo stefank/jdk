@@ -107,6 +107,8 @@ protected:
                       ValueKlass* klass,
                       LayoutKind layout_kind);
 
+  inline LayoutKind layout_kind() const;
+
   inline void set_offset(ptrdiff_t offset);
 
   static inline void copy(const ValuePayload& src,
@@ -133,15 +135,21 @@ private:
 public:
   inline ValueKlass* klass() const;
   inline ptrdiff_t offset() const;
-  inline LayoutKind layout_kind() const;
 
   inline address addr() const;
 
   inline bool has_null_marker() const;
   inline bool is_payload_null() const;
 
+  inline bool is_nullable() const;
+  inline bool is_atomic() const;
+
+  inline int size_in_bytes() const;
+
   class Handle;
   class OopHandle;
+
+  static inline int copy_size_in_bytes(const ValuePayload& src, const ValuePayload& dst);
 
   [[nodiscard]] static inline ValuePayload construct_from_parts(address absolute_addr,
                                                                 ValueKlass* klass,

@@ -25,6 +25,7 @@
 #ifndef SHARE_VM_OOPS_VALUEPAYLOAD_INLINE_HPP
 #define SHARE_VM_OOPS_VALUEPAYLOAD_INLINE_HPP
 
+#include "gc/z/zAddress.inline.hpp"
 #include "oops/valuePayload.hpp"
 
 #include "cppstdlib/type_traits.hpp"
@@ -416,8 +417,6 @@ inline void ValuePayload::assert_pre_copy_invariants(const ValuePayload& src,
 
   precond(copy_layout_size_in_bytes <= src_layout_size_in_bytes);
   precond(copy_layout_size_in_bytes <= dst_layout_size_in_bytes);
-  precond(LayoutKindHelper::get_copy_layout(src.layout_kind(),
-                                            dst.layout_kind()) == copy_layout_kind);
 }
 
 #endif // ASSERT
@@ -447,6 +446,39 @@ inline bool ValuePayload::has_null_marker() const {
 
 inline bool ValuePayload::is_payload_null() const {
   return has_null_marker() && klass()->is_payload_marked_as_null(addr());
+}
+
+inline bool ValuePayload::is_nullable() const {
+  precond(layout_kind() != LayoutKind::BUFFERED);
+  return LayoutKindHelper::is_nullable_flat(layout_kind());
+}
+
+inline bool ValuePayload::is_atomic() const {
+  precond(layout_kind() != LayoutKind::BUFFERED);
+  return LayoutKindHelper::is_atomic_flat(layout_kind());
+}
+
+inline int ValuePayload::size_in_bytes() const {
+  const LayoutKind lk = layout_kind();
+  const ValueKlass* const klass = this->klass();
+  return klass->layout_size_in_bytes(lk);
+}
+
+inline int ValuePayload::copy_size_in_bytes(const ValuePayload& src, const ValuePayload& dst) {
+  precond(src.klass() == dst.klass());
+  const ValueKlass* const klass = src.klass();
+
+  const LayoutKind src_lk = src.layout_kind();
+  const LayoutKind dst_lk = dst.layout_kind();
+
+  assert(src_lk == dst_lk || src_lk == LayoutKind::BUFFERED || dst_lk == LayoutKind::BUFFERED,
+         "Only same or from/to BUFFERED is supported. src: %s, dst: %s",
+         LayoutKindHelper::layout_kind_as_string(src_lk),
+         LayoutKindHelper::layout_kind_as_string(dst_lk));
+
+  const LayoutKind copy_lk = src_lk == LayoutKind::BUFFERED ? dst_lk : src_lk;
+
+  return klass->layout_size_in_bytes(copy_lk);
 }
 
 inline ValuePayload ValuePayload::construct_from_parts(address absolute_addr,
@@ -531,31 +563,22 @@ inline void FlatValuePayload::copy_to(const FlatValuePayload& dst) {
 }
 
 inline valueOop FlatValuePayload::read(TRAPS) {
-  switch (layout_kind()) {
-  case LayoutKind::NULLABLE_ATOMIC_FLAT:
-  case LayoutKind::NULLABLE_NON_ATOMIC_FLAT: {
-    if (is_payload_null()) {
-      return nullptr;
-    }
-  } // Fallthrough
-  case LayoutKind::NULL_FREE_ATOMIC_FLAT:
-  case LayoutKind::NULL_FREE_NON_ATOMIC_FLAT: {
-    valueOop res = allocate_instance(CHECK_NULL);
-    BufferedValuePayload dst(res, klass());
-    if (!copy_to(dst)) {
-      // copy_to may fail if the payload has been updated with a null value
-      // between our is_payload_null() check above and the copy.
-      // In this case we have copied a null value into the buffer the payload.
-      return nullptr;
-    }
-    // Must ensure the content of the buffered value is visible
-    // before publishing the buffered value oop
-    OrderAccess::storestore();
-    return res;
-  } break;
-  default:
-    ShouldNotReachHere();
+  if (is_nullable() && is_payload_null()) {
+    return nullptr;
   }
+
+  valueOop res = allocate_instance(CHECK_NULL);
+  BufferedValuePayload dst(res, klass());
+  if (!copy_to(dst)) {
+    // copy_to may fail if the payload has been updated with a null value
+    // between our is_payload_null() check above and the copy.
+    // In this case we have copied a null value into the buffer the payload.
+    return nullptr;
+  }
+  // Must ensure the content of the buffered value is visible
+  // before publishing the buffered value oop
+  OrderAccess::storestore();
+  return res;
 }
 
 inline void FlatValuePayload::write_without_nullability_check(valueOop obj) {

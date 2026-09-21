@@ -99,13 +99,6 @@ class outputStream;
 
 class LayoutKindHelper : AllStatic {
  public:
-  static LayoutKind get_copy_layout(LayoutKind src, LayoutKind dst) {
-    assert(src == dst || src == LayoutKind::BUFFERED || dst == LayoutKind::BUFFERED,
-           "Only same or from/to BUFFERED is supported. src: %s, dst: %s",
-           layout_kind_as_string(src), layout_kind_as_string(dst));
-    return src == LayoutKind::BUFFERED ? dst : src;
-  }
-
   static bool is_flat(LayoutKind lk) {
     assert(lk != LayoutKind::UNKNOWN, "Sanity check");
     return lk == LayoutKind::NULL_FREE_NON_ATOMIC_FLAT ||
