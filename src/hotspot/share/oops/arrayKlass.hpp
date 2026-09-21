@@ -28,6 +28,7 @@
 #include "oops/arrayProperties.hpp"
 #include "oops/klass.hpp"
 #include "oops/layoutKind.hpp"
+#include "utilities/integerCast.hpp"
 
 class fieldDescriptor;
 class klassVtable;
@@ -156,55 +157,69 @@ class ArrayDescription : public StackObj {
   //
   // 31             24 23            16 15                           0
   // +----------------+----------------+-----------------------------+
-  // |   KlassKind    |   LayoutKind   |      ArrayProperties        |
+  // |      Unused    | unsafe layout  |      ArrayProperties        |
   // +----------------+----------------+-----------------------------+
   //      8 bits           8 bits                16 bits
-  static constexpr uint32_t _layout_kind_shift = 16;
-  static constexpr uint32_t _kind_shift = 24;
+  static constexpr uint32_t _unsafe_layout_shift = 16;
+  static constexpr uint32_t _unused_shift = 8 + _unsafe_layout_shift;
 
-  static constexpr uint32_t _properties_mask = (1u << _layout_kind_shift) - 1;
-  static constexpr uint32_t _layout_kind_mask = (1u << (_kind_shift - _layout_kind_shift)) - 1;
-  static constexpr uint32_t _kind_mask = (1u << (32 - _kind_shift)) - 1;
+  static constexpr uint32_t _properties_mask = (1u << _unsafe_layout_shift) - 1;
+  static constexpr uint32_t _unsafe_layout_mask = (1u << (_unused_shift - _unsafe_layout_shift)) - 1;
 
-public:
-  Klass::KlassKind _kind;
-  ArrayProperties  _properties;
-  LayoutKind       _layout_kind;
-
-  ArrayDescription(Klass::KlassKind k, ArrayProperties p, LayoutKind lk) {
-    _kind = k;
-    _layout_kind = lk;
-    assert(lk == LayoutKind::REFERENCE || k != Klass::KlassKind::RefArrayKlassKind, "Sanity check");
-    assert(lk != LayoutKind::UNKNOWN, "Sanity check");
-
+  ArrayDescription(ArrayProperties p, ValueFieldLayout vfl)
+    : _properties(),
+      _value_field_layout(vfl) {
     // Atomicity depends on the layout kind, which might be different than what
     // the given properties says
-    const bool non_atomic = lk != LayoutKind::REFERENCE && !LayoutKindHelper::is_atomic_flat(lk);
+    const bool non_atomic = vfl.is_flat() && !vfl.is_atomic_flat();
     _properties = p.with_non_atomic(non_atomic);
+  }
+
+public:
+  ArrayProperties  _properties;
+  ValueFieldLayout _value_field_layout;
+
+  static ArrayDescription reference(ArrayProperties p) {
+    return ArrayDescription(p, ValueFieldLayout::reference());
+  }
+
+  static ArrayDescription flat(ArrayProperties p, LayoutKind layout_kind) {
+    return ArrayDescription(p, ValueFieldLayout::flat(layout_kind));
   }
 
   uint32_t value() const {
     assert((_properties.value() & ~_properties_mask) == 0, "array properties do not fit into encoding");
 
-    uint32_t layout_kind_value = static_cast<uint32_t>(_layout_kind);
-    assert((layout_kind_value & ~_layout_kind_mask) == 0, "layout kind does not fit into encoding");
+    uint32_t unsafe_layout_value = static_cast<uint32_t>(_value_field_layout.to_unsafe_layout_value());
+    assert((unsafe_layout_value & ~_unsafe_layout_mask) == 0, "unsafe layout does not fit into encoding");
 
-    uint32_t kind_value = static_cast<uint32_t>(_kind);
-    assert((kind_value & ~_kind_mask) == 0, "klass kind does not fit into encoding");
-
-    return _properties.value() | (layout_kind_value << _layout_kind_shift) | (kind_value << _kind_shift);
+    return _properties.value() | (unsafe_layout_value << _unsafe_layout_shift);
   }
 
   static ArrayDescription from_value(uint32_t value) {
     ArrayProperties properties(value & _properties_mask);
 
-    uint32_t layout_kind_value = (value >> _layout_kind_shift) & _layout_kind_mask;
-    LayoutKind layout_kind = static_cast<LayoutKind>(layout_kind_value);
+    uint32_t unsafe_layout_value = (value >> _unsafe_layout_shift) & _unsafe_layout_mask;
+    ValueFieldLayout vfl = ValueFieldLayout::from_unsafe(integer_cast<jint>(unsafe_layout_value));
 
-    uint32_t kind_value = (value >> _kind_shift) & _kind_mask;
-    Klass::KlassKind kind = static_cast<Klass::KlassKind>(kind_value);
+    return ArrayDescription(properties, vfl);
+  }
 
-    return ArrayDescription(kind, properties, layout_kind);
+  bool is_flat() const {
+    return _value_field_layout.is_flat();
+  }
+
+  LayoutKind flat_layout_kind() const {
+    return _value_field_layout.flat_layout_kind();
+  }
+
+  bool operator==(const ArrayDescription& other) {
+    return _properties == other._properties &&
+           _value_field_layout == other._value_field_layout;
+  }
+
+  bool operator!=(const ArrayDescription& other) {
+    return !operator==(other);
   }
 };
 

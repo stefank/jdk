@@ -43,21 +43,21 @@ class ciField : public ArenaObj {
   friend class ciInstanceKlass;
 
 private:
-  ciFlags          _flags;
-  ciInstanceKlass* _holder;
-  ciInstanceKlass* _original_holder; // For fields nested in flat fields
-  ciSymbol*        _name;
-  ciSymbol*        _signature;
-  ciType*          _type;
-  int              _offset;
-  LayoutKind       _layout_kind;
-  bool             _is_constant;
-  bool             _is_flat;
-  bool             _is_null_free;
-  int              _null_marker_offset;
-  ciMethod*        _known_to_link_with_put;
-  ciInstanceKlass* _known_to_link_with_get;
-  ciConstant       _constant_value;
+  ciFlags            _flags;
+  ciInstanceKlass*   _holder;
+  ciInstanceKlass*   _original_holder; // For fields nested in flat fields
+  ciSymbol*          _name;
+  ciSymbol*          _signature;
+  ciType*            _type;
+  int                _offset;
+  OptionalFlatLayout _flat_layout;
+  bool               _is_constant;
+  bool               _is_flat;
+  bool               _is_null_free;
+  int                _null_marker_offset;
+  ciMethod*          _known_to_link_with_put;
+  ciInstanceKlass*   _known_to_link_with_get;
+  ciConstant         _constant_value;
 
   ciType* compute_type();
   ciType* compute_type_impl();
@@ -179,7 +179,8 @@ public:
   bool is_flat                 () const { return _is_flat; }
   bool is_null_free            () const { return _is_null_free; }
   int null_marker_offset       () const { return _null_marker_offset; }
-  LayoutKind layout_kind       () const { return _layout_kind; }
+  FlatLayout flat_layout       () const { return _flat_layout.get(is_flat()); }
+  LayoutKind layout_kind       () const { return flat_layout().layout_kind(); }
 
   // Whether this field needs to act atomically. Note that it does not actually need accessing
   // atomically. For example, if there cannot be racy accesses to this field, then it can be

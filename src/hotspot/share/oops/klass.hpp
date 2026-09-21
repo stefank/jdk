@@ -26,6 +26,7 @@
 #define SHARE_OOPS_KLASS_HPP
 
 #include "oops/klassFlags.hpp"
+#include "oops/layoutKind.hpp"
 #include "oops/markWord.hpp"
 #include "oops/metadata.hpp"
 #include "oops/oop.hpp"
@@ -59,6 +60,110 @@ class klassVtable;
 class ModuleEntry;
 class PackageEntry;
 class vtableEntry;
+
+class ValueFieldLayout {
+  bool               _is_flat;
+  OptionalFlatLayout _optional_flat_layout;
+
+  ValueFieldLayout(bool is_flat, OptionalFlatLayout optional_layout_kind)
+    : _is_flat(is_flat), _optional_flat_layout(optional_layout_kind) {}
+
+public:
+  // Used to find uninitialized values.
+  static ValueFieldLayout uninitialized() {
+    OptionalFlatLayout ofl(false /* initialized */);
+    return ValueFieldLayout(false /* is_flat */, ofl);
+  }
+
+  static ValueFieldLayout reference() {
+    OptionalFlatLayout olk(true /* initialized */);
+    return ValueFieldLayout(false /* is_flat */, olk);
+  }
+
+  static ValueFieldLayout flat(LayoutKind layout_kind) {
+    OptionalFlatLayout olk(layout_kind);
+    return ValueFieldLayout(true /* is_flat */, olk);
+  }
+
+  static bool is_valid_unsafe_layout_value(int layout_value) {
+    if (layout_value == 0) {
+      // Means non-flat field layout
+      return true;
+    } else {
+      // The flat values are shifted one step in order to make place for the non-flat values
+      const uint32_t layout_kind_value = (uint32_t)layout_value - 1;
+      return LayoutKindHelper::is_valid_underlying_value(layout_kind_value);
+    }
+  }
+
+  static ValueFieldLayout from_unsafe(int layout_value) {
+    assert(is_valid_unsafe_layout_value(layout_value),
+           "invalid unsafe layout value %d", layout_value);
+
+    if (layout_value == 0) {
+      return ValueFieldLayout::reference();
+    } else {
+      // The flat values are shifted one step in order to make place for the non-flat values
+      const uint32_t layout_kind_value = (uint32_t)layout_value - 1;
+      return ValueFieldLayout::flat(static_cast<LayoutKind>(layout_kind_value));
+    }
+  }
+
+  // Opposite operation of from_unsafe
+  jint to_unsafe_layout_value() const {
+    if (!is_flat()) {
+      // Unsafe.nonFlatValue == 0
+      return 0;
+    }
+    return static_cast<jint>(flat_layout_kind()) + 1;
+  }
+
+  bool is_uninitialized() const {
+    // Denotes an uninitialized ValueFieldLayout
+    return _optional_flat_layout.is_uninitialized(_is_flat);
+  }
+
+  bool is_flat() const {
+    precond(!is_uninitialized());
+    return _is_flat;
+  }
+
+  FlatLayout flat_layout() const {
+    precond(!is_uninitialized());
+    return _optional_flat_layout.get(_is_flat);
+  }
+
+  LayoutKind flat_layout_kind() const {
+    precond(!is_uninitialized());
+    return flat_layout().layout_kind();
+  }
+
+  bool is_nullable_flat() const {
+    precond(is_flat());
+    return flat_layout().is_nullable();
+  }
+
+  bool is_atomic_flat() const {
+    precond(is_flat());
+    return flat_layout().is_atomic();
+  }
+
+  bool operator==(const ValueFieldLayout& other) {
+    precond(!is_uninitialized());
+    precond(!other.is_uninitialized());
+
+    if (_is_flat) {
+      if (other._is_flat) {
+        return flat_layout_kind() == other.flat_layout_kind();
+      } else {
+        return false;
+      }
+    } else {
+      // No other data to check for non-flat field layouts
+      return !other._is_flat;
+    }
+  }
+};
 
 class Klass : public Metadata {
 

@@ -76,7 +76,7 @@
 // ------------------------------------------------------------------
 // ciField::ciField
 ciField::ciField(ciInstanceKlass* klass, int index, Bytecodes::Code bc) :
-  _original_holder(nullptr), _is_flat(false), _known_to_link_with_put(nullptr), _known_to_link_with_get(nullptr) {
+  _original_holder(nullptr), _flat_layout(), _is_flat(false), _known_to_link_with_put(nullptr), _known_to_link_with_get(nullptr) {
   ASSERT_IN_VM;
   CompilerThread *THREAD = CompilerThread::current();
 
@@ -249,7 +249,7 @@ ciField::ciField(ciField* declared_field, ciField* subfield) {
   _is_null_free = false;
   _null_marker_offset = -1;
   _original_holder = (subfield->_original_holder != nullptr) ? subfield->_original_holder : subfield->_holder;
-  _layout_kind = LayoutKind::UNKNOWN;
+  _flat_layout = {};
 }
 
 // Constructor for the ciField of a null marker
@@ -278,7 +278,7 @@ ciField::ciField(ciField* declared_field) {
   _is_null_free = false;
   _null_marker_offset = -1;
   _original_holder = nullptr;
-  _layout_kind = LayoutKind::UNKNOWN;
+  _flat_layout = {};
 }
 
 static bool trust_final_nonstatic_fields(ciInstanceKlass* holder) {
@@ -321,7 +321,7 @@ void ciField::initialize_from(fieldDescriptor* fd) {
     _null_marker_offset = -1;
   }
   _original_holder = nullptr;
-  _layout_kind = fd->is_flat() ? fd->layout_kind() : LayoutKind::UNKNOWN;
+  _flat_layout = fd->flat_layout();
 
   // Check to see if the field is constant.
   Klass* k = _holder->get_Klass();
@@ -417,7 +417,7 @@ ciType* ciField::compute_type_impl() {
 
 bool ciField::is_atomic() {
   assert(is_flat(), "should not ask this property for non-flat field %s.%s", holder()->name()->as_utf8(), name()->as_utf8());
-  return LayoutKindHelper::is_atomic_flat(_layout_kind) && !type()->as_value_klass()->is_naturally_atomic(is_null_free());
+  return flat_layout().is_atomic() && !type()->as_value_klass()->is_naturally_atomic(is_null_free());
 }
 
 // ------------------------------------------------------------------

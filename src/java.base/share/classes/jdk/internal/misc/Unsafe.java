@@ -301,7 +301,7 @@ public final class Unsafe {
     private native int fieldLayout0(Object o);
 
     public native Object[] newSpecialArray(Class<?> componentType,
-                                                  int length, int layoutKind);
+                                                  int length, int layout);
 
     /**
      * Fetches a reference value from a given Java variable.
