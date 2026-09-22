@@ -452,21 +452,13 @@ inline int ValuePayload::size_in_bytes() const {
 
 inline int ValuePayload::copy_size_in_bytes(const ValuePayload& src, const ValuePayload& dst) {
   precond(src.klass() == dst.klass());
-  const ValueKlass* const klass = src.klass();
+  precond(src.is_buffered() || dst.is_buffered() || src.layout_kind() == dst.layout_kind());
 
-  if (src.is_buffered() && dst.is_buffered()) {
-    return klass->payload_size_in_bytes();
+  if (src.is_buffered()) {
+    return dst.size_in_bytes();
+  } else {
+    return src.size_in_bytes();
   }
-
-  assert(src.is_buffered() || dst.is_buffered() || src.layout_kind() == dst.layout_kind(),
-        "Only same or from/to BUFFERED is supported. src: %s, dst: %s",
-        src.layout().as_string(),
-        dst.layout().as_string());
-
-  // Only one payload is buffered - use that layout size
-  const LayoutKind copy_lk = src.is_buffered() ? dst.layout_kind() : src.layout_kind();
-
-  return klass->layout_size_in_bytes(copy_lk);
 }
 
 inline BufferedValuePayload::BufferedValuePayload(valueOop container,
