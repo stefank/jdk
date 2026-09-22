@@ -25,8 +25,6 @@
 #ifndef SHARE_VM_OOPS_VALUEPAYLOAD_INLINE_HPP
 #define SHARE_VM_OOPS_VALUEPAYLOAD_INLINE_HPP
 
-#include "gc/z/zAddress.inline.hpp"
-#include "oops/oopHandle.hpp"
 #include "oops/valuePayload.hpp"
 
 #include "cppstdlib/type_traits.hpp"
