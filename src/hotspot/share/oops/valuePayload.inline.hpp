@@ -423,10 +423,7 @@ inline bool ValuePayload::has_null_marker() const {
     return klass()->supports_nullable_layouts();
   }
 
-  LayoutKind lk = layout_kind();
-
-  assert(klass()->is_layout_supported(lk), "Must be");
-  return LayoutKindHelper::is_nullable_flat(lk);
+  return is_nullable();
 }
 
 inline bool ValuePayload::is_payload_null() const {
@@ -435,11 +432,13 @@ inline bool ValuePayload::is_payload_null() const {
 
 inline bool ValuePayload::is_nullable() const {
   precond(!is_buffered());
+
   return LayoutKindHelper::is_nullable_flat(layout_kind());
 }
 
 inline bool ValuePayload::is_atomic() const {
   precond(!is_buffered());
+
   return LayoutKindHelper::is_atomic_flat(layout_kind());
 }
 
@@ -447,9 +446,8 @@ inline int ValuePayload::size_in_bytes() const {
   if (is_buffered()) {
     return klass()->payload_size_in_bytes();
   }
-  const LayoutKind lk = layout_kind();
-  const ValueKlass* const klass = this->klass();
-  return klass->layout_size_in_bytes(lk);
+
+  return klass()->layout_size_in_bytes(layout_kind());
 }
 
 inline int ValuePayload::copy_size_in_bytes(const ValuePayload& src, const ValuePayload& dst) {
@@ -458,17 +456,17 @@ inline int ValuePayload::copy_size_in_bytes(const ValuePayload& src, const Value
 
   if (src.is_buffered() && dst.is_buffered()) {
     return klass->payload_size_in_bytes();
-  } else {
-    assert(src.is_buffered() || dst.is_buffered() || src.layout_kind() == dst.layout_kind(),
-         "Only same or from/to BUFFERED is supported. src: %s, dst: %s",
-         src.layout().as_string(),
-         dst.layout().as_string());
-
-    // Only one payload is buffered - use that layout size
-    const LayoutKind copy_lk = src.is_buffered() ? dst.layout_kind() : src.layout_kind();
-
-    return klass->layout_size_in_bytes(copy_lk);
   }
+
+  assert(src.is_buffered() || dst.is_buffered() || src.layout_kind() == dst.layout_kind(),
+        "Only same or from/to BUFFERED is supported. src: %s, dst: %s",
+        src.layout().as_string(),
+        dst.layout().as_string());
+
+  // Only one payload is buffered - use that layout size
+  const LayoutKind copy_lk = src.is_buffered() ? dst.layout_kind() : src.layout_kind();
+
+  return klass->layout_size_in_bytes(copy_lk);
 }
 
 inline BufferedValuePayload::BufferedValuePayload(valueOop container,
