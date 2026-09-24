@@ -32,7 +32,7 @@
 #include "utilities/devirtualizer.inline.hpp"
 
 inline address ValueKlass::payload_addr(oop o) const {
-  return cast_from_oop<address>(o) + layouts().payload_offset();
+  return cast_from_oop<address>(o) + payload_offset();
 }
 
 template <typename T, typename Function>
@@ -43,7 +43,7 @@ void ValueKlass::oop_iterate_value_payload_f(address payload, Function function)
   // OopMap offsets are relative to an object header, but we are iterating over
   // flattened value payloads, which often don't have an object header. Use a
   // synthetic object base for the oop map offset calculations.
-  const address synthetic_object_base = payload - layouts().payload_offset();
+  const address synthetic_object_base = payload - payload_offset();
 
   for (; map < end_map; map++) {
     T* p = (T*) (synthetic_object_base + map->offset());
@@ -72,7 +72,7 @@ inline void ValueKlass::oop_iterate_value_payload_bounded(address payload, OopCl
   // OopMap offsets are relative to an object header, but we are iterating over
   // flattened value payloads, which often don't have an object header. Use a
   // synthetic object base for the oop map offset calculations.
-  const address synthetic_object_base = payload - layouts().payload_offset();
+  const address synthetic_object_base = payload - payload_offset();
 
   for (; map < end_map; map++) {
     T* p = (T*) (synthetic_object_base + map->offset());

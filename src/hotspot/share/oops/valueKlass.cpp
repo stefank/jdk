@@ -64,7 +64,7 @@ ValueKlass::Members::Members()
     _pack_handler_jobject(nullptr),
     _unpack_handler(nullptr),
     _null_reset_value_offset(0),
-    _available_layouts(),
+    _layouts(),
     _fast_acmp_offset(-1),
     _fast_acmp_mask(0),
     _fast_hashcode_offset(-1),
@@ -139,14 +139,10 @@ bool ValueKlass::maybe_flat_in_array() const {
   if ((FlatArrayElementMaxOops >= 0) && (nonstatic_oop_count() > FlatArrayElementMaxOops)) {
     return false;
   }
-  // No flat layout?
-  if (!layouts().has_any(LayoutKind::NULLABLE_ATOMIC_FLAT,
-                         LayoutKind::NULL_FREE_ATOMIC_FLAT,
-                         LayoutKind::NULL_FREE_NON_ATOMIC_FLAT)) {
-    return false;
-  }
-
-  return true;
+  // Has any flat layouts?
+  return layouts().has_any(LayoutKind::NULLABLE_ATOMIC_FLAT,
+                           LayoutKind::NULL_FREE_ATOMIC_FLAT,
+                           LayoutKind::NULL_FREE_NON_ATOMIC_FLAT);
 }
 
 // Value type arguments are not passed by reference, instead each
@@ -177,13 +173,13 @@ int ValueKlass::collect_fields(GrowableArray<SigEntry>* sig, int base_off, int n
   SigEntry::add_entry(sig, T_METADATA, name(), base_off);
   for (TopDownHierarchicalNonStaticFieldStreamBase fs(this); !fs.done(); fs.next()) {
     assert(!fs.access_flags().is_static(), "TopDownHierarchicalNonStaticFieldStreamBase should not let static fields pass.");
-    int offset = base_off + fs.offset() - (base_off > 0 ? layouts().payload_offset() : 0);
+    int offset = base_off + fs.offset() - (base_off > 0 ? payload_offset() : 0);
     InstanceKlass* field_holder = fs.field_descriptor().field_holder();
     if (fs.is_flat()) {
       // Resolve klass of flat field and recursively collect fields
       int field_null_marker_offset = -1;
       if (!fs.is_null_free_value_type()) {
-        field_null_marker_offset = base_off + fs.null_marker_offset() - (base_off > 0 ? layouts().payload_offset() : 0);
+        field_null_marker_offset = base_off + fs.null_marker_offset() - (base_off > 0 ? payload_offset() : 0);
       }
       Klass* vk = field_holder->get_value_type_field_klass(fs.index());
       count += ValueKlass::cast(vk)->collect_fields(sig, offset, field_null_marker_offset);
@@ -193,7 +189,7 @@ int ValueKlass::collect_fields(GrowableArray<SigEntry>* sig, int base_off, int n
       count += type2size[bt];
     }
   }
-  int offset = base_off + size_helper()*HeapWordSize - (base_off > 0 ? layouts().payload_offset() : 0);
+  int offset = base_off + size_helper()*HeapWordSize - (base_off > 0 ? payload_offset() : 0);
   // Null markers are no real fields, add them manually at the end (C2 relies on this) of the flat fields
   if (null_marker_offset != -1) {
     SigEntry::add_null_marker(sig, name(), null_marker_offset);
@@ -519,13 +515,13 @@ void ValueKlass::print_on(outputStream* st) const {
   st->print_cr(" - ---- LayoutKinds:");
   auto print_buffered = [&]() {
     st->print_cr(" - BUFFERED layout: %d/%d",
-                 layouts().payload_size_in_bytes(), layouts().payload_alignment());
+                 payload_size_in_bytes(), payload_alignment());
   };
   auto print_layout_kind = [&](LayoutKind lk) {
-    if (layouts().has_a(lk)) {
+    if (has_a(lk)) {
       st->print_cr(" - %s layout: %d/%d",
                    LayoutKindHelper::layout_kind_as_string(lk),
-                   layouts().size_in_bytes_of(lk), layouts().alignment_of(lk));
+                   size_in_bytes_of(lk), alignment_of(lk));
     } else {
       st->print_cr(" - %s layout: -/-",
                    LayoutKindHelper::layout_kind_as_string(lk));

@@ -93,7 +93,7 @@ inline jboolean flatArrayOopDesc::null_marker_of_obj_at(int index, TRAPS) const 
   const ValueKlass* vk = fak->element_klass();
   char* this_oop = (char*) (oopDesc*) this;
   char* val = (char*) value_at_addr(index, fak->layout_helper());
-  ptrdiff_t offset = val - this_oop + (ptrdiff_t)vk->layouts().null_marker_offset_in_payload();
+  ptrdiff_t offset = val - this_oop + (ptrdiff_t)vk->null_marker_offset_in_payload();
   return bool_field(offset);
 }
 

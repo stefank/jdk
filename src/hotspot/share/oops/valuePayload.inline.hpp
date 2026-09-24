@@ -302,7 +302,7 @@ inline void ValuePayload::assert_is_flat_field(const InstanceKlass* klass, int o
     // Nested flat field
     postcond(offset >= field_descriptor.offset());
     const ValueKlass* const field_klass = value_field_info.klass();
-    const int payload_offset = field_klass->layouts().payload_offset();
+    const int payload_offset = field_klass->payload_offset();
     assert_is_flat_field(field_klass, offset - field_descriptor.offset() + payload_offset);
   }
 }
@@ -322,7 +322,7 @@ inline void ValuePayload::assert_post_construction_invariants() const {
       postcond(is_buffered());
     } else {
       postcond(!is_buffered());
-      postcond(klass()->layouts().has_a(flat_layout_kind()));
+      postcond(klass()->has_a(flat_layout_kind()));
 
       if (container_klass->is_mirror_instance_klass()) {
         fatal("java.lang.Class has no flat fields. Static fields are not flattened");
@@ -339,7 +339,7 @@ inline void ValuePayload::assert_post_construction_invariants() const {
               (checked_cast<int>(this->offset()) -
                checked_cast<int>(flatArrayOopDesc::base_offset_in_bytes())) %
               container_flat_array_klass->element_byte_size();
-          const int payload_offset = element_klass->layouts().payload_offset();
+          const int payload_offset = element_klass->payload_offset();
           assert_is_flat_field(element_klass, element_offset + payload_offset);
         }
       }
@@ -378,7 +378,7 @@ inline void ValuePayload::assert_pre_copy_invariants(const ValuePayload& src,
 
   if (src_is_buffered) {
     oop container = src.uses_absolute_addr()
-                    ? cast_to_oop(src.addr() - src_klass->layouts().payload_offset())
+        ? cast_to_oop(src.addr() - src_klass->payload_offset())
         : src.container();
 
     precond(!src_klass->supports_nullable_layouts() || container != src_klass->null_reset_value());
@@ -451,10 +451,10 @@ inline bool ValuePayload::is_atomic_flat() const {
 
 inline int ValuePayload::size_in_bytes() const {
   if (is_buffered()) {
-    return klass()->layouts().payload_size_in_bytes();
+    return klass()->payload_size_in_bytes();
   }
 
-  return klass()->layouts().size_in_bytes_of(flat_layout_kind());
+  return klass()->size_in_bytes_of(flat_layout_kind());
 }
 
 inline int ValuePayload::copy_size_in_bytes(const ValuePayload& src, const ValuePayload& dst) {
@@ -478,7 +478,7 @@ inline BufferedValuePayload::BufferedValuePayload(valueOop buffer)
 
 inline BufferedValuePayload::BufferedValuePayload(valueOop buffer,
                                                   ValueKlass* klass)
-    : ValuePayload(buffer, klass->layouts().payload_offset(), klass, ValuePayloadLayout::buffered()) {}
+    : ValuePayload(buffer, klass->payload_offset(), klass, ValuePayloadLayout::buffered()) {}
 
 inline valueOop BufferedValuePayload::container() const {
   return valueOop(ValuePayload::container());

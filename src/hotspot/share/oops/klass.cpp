@@ -1073,7 +1073,7 @@ void Klass::validate_array_description(const ArrayDescription& ad) {
   } else {
     assert(is_value_klass(), "Must be");
     ValueKlass* vk = ValueKlass::cast(this);
-    assert(!ad.is_flat() || vk->layouts().has_a(ad.flat_layout_kind()), "Sanity check");
+    assert(!ad.is_flat() || vk->has_a(ad.flat_layout_kind()), "Sanity check");
   }
 }
 #endif // ASSERT

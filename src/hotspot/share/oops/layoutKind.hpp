@@ -26,8 +26,6 @@
 #define SHARE_OOPS_LAYOUTKIND_HPP
 
 #include "memory/allStatic.hpp"
-#include "oops/oopsHierarchy.hpp"
-#include "runtime/globals.hpp"
 #include "utilities/enumIterator.hpp"
 #include "utilities/globalDefinitions.hpp"
 #include "utilities/ostream.hpp"

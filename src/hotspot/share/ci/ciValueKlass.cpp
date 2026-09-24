@@ -32,7 +32,7 @@
 
 // Offset of the first field in the value type
 int ciValueKlass::payload_offset() const {
-  GUARDED_VM_ENTRY(return to_ValueKlass()->layouts().payload_offset();)
+  GUARDED_VM_ENTRY(return to_ValueKlass()->payload_offset();)
 }
 
 // Could any array containing an instance of this value class ever be flat?
@@ -107,28 +107,29 @@ ValueKlass* ciValueKlass::get_ValueKlass() {
 }
 
 bool ciValueKlass::has_null_free_non_atomic_layout() const {
-  GUARDED_VM_ENTRY(return get_ValueKlass()->layouts().has_a(LayoutKind::NULL_FREE_NON_ATOMIC_FLAT);)
+  GUARDED_VM_ENTRY(return get_ValueKlass()->has_a(LayoutKind::NULL_FREE_NON_ATOMIC_FLAT);)
 }
 
 bool ciValueKlass::has_null_free_atomic_layout() const {
-  GUARDED_VM_ENTRY(return get_ValueKlass()->layouts().has_a(LayoutKind::NULL_FREE_ATOMIC_FLAT);)
+  GUARDED_VM_ENTRY(return get_ValueKlass()->has_a(LayoutKind::NULL_FREE_ATOMIC_FLAT);)
 }
 
 bool ciValueKlass::has_nullable_atomic_layout() const {
-  GUARDED_VM_ENTRY(return get_ValueKlass()->layouts().has_a(LayoutKind::NULLABLE_ATOMIC_FLAT);)
+  GUARDED_VM_ENTRY(return get_ValueKlass()->has_a(LayoutKind::NULLABLE_ATOMIC_FLAT);)
 }
 
 int ciValueKlass::null_marker_offset_in_payload() const {
-  GUARDED_VM_ENTRY(return get_ValueKlass()->layouts().null_marker_offset_in_payload();)
+  GUARDED_VM_ENTRY(return get_ValueKlass()->null_marker_offset_in_payload();)
 }
 
 // Convert size of atomic layout in bytes to corresponding BasicType
 BasicType ciValueKlass::atomic_size_to_basic_type(bool null_free) const {
   VM_ENTRY_MARK
   const ValueKlass* vk = get_ValueKlass();
-  assert(!null_free || vk->layouts().has_a(LayoutKind::NULL_FREE_ATOMIC_FLAT), "No null-free atomic layout available");
-  assert( null_free || vk->layouts().has_a(LayoutKind::NULLABLE_ATOMIC_FLAT), "No nullable atomic layout available");
-  int size = vk->layouts().size_in_bytes_of(null_free ? LayoutKind::NULL_FREE_ATOMIC_FLAT : LayoutKind::NULLABLE_ATOMIC_FLAT);
+  LayoutKind lk = null_free ? LayoutKind::NULL_FREE_ATOMIC_FLAT : LayoutKind::NULLABLE_ATOMIC_FLAT;
+  assert(vk->has_a(lk), "No %s atomic layout available",
+         null_free ? "null-free" : "nullable");
+  int size = vk->size_in_bytes_of(lk);
   BasicType bt = T_ILLEGAL;
   if (size == sizeof(jlong)) {
     bt = T_LONG;

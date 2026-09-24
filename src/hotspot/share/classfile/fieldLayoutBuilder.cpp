@@ -77,14 +77,14 @@ static OptionalFlatLayout flat_layout_selection(FieldInfo field_info, Array<Valu
   if (field_info.field_flags().is_null_free_value_type()) {
     assert(field_info.access_flags().is_strict(), "null-free fields must be strict");
     if (vk->must_be_atomic()) {
-      if (vk->is_naturally_atomic(true /* null-free */) && vk->layouts().has_a(LayoutKind::NULL_FREE_NON_ATOMIC_FLAT)) {
+      if (vk->is_naturally_atomic(true /* null-free */) && vk->has_a(LayoutKind::NULL_FREE_NON_ATOMIC_FLAT)) {
         return OptionalFlatLayout::flat(LayoutKind::NULL_FREE_NON_ATOMIC_FLAT);
       }
-      return (vk->layouts().has_a(LayoutKind::NULL_FREE_ATOMIC_FLAT) && can_use_atomic_flat)
+      return (vk->has_a(LayoutKind::NULL_FREE_ATOMIC_FLAT) && can_use_atomic_flat)
           ? OptionalFlatLayout::flat(LayoutKind::NULL_FREE_ATOMIC_FLAT)
           : OptionalFlatLayout::non_flat();
     } else {
-      return vk->layouts().has_a(LayoutKind::NULL_FREE_NON_ATOMIC_FLAT)
+      return vk->has_a(LayoutKind::NULL_FREE_NON_ATOMIC_FLAT)
           ? OptionalFlatLayout::flat(LayoutKind::NULL_FREE_NON_ATOMIC_FLAT)
           : OptionalFlatLayout::non_flat();
     }
@@ -92,16 +92,16 @@ static OptionalFlatLayout flat_layout_selection(FieldInfo field_info, Array<Valu
     // To preserve the consistency between the null-marker and the field content, the NULLABLE_NON_ATOMIC_FLAT
     // can only be used in containers that have atomicity guarantees (can_use_atomic_flat argument set to true)
     if (field_info.access_flags().is_strict() && field_info.access_flags().is_final() && can_use_atomic_flat) {
-      if (vk->layouts().has_a(LayoutKind::NULLABLE_NON_ATOMIC_FLAT)) {
+      if (vk->has_a(LayoutKind::NULLABLE_NON_ATOMIC_FLAT)) {
         return OptionalFlatLayout::flat(LayoutKind::NULLABLE_NON_ATOMIC_FLAT);
       }
     }
     // Another special case where NULLABLE_NON_ATOMIC_FLAT can be used: nullable empty values, because the
     // payload of those values contains only the null-marker
-    if (vk->is_empty_value_type() && vk->layouts().has_a(LayoutKind::NULLABLE_NON_ATOMIC_FLAT)) {
+    if (vk->is_empty_value_type() && vk->has_a(LayoutKind::NULLABLE_NON_ATOMIC_FLAT)) {
       return OptionalFlatLayout::flat(LayoutKind::NULLABLE_NON_ATOMIC_FLAT);
     }
-    if (UseNullableAtomicValueFlattening && vk->layouts().has_a(LayoutKind::NULLABLE_ATOMIC_FLAT)) {
+    if (UseNullableAtomicValueFlattening && vk->has_a(LayoutKind::NULLABLE_ATOMIC_FLAT)) {
       return can_use_atomic_flat
           ? OptionalFlatLayout::flat(LayoutKind::NULLABLE_ATOMIC_FLAT)
           : OptionalFlatLayout::non_flat();
@@ -119,7 +119,7 @@ static OptionalFlatLayout adjust_with_budget(FieldInfo field_info, Array<ValueFi
 
   ValueFieldInfo* value_field_info = value_field_info_array->adr_at(field_info.index());
   ValueKlass* vk = value_field_info->klass();
-  int size = vk->layouts().size_in_bytes_of(ofl.get().layout_kind());
+  int size = vk->size_in_bytes_of(ofl.get().layout_kind());
   if (size > budget) {
     return OptionalFlatLayout::non_flat();
   } else {
@@ -223,8 +223,8 @@ void FieldGroup::add_oop_field(int idx) {
 }
 
 void FieldGroup::add_flat_field(int idx, ValueKlass* vk, LayoutKind lk) {
-  const int size = vk->layouts().size_in_bytes_of(lk);
-  const int alignment = vk->layouts().alignment_of(lk);
+  const int size = vk->size_in_bytes_of(lk);
+  const int alignment = vk->alignment_of(lk);
 
   LayoutRawBlock* block = new LayoutRawBlock(idx, LayoutRawBlock::FLAT, size, alignment, vk, lk);
   if (block->size() >= heapOopSize) {
@@ -468,7 +468,7 @@ LayoutRawBlock* FieldLayout::insert_field_block(LayoutRawBlock* slot, LayoutRawB
     }
   }
   if (block->block_kind() == LayoutRawBlock::FLAT && block->flat_layout().is_nullable()) {
-    int nm_offset = block->value_klass()->layouts().null_marker_offset() - block->value_klass()->layouts().payload_offset() + block->offset();
+    int nm_offset = block->value_klass()->null_marker_offset() - block->value_klass()->payload_offset() + block->offset();
     _field_info->adr_at(block->field_index())->set_null_marker_offset(nm_offset);
   }
 
@@ -498,10 +498,10 @@ void FieldLayout::reconstruct_layout(const InstanceKlass* ik, bool& has_nonstati
         ValueFieldInfo value_field_info = ik->value_field_info(fs.index());
         const ValueKlass* vk = value_field_info.klass();
         block = new LayoutRawBlock(fs.index(), LayoutRawBlock::INHERITED,
-                                   vk->layouts().size_in_bytes_of(value_field_info.flat_layout_kind()),
-                                   vk->layouts().alignment_of(value_field_info.flat_layout_kind()));
-        assert(_super_alignment == -1 || _super_alignment >=  vk->layouts().payload_alignment(), "Invalid value alignment");
-        _super_min_align_required = _super_min_align_required > vk->layouts().payload_alignment() ? _super_min_align_required : vk->layouts().payload_alignment();
+                                   vk->size_in_bytes_of(value_field_info.flat_layout_kind()),
+                                   vk->alignment_of(value_field_info.flat_layout_kind()));
+        assert(_super_alignment == -1 || _super_alignment >=  vk->payload_alignment(), "Invalid value alignment");
+        _super_min_align_required = _super_min_align_required > vk->payload_alignment() ? _super_min_align_required : vk->payload_alignment();
       } else {
         int size = type2aelembytes(type);
         // INHERITED blocks are marked as non-reference because oop_maps are handled by their holder class
@@ -890,7 +890,7 @@ int FieldLayoutBuilder::add_field_to_group(FieldInfo fieldinfo, int idx, FieldGr
     _nonstatic_oopmap_count += vk->nonstatic_oop_map_count();
     _field_info->adr_at(idx)->field_flags_addr()->update_flat(true);
     _field_info->adr_at(idx)->set_layout_kind(lk);
-    return vk->layouts().alignment_of(lk);
+    return vk->alignment_of(lk);
   }
   default:
     fatal("Unexpected BasicType");
@@ -1268,7 +1268,7 @@ void FieldLayoutBuilder::compute_value_class_layout() {
     const int default_alignment = layouts().payload_alignment();
     const int required_alignment = MAX2(default_alignment,
                                         largest_layout_of(LayoutKind::NULL_FREE_ATOMIC_FLAT,
-                                                                    LayoutKind::NULLABLE_ATOMIC_FLAT));
+                                                          LayoutKind::NULLABLE_ATOMIC_FLAT));
 
     int shift = (required_alignment - (first_field->offset() % required_alignment)) % required_alignment;
     if (shift != 0) {
@@ -1325,7 +1325,7 @@ void FieldLayoutBuilder::compute_value_class_layout() {
 }
 
 void FieldLayoutBuilder::add_flat_field_oopmap(OopMapBlocksBuilder* nonstatic_oop_maps, ValueKlass* vklass, int offset) {
-  int diff = offset - vklass->layouts().payload_offset();
+  int diff = offset - vklass->payload_offset();
   const OopMapBlock* map = vklass->start_of_nonstatic_oop_maps();
   const OopMapBlock* last_map = map + vklass->nonstatic_oop_map_count();
   while (map < last_map) {
@@ -1456,10 +1456,10 @@ void FieldLayoutBuilder::generate_acmp_maps() {
       case LayoutRawBlock::FLAT:
         {
           ValueKlass* vk = b->value_klass();
-          int field_offset = b->offset() - vk->layouts().payload_offset();
+          int field_offset = b->offset() - vk->payload_offset();
           last_idx = insert_map_at_offset(_nonoop_acmp_map, _oop_acmp_map, vk, field_offset, last_idx);
           if (b->flat_layout().is_nullable()) {
-            int null_marker_offset = b->offset() + vk->layouts().null_marker_offset_in_payload();
+            int null_marker_offset = b->offset() + vk->null_marker_offset_in_payload();
             last_idx = insert_segment(_nonoop_acmp_map, null_marker_offset, 1, last_idx);
             // Important note: the implementation assumes that for nullable flat fields, if the
             // null marker is zero (field is null), then all the fields of the flat field are also
@@ -1541,7 +1541,7 @@ void FieldLayoutBuilder::epilogue() {
   _info->_is_naturally_atomic = _is_naturally_atomic;
   if (_is_concrete_value) {
     _info->_must_be_atomic = _must_be_atomic;
-    _info->_available_layouts = layouts();
+    _info->_value_layouts = layouts();
     _info->_null_reset_value_offset = _static_layout->null_reset_value_offset();
     _info->_is_empty_value_klass = _is_empty_value_class;
   }

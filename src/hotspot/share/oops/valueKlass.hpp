@@ -89,9 +89,8 @@ class ValueKlass: public InstanceKlass {
     address _unpack_handler;
 
     int _null_reset_value_offset;
-    LayoutDescriptions _available_layouts;
-    LayoutDescriptions& layouts() { return _available_layouts; }
-    const LayoutDescriptions& layouts() const { return _available_layouts; }
+
+    LayoutDescriptions _layouts;
 
     // When we can't intrinsify the substitutability check, we can still avoid the call to isSubstitutable at runtime if the
     // value object is small enough.  If all the fields are contained at once in a single long, we can load such a long from
@@ -164,6 +163,9 @@ class ValueKlass: public InstanceKlass {
 
     Members();
 
+    LayoutDescriptions& layouts()             { return _layouts; }
+    const LayoutDescriptions& layouts() const { return _layouts; }
+
     void print_on(outputStream* st) const;
   };
 
@@ -188,10 +190,6 @@ class ValueKlass: public InstanceKlass {
   }
 
  public:
-
-  LayoutDescriptions& layouts() { return members().layouts(); }
-  const LayoutDescriptions& layouts() const { return members().layouts(); }
-  void set_layouts(const LayoutDescriptions& other) { members().layouts() = other; }
 
   bool is_empty_value_type() const   { return _misc_flags.is_empty_value_type(); }
   void set_is_empty_value_type()     { _misc_flags.set_is_empty_value_type(true); }
@@ -222,6 +220,35 @@ class ValueKlass: public InstanceKlass {
   }
   void set_null_reset_value_offset(int offset)                { members()._null_reset_value_offset = offset; }
 
+  LayoutDescriptions& layouts()                               { return members().layouts(); }
+  const LayoutDescriptions& layouts() const                   { return members().layouts(); }
+  void set_layouts(const LayoutDescriptions& other)           { members().layouts() = other; }
+
+  int payload_offset() const                                  { return layouts().payload_offset(); }
+  void set_payload_offset(int offset)                         { layouts().set_payload_offset(offset); }
+
+  int payload_size_in_bytes() const                           { return layouts().payload_size_in_bytes(); }
+  void set_payload_size_in_bytes(int payload_size)            { layouts().set_payload_size_in_bytes(payload_size); }
+
+  int payload_alignment() const                               { return layouts().payload_alignment(); }
+  void set_payload_alignment(int alignment)                   { layouts().set_payload_alignment(alignment); }
+
+  int size_in_bytes_of(LayoutKind lk) const                   { return layouts().size_in_bytes_of(lk); }
+  void set_size_in_bytes_of(LayoutKind lk, int size)          { layouts().set_size_in_bytes_of(lk, size); }
+
+  int alignment_of(LayoutKind lk) const                       { return layouts().alignment_of(lk); }
+  void set_alignment_of(LayoutKind lk, int size)              { layouts().set_alignment_of(lk, size); }
+
+  int null_marker_offset() const                              { return layouts().null_marker_offset(); }
+  void set_null_marker_offset(int offset)                     { layouts().set_null_marker_offset(offset); }
+
+  int null_marker_offset_in_payload() const                   { return layouts().null_marker_offset_in_payload(); }
+
+  bool has_a(LayoutKind lk) const                             { return layouts().has_a(lk); }
+
+  template<typename... Ts>
+  bool has_any(Ts... lks) const                               { return layouts().has_any(lks...); }
+
   int fast_acmp_offset() const                                { return members()._fast_acmp_offset; }
   void set_fast_acmp_offset(int offset)                       { members()._fast_acmp_offset = offset; }
 
@@ -235,12 +262,12 @@ class ValueKlass: public InstanceKlass {
   void set_fast_hashcode_shift(int shift)                     { members()._fast_hashcode_shift = shift; }
 
   bool supports_nullable_layouts() const {
-    return members().layouts().has_any(LayoutKind::NULLABLE_NON_ATOMIC_FLAT, LayoutKind::NULLABLE_ATOMIC_FLAT);
+    return has_any(LayoutKind::NULLABLE_NON_ATOMIC_FLAT, LayoutKind::NULLABLE_ATOMIC_FLAT);
   }
 
   jbyte* null_marker_address(address payload) const {
     assert(supports_nullable_layouts(), " Must do");
-    return (jbyte*)payload + members().layouts().null_marker_offset_in_payload();
+    return (jbyte*)payload + null_marker_offset_in_payload();
   }
 
   bool is_payload_marked_as_null(oop obj, int offset) const {
@@ -344,11 +371,11 @@ class ValueKlass: public InstanceKlass {
   }
 
   static ByteSize payload_offset_offset() {
-    return byte_offset_of(Members, _available_layouts) + byte_offset_of(LayoutDescriptions, _payload_offset);
+    return byte_offset_of(Members, _layouts) + byte_offset_of(LayoutDescriptions, _payload_offset);
   }
 
   static ByteSize null_marker_offset_offset() {
-    return byte_offset_of(Members, _available_layouts) + byte_offset_of(LayoutDescriptions, _null_marker_offset);
+    return byte_offset_of(Members, _layouts) + byte_offset_of(LayoutDescriptions, _null_marker_offset);
   }
 
   static ByteSize fast_acmp_offset_offset() {

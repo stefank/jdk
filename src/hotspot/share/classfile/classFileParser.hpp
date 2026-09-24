@@ -84,7 +84,7 @@ class FieldLayoutInfo : public ResourceObj {
   int _instance_size;
   int _nonstatic_field_size;
   int _static_field_size;
-  LayoutDescriptions _available_layouts;
+  LayoutDescriptions _value_layouts;
   int _null_reset_value_offset;
   int _acmp_maps_offset;
   bool _has_nonstatic_fields;
@@ -94,8 +94,7 @@ class FieldLayoutInfo : public ResourceObj {
   bool _is_empty_value_klass;
   FieldLayoutInfo() : oop_map_blocks(nullptr), _nonoop_acmp_map(nullptr), _oop_acmp_map(nullptr),
                       _instance_size(-1), _nonstatic_field_size(-1), _static_field_size(-1),
-                      _available_layouts(),
-                      _null_reset_value_offset(-1), _acmp_maps_offset(-1),
+                      _value_layouts(), _null_reset_value_offset(-1), _acmp_maps_offset(-1),
                       _has_nonstatic_fields(false), _is_naturally_atomic(false), _must_be_atomic(false),
                       _has_flat_fields(false), _is_empty_value_klass(false) { }
 };

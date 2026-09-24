@@ -290,7 +290,7 @@ class FieldLayoutBuilder : public ResourceObj {
   FieldLayout* _static_layout;
   GrowableArray<AcmpMapSegment>* _nonoop_acmp_map;
   GrowableArray<int>* _oop_acmp_map;
-  LayoutDescriptions _available_layouts;
+  LayoutDescriptions _value_layouts;
   int _nonstatic_oopmap_count;
   int _fields_size_sum;
   int _declared_nonstatic_fields_count;
@@ -309,7 +309,7 @@ class FieldLayoutBuilder : public ResourceObj {
 
   FieldGroup* get_or_create_contended_group(int g);
 
-  LayoutDescriptions& layouts() { return _available_layouts; }
+  LayoutDescriptions& layouts() { return _value_layouts; }
 
   template<typename T>
   int largest_layout_of(T lk) {
@@ -322,22 +322,17 @@ class FieldLayoutBuilder : public ResourceObj {
   template<typename T, typename... Ts>
   int largest_layout_of(T lk, Ts... lks) {
     auto max_rest = largest_layout_of(lks...);
-    if (layouts().has_a(lk)) {
-      auto max_lk = layouts().size_in_bytes_of(lk);
-      return max_rest > max_lk ? max_rest : max_lk;
-    } else {
-      return max_rest;
-    }
+    auto value = largest_layout_of(lk);
+    return value > max_rest ? value : max_rest;
   }
-
 
  public:
   FieldLayoutBuilder(const Symbol* classname, ClassLoaderData* loader_data, const InstanceKlass* super_klass, ConstantPool* constant_pool,
                      GrowableArray<FieldInfo>* field_info, bool is_contended, bool is_concrete_value, bool is_abstract_value,
                      bool must_be_atomic, FieldLayoutInfo* info, Array<ValueFieldInfo>* value_field_info_array);
 
-  int  payload_offset() const                  { assert(_available_layouts.payload_offset() != -1, "Uninitialized"); return _available_layouts.payload_offset(); }
-  int  null_marker_offset() const              { return _available_layouts.null_marker_offset(); }
+  int  payload_offset() const                  { assert(_value_layouts.payload_offset() != -1, "Uninitialized"); return _value_layouts.payload_offset(); }
+  int  null_marker_offset() const              { return _value_layouts.null_marker_offset(); }
   bool is_empty_value_class() const            { return _is_empty_value_class; }
 
   void build_layout();

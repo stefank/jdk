@@ -314,7 +314,7 @@ void ciField::initialize_from(fieldDescriptor* fd) {
   _is_null_free = fd->is_null_free_value_type();
   if (fd->has_null_marker()) {
     ValueKlass* vk = fd->flat_field_klass();
-    _null_marker_offset = _offset + vk->layouts().null_marker_offset_in_payload();
+    _null_marker_offset = _offset + vk->null_marker_offset_in_payload();
   } else {
     _null_marker_offset = -1;
   }
