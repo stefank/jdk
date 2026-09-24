@@ -26,6 +26,8 @@
 #define SHARE_OOPS_LAYOUTKIND_HPP
 
 #include "memory/allStatic.hpp"
+#include "oops/oopsHierarchy.hpp"
+#include "runtime/globals.hpp"
 #include "utilities/enumIterator.hpp"
 #include "utilities/globalDefinitions.hpp"
 #include "utilities/ostream.hpp"
@@ -89,6 +91,8 @@ enum class LayoutKind : uint32_t {
 
 ENUMERATOR_RANGE(LayoutKind, LayoutKind::NULL_FREE_NON_ATOMIC_FLAT, LayoutKind::NULLABLE_NON_ATOMIC_FLAT)
 
+constexpr int LayoutKindCount = (int)EnumRange<LayoutKind>().size();
+
 class LayoutKindHelper : AllStatic {
  public:
   static bool is_valid_underlying_value(uint32_t value) {
@@ -123,6 +127,90 @@ public:
 
   bool operator==(const FlatLayout& other) const {
     return _layout_kind == other._layout_kind;
+  }
+};
+
+// The different layouts available for a particular Klass
+struct LayoutDescriptions {
+  constexpr static int NoValue = -1; // Unsupported layouts are assigned this value
+
+  // Properties of buffered (boxed) values.
+  int _payload_offset;
+  int _payload_size_in_bytes;
+  int _payload_alignment;
+
+  int _null_marker_offset;
+
+  // Size of each LayoutKind.
+  int _sizes[LayoutKindCount];
+
+  // Alignment of each LayoutKind.
+  int _alignments[LayoutKindCount];
+
+  LayoutDescriptions()
+    : _payload_offset(NoValue),
+      _payload_size_in_bytes(NoValue),
+      _payload_alignment(NoValue),
+      _null_marker_offset(NoValue),
+      _sizes() {
+    // Make sizes and alignments uninitialized
+    for (LayoutKind lk : EnumRange<LayoutKind>()) {
+      set_size_in_bytes_of(lk, NoValue);
+      set_alignment_of(lk, NoValue);
+    }
+  }
+
+  void set_size_in_bytes_of(LayoutKind lk, int value) {
+    _sizes[static_cast<size_t>(lk)] = value;
+  }
+
+  void set_alignment_of(LayoutKind lk, int value) {
+    _alignments[static_cast<size_t>(lk)] = value;
+  }
+
+  // Returns default value if missing
+  int size_in_bytes_of(LayoutKind lk) const {
+    return _sizes[static_cast<size_t>(lk)];
+  }
+
+  int alignment_of(LayoutKind lk) const {
+    return _alignments[static_cast<size_t>(lk)];
+  }
+
+  int payload_offset() const { return _payload_offset; }
+  void set_payload_offset(int offset) { _payload_offset = offset; }
+
+  bool has_payload_alignment() const { return _payload_alignment != NoValue; }
+  int  payload_alignment() const { return _payload_alignment; }
+  void set_payload_alignment(int alignment) { _payload_alignment = alignment; }
+
+  int payload_size_in_bytes() const { return _payload_size_in_bytes; }
+  void set_payload_size_in_bytes(int size) { _payload_size_in_bytes = size; }
+
+  int null_marker_offset() const { return _null_marker_offset; }
+  void set_null_marker_offset(int offset) { _null_marker_offset = offset; }
+  int null_marker_offset_in_payload() const { return null_marker_offset() - payload_offset(); }
+
+  bool has_a(LayoutKind lk) const {
+    return size_in_bytes_of(lk) != NoValue;
+  }
+
+  template<typename... Ts>
+  bool has_any(Ts... lks) const {
+    return (has_a(lks) || ...);
+  }
+
+  void print_on(outputStream& st) const {
+    for (LayoutKind lk : EnumRange<LayoutKind>()) {
+      if (has_a(lk)) {
+        st.print_cr("%s layout: %d/%d",
+                    LayoutKindHelper::layout_kind_as_string(lk),
+                    size_in_bytes_of(lk), alignment_of(lk));
+      } else {
+        st.print_cr("%s layout: -/-",
+                    LayoutKindHelper::layout_kind_as_string(lk));
+      }
+    }
   }
 };
 

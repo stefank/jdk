@@ -1073,24 +1073,7 @@ void Klass::validate_array_description(const ArrayDescription& ad) {
   } else {
     assert(is_value_klass(), "Must be");
     ValueKlass* vk = ValueKlass::cast(this);
-    if (ad.is_flat()) {
-      switch(ad.flat_layout_kind()) {
-        case LayoutKind::NULL_FREE_ATOMIC_FLAT:
-          assert(vk->has_null_free_atomic_layout(), "Sanity check");
-          break;
-        case LayoutKind::NULL_FREE_NON_ATOMIC_FLAT:
-          assert(vk->has_null_free_non_atomic_layout(), "Sanity check");
-          break;
-        case LayoutKind::NULLABLE_ATOMIC_FLAT:
-          assert(vk->has_nullable_atomic_layout(), "Sanity check");
-          break;
-        case LayoutKind::NULLABLE_NON_ATOMIC_FLAT:
-          assert(vk->has_nullable_non_atomic_layout(), "Sanity check)");
-          break;
-        default:
-          ShouldNotReachHere();
-      }
-    }
+    assert(!ad.is_flat() || vk->layouts().has_a(ad.flat_layout_kind()), "Sanity check");
   }
 }
 #endif // ASSERT
