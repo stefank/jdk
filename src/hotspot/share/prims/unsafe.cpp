@@ -371,14 +371,14 @@ UNSAFE_ENTRY(jarray, Unsafe_NewSpecialArray(JNIEnv *env, jobject unsafe, jclass 
   // then we can create a layout which is nullable atomic flat instead.
   // This is necessary for the current way that VarHandle CAS is implemented.
   if (lk == LayoutKind::NULLABLE_NON_ATOMIC_FLAT) {
-    if (!vk->has_nullable_atomic_layout()) {
+    if (!vk->has_a(LayoutKind::NULLABLE_ATOMIC_FLAT)) {
       THROW_MSG_NULL(vmSymbols::java_lang_IllegalArgumentException(), "Invalid layout kind");
     }
     lk = LayoutKind::NULLABLE_ATOMIC_FLAT;
   }
   // WARNING: test below will need modifications when flat layouts supported for fields
   // but not for arrays are introduced (NULLABLE_NON_ATOMIC_FLAT for instance)
-  if (!UseArrayFlattening || !vk->is_layout_supported(lk)) {
+  if (!UseArrayFlattening || !vk->has_a(lk)) {
     THROW_MSG_NULL(vmSymbols::java_lang_UnsupportedOperationException(), "Layout not supported");
   }
   ArrayProperties props = ArrayKlass::array_properties_from_layout(lk);

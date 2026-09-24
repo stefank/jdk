@@ -98,20 +98,24 @@ address ciValueKlass::unpack_handler() const {
   GUARDED_VM_ENTRY(return get_ValueKlass()->unpack_handler();)
 }
 
-ValueKlass* ciValueKlass::get_ValueKlass() const {
+const ValueKlass* ciValueKlass::get_ValueKlass() const {
+  GUARDED_VM_ENTRY(return to_ValueKlass();)
+}
+
+ValueKlass* ciValueKlass::get_ValueKlass() {
   GUARDED_VM_ENTRY(return to_ValueKlass();)
 }
 
 bool ciValueKlass::has_null_free_non_atomic_layout() const {
-  GUARDED_VM_ENTRY(return get_ValueKlass()->has_null_free_non_atomic_layout();)
+  GUARDED_VM_ENTRY(return get_ValueKlass()->has_a(LayoutKind::NULL_FREE_NON_ATOMIC_FLAT);)
 }
 
 bool ciValueKlass::has_null_free_atomic_layout() const {
-  GUARDED_VM_ENTRY(return get_ValueKlass()->has_null_free_atomic_layout();)
+  GUARDED_VM_ENTRY(return get_ValueKlass()->has_a(LayoutKind::NULL_FREE_ATOMIC_FLAT);)
 }
 
 bool ciValueKlass::has_nullable_atomic_layout() const {
-  GUARDED_VM_ENTRY(return get_ValueKlass()->has_nullable_atomic_layout();)
+  GUARDED_VM_ENTRY(return get_ValueKlass()->has_a(LayoutKind::NULLABLE_ATOMIC_FLAT);)
 }
 
 int ciValueKlass::null_marker_offset_in_payload() const {
@@ -121,10 +125,11 @@ int ciValueKlass::null_marker_offset_in_payload() const {
 // Convert size of atomic layout in bytes to corresponding BasicType
 BasicType ciValueKlass::atomic_size_to_basic_type(bool null_free) const {
   VM_ENTRY_MARK
-  ValueKlass* vk = get_ValueKlass();
-  assert(!null_free || vk->has_null_free_atomic_layout(), "No null-free atomic layout available");
-  assert( null_free || vk->has_nullable_atomic_layout(), "No nullable atomic layout available");
-  int size = null_free ? vk->null_free_atomic_size_in_bytes() : vk->nullable_atomic_size_in_bytes();
+  const ValueKlass* vk = get_ValueKlass();
+  LayoutKind lk = null_free ? LayoutKind::NULL_FREE_ATOMIC_FLAT : LayoutKind::NULLABLE_ATOMIC_FLAT;
+  assert(vk->has_a(lk), "No %s atomic layout available",
+         null_free ? "null-free" : "nullable");
+  int size = vk->size_in_bytes_of(lk);
   BasicType bt = T_ILLEGAL;
   if (size == sizeof(jlong)) {
     bt = T_LONG;
@@ -150,7 +155,7 @@ int ciValueKlass::field_map_offset() const {
 
 ciConstant ciValueKlass::get_field_map() const {
   VM_ENTRY_MARK
-  ValueKlass* vk = get_ValueKlass();
+  const ValueKlass* vk = get_ValueKlass();
   oop array = vk->java_mirror()->obj_field(vk->acmp_maps_offset());
   return ciConstant(T_ARRAY, CURRENT_ENV->get_object(array));
 }

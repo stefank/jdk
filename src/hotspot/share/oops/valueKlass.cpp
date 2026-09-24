@@ -64,15 +64,7 @@ ValueKlass::Members::Members()
     _pack_handler_jobject(nullptr),
     _unpack_handler(nullptr),
     _null_reset_value_offset(0),
-    _payload_offset(-1),
-    _payload_size_in_bytes(-1),
-    _payload_alignment(-1),
-    _null_free_non_atomic_size_in_bytes(-1),
-    _null_free_non_atomic_alignment(-1),
-    _null_free_atomic_size_in_bytes(-1),
-    _nullable_atomic_size_in_bytes(-1),
-    _nullable_non_atomic_size_in_bytes(-1),
-    _null_marker_offset(-1),
+    _layouts(),
     _fast_acmp_offset(-1),
     _fast_acmp_mask(0),
     _fast_hashcode_offset(-1),
@@ -125,7 +117,7 @@ valueOop ValueKlass::allocate_instance(TRAPS) {
   return oop;
 }
 
-int ValueKlass::nonstatic_oop_count() {
+int ValueKlass::nonstatic_oop_count() const {
   int oops = 0;
   int map_count = nonstatic_oop_map_count();
   OopMapBlock* block = start_of_nonstatic_oop_maps();
@@ -139,7 +131,7 @@ int ValueKlass::nonstatic_oop_count() {
 
 // Arrays of...
 
-bool ValueKlass::maybe_flat_in_array() {
+bool ValueKlass::maybe_flat_in_array() const {
   if (!UseArrayFlattening) {
     return false;
   }
@@ -147,11 +139,10 @@ bool ValueKlass::maybe_flat_in_array() {
   if ((FlatArrayElementMaxOops >= 0) && (nonstatic_oop_count() > FlatArrayElementMaxOops)) {
     return false;
   }
-  // No flat layout?
-  if (!has_nullable_atomic_layout() && !has_null_free_atomic_layout() && !has_null_free_non_atomic_layout()) {
-    return false;
-  }
-  return true;
+  // Has any flat layouts?
+  return layouts().has_any(LayoutKind::NULLABLE_ATOMIC_FLAT,
+                           LayoutKind::NULL_FREE_ATOMIC_FLAT,
+                           LayoutKind::NULL_FREE_NON_ATOMIC_FLAT);
 }
 
 // Value type arguments are not passed by reference, instead each
@@ -527,10 +518,10 @@ void ValueKlass::print_on(outputStream* st) const {
                  payload_size_in_bytes(), payload_alignment());
   };
   auto print_layout_kind = [&](LayoutKind lk) {
-    if (is_layout_supported(lk)) {
+    if (has_a(lk)) {
       st->print_cr(" - %s layout: %d/%d",
                    LayoutKindHelper::layout_kind_as_string(lk),
-                   layout_size_in_bytes(lk), layout_alignment(lk));
+                   size_in_bytes_of(lk), alignment_of(lk));
     } else {
       st->print_cr(" - %s layout: -/-",
                    LayoutKindHelper::layout_kind_as_string(lk));
@@ -569,15 +560,15 @@ void ValueKlass::Members::print_on(outputStream* st) const {
   st->print_cr(" - pack handler (jobject):            " PTR_FORMAT, p2i(_pack_handler_jobject));
   st->print_cr(" - unpack handler:                    " PTR_FORMAT, p2i(_unpack_handler));
   st->print_cr(" - null reset offset:                 %d", _null_reset_value_offset);
-  st->print_cr(" - payload offset:                    %d", _payload_offset);
-  st->print_cr(" - payload size (bytes):              %d", _payload_size_in_bytes);
-  st->print_cr(" - payload alignment:                 %d", _payload_alignment);
-  st->print_cr(" - null-free non-atomic size (bytes): %d", _null_free_non_atomic_size_in_bytes);
-  st->print_cr(" - null-free non-atomic alignment:    %d", _null_free_non_atomic_alignment);
-  st->print_cr(" - null-free atomic size (bytes):     %d", _null_free_atomic_size_in_bytes);
-  st->print_cr(" - nullable atomic size (bytes):      %d", _nullable_atomic_size_in_bytes);
-  st->print_cr(" - nullable non-atomic size (bytes):  %d", _nullable_non_atomic_size_in_bytes);
-  st->print_cr(" - null marker offset:                %d", _null_marker_offset);
+  st->print_cr(" - payload offset:                    %d", layouts().payload_offset());
+  st->print_cr(" - payload size (bytes):              %d", layouts().payload_size_in_bytes());
+  st->print_cr(" - payload alignment:                 %d", layouts().payload_alignment());
+  st->print_cr(" - null-free non-atomic size (bytes): %d", layouts().size_in_bytes_of(LayoutKind::NULL_FREE_NON_ATOMIC_FLAT));
+  st->print_cr(" - null-free non-atomic alignment:    %d", layouts().alignment_of(LayoutKind::NULL_FREE_NON_ATOMIC_FLAT));
+  st->print_cr(" - null-free atomic size (bytes):     %d", layouts().size_in_bytes_of(LayoutKind::NULL_FREE_ATOMIC_FLAT));
+  st->print_cr(" - nullable atomic size (bytes):      %d", layouts().size_in_bytes_of(LayoutKind::NULLABLE_ATOMIC_FLAT));
+  st->print_cr(" - nullable non-atomic size (bytes):  %d", layouts().size_in_bytes_of(LayoutKind::NULLABLE_NON_ATOMIC_FLAT));
+  st->print_cr(" - null marker offset:                %d", layouts().null_marker_offset());
   st->print_cr(" - fast acmp offset:                  %d", _fast_acmp_offset);
   st->print_cr(" - fast acmp mask:                    " INT64_FORMAT_X_0, _fast_acmp_mask);
   st->print_cr(" - fast hashcode offset:              %d", _fast_hashcode_offset);

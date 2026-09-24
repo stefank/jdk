@@ -89,6 +89,8 @@ enum class LayoutKind : uint32_t {
 
 ENUMERATOR_RANGE(LayoutKind, LayoutKind::NULL_FREE_NON_ATOMIC_FLAT, LayoutKind::NULLABLE_NON_ATOMIC_FLAT)
 
+constexpr int LayoutKindCount = (int)EnumRange<LayoutKind>().size();
+
 class LayoutKindHelper : AllStatic {
  public:
   static bool is_valid_underlying_value(uint32_t value) {
