@@ -52,7 +52,6 @@ private:
   int                _offset;
   OptionalFlatLayout _flat_layout;
   bool               _is_constant;
-  bool               _is_flat;
   bool               _is_null_free;
   int                _null_marker_offset;
   ciMethod*          _known_to_link_with_put;
@@ -176,10 +175,10 @@ public:
   bool is_volatile             () const { return flags().is_volatile(); }
   bool is_transient            () const { return flags().is_transient(); }
   bool is_strict               () const { return flags().is_strict(); }
-  bool is_flat                 () const { return _is_flat; }
+  bool is_flat                 () const { return _flat_layout.is_flat(); }
   bool is_null_free            () const { return _is_null_free; }
   int null_marker_offset       () const { return _null_marker_offset; }
-  FlatLayout flat_layout       () const { return _flat_layout.get(is_flat()); }
+  FlatLayout flat_layout       () const { return _flat_layout.get(); }
   LayoutKind layout_kind       () const { return flat_layout().layout_kind(); }
 
   // Whether this field needs to act atomically. Note that it does not actually need accessing

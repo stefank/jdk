@@ -144,7 +144,7 @@ class FieldInfo {
   u4 _offset;                       // offset in object layout
   AccessFlags _access_flags;        // access flags (JVM spec)
   FieldFlags _field_flags;          // VM defined flags (not JVM spec)
-  OptionalFlatLayout _flat_layout;  // Layout if the field is flat
+  FlatLayoutSlot _flat_layout;      // Layout if the field is flat
   u4 _null_marker_offset;           // null marker offset for this field in the object layout
   u2 _initializer_index;            // index from ConstantValue attr (or 0)
   u2 _generic_signature_index;      // index from GenericSignature attr (or 0)
@@ -193,10 +193,10 @@ class FieldInfo {
   FieldFlags field_flags() const             { return _field_flags; }
   FieldFlags* field_flags_addr()             { return &_field_flags; }
   LayoutKind layout_kind() const             { return _flat_layout.get(_field_flags.is_flat()).layout_kind(); }
-  OptionalFlatLayout flat_layout() const     { return _flat_layout; }
+  FlatLayoutSlot flat_layout() const         { return _flat_layout; }
   void set_layout_kind(LayoutKind lk) {
     assert(_field_flags.is_flat(), "Must be");
-    _flat_layout = OptionalFlatLayout(lk);
+    _flat_layout = FlatLayoutSlot(lk);
   }
   u4 null_marker_offset() const              { return _null_marker_offset; }
   void set_null_marker_offset(u4 offset) {

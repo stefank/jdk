@@ -62,27 +62,23 @@ class PackageEntry;
 class vtableEntry;
 
 class ValueFieldLayout {
-  bool               _is_flat;
   OptionalFlatLayout _optional_flat_layout;
 
-  ValueFieldLayout(bool is_flat, OptionalFlatLayout optional_layout_kind)
-    : _is_flat(is_flat), _optional_flat_layout(optional_layout_kind) {}
+  ValueFieldLayout(OptionalFlatLayout optional_flat_layout)
+    : _optional_flat_layout(optional_flat_layout) {}
 
 public:
-  // Used to find uninitialized values.
-  static ValueFieldLayout uninitialized() {
-    OptionalFlatLayout ofl(false /* initialized */);
-    return ValueFieldLayout(false /* is_flat */, ofl);
+  static ValueFieldLayout flat(LayoutKind layout_kind) {
+    return ValueFieldLayout(OptionalFlatLayout::flat(layout_kind));
   }
 
   static ValueFieldLayout reference() {
-    OptionalFlatLayout olk(true /* initialized */);
-    return ValueFieldLayout(false /* is_flat */, olk);
+    return ValueFieldLayout(OptionalFlatLayout::non_flat());
   }
 
-  static ValueFieldLayout flat(LayoutKind layout_kind) {
-    OptionalFlatLayout olk(layout_kind);
-    return ValueFieldLayout(true /* is_flat */, olk);
+  // Used to find uninitialized values.
+  static ValueFieldLayout uninitialized() {
+    return ValueFieldLayout(OptionalFlatLayout::uninitialized());
   }
 
   static bool is_valid_unsafe_layout_value(int layout_value) {
@@ -118,23 +114,19 @@ public:
     return static_cast<jint>(flat_layout_kind()) + 1;
   }
 
-  bool is_uninitialized() const {
-    // Denotes an uninitialized ValueFieldLayout
-    return _optional_flat_layout.is_uninitialized(_is_flat);
+  bool is_initialized() const {
+    return _optional_flat_layout.is_initialized();
   }
 
   bool is_flat() const {
-    precond(!is_uninitialized());
-    return _is_flat;
+    return _optional_flat_layout.is_flat();
   }
 
   FlatLayout flat_layout() const {
-    precond(!is_uninitialized());
-    return _optional_flat_layout.get(_is_flat);
+    return _optional_flat_layout.get();
   }
 
   LayoutKind flat_layout_kind() const {
-    precond(!is_uninitialized());
     return flat_layout().layout_kind();
   }
 
@@ -149,19 +141,7 @@ public:
   }
 
   bool operator==(const ValueFieldLayout& other) {
-    precond(!is_uninitialized());
-    precond(!other.is_uninitialized());
-
-    if (_is_flat) {
-      if (other._is_flat) {
-        return flat_layout_kind() == other.flat_layout_kind();
-      } else {
-        return false;
-      }
-    } else {
-      // No other data to check for non-flat field layouts
-      return !other._is_flat;
-    }
+    return _optional_flat_layout == other._optional_flat_layout;
   }
 };
 

@@ -72,7 +72,7 @@ class LayoutRawBlock : public ResourceObj {
   LayoutRawBlock* _prev_block;
   ValueKlass* _value_klass;
   Kind _block_kind;
-  OptionalFlatLayout _optional_flat_layout;
+  FlatLayoutSlot _flat_layout;
   int _offset;
   int _alignment;
   int _size;
@@ -111,7 +111,7 @@ class LayoutRawBlock : public ResourceObj {
   }
 
   FlatLayout flat_layout() const {
-    return _optional_flat_layout.get(_block_kind == FLAT);
+    return _flat_layout.get(_block_kind == FLAT);
   }
   LayoutKind layout_kind() const {
     return flat_layout().layout_kind();

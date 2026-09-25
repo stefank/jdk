@@ -845,7 +845,7 @@ public:
     char _sigs_start;
     int _offset;
     ValueKlass* _value_klass; // nullptr for heap object
-    OptionalFlatLayout _flat_value_field_layout;
+    FlatLayoutSlot _flat_layout;
 
     template<typename FieldStreamType>
     static ValueFieldInfo* calc_value_field_info(const FieldStreamType& field) {
@@ -865,29 +865,29 @@ public:
     }
 
     template<typename FieldStreamType>
-    static OptionalFlatLayout calc_flat_value_field_layout(const FieldStreamType& field) {
+    static FlatLayoutSlot calc_flat_layout(const FieldStreamType& field) {
       if (field.is_flat()) {
-        return OptionalFlatLayout(calc_value_field_info(field)->flat_layout_kind());
+        return FlatLayoutSlot(calc_value_field_info(field)->flat_layout());
       } else {
-        return OptionalFlatLayout();
+        return FlatLayoutSlot::uninitialized();
       }
     }
 
   public:
-    FieldDescriptor(): _sigs_start(0), _offset(0), _value_klass(nullptr), _flat_value_field_layout() {}
+    FieldDescriptor(): _sigs_start(0), _offset(0), _value_klass(nullptr), _flat_layout() {}
 
     template<typename FieldStreamType>
     FieldDescriptor(const FieldStreamType& field)
       : _sigs_start(field.signature()->char_at(0)),
         _offset(field.offset()),
         _value_klass(calc_value_klass(field)),
-        _flat_value_field_layout(calc_flat_value_field_layout(field)) {}
+        _flat_layout(calc_flat_layout(field)) {}
 
     char sig_start() const            { return _sigs_start; }
     int offset() const                { return _offset; }
     bool is_flat() const              { return _value_klass != nullptr; }
     ValueKlass* value_klass() const   { return _value_klass; }
-    FlatLayout flat_value_field_layout() const { return _flat_value_field_layout.get(is_flat()); }
+    FlatLayout flat_value_field_layout() const { return _flat_layout.get(is_flat()); }
     bool is_flat_nullable() const     { return is_flat() && flat_value_field_layout().is_nullable(); }
   };
 

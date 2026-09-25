@@ -112,7 +112,7 @@ class FlatLayout {
   LayoutKind _layout_kind;
 
 public:
-  explicit FlatLayout(LayoutKind layout_kind) : _layout_kind(layout_kind) {}
+  FlatLayout(LayoutKind layout_kind) : _layout_kind(layout_kind) {}
 
   LayoutKind layout_kind() const { return _layout_kind; }
 
@@ -120,28 +120,133 @@ public:
   bool is_atomic() const         { return LayoutKindHelper::is_atomic_flat(_layout_kind); }
 
   static ByteSize layout_kind_offset() { return in_ByteSize(offset_of(FlatLayout, _layout_kind)); }
+
+  bool operator==(const FlatLayout& other) const {
+    return _layout_kind == other._layout_kind;
+  }
 };
 
-class OptionalFlatLayout {
+// This class is used for places where storing a FlatLayout is optional
+// and its presence depends on an external "has flat layout" discriminator.
+//
+// This helps keep information about flatness in one place, instead of
+// duplicating it together with the FlatLayout. If this duplication isn't
+// problematic, then OptionalFlatLayout is probably a more natural class to
+// use.
+//
+// Note that the implementation of the class is subtle in that it supports
+// a tri-state:
+//
+// 1) A FlatLayout is present and the slot is considered initialized
+// 2) No FlatLayout is present but the slot is still considered initialized
+// 3) The slot is not considered initialized
+//
+// All these three cases are currently used in the code. Care must be taken
+// to ensure that the external discriminator (has_flat_layout) is properly
+// initialized and agrees with the active union member:
+//
+// has_flat_layout == true => _flat_layout is active
+// has_flat_layout == false => _initialized is active
+//
+// Here again is a reason to use the safer OptionalFlatLayout class. It handles
+// the active member and it has built-in initialization asserts.
+class FlatLayoutSlot {
+  // Note that the union makes sure that a FlatLayout object is only
+  // created (in the C++ sense) when we have a proper FlatLayout.
+  // Otherwise the bool object is created.
   union {
+    // This is only set when a flat layout is present.
     FlatLayout _flat_layout;
-    bool _not_initialized;
+
+    // This bool is set when the flat layout is not present.
+    //
+    // Its value is used to determine if this slot should be considered
+    // initialized
+    bool _initialized;
   };
 
 public:
-  OptionalFlatLayout(LayoutKind layout_kind)
-    : _flat_layout(layout_kind) {}
+  FlatLayoutSlot(FlatLayout flat_layout)
+    : _flat_layout(flat_layout) {}
 
-  OptionalFlatLayout(bool initialized = false)
-    : _not_initialized(!initialized) {}
+  explicit FlatLayoutSlot(bool initialized = false)
+    : _initialized(initialized) {}
 
-  FlatLayout get(bool is_present) const {
-    precond(is_present);
+  static FlatLayoutSlot uninitialized() {
+    return FlatLayoutSlot();
+  }
+
+  // Get the FlatLayout. The external has_flat_layout discriminator is used to
+  // catch when code tries to fetch layout without having a flat layout.
+  FlatLayout get(bool has_flat_layout) const {
+    precond(has_flat_layout);
     return _flat_layout;
   }
 
-  bool is_uninitialized(bool is_present) const {
-    return !is_present && _not_initialized;
+  bool is_initialized(bool has_flat_layout) const {
+    return has_flat_layout || _initialized;
+  }
+};
+
+// This class optionally holds a FlatLayout.
+//
+// It is similar to FlatLayoutSlot and has support for the same tri-state. The
+// difference is that this class has its own "has flat layout" (_is_flat)
+// discriminator. This also means that it can assert that the current instance
+// has been initialized.
+class OptionalFlatLayout {
+  bool           _is_flat;
+  FlatLayoutSlot _flat_layout;
+
+  OptionalFlatLayout(bool is_flat, FlatLayoutSlot flat_layout)
+    : _is_flat(is_flat),
+      _flat_layout(flat_layout) {}
+
+public:
+  // Default constructor creates an "uninitialized" state.
+  OptionalFlatLayout()
+    : OptionalFlatLayout(false /* is_flat */, FlatLayoutSlot(false /* initialized */)) {}
+
+  static OptionalFlatLayout flat(FlatLayout flat_layout) {
+    return OptionalFlatLayout(true /* is_flat */, FlatLayoutSlot(flat_layout));
+  }
+
+  static OptionalFlatLayout non_flat() {
+    return OptionalFlatLayout(false /* is_flat */, FlatLayoutSlot(true /* initialized */));
+  }
+
+  static OptionalFlatLayout uninitialized() {
+    return OptionalFlatLayout();
+  }
+
+  bool is_initialized() const {
+    return _flat_layout.is_initialized(_is_flat);
+  }
+
+  bool is_flat() const {
+    precond(is_initialized());
+    return _is_flat;
+  }
+
+  // Get the FlatLayout, assert if it isn't present.
+  FlatLayout get() const {
+    return _flat_layout.get(_is_flat);
+  }
+
+  bool operator==(const OptionalFlatLayout& other) const {
+    precond(is_initialized());
+    precond(other.is_initialized());
+
+    if (_is_flat) {
+      if (other._is_flat) {
+        return get() == other.get();
+      } else {
+        return false;
+      }
+    } else {
+      // No other data to check for non-flat field layouts
+      return !other._is_flat;
+    }
   }
 };
 
