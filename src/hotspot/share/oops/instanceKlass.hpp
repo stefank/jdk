@@ -146,7 +146,7 @@ class ValueFieldInfo : public MetaspaceObj {
   LayoutKind flat_layout_kind() const {
     return _layout.flat_layout_kind();
   }
-  void set_flat_layout_kind(LayoutKind lk) { _layout = ValueFieldLayout::flat(lk); }
+  void set_layout(ValueFieldLayout vfl) { _layout = vfl; }
 
   void metaspace_pointers_do(MetaspaceClosure* it);
   MetaspaceObj::Type type() const { return ValueFieldInfoType; }
