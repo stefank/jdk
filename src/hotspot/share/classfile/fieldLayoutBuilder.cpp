@@ -33,13 +33,14 @@
 #include "oops/instanceKlass.inline.hpp"
 #include "oops/instanceMirrorKlass.hpp"
 #include "oops/klass.inline.hpp"
+#include "oops/layoutKind.hpp"
 #include "oops/valueKlass.inline.hpp"
 #include "runtime/fieldDescriptor.inline.hpp"
 #include "utilities/align.hpp"
 #include "utilities/powerOfTwo.hpp"
 
-static ValueFieldLayout field_layout_selection(FieldInfo field_info, Array<ValueFieldInfo>* value_field_info_array,
-                                               bool can_use_atomic_flat) {
+static OptionalFlatLayout flat_layout_selection(FieldInfo field_info, Array<ValueFieldInfo>* value_field_info_array,
+                                                bool can_use_atomic_flat) {
 
   // The can_use_atomic_flat argument indicates if an atomic flat layout can be used for this field.
   // This argument will be false if the container is a loosely consistent value class. Using an atomic layout
@@ -47,27 +48,27 @@ static ValueFieldLayout field_layout_selection(FieldInfo field_info, Array<Value
   // tearing even if the field's class was declared atomic (non loosely consistent).
 
   if (!UseFieldFlattening) {
-    return ValueFieldLayout::reference();
+    return OptionalFlatLayout::non_flat();
   }
 
   if (field_info.field_flags().is_injected()) {
     // don't flatten injected fields
-    return ValueFieldLayout::reference();
+    return OptionalFlatLayout::non_flat();
   }
 
   if (field_info.access_flags().is_volatile()) {
     // volatile is used as a keyword to prevent flattening
-    return ValueFieldLayout::reference();
+    return OptionalFlatLayout::non_flat();
   }
 
   if (field_info.access_flags().is_static()) {
     // don't flatten static fields
-    return ValueFieldLayout::reference();
+    return OptionalFlatLayout::non_flat();
   }
 
   if (value_field_info_array == nullptr || value_field_info_array->adr_at(field_info.index())->klass() == nullptr) {
     // field's type is not a known value class, using a reference
-    return ValueFieldLayout::reference();
+    return OptionalFlatLayout::non_flat();
   }
 
   ValueFieldInfo* value_field_info = value_field_info_array->adr_at(field_info.index());
@@ -77,77 +78,68 @@ static ValueFieldLayout field_layout_selection(FieldInfo field_info, Array<Value
     assert(field_info.access_flags().is_strict(), "null-free fields must be strict");
     if (vk->must_be_atomic()) {
       if (vk->is_naturally_atomic(true /* null-free */) && vk->has_null_free_non_atomic_layout()) {
-        return ValueFieldLayout::flat(LayoutKind::NULL_FREE_NON_ATOMIC_FLAT);
+        return OptionalFlatLayout::flat(LayoutKind::NULL_FREE_NON_ATOMIC_FLAT);
       }
       return (vk->has_null_free_atomic_layout() && can_use_atomic_flat)
-          ? ValueFieldLayout::flat(LayoutKind::NULL_FREE_ATOMIC_FLAT)
-          : ValueFieldLayout::reference();
+          ? OptionalFlatLayout::flat(LayoutKind::NULL_FREE_ATOMIC_FLAT)
+          : OptionalFlatLayout::non_flat();
     } else {
       return vk->has_null_free_non_atomic_layout()
-          ? ValueFieldLayout::flat(LayoutKind::NULL_FREE_NON_ATOMIC_FLAT)
-          : ValueFieldLayout::reference();
+          ? OptionalFlatLayout::flat(LayoutKind::NULL_FREE_NON_ATOMIC_FLAT)
+          : OptionalFlatLayout::non_flat();
     }
   } else {
     // To preserve the consistency between the null-marker and the field content, the NULLABLE_NON_ATOMIC_FLAT
     // can only be used in containers that have atomicity guarantees (can_use_atomic_flat argument set to true)
     if (field_info.access_flags().is_strict() && field_info.access_flags().is_final() && can_use_atomic_flat) {
       if (vk->has_nullable_non_atomic_layout()) {
-        return ValueFieldLayout::flat(LayoutKind::NULLABLE_NON_ATOMIC_FLAT);
+        return OptionalFlatLayout::flat(LayoutKind::NULLABLE_NON_ATOMIC_FLAT);
       }
     }
     // Another special case where NULLABLE_NON_ATOMIC_FLAT can be used: nullable empty values, because the
     // payload of those values contains only the null-marker
     if (vk->is_empty_value_type() && vk->has_nullable_non_atomic_layout()) {
-      return ValueFieldLayout::flat(LayoutKind::NULLABLE_NON_ATOMIC_FLAT);
+      return OptionalFlatLayout::flat(LayoutKind::NULLABLE_NON_ATOMIC_FLAT);
     }
     if (UseNullableAtomicValueFlattening && vk->has_nullable_atomic_layout()) {
       return can_use_atomic_flat
-          ? ValueFieldLayout::flat(LayoutKind::NULLABLE_ATOMIC_FLAT)
-          : ValueFieldLayout::reference();
+          ? OptionalFlatLayout::flat(LayoutKind::NULLABLE_ATOMIC_FLAT)
+          : OptionalFlatLayout::non_flat();
     } else {
-      return ValueFieldLayout::reference();
+      return OptionalFlatLayout::non_flat();
     }
   }
 }
 
-static ValueFieldLayout adjust_with_budget(FieldInfo field_info, Array<ValueFieldInfo>* value_field_info_array,
-                                           ValueFieldLayout vfl, int& budget) {
-  if (!vfl.is_flat()) {
-    return vfl;
+static OptionalFlatLayout adjust_with_budget(FieldInfo field_info, Array<ValueFieldInfo>* value_field_info_array,
+                                             OptionalFlatLayout ofl, int& budget) {
+  if (!ofl.is_flat()) {
+    return ofl;
   }
+
   ValueFieldInfo* value_field_info = value_field_info_array->adr_at(field_info.index());
   ValueKlass* vk = value_field_info->klass();
-  int size = vk->layout_size_in_bytes(vfl.flat_layout_kind());
+  int size = vk->layout_size_in_bytes(ofl.get().layout_kind());
   if (size > budget) {
-    return ValueFieldLayout::reference();
+    return OptionalFlatLayout::non_flat();
   } else {
     budget -= size;
-    return vfl;
+    return ofl;
   }
 }
 
-static bool field_is_flattenable(FieldInfo fieldinfo, ValueFieldLayout vfl, Array<ValueFieldInfo>* vfi) {
+static bool field_is_flattenable(FieldInfo fieldinfo, Array<ValueFieldInfo>* vfi) {
   if (fieldinfo.field_flags().is_null_free_value_type()) {
-    // A null-free value type is always flattenable
+    // This makes sure that we include static null-restricted fields.
+    // We currently don't flatten them by policy, but they are still considered
+    // flattenable.
     return true;
   }
 
-  if (vfl.is_flat()) {
-    // We've chosen a layout that isn't a normal reference
-    return true;
-  }
-
-  const int field_index = (int)fieldinfo.index();
-  if (!fieldinfo.field_flags().is_injected() &&
+  // Include this if it is a value field
+  return !fieldinfo.field_flags().is_injected() &&
       vfi != nullptr &&
-      vfi->adr_at(field_index)->klass() != nullptr &&
-      !vfi->adr_at(field_index)->klass()->is_identity_class() &&
-      !vfi->adr_at(field_index)->klass()->is_abstract()) {
-    // The field's klass is not an identity class or abstract
-    return true;
-  }
-
-  return false;
+      vfi->adr_at(fieldinfo.index())->klass() != nullptr;
 }
 
 LayoutRawBlock::LayoutRawBlock(Kind kind, int size)
@@ -876,13 +868,13 @@ int FieldLayoutBuilder::add_field_to_group(FieldInfo fieldinfo, int idx, FieldGr
     // Atomic flat fields can always be used in identity classes.
     // Use them only for value classes if the container is itself atomic.
     const bool use_atomic_flat = !is_value_compatible_class || _must_be_atomic;
-    ValueFieldLayout vfl = field_layout_selection(fieldinfo, _value_field_info_array, use_atomic_flat);
-    vfl = adjust_with_budget(fieldinfo, _value_field_info_array, vfl, _flattening_budget);
-    if (field_is_flattenable(fieldinfo, vfl, _value_field_info_array)) {
+    OptionalFlatLayout ofl = flat_layout_selection(fieldinfo, _value_field_info_array, use_atomic_flat);
+    ofl = adjust_with_budget(fieldinfo, _value_field_info_array, ofl, _flattening_budget);
+    if (field_is_flattenable(fieldinfo, _value_field_info_array)) {
       _has_flattenable_fields = true;
     }
 
-    if (!vfl.is_flat()) {
+    if (!ofl.is_flat()) {
       if (group != _static_fields) {
         _nonstatic_oopmap_count++;
       }
@@ -891,7 +883,8 @@ int FieldLayoutBuilder::add_field_to_group(FieldInfo fieldinfo, int idx, FieldGr
     }
 
     assert(group != _static_fields, "Static fields are not flattened");
-    LayoutKind lk = vfl.flat_layout_kind();
+    LayoutKind lk = ofl.get().layout_kind();
+    ValueFieldLayout vfl = ValueFieldLayout::flat(lk);
 
     const int field_index = (int)fieldinfo.index();
     assert(_value_field_info_array != nullptr, "Array must have been created");
@@ -902,7 +895,7 @@ int FieldLayoutBuilder::add_field_to_group(FieldInfo fieldinfo, int idx, FieldGr
       _has_non_naturally_atomic_fields = true;
     }
     group->add_flat_field(idx, vk, lk);
-    _value_field_info_array->adr_at(field_index)->set_flat_layout_kind(lk);
+    _value_field_info_array->adr_at(field_index)->set_layout(vfl);
     _nonstatic_oopmap_count += vk->nonstatic_oop_map_count();
     _field_info->adr_at(idx)->field_flags_addr()->update_flat(true);
     _field_info->adr_at(idx)->set_layout_kind(lk);
