@@ -174,7 +174,7 @@ void ValueFieldInfo::print_on(outputStream* st) const {
   }
 
   st->print("_layout: ");
-  if (_layout.is_uninitialized()) {
+  if (!_layout.is_initialized()) {
     st->print("uninitialized");
   } else {
     LayoutKindHelper::print_on(_layout.flat_layout_kind(), st);

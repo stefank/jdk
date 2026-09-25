@@ -151,7 +151,7 @@ inline void FieldInfoReader::read_field_info(FieldInfo& fi) {
   if (fi._field_flags.is_flat()) {
     int layout_kind_value = integer_cast<int>(next_uint());
     assert(LayoutKindHelper::is_valid_underlying_value(layout_kind_value), "Must be");
-    fi._flat_layout = OptionalFlatLayout(static_cast<LayoutKind>(layout_kind_value));
+    fi._flat_layout = FlatLayout(static_cast<LayoutKind>(layout_kind_value));
   }
   if (fi._field_flags.has_null_marker()) {
     fi._null_marker_offset = next_uint();

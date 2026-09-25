@@ -42,47 +42,40 @@ class outputStream;
 class ResolvedFieldEntry;
 
 class ValuePayloadLayout {
-  bool               _is_buffered;
   OptionalFlatLayout _optional_flat_layout;
 
-  ValuePayloadLayout(bool is_buffered, OptionalFlatLayout optional_flat_layout)
-    : _is_buffered(is_buffered),
-      _optional_flat_layout(optional_flat_layout) {}
+  ValuePayloadLayout(OptionalFlatLayout optional_flat_layout)
+    : _optional_flat_layout(optional_flat_layout) {}
 
-  bool is_uninitialized() const {
-    // Denotes an uninitialized ValuePayloadLayout
-    return _optional_flat_layout.is_uninitialized(!_is_buffered);
+  bool is_initialized() const {
+    return _optional_flat_layout.is_initialized();
   }
 
 public:
-  static ValuePayloadLayout uninitialized() {
-    OptionalFlatLayout ofl(false /* initialized */);
-    // Used to find uninitialized values.
-    return ValuePayloadLayout(true /* is_buffered */, ofl);
+  static ValuePayloadLayout flat(LayoutKind layout_kind) {
+    return ValuePayloadLayout(OptionalFlatLayout::flat(layout_kind));
   }
 
   static ValuePayloadLayout buffered() {
-    OptionalFlatLayout ofl(true);
-    return ValuePayloadLayout(true /* is_buffered */, ofl);
+    return ValuePayloadLayout(OptionalFlatLayout::non_flat());
   }
 
-  static ValuePayloadLayout flat(LayoutKind layout_kind) {
-    OptionalFlatLayout ofl(layout_kind);
-    return ValuePayloadLayout(false /* is_buffered */, ofl);
+  static ValuePayloadLayout uninitialized() {
+    return ValuePayloadLayout(OptionalFlatLayout::uninitialized());
   }
 
   bool is_buffered() const {
-    precond(!is_uninitialized());
-    return _is_buffered;
+    precond(is_initialized());
+    return !_optional_flat_layout.is_flat();
   }
 
   FlatLayout flat_layout() const {
-    precond(!is_uninitialized());
-    return _optional_flat_layout.get(!_is_buffered);
+    precond(is_initialized());
+    return _optional_flat_layout.get();
   }
 
   LayoutKind layout_kind() const {
-    precond(!is_uninitialized());
+    precond(is_initialized());
     return flat_layout().layout_kind();
   }
 };

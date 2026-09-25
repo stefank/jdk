@@ -590,7 +590,7 @@ class ClassFieldDescriptor: public CHeapObj<mtServiceability> {
   int _field_offset;
   char _field_type;
   ValueKlass* _value_klass; // nullptr for heap object
-  OptionalFlatLayout _flat_value_field_layout;
+  FlatLayoutSlot _flat_layout;
 
   static ValueFieldInfo* calc_value_field_info(const FieldStreamBase& field) {
     precond(field.is_flat());
@@ -607,11 +607,11 @@ class ClassFieldDescriptor: public CHeapObj<mtServiceability> {
     }
   }
 
-  static OptionalFlatLayout calc_flat_value_field_layout(const FieldStreamBase& field) {
+  static FlatLayoutSlot calc_flat_layout(const FieldStreamBase& field) {
     if (field.is_flat()) {
-      return OptionalFlatLayout(calc_value_field_info(field)->flat_layout_kind());
+      return FlatLayoutSlot(calc_value_field_info(field)->flat_layout());
     } else {
-      return OptionalFlatLayout();
+      return FlatLayoutSlot::uninitialized();
     }
   }
 
@@ -621,15 +621,14 @@ class ClassFieldDescriptor: public CHeapObj<mtServiceability> {
      _field_offset(fld.offset()),
      _field_type(fld.signature()->char_at(0)),
      _value_klass(calc_value_klass(fld)),
-     _flat_value_field_layout(calc_flat_value_field_layout(fld)) {}
+     _flat_layout(calc_flat_layout(fld)) {}
 
   int field_index()  const  { return _field_index; }
   char field_type()  const  { return _field_type; }
   int field_offset() const  { return _field_offset; }
   bool is_flat()     const  { return _value_klass != nullptr; }
   ValueKlass* value_klass() const { return _value_klass; }
-  OptionalFlatLayout flat_value_field_layout() const { return _flat_value_field_layout; }
-  FlatLayout flat_layout() const { return _flat_value_field_layout.get(is_flat()); }
+  FlatLayout flat_layout() const { return _flat_layout.get(is_flat()); }
   LayoutKind layout_kind() const { return flat_layout().layout_kind(); }
 
   bool is_nullable_flat() const {

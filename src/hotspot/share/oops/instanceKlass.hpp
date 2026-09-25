@@ -139,6 +139,10 @@ class ValueFieldInfo : public MetaspaceObj {
   ValueKlass* klass() const { return _klass; }
   void set_klass(ValueKlass* k) { _klass = k; }
 
+  FlatLayout flat_layout() const {
+    return _layout.flat_layout();
+  }
+
   LayoutKind flat_layout_kind() const {
     return _layout.flat_layout_kind();
   }
