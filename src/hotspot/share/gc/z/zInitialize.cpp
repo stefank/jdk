@@ -39,6 +39,7 @@
 #include "logging/log.hpp"
 #include "nmt/memTag.hpp"
 #include "runtime/vm_version.hpp"
+#include "utilities/debug.hpp"
 #include "utilities/formatBuffer.hpp"
 
 char ZInitialize::_error_message[ErrorMessageLength] = {};
@@ -54,6 +55,21 @@ void ZInitialize::initialize(ZBarrierSet* barrier_set) {
   log_info(gc, init)("Version: %s (%s)",
                      VM_Version::vm_release(),
                      VM_Version::jdk_debug_level());
+
+  // FIXME: Temporary for testing
+  if (NewCodeParameter == 1) {
+    assert(barrier_set == nullptr, "Must be");
+  } else if (NewCodeParameter == 2) {
+    assert(barrier_set == nullptr);
+  } else if (NewCodeParameter == 3) {
+    assert(barrier_set == nullptr, "");
+  } else if (NewCodeParameter == 4) {
+    fatal("This is a fatal message");
+  } else if (NewCodeParameter == 5) {
+    fatal("This is a fatal message %d", 4);
+  } else if (NewCodeParameter == 6) {
+    ShouldNotReachHere();
+  }
 
   // Early initialization
   ZNMT::initialize();

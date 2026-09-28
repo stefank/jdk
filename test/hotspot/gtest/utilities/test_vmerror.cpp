@@ -53,6 +53,10 @@ TEST_VM_ASSERT_MSG(vmErrorTest, resourceMark,
 const char* const str = "hello";
 const size_t      num = 500;
 
+TEST_VM_ASSERT_MSG(vmErrorTest, assert0, "assert.str == nullptr. failed") {
+  vmassert(str == nullptr);
+}
+
 TEST_VM_ASSERT_MSG(vmErrorTest, assert1, "assert.str == nullptr. failed: expected null") {
   vmassert(str == nullptr, "expected null");
 }

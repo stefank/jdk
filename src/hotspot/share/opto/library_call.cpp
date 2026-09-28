@@ -3282,7 +3282,7 @@ bool LibraryCallKit::inline_unsafe_writebackSync0(bool is_pre) {
     return false;
   }
 #ifndef PRODUCT
-  assert(Matcher::has_match_rule(Op_CacheWB),
+  assert(Matcher::has_match_rule(Op_CacheWB), "%s",
          (is_pre ? "found match rule for CacheWBPreSync but not CacheWB"
                 : "found match rule for CacheWBPostSync but not CacheWB"));
 

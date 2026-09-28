@@ -154,11 +154,11 @@ do {                                                                   \
     report_vm_error(file, line, "assert(" #p ") failed", __VA_ARGS__); \
   }                                                                    \
 } while (0)
-#define vmassert(p, ...) vmassert_with_file_and_line(p, __FILE__, __LINE__, __VA_ARGS__)
+#define vmassert(p, ...) vmassert_with_file_and_line(p, __FILE__, __LINE__, "" __VA_ARGS__)
 #endif
 
 // For backward compatibility.
-#define assert_with_file_and_line(p, file, line, ...) vmassert_with_file_and_line(p, file, line, __VA_ARGS__)
+#define assert_with_file_and_line(p, file, line, ...) vmassert_with_file_and_line(p, file, line, "" __VA_ARGS__)
 #define assert(p, ...) vmassert(p, __VA_ARGS__)
 
 #define precond(p)   assert(p, "precond")

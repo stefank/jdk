@@ -173,7 +173,7 @@ static void print_error_for_unit_test(const char* message, const char* detail_fm
         if (strlen(detail_msg) > 0) {
           fprintf(stderr, "assert failed: %s: %s", message, detail_msg);
         } else {
-          fprintf(stderr, "assert failed: Error: %s", message);
+          fprintf(stderr, "assert failed: %s", message);
         }
       }
       ::fflush(stderr);
@@ -243,15 +243,15 @@ void report_vm_out_of_memory(const char* file, int line, size_t size,
 }
 
 void report_should_not_call(const char* file, int line) {
-  report_vm_error(file, line, "ShouldNotCall()");
+  report_vm_error(file, line, "Error: ShouldNotCall()");
 }
 
 void report_should_not_reach_here(const char* file, int line) {
-  report_vm_error(file, line, "ShouldNotReachHere()");
+  report_vm_error(file, line, "Error: ShouldNotReachHere()");
 }
 
 void report_unimplemented(const char* file, int line) {
-  report_vm_error(file, line, "Unimplemented()");
+  report_vm_error(file, line, "Error: Unimplemented()");
 }
 
 void report_untested(const char* file, int line, const char* message) {

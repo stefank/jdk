@@ -84,28 +84,28 @@ TEST(absTest, release_sanity) {
 // In debug builds, ABS would assert.
 
 TEST_VM_ASSERT_MSG(absTest, debug_sanity_min_jbyte,
-  "Error: ABS: argument should not allow overflow") {
+  "ABS: argument should not allow overflow") {
 
   jbyte r = ABS(min_jbyte); // should fail
   EXPECT_TRUE(r > 0); // should not be normally reachable
 }
 
 TEST_VM_ASSERT_MSG(absTest, debug_sanity_min_jshort,
-  "Error: ABS: argument should not allow overflow") {
+  "ABS: argument should not allow overflow") {
 
   jshort r = ABS(min_jshort); // should fail
   EXPECT_TRUE(r > 0); // should not be normally reachable
 }
 
 TEST_VM_ASSERT_MSG(absTest, debug_sanity_min_jint,
-  "Error: ABS: argument should not allow overflow") {
+  "ABS: argument should not allow overflow") {
 
   jint r = ABS(min_jint); // should fail
   EXPECT_TRUE(r > 0); // should not be normally reachable
 }
 
 TEST_VM_ASSERT_MSG(absTest, debug_sanity_min_jlong,
-  "Error: ABS: argument should not allow overflow") {
+  "ABS: argument should not allow overflow") {
 
   jlong r = ABS(min_jlong); // should fail
   EXPECT_TRUE(r > 0); // should not be normally reachable

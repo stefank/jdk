@@ -279,7 +279,7 @@ char* VMError::error_string(char* buf, int buflen) {
         jio_snprintf(buf + n, buflen - n, "%s%s: %s",
         os::line_separator(), _message, _detail_msg);
       } else {
-        jio_snprintf(buf + n, buflen - n, "%sError: %s",
+        jio_snprintf(buf + n, buflen - n, "%s%s",
                      os::line_separator(), _message);
       }
     }
@@ -845,10 +845,16 @@ void VMError::report(outputStream* st, bool _verbose) {
 
   STEP_IF("printing error message", should_report_bug(_id)) // already printed the message.
     // error message
-    if (strlen(_detail_msg) > 0) {
-      st->print_cr("#  %s: %s", _message ? _message : "Error", _detail_msg);
-    } else if (_message) {
-      st->print_cr("#  Error: %s", _message);
+    if (_message != nullptr) {
+      if (strlen(_detail_msg) > 0) {
+        st->print_cr("#  %s: %s", _message, _detail_msg);
+      } else {
+        st->print_cr("#  %s", _message);
+      }
+    } else {
+      if (strlen(_detail_msg) > 0) {
+        st->print_cr("#  %s", _detail_msg);
+      }
     }
 
   STEP("printing Java version string")
