@@ -3574,7 +3574,7 @@ void TemplateTable::fast_storefield(TosState state) {
           Register flat_index = Z_ARG3;  // R4  — discarded after load_field_entry
           __ load_field_entry(flat_entry, flat_index);
           // entry=R5, field_offset=off=R11, tmp1=Z_ARG2=R3, tmp2=flat_index=Z_ARG3=R4, obj=Z_tmp_1=R10
-          // All five are distinct; obj(R10) != Z_tos(R2) so flat_field_copy is safe.
+          // All five are distinct; obj(R10) != Z_tos(R2) so implementation is safe.
           __ write_flat_field(flat_entry, off, Z_ARG2, flat_index, obj);
         }
         __ bind(done);

@@ -2444,17 +2444,7 @@ void InterpreterMacroAssembler::write_flat_field(Register entry, Register tmp1, 
 
   null_check_throw(value, -1, tmp1);
 
-  add(obj, obj, field_offset);
-
-  load_klass(tmp1, value);
-  payload_address(value, value, tmp1, tmp2);
-
-  Register vfi = field_offset;
-  lhz(tmp1, in_bytes(ResolvedFieldEntry::field_index_offset()), entry);
-  ld(tmp2, in_bytes(ResolvedFieldEntry::field_holder_offset()), entry);
-  value_field_info(tmp2, tmp1, vfi);
-
-  flat_field_copy(IN_HEAP, value, obj, vfi);
+  call_VM_leaf(CAST_FROM_FN_PTR(address, InterpreterRuntime::write_null_free_flat_field), obj, value, entry);
   b(done);
 
   bind(slow_path);
