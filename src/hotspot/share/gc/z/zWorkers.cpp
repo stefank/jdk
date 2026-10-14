@@ -89,7 +89,17 @@ void ZWorkers::set_inactive() {
   _is_active = false;
 }
 
-void ZWorkers::run(ZTask* task) {
+void ZWorkers::run_inner(ZTask* task, bool account_vtime) {
+  task->clear_accumulated_vtime();
+
+  _workers.run_task(task->worker_task());
+
+  if (account_vtime) {
+    add_accumulated_vtime(task->accumulated_vtime());
+  }
+}
+
+void ZWorkers::run(ZTask* task, bool account_vtime) {
   log_debug(gc, task)("Executing %s using %s with %u workers", task->name(), _workers.name(), active_workers());
 
   {
@@ -97,8 +107,7 @@ void ZWorkers::run(ZTask* task) {
     _stats->at_start(active_workers());
   }
 
-  task->set_workers(this);
-  _workers.run_task(task->worker_task());
+  run_inner(task, account_vtime);
 
   {
     ZLocker<ZLock> locker(&_resize_lock);
@@ -106,10 +115,10 @@ void ZWorkers::run(ZTask* task) {
   }
 }
 
-void ZWorkers::run(ZRestartableTask* task) {
+void ZWorkers::run(ZRestartableTask* task, bool account_vtime) {
   for (;;) {
     // Run task
-    run(static_cast<ZTask*>(task));
+    run(static_cast<ZTask*>(task), account_vtime);
 
     ZLocker<ZLock> locker(&_resize_lock);
     if (_requested_nworkers == 0) {
@@ -124,15 +133,14 @@ void ZWorkers::run(ZRestartableTask* task) {
   }
 }
 
-void ZWorkers::run_all(ZTask* task) {
+void ZWorkers::run_all(ZTask* task, bool account_vtime) {
   // Get and set number of active workers
   const uint prev_active_workers = _workers.active_workers();
   _workers.set_active_workers(_workers.max_workers());
 
   // Execute task using all workers
   log_debug(gc, task)("Executing %s using %s with %u workers", task->name(), _workers.name(), active_workers());
-  task->set_workers(this);
-  _workers.run_task(task->worker_task());
+  run_inner(task, account_vtime);
 
   // Restore number of active workers
   _workers.set_active_workers(prev_active_workers);

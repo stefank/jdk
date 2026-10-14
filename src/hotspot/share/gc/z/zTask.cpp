@@ -22,29 +22,45 @@
  */
 
 #include "gc/z/zTask.hpp"
-#include "gc/z/zWorkers.hpp"
+#include "runtime/os.hpp"
 #include "utilities/globalDefinitions.hpp"
 
 ZTask::Task::Task(ZTask* task, const char* name)
   : WorkerTask(name),
-    _task(task),
-    _workers(nullptr) {}
+    _task(task) {}
+
+class ZTask::Task::WorkScope {
+private:
+  Task* const _task;
+  const jlong _start;
+
+public:
+  WorkScope(Task* task)
+    : _task(task),
+      _start(os::current_thread_cpu_time(true /* user + sys */)) {}
+
+  ~WorkScope() {
+    const jlong elapsed = os::current_thread_cpu_time(true /* user + sys */) - _start;
+    const double vtime = double(elapsed) / NANOSECS_PER_SEC;
+
+    // Accumulate work time
+    for (;;) {
+      const double prev = _task->_accumulated_vtime.load_relaxed();
+      const double new_val = prev + vtime;
+      if (_task->_accumulated_vtime.compare_exchange(prev, new_val) == prev) {
+        return;
+      }
+    }
+  }
+};
 
 void ZTask::Task::work(uint worker_id) {
-  if (!_task->account_vtime()) {
-    _task->work();
-    return;
-  }
-
-  jlong start = os::current_thread_cpu_time(true /* user + sys */);
+  WorkScope scope(this);
   _task->work();
-  jlong elapsed = os::current_thread_cpu_time(true /* user + sys */) - start;
-  _workers->add_accumulated_vtime(double(elapsed) / NANOSECS_PER_SEC);
 }
 
-ZTask::ZTask(const char* name, bool account_vtime)
-  : _worker_task(this, name),
-    _account_vtime(account_vtime) {}
+ZTask::ZTask(const char* name)
+  : _worker_task(this, name) {}
 
 const char* ZTask::name() const {
   return _worker_task.name();
@@ -54,12 +70,12 @@ WorkerTask* ZTask::worker_task() {
   return &_worker_task;
 }
 
-void ZTask::set_workers(ZWorkers* workers) {
-  _worker_task._workers = workers;
+void ZTask::clear_accumulated_vtime() {
+  _worker_task._accumulated_vtime.store_relaxed(0.0);
 }
 
-bool ZTask::account_vtime() const {
-  return _account_vtime;
+double ZTask::accumulated_vtime() const {
+  return _worker_task._accumulated_vtime.load_relaxed();
 }
 
 ZRestartableTask::ZRestartableTask(const char* name)

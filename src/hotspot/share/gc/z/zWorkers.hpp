@@ -44,6 +44,8 @@ private:
   bool                _is_active;
   ZStatWorkers* const _stats;
 
+  void run_inner(ZTask* task, bool account_vtime);
+
 public:
   ZWorkers(ZGenerationId id, ZStatWorkers* stats);
 
@@ -53,9 +55,9 @@ public:
   void set_active();
   void set_inactive();
 
-  void run(ZTask* task);
-  void run(ZRestartableTask* task);
-  void run_all(ZTask* task);
+  void run(ZTask* task, bool account_vtime = true);
+  void run(ZRestartableTask* task, bool account_vtime = true);
+  void run_all(ZTask* task, bool account_vtime = true);
 
   void threads_do(ThreadClosure* tc) const;
 

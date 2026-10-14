@@ -27,15 +27,16 @@
 #include "gc/shared/workerThread.hpp"
 #include "memory/allocation.hpp"
 
-class ZWorkers;
-
 class ZTask : public StackObj {
 private:
   class Task : public WorkerTask {
     friend class ZTask;
+
   private:
-    ZTask* const _task;
-    ZWorkers* _workers;
+    class WorkScope;
+
+    ZTask* const   _task;
+    Atomic<double> _accumulated_vtime;
 
   public:
     Task(ZTask* task, const char* name);
@@ -44,16 +45,15 @@ private:
   };
 
   Task _worker_task;
-  const bool _account_vtime;
 
 public:
-  ZTask(const char* name, bool account_vtime = true);
+  ZTask(const char* name);
 
   const char* name() const;
   WorkerTask* worker_task();
-  void set_workers(ZWorkers* workers);
 
-  bool account_vtime() const;
+  void clear_accumulated_vtime();
+  double accumulated_vtime() const;
 
   virtual void work() = 0;
 };

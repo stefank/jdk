@@ -1170,7 +1170,7 @@ private:
 
 public:
   ZPreHeatTask(ZPartition* partition, zoffset start, zoffset_end end)
-    : ZTask("ZPreHeatTask", false /* account_vtime */),
+    : ZTask("ZPreHeatTask"),
       _partition(partition),
       _current(untype(start)),
       _end(untype(end)) {}
@@ -1234,7 +1234,7 @@ bool ZPartition::prime(ZWorkers* workers, size_t size, size_t capacity_limit) {
     if (!async_heat) {
       // Pre-heat memory synchronously
       ZPreHeatTask task(this, vmem.start(), vmem.end());
-      workers->run_all(&task);
+      workers->run_all(&task, false /* account_vtime */);
     }
 
     // We don't have to take a lock here as no other threads will access the cache
