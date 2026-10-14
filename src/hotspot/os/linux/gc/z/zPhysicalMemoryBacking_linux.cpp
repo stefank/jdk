@@ -320,6 +320,27 @@ bool ZPhysicalMemoryBacking::is_initialized() const {
   return _initialized;
 }
 
+size_t ZPhysicalMemoryBacking::compute_max_map_count() const {
+  const char* const filename = ZFILENAME_PROC_MAX_MAP_COUNT;
+  FILE* const file = os::fopen(filename, "r");
+  if (file == nullptr) {
+    // Failed to open file, skip check
+    log_debug_p(gc, init)("Failed to open %s", filename);
+    return 0;
+  }
+
+  size_t actual_max_map_count = 0;
+  const int result = fscanf(file, "%zu", &actual_max_map_count);
+  fclose(file);
+  if (result != 1) {
+    // Failed to read file, skip check
+    log_debug_p(gc, init)("Failed to read %s", filename);
+    return 0;
+  }
+
+  return actual_max_map_count;
+}
+
 void ZPhysicalMemoryBacking::warn_available_space(size_t max_capacity) const {
   // Note that the available space on a tmpfs or a hugetlbfs filesystem
   // will be zero if no size limit was specified when it was mounted.
@@ -339,28 +360,6 @@ void ZPhysicalMemoryBacking::warn_available_space(size_t max_capacity) const {
     log_warning_p(gc)("space is currently %zuM). Continuing execution with the current filesystem "
                       "size could", _available / M);
     log_warning_p(gc)("lead to a premature OutOfMemoryError being thrown, due to failure to commit memory.");
-  }
-}
-
-void ZPhysicalMemoryBacking::compute_max_map_count() const {
-  if (z_max_map_count != 0) {
-    return;
-  }
-
-  const char* const filename = ZFILENAME_PROC_MAX_MAP_COUNT;
-  FILE* const file = os::fopen(filename, "r");
-  if (file == nullptr) {
-    // Failed to open file, skip check
-    log_debug_p(gc, init)("Failed to open %s", filename);
-    return;
-  }
-
-  const int result = fscanf(file, "%zu", &z_max_map_count);
-  fclose(file);
-  if (result != 1) {
-    // Failed to read file, skip check
-    log_debug_p(gc, init)("Failed to read %s", filename);
-    return;
   }
 }
 
@@ -397,7 +396,9 @@ void ZPhysicalMemoryBacking::warn_commit_limits(size_t expected_capacity, size_t
   warn_available_space(expected_capacity);
 
   // Compute max map count the first time (during bootstrapping)
-  compute_max_map_count();
+  if (z_max_map_count == 0) {
+    z_max_map_count = compute_max_map_count();
+  }
 
   // Warn if max map count is too low
   warn_max_map_count(expected_capacity, max_capacity);
