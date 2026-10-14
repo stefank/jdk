@@ -22,7 +22,8 @@
  */
 
 #include "gc/z/zAdaptiveHeap.inline.hpp"
-#include "gc/z/zLargePages.hpp"
+#include "gc/z/zLargePages.inline.hpp"
+#include "gc/z/zLargePages_linux.hpp"
 #include "hugepages.hpp"
 #include "os_linux.hpp"
 #include "runtime/globals.hpp"
@@ -38,6 +39,13 @@
   // Sanity-check our assumed default value if we build with a new enough libc.
   static_assert(MADV_COLLAPSE == MADV_COLLAPSE_value);
 #endif
+
+bool ZLargePagesLinux::should_try_fallocate() {
+  // To use madvise(MADV_HUGEPAGE) we cannot use fallocate as the pages are
+  // created before we have a memory range. When using explicit large pages
+  // other allocation modes are more efficient.
+  return !ZLargePages::is_transparent() && !ZLargePages::is_explicit();
+}
 
 bool ZLargePages::pd_collapse(void* addr, size_t bytes) {
   // When MADV_COLLAPSE races with THP khugepaged, you sometimes get

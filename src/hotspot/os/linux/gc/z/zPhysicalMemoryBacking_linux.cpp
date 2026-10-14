@@ -29,6 +29,7 @@
 #include "gc/z/zGlobals.hpp"
 #include "gc/z/zInitialize.hpp"
 #include "gc/z/zLargePages.inline.hpp"
+#include "gc/z/zLargePages_linux.hpp"
 #include "gc/z/zMountPoint_linux.hpp"
 #include "gc/z/zNUMA.inline.hpp"
 #include "gc/z/zPhysicalMemoryBacking_linux.hpp"
@@ -206,7 +207,7 @@ ZPhysicalMemoryBacking::ZPhysicalMemoryBacking(size_t max_capacity)
   }
 
   // Should we try to use fallocate
-  z_fallocate_supported = ZLargePages::should_try_fallocate();
+  z_fallocate_supported = ZLargePagesLinux::should_try_fallocate();
 
   // Successfully initialized
   _initialized = true;
@@ -545,7 +546,7 @@ ZErrno ZPhysicalMemoryBacking::fallocate_fill_hole(zbacking_offset offset, size_
   // Also note that we need to use compat mode when using transparent huge pages,
   // since we need to use madvise(2) on the mapping before the page is allocated.
   if (z_fallocate_supported) {
-    precond(ZLargePages::should_try_fallocate());
+    precond(ZLargePagesLinux::should_try_fallocate());
 
     const ZErrno err = fallocate_fill_hole_syscall(offset, length);
 

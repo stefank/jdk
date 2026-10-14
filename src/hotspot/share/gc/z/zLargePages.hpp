@@ -49,8 +49,6 @@ public:
   static bool is_transparent();
   static bool is_collapse();
 
-  static bool should_try_fallocate();
-
   static bool pd_collapse(void* addr, size_t bytes);
 
   static const char* to_string();
