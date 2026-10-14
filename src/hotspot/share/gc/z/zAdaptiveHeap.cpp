@@ -53,7 +53,8 @@ ZAdaptiveHeap::ZGenerationOverhead ZAdaptiveHeap::_young_data;
 ZAdaptiveHeap::ZGenerationOverhead ZAdaptiveHeap::_old_data;
 Atomic<uint> ZAdaptiveHeap::_initial_young_worker_cap;
 
-// Calculate progression from 0 to 1 going down from a less critical availability to a more critical availability
+// Calculate progression from 0 to 1 going down from a less critical
+// availability to a more critical availability.
 static double calculate_progression(double availability, double from, double to) {
   return 1.0 - (availability - to) / (from - to);
 }
@@ -132,8 +133,9 @@ ZMachineMemoryInfo ZAdaptiveHeap::machine_memory_info() {
   ZMachineMemoryInfo info = {};
 
   // Used to "latch" on to whatever validity we initially observe and make sure
-  // that the same validity is continued to be observed moving forward. Observing
-  // different validity during execution can lead to really bad heuristics.
+  // that the same validity is continued to be observed moving forward.
+  // Observing different validity during execution can lead to really bad
+  // heuristics.
   struct ZBooleanStabilityRAII {
     ZMachineMemoryInfo& _info;
     ZBooleanStabilityRAII(ZMachineMemoryInfo& info) : _info(info) {}
@@ -186,7 +188,7 @@ static double* generate_factorials() {
 
 // Probability to have to wait in a queue given c servers and rho queue utilization
 static double erlang_c(int c, double rho) {
-  // Cap c at ErlangCMaxProcessors to avoid problems with double precision.
+  // Cap c at ErlangCMaxProcessors to avoid problems with double precision
   c = MIN2(c, ErlangCMaxProcessors);
 
   static double* const factorials = generate_factorials();
@@ -228,19 +230,22 @@ ZMemoryPressureMetrics ZAdaptiveHeap::memory_pressure_metrics() {
     : os::rss(); // Approximation for faulty os
 
   // The concerning threshold is after which memory utilization we start trying
-  // harder to keep the memory down. There are multiple reasons for letting the GC
-  // run hotter:
-  // 1) We want to maintain some headroom on the machine so that we can deal with
-  //    spikes without getting allocation stalls.
-  // 2) It's good to let the OS keep some file system cache memory around
+  // harder to keep the memory down. There are multiple reasons for letting the
+  // GC run hotter:
+  //
+  // 1) We want to maintain some headroom on the machine so that we can deal
+  //    with spikes without getting allocation stalls.
+  //
+  // 2) It's good to let the OS keep some file system cache memory around.
+  //
   // 3) On systems that compress used memory, using compressed memory is not a
-  //    free lunch as it leads to page faults that compress and decompress memory.
-  //    This is extra painful for a tracing GC to traverse.
+  //    free lunch as it leads to page faults that compress and decompress
+  //    memory. This is extra painful for a tracing GC to traverse.
   const double machine_compression_rate = machine_memory_compression_ratio(machine_used_memory, machine_max_memory);
 
   // When the machine memory usage is fluctuating and isn't stable, it's good to
-  // increase the headroom to the memory limits, otherwise there is a higher risk
-  // of an allocation stall.
+  // increase the headroom to the memory limits, otherwise there is a higher
+  // risk of an allocation stall.
   const double machine_memory_instability = ZStatSystemMemoryUsage::machine_memory_stability();
 
   const double memory_uncertainty = MAX2(machine_memory_instability, machine_compression_rate);
@@ -763,10 +768,11 @@ static double compute_target_gc_interval(const ZSystemMemoryPressureMetrics& mem
   const double gc_interval = gc_intensity_factor * (1.0 - process_progression);
 
   if (is_system_memory_pressure_concerning(mem_metrics)) {
-    // As memory availability drops low in the system, we want to further prevent
-    // memory bloating due to the interval target with another linear factor. If
-    // the only memory culprit is the current process, then the progression will
-    // now turn quadratic, which should help reduce the memory bloating further.
+    // As memory availability drops low in the system, we want to further
+    // prevent memory bloating due to the interval target with another linear
+    // factor. If the only memory culprit is the current process, then the
+    // progression will now turn quadratic, which should help reduce the memory
+    // bloating further.
 
     const double system_availability = mem_metrics.available_fraction();
     const double system_progression = calculate_progression(system_availability,
@@ -801,10 +807,11 @@ static double sigmoid_function(double value) {
   return 1.0 / (1.0 + pow(M_E, -value));
 }
 
-// This function smoothens out measured error signals to make the incremental heap
-// sizing converge better. During an initial warmup period, a more aggressive function
-// is used, which doesn't try to reduce the error signals. This reduces the number of
-// early GCs before the system has had any chance to converge to a stable heap size.
+// This function smoothens out measured error signals to make the incremental
+// heap sizing converge better. During an initial warmup period, a more
+// aggressive function is used, which doesn't try to reduce the error signals.
+// This reduces the number of early GCs before the system has had any chance to
+// converge to a stable heap size.
 static double smoothing_function(double value, double warmness) {
   const double sigmoid = sigmoid_function(value);
   const double aggressive = MIN2(MAX2(sigmoid, 0.5 + value), 2.0);
@@ -888,11 +895,11 @@ size_t ZAdaptiveHeap::compute_heap_size(const ZHeapResizeMetrics& heap_metrics, 
   // doing more GC instead.
   const double compression_gc_penalty = 1.0 MACOS_ONLY(* 2.0) WINDOWS_ONLY(* 2.0);
 
-  // When GC intensity is 10, the implication is that we want ZConcurrentWorkersCPUShare
-  // of the process CPU to be spent on doing GC when the process uses 100% of the
-  // available CPU cores. The ConcGCThreads sizing by default goes up to a maximum
-  // of ZConcurrentWorkersCPUShare of the available cores. So all ConcGCThreads
-  // would be running back to back then.
+  // When GC intensity is 10, the implication is that we want
+  // ZConcurrentWorkersCPUShare of the process CPU to be spent on doing GC when
+  // the process uses 100% of the available CPU cores. The ConcGCThreads sizing
+  // by default goes up to a maximum of ZConcurrentWorkersCPUShare of the
+  // available cores. So all ConcGCThreads would be running back to back then.
   const double normalised_gc_intensity = gc_intensity / 10;
   const double target_cpu_overhead = ZConcurrentWorkersCPUShare * normalised_gc_intensity * compression_gc_penalty;
 
@@ -1024,9 +1031,10 @@ size_t ZAdaptiveHeap::compute_heap_size(const ZHeapResizeMetrics& heap_metrics, 
 
   if (should_grow) {
     if (capacity < heuristic_max_capacity) {
-      // We have not yet finished growing initiated in a previous GC, because the throughput of GCs
-      // is higher than the throughput of growing. The control system needs to feel the impact of the
-      // previous growth request before growing further. Therefore, we decide not to change the
+      // We have not yet finished growing initiated in a previous GC, because
+      // the throughput of GCs is higher than the throughput of growing. The
+      // control system needs to feel the impact of the previous growth request
+      // before growing further. Therefore, we decide not to change the
       // heuristic max capacity in this case.
       return heuristic_max_capacity;
     }
@@ -1073,7 +1081,7 @@ uint64_t ZAdaptiveHeap::critical_uncommit_delay() {
   return 0;
 }
 
-static uint64_t system_uncommit_delay(const ZSystemMemoryPressureMetrics& metrics, size_t capacity, size_t uncommit_granule, double avg_mem_worker_cpu_overhead) {
+static uint64_t system_uncommit_delay(const ZSystemMemoryPressureMetrics& metrics, size_t capacity, size_t uncommit_batch_size, double avg_mem_worker_cpu_overhead) {
   const double capacity_scaling = clamp(double(capacity) / double(metrics._used_memory), 0.05, 1.0);
   const double worker_scaling = clamp(1.0 - avg_mem_worker_cpu_overhead, 0.05, 1.0);
   const double rate_scaling = capacity_scaling * worker_scaling;
@@ -1094,7 +1102,7 @@ static uint64_t system_uncommit_delay(const ZSystemMemoryPressureMetrics& metric
   }
 
   const double scaled_urgent_rate =  ZAdaptiveHeap::urgent_uncommit_rate() * rate_scaling;
-  const uint64_t urgent_delay = uncommit_granule * MILLIUNITS / scaled_urgent_rate;
+  const uint64_t urgent_delay = uncommit_batch_size * MILLIUNITS / scaled_urgent_rate;
 
   // If we aren't using a high amount memory, uncommit memory rather slowly
   // and let the GC heuristics do most of the heavy lifting
@@ -1116,7 +1124,7 @@ static uint64_t system_uncommit_delay(const ZSystemMemoryPressureMetrics& metric
     const double lowest_rate = highest_rate / ZUncommitDelay;
     const double interpolated_rate = lowest_rate * (1.0 - progression) + highest_rate * progression;
     const double scaled_rate = interpolated_rate * rate_scaling;
-    return uncommit_granule * MILLIUNITS / scaled_rate;
+    return uncommit_batch_size * MILLIUNITS / scaled_rate;
   }
 
   // We use a policy where the uncommit delay drops off fairly quickly
@@ -1135,8 +1143,9 @@ static uint64_t system_uncommit_delay(const ZSystemMemoryPressureMetrics& metric
 
 // How long to wait until it is time to uncommit memory. This goes towards
 // infinity when there is no concerning memory pressure, then from 64 MB per
-// ZUncommitDelay 64 MB per second when high, and eventually 0 when critically low.
-uint64_t ZAdaptiveHeap::uncommit_delay(size_t uncommit_granule) {
+// ZUncommitDelay 64 MB per second when high, and eventually 0 when critically
+// low.
+uint64_t ZAdaptiveHeap::uncommit_delay(size_t uncommit_batch_size) {
   precond(ZAdaptiveHeapSizing);
 
   const ZMemoryPressureMetrics mem_metrics = memory_pressure_metrics();
@@ -1145,13 +1154,13 @@ uint64_t ZAdaptiveHeap::uncommit_delay(size_t uncommit_granule) {
   const size_t capacity = ZHeap::heap()->capacity();
   const double avg_mem_worker_cpu_overhead = _avg_mem_worker_cpu_overhead.load_relaxed() / 100.0;
 
-  const uint64_t machine_uncommit_delay =  system_uncommit_delay(mem_metrics._machine, capacity, uncommit_granule, avg_mem_worker_cpu_overhead);
+  const uint64_t machine_uncommit_delay =  system_uncommit_delay(mem_metrics._machine, capacity, uncommit_batch_size, avg_mem_worker_cpu_overhead);
 
   if (!mem_metrics._is_containerized) {
     return machine_uncommit_delay;
   }
 
-  const uint64_t container_uncommit_delay = system_uncommit_delay(mem_metrics._container, capacity, uncommit_granule, avg_mem_worker_cpu_overhead);
+  const uint64_t container_uncommit_delay = system_uncommit_delay(mem_metrics._container, capacity, uncommit_batch_size, avg_mem_worker_cpu_overhead);
   return MIN2(machine_uncommit_delay, container_uncommit_delay);
 }
 
@@ -1171,20 +1180,20 @@ uint64_t ZAdaptiveHeap::soft_ref_delay() {
     return explicit_delay;
   }
 
-  // With adaptive heap sizing, there is a risk for a feedback loop when the amount
-  // of free memory decides how long soft references survive. More soft references
-  // will lead to the heap growing, hence creating more free memory and suddenly
-  // letting soft references live for longer. In order to cut this feedback loop,
-  // a more involved policy is used.
+  // With adaptive heap sizing, there is a risk for a feedback loop when the
+  // amount of free memory decides how long soft references survive. More soft
+  // references will lead to the heap growing, hence creating more free memory
+  // and suddenly letting soft references live for longer. In order to cut this
+  // feedback loop, a more involved policy is used.
   //
-  // The more involved strategy scales the delay with the time it would take for the
-  // heap to get filled up by old generation allocations multiplied by a scaled
-  // variation of SoftRefLRUPolicyMSPerMB. The scaling is more aggressive than linear
-  // by computing the nth root of SoftRefLRUPolicyMSPerMB, where n is some memory
-  // pressure.
+  // The more involved strategy scales the delay with the time it would take for
+  // the heap to get filled up by old generation allocations multiplied by a
+  // scaled variation of SoftRefLRUPolicyMSPerMB. The scaling is more aggressive
+  // than linear by computing the nth root of SoftRefLRUPolicyMSPerMB, where n
+  // is some memory pressure.
 
-  // Scale the delay by the old generation allocation rate; the faster it fills up,
-  // the more rapidly we need to prune soft references
+  // Scale the delay by the old generation allocation rate; the faster it fills
+  // up, the more rapidly we need to prune soft references.
   const double avg_time_since_last = _old_data._gc_times_since_last.avg();
   const size_t old_live = stats->live_at_mark_end();
   const size_t old_used = ZHeap::heap()->used_old();
@@ -1197,13 +1206,13 @@ uint64_t ZAdaptiveHeap::soft_ref_delay() {
 
   const double mem_pressure = free_ratio;
 
-  // Scale the SoftRefLRUPolicyMSPerMB as an nth root where n is the memory pressure.
-  // The reason for using the nth root is that it might not necessarily be that
-  // linearly decreasing the interval with memory pressure yields linearly more
-  // soft references being cleared. It rather depends on the access frequency.
-  // If they get accessed very frequently, then it's likely that no soft reference
-  // get cleared at all, until the interval is made *very* small. Therefore, the
-  // more aggressive nth root is used.
+  // Scale the SoftRefLRUPolicyMSPerMB as an nth root where n is the memory
+  // pressure. The reason for using the nth root is that it might not
+  // necessarily be that linearly decreasing the interval with memory pressure
+  // yields linearly more soft references being cleared. It rather depends on
+  // the access frequency. If they get accessed very frequently, then it's
+  // likely that no soft reference get cleared at all, until the interval is
+  // made *very* small. Therefore, the more aggressive nth root is used.
   const uint64_t scaled_interval = uint64_t(pow(SoftRefLRUPolicyMSPerMB, 1.0 / mem_pressure));
 
   // Compute the potentially more aggressive delay that cuts the feedback loop

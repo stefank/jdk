@@ -102,6 +102,7 @@ struct ZSystemCpuTime {
 
 class ZAdaptiveHeap : public AllStatic {
   friend class ZAdaptiveHeapTest;
+
 private:
   // We clamp ZGCIntensity between thes values to avoid precision errors
   static constexpr double MinZGCIntensity = 1e-12;
@@ -202,7 +203,7 @@ public:
   static uint64_t no_uncommit_delay();
   static uint64_t critical_uncommit_delay();
   static uint64_t urgent_uncommit_rate();
-  static uint64_t uncommit_delay(size_t uncommit_granule);
+  static uint64_t uncommit_delay(size_t uncommit_batch_size);
 
   static uint64_t soft_ref_delay();
 

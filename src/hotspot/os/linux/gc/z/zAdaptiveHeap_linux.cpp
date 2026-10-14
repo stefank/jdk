@@ -168,8 +168,10 @@ bool ZAdaptiveHeap::pd_machine_elapsed_system_cpu_time(ZSystemCpuTime& value) {
 
 bool ZAdaptiveHeap::pd_container_elapsed_system_cpu_time(ZSystemCpuTime& value) {
   precond(os::is_containerized());
+
   uint64_t result;
   double processors;
+
   // os::Container::processor_count does not account for the processors
   // availiable in the container, but for the process. This can give a scew as
   // cpu_usage_in_micros is the whole container.

@@ -24,8 +24,8 @@
 #include "gc/z/zAdaptiveHeap.hpp"
 #include "runtime/os.inline.hpp"
 
-#include <windows.h>
 #include <processthreadsapi.h>
+#include <windows.h>
 
 void ZAdaptiveHeap::pd_machine_memory_info(ZMachineMemoryInfo& info) {
   info._physical_memory = os::Machine::physical_memory();
@@ -36,7 +36,7 @@ bool ZAdaptiveHeap::pd_machine_elapsed_system_cpu_time(ZSystemCpuTime& value) {
   const int processor_count = os::processor_count();
 
   if (processor_count <= 0 || processor_count > 64) {
-    // GetSystemTimes is not accurate on systems with more than 64 cores.
+    // GetSystemTimes is not accurate on systems with more than 64 cores
     return false;
   }
 

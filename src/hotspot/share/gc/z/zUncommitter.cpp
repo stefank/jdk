@@ -58,7 +58,7 @@ ZUncommitter::ZUncommitter(uint32_t id, ZPartition* partition)
     _to_uncommit(0),
     _uncommitted(0) {
   if (!is_enabled()) {
-    // Disabled, do not start.
+    // Disabled, do not start
     _stop = true;
     return;
   }

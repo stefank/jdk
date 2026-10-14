@@ -157,16 +157,16 @@ ZPhysicalMemoryBacking::ZPhysicalMemoryBacking(size_t max_capacity)
   _block_size = buf.f_bsize;
   _available = buf.f_bavail * _block_size;
 
+  log_info_p(gc, init)("Heap Backing Filesystem: %s (" UINT64_FORMAT_X ")",
+                       is_tmpfs() ? ZFILESYSTEM_TMPFS : is_hugetlbfs() ? ZFILESYSTEM_HUGETLBFS : "other", _filesystem);
+
   // Note that the available space on a tmpfs or a hugetlbfs filesystem
-  // will be zero if no size limit was specified when it was mounted.
+  // will be zero if no size limit was specified when it was mounted
   if (_available == 0) {
     log_info_p(gc, init)("Available space on backing filesystem: N/A");
   } else {
     log_info_p(gc, init)("Available space on backing filesystem: %zuM", _available / M);
   }
-
-  log_info_p(gc, init)("Heap Backing Filesystem: %s (" UINT64_FORMAT_X ")",
-                       is_tmpfs() ? ZFILESYSTEM_TMPFS : is_hugetlbfs() ? ZFILESYSTEM_HUGETLBFS : "other", _filesystem);
 
   // Make sure the filesystem type matches requested large page type
   if (ZLargePages::is_transparent() && !is_tmpfs()) {
@@ -364,16 +364,17 @@ void ZPhysicalMemoryBacking::warn_available_space(size_t max_capacity) const {
 }
 
 void ZPhysicalMemoryBacking::warn_max_map_count(size_t expected_capacity, size_t max_capacity) const {
-  // In the worst case, ZGC needs 2 mappings per granule. The reason is that if the
-  // fragmentation is at maximum, the mappings will be interleaved between being
-  // backed by memory vs not being backed by memory.
+  // In the worst case, ZGC needs 2 mappings per granule. The reason is that if
+  // the fragmentation is at maximum, the mappings will be interleaved between
+  // being backed by memory vs not being backed by memory.
   const size_t mappings_per_granule = 2;
   const size_t expected_mappings = (expected_capacity / ZGranuleSize) * mappings_per_granule;
   const size_t max_mappings = (max_capacity / ZGranuleSize) * mappings_per_granule;
 
-  // The required max map count is impossible to calculate exactly since subsystems
-  // other than ZGC are also creating memory mappings, and we have no control over that.
-  // However, ZGC tends to create the most mappings and dominate the total count.
+  // The required max map count is impossible to calculate exactly since
+  // subsystems other than ZGC are also creating memory mappings, and we have no
+  // control over that. However, ZGC tends to create the most mappings and
+  // dominate the total count.
   const size_t required_max_map_count = expected_mappings + expected_mappings / 5;
   if (z_max_map_count >= required_max_map_count) {
     return;

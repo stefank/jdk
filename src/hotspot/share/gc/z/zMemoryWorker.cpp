@@ -119,6 +119,7 @@ ZMemoryWorker::ZMemoryWorker(uint32_t id, ZPartition* partition)
     _stop = true;
     return;
   }
+
   set_name("ZMemoryWorker#%u", _id);
   create_and_start();
 
@@ -135,18 +136,18 @@ bool ZMemoryWorker::is_stop_requested() {
   return _stop;
 }
 
-size_t ZMemoryWorker::commit_granule(size_t target_capacity) {
-  const size_t smallest_granule = ZGranuleSize;
-  const size_t largest_granule = MAX2(ZPageSizeMediumMax, smallest_granule);
+size_t ZMemoryWorker::calculate_commit_batch_size(size_t target_capacity) {
+  const size_t smallest_batch = ZGranuleSize;
+  const size_t largest_batch = MAX2(ZPageSizeMediumMax, smallest_batch);
 
-  return clamp(align_up(target_capacity / 128, ZGranuleSize), smallest_granule, largest_granule);
+  return clamp(align_up(target_capacity / 128, ZGranuleSize), smallest_batch, largest_batch);
 }
 
-size_t ZMemoryWorker::uncommit_granule(size_t target_capacity) {
-  const size_t smallest_granule = ZGranuleSize;
-  const size_t largest_granule = MAX2(ZPageSizeMediumMax, smallest_granule);
+size_t ZMemoryWorker::calculate_uncommit_batch_size(size_t target_capacity) {
+  const size_t smallest_batch = ZGranuleSize;
+  const size_t largest_batch = MAX2(ZPageSizeMediumMax, smallest_batch);
 
-  return clamp(align_up(target_capacity / 128, ZGranuleSize), smallest_granule, largest_granule);
+  return clamp(align_up(target_capacity / 128, ZGranuleSize), smallest_batch, largest_batch);
 }
 
 bool ZMemoryWorker::has_heating_request() {
@@ -232,7 +233,7 @@ void ZMemoryWorker::stop_shrink_capacity_granule() {
   precond(ZAdaptiveHeapSizing);
 
   if (!ZUncommit) {
-    // Uncommit turned off.
+    // Uncommit turned off
     return;
   }
 
@@ -255,7 +256,7 @@ void ZMemoryWorker::request_shrink_capacity(size_t requested_capacity) {
   precond(ZAdaptiveHeapSizing);
 
   if (!ZUncommit) {
-    // Uncommit turned off.
+    // Uncommit turned off
     return;
   }
 
@@ -272,7 +273,7 @@ void ZMemoryWorker::request_shrink_capacity_granule() {
   precond(ZAdaptiveHeapSizing);
 
   if (!ZUncommit) {
-    // Uncommit turned off.
+    // Uncommit turned off
     return;
   }
 
@@ -352,7 +353,7 @@ void ZMemoryWorker::register_heating_request(const ZVirtualMemory& vmem) {
   }
 
   if (!has_heating_request() && _currently_heating.is_null()) {
-    // There is currently no heating going on, notify the memory worker.
+    // There is currently no heating going on, notify the memory worker
     _lock.notify_all();
   }
 
@@ -413,9 +414,9 @@ void ZMemoryWorker::register_heating_request(const ZVirtualMemory& vmem) {
     ZVirtualMemory new_vmem = vmem;
     new_vmem.grow_from_back(right_vmem.size());
 
-    // Right now we don't have a way to change the key of an inserted CHeap-allocated
-    // node, so we have to remove the right node and insert a new node with the updated
-    // key and size.
+    // Right now we don't have a way to change the key of an inserted
+    // CHeap-allocated node, so we have to remove the right node and insert a
+    // new node with the updated key and size.
     _heating_requests.remove(next_cursor.node());
 
     ZHeatingRequestNode* const new_node = _heating_requests.allocate_node(new_vmem.start(), new_vmem.size());
@@ -441,8 +442,9 @@ ZVirtualMemory ZMemoryWorker::pop_heating_request() {
   ZHeatingRequestNode* const node = _heating_requests.leftmost();
   const size_t size = node->val();
 
-  // If the node is small enough, we remove it entirely from the tree. Otherwise,
-  // we update the node's size in-place without removing and inserting it.
+  // If the node is small enough, we remove it entirely from the tree.
+  // Otherwise, we update the node's size in-place without removing and
+  // inserting it.
 
   if (size <= max_heating) {
     const ZVirtualMemory vmem(node->key(), size);
@@ -590,10 +592,10 @@ private:
     if (targetless_uncommit && has_targetless_uncommit_matured(_update_time, _worker->_uncommit_request_time, _uncommit_delay)) {
       const size_t min_capacity = _worker->_partition->_static_min_capacity;
       if (_current_target_capacity > min_capacity) {
-        // This might cause _current_target_capacity to undershoot the current capacity.
-        // So we might not uncommit the whole uncommit granule in this target capacity truncation.
-        // We allow this discrepancy.
-        const size_t uncommit_size = _worker->uncommit_granule(_current_target_capacity);
+        // This might cause _current_target_capacity to undershoot the current
+        // capacity. So we might not uncommit all of the uncommit batch size in
+        // this target capacity truncation. We allow this discrepancy.
+        const size_t uncommit_size = _worker->calculate_uncommit_batch_size(_current_target_capacity);
         const size_t shrink_amount = MIN2(_current_target_capacity - min_capacity, uncommit_size);
 
         // Shrink heuristic max
@@ -610,7 +612,7 @@ private:
       }
     }
 
-    const size_t commit_size = _worker->commit_granule(_current_target_capacity);
+    const size_t commit_size = _worker->calculate_commit_batch_size(_current_target_capacity);
     const size_t processed = [&]() {
       ZUnlocker<ZConditionLock> unlocker(&_worker->_lock);
       return _worker->_partition->increase_and_commit_capacity(commit_size, _current_target_capacity);
@@ -626,7 +628,7 @@ private:
     precond(_mode == Mode::Uncommit);
     precond(ZUncommit);
 
-    const size_t uncommit_size = _worker->uncommit_granule(_current_target_capacity);
+    const size_t uncommit_size = _worker->calculate_uncommit_batch_size(_current_target_capacity);
     const size_t processed = [&]() {
       ZUnlocker<ZConditionLock> unlocker(&_worker->_lock);
       return _worker->uncommit(uncommit_size);
@@ -644,7 +646,7 @@ private:
     precond(_target_capacity == 0);
     precond(_init_target_capacity == 0);
 
-    const size_t uncommit_size = _worker->uncommit_granule(_current_target_capacity);
+    const size_t uncommit_size = _worker->calculate_uncommit_batch_size(_current_target_capacity);
     const size_t processed = [&]() {
       ZUnlocker<ZConditionLock> unlocker(&_worker->_lock);
       return _worker->uncommit(uncommit_size);
@@ -721,7 +723,7 @@ public:
       ZUnlocker<ZConditionLock> unlocker(&_worker->_lock);
       _init_time = Ticks::now();
       if (ZAdaptiveHeapSizing) {
-        const size_t uncommit_size = _worker->uncommit_granule(_current_target_capacity);
+        const size_t uncommit_size = _worker->calculate_uncommit_batch_size(_current_target_capacity);
         _uncommit_delay = ZAdaptiveHeap::uncommit_delay(uncommit_size);
       }
     }
@@ -798,7 +800,7 @@ public:
       ZUnlocker<ZConditionLock> unlocker(&_worker->_lock);
       _update_time = Ticks::now();
       if (ZAdaptiveHeapSizing) {
-        const size_t uncommit_size = _worker->uncommit_granule(_current_target_capacity);
+        const size_t uncommit_size = _worker->calculate_uncommit_batch_size(_current_target_capacity);
         _uncommit_delay = ZAdaptiveHeap::uncommit_delay(uncommit_size);
       }
     }
@@ -902,7 +904,7 @@ public:
         const Ticks request_time = _worker->_uncommit_request_time;
 
         ZUnlocker<ZConditionLock> unlocker(&_worker->_lock);
-        const size_t uncommit_size = _worker->uncommit_granule(_current_target_capacity);
+        const size_t uncommit_size = _worker->calculate_uncommit_batch_size(_current_target_capacity);
         const uint64_t targeted_delay = targeted_uncommit_delay(ZAdaptiveHeap::uncommit_delay(uncommit_size));
         return remaining_uncommit_wait_duration(request_time, targeted_delay);
       };
@@ -951,7 +953,7 @@ public:
         const Ticks request_time = _worker->_uncommit_request_time;
 
         ZUnlocker<ZConditionLock> unlocker(&_worker->_lock);
-        const size_t uncommit_size = _worker->uncommit_granule(_current_target_capacity);
+        const size_t uncommit_size = _worker->calculate_uncommit_batch_size(_current_target_capacity);
         const uint64_t uncommit_delay = ZAdaptiveHeap::uncommit_delay(uncommit_size);
         return remaining_uncommit_wait_duration(request_time, uncommit_delay);
       };
@@ -980,7 +982,7 @@ public:
           return false;
         }
 
-        // If the capacity is already minimal, wait until something changes externally.
+        // If the capacity is already minimal, wait until something changes externally
         const size_t capacity = _worker->_partition->capacity();
         const size_t min_capacity = _worker->_partition->_static_min_capacity;
 
@@ -989,7 +991,7 @@ public:
           const uint64_t wait_duration = get_targetless_uncommit_wait_duration();
 
           if (check_for_work_non_targetless_uncommit() || wait_duration == 0 || _worker->is_stop_requested()) {
-          // There is targetless work to be done or the targetless uncommit has matured
+            // There is targetless work to be done or the targetless uncommit has matured
             return false;
           }
 

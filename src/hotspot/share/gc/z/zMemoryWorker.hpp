@@ -39,13 +39,16 @@ class ZPartition;
 
 // This worker is enabled with adaptive heap sizing.
 // Its responsibilities are:
+//
 // * Change heap capacity
 //   - Commit memory concurrently when growing the heap
 //   - Uncommit memory concurrently due to long-term shrinking
 //   - Uncommit memory concurrently due to urgent memory pressure
+//
 // * Heat up memory before mutators start using it
 //   - Pre-touching memory concurrently
 //   - Collapse small pages to large pages
+//
 // There is one memory worker per heap partition
 
 class ZMemoryWorker : public ZThread {
@@ -74,8 +77,9 @@ private:
 
   bool await_start();
   bool is_stop_requested();
-  size_t commit_granule(size_t target_capacity);
-  size_t uncommit_granule(size_t target_capacity);
+
+  size_t calculate_commit_batch_size(size_t target_capacity);
+  size_t calculate_uncommit_batch_size(size_t target_capacity);
 
   size_t uncommit(size_t to_uncommit);
 

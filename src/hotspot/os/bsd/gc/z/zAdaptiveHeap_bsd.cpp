@@ -47,7 +47,7 @@ bool ZAdaptiveHeap::pd_machine_elapsed_system_cpu_time(ZSystemCpuTime& value) {
     return false;
   }
 
-  // The CPU ticks counters are 32-bit and may experience wrapping behaviour.
+  // The CPU ticks counters are 32-bit and may experience wrapping behaviour
   natural_t ticks = load_data.cpu_ticks[CPU_STATE_USER] +
                     load_data.cpu_ticks[CPU_STATE_NICE] +
                     load_data.cpu_ticks[CPU_STATE_SYSTEM];

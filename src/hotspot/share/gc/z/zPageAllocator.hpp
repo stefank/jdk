@@ -43,22 +43,30 @@
 #include "gc/z/zVirtualMemoryManager.hpp"
 #include "utilities/ostream.hpp"
 
-// The ZPageAllocator maintains the memory for the Java heap, represented by the
-// notion of capacity. The capacity is divided among one or more partitions, which
-// handles a subset of the heap (or the whole heap in case of a single partition).
+// The ZPageAllocator maintains the memory for the Java heap, represented by
+// the notion of capacity. The capacity is divided among one or more
+// partitions, which handle a subset of the heap (or the whole heap in case
+// of a single partition).
 //
 // The most important specific terms for capacity that we have are:
-//   - static min      Absolute lower bound configured at startup (never changes).
-//                     The heap must not shrink below this.
+//
+//   - static min      Absolute lower bound configured at startup (never
+//                     changes). The heap must not shrink below this.
+//
 //   - capacity        Currently committed capacity
+//
 //   - soft max        Target limit; heuristics try to stay below this
+//
 //   - heuristic max   Heuristic-derived upper bound used to guide resizing
-//   - current max     The effective maximum currently enforced; based on system
-//                     memory usage
-//   - dynamic max     Same as static max for non-container. Container limit
-//                     if in container.
-//   - static max      Absolute upper bound configured at startup (never changes).
-//                     This is the same value of -Xmx if set on the command-line.
+//
+//   - current max     The effective maximum currently enforced; based on
+//                     system memory usage
+//
+//   - dynamic max     Container limit if in container. Otherwise, static max.
+//
+//   - static max      Absolute upper bound configured at startup (never
+//                     changes). This is the same value of -Xmx if set on the
+//                     command-line.
 //
 // Notes:
 //   - Layouts below are illustrative. Values may move relative to each other.
@@ -66,24 +74,21 @@
 //   - The heap must stay within [static min, static max].
 //
 // Not container:
-// LOW <-> HIGH
 //
-//                            soft max      current max
-//                               |               |
-// [----|------------|-----------|-|-------------|---------]
-//      |            |             |                       |
-//  static min    capacity    heuristic max            static max
+//     capacity   soft max   current max
+//        |          |           |
+// [----|-|----------|-|---------|-------------------------]
+//      |              |                                   |
+//  static min    heuristic max                        static max
 //                                                    dynamic max
 //
 // Container:
-// LOW <-> HIGH
 //
-//              soft max
-//     capacity    |     current max
-//        |        |         |
-// [----|-|--------|-|-------|----|------------------------]
-//      |            |            |                        |
-//  static min  heuristic_max   dynamic max             static max
+//     capacity   soft max   current max
+//        |          |           |
+// [----|-|----------|-|---------|----|--------------------]
+//      |              |              |                    |
+//  static min    heuristic_max     dynamic max        static max
 
 class ThreadClosure;
 class ZGeneration;
@@ -130,7 +135,7 @@ private:
   void verify_memory_allocation_association(const ZMemoryAllocation* allocation) const NOT_DEBUG_RETURN;
 
   size_t increase_capacity(size_t size, size_t capacity_limit);
-  void map_virtual_inner(const ZVirtualMemory& vmem, bool multi_partition, bool sort_segments, bool register_heating);
+  void map_virtual_inner(const ZVirtualMemory& vmem, bool multi_partition, bool sort_segments, bool request_heating);
   void unmap_virtual_inner(const ZVirtualMemory& vmem, bool multi_partition);
 
 public:
@@ -184,7 +189,7 @@ public:
   size_t commit_physical(const ZVirtualMemory& vmem);
   size_t uncommit_physical(const ZVirtualMemory& vmem);
 
-  void map_virtual(const ZVirtualMemory& vmem, bool heat_memory = true);
+  void map_virtual(const ZVirtualMemory& vmem, bool request_heating = true);
   void unmap_virtual(const ZVirtualMemory& vmem);
 
   void map_virtual_from_multi_partition(const ZVirtualMemory& vmem);

@@ -150,7 +150,7 @@ void ZNUMA::pd_initialize() {
     _bound_node_count = 1;
   }
 
-  // UseNUMA and is_faked() are mutually excluded in zArguments.cpp.
+  // UseNUMA and is_faked() are mutually excluded in zArguments.cpp
   _count = UseNUMA
       ? _bound_node_count
       : !FLAG_IS_DEFAULT(ZFakeNUMA)

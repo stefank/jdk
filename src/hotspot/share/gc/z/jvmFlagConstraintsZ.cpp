@@ -31,13 +31,13 @@
 
 JVMFlag::Error ZGCIntensityConstraintFunc(double value, bool verbose) {
   if (!UseZGC) {
-    // There is no constraint when not using ZGC.
+    // There is no constraint when not using ZGC
     return JVMFlag::Error::SUCCESS;
   }
 
   if (!g_isfinite(value)) {
     JVMFlag::printError(verbose,
-                        "ZGCIntensityConstraint (%f) must be finite.\n",
+                        "ZGCIntensity (%f) must be finite.\n",
                         value);
     return JVMFlag::Error::VIOLATES_CONSTRAINT;
   }

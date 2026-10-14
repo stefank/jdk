@@ -710,7 +710,9 @@ size_t ZPartition::available_from_any_capacity(size_t capacity_limit) const {
   assert(_capacity == _used + _claimed + _cache.size(), "Should be consistent"
          " _capacity: %zx _used: %zx _claimed: %zx _cache.size(): %zx",
          _capacity, _used, _claimed, _cache.size());
-  assert(capacity_limit <= _static_max_capacity, "Invalid capacity limit for partition: %zx > %zx", capacity_limit, _static_max_capacity);
+  assert(capacity_limit <= _static_max_capacity, "Invalid capacity limit for partition: %zx > %zx",
+         capacity_limit, _static_max_capacity);
+
   const size_t unavailable = _used + _claimed;
 
   if (capacity_limit < unavailable) {
@@ -723,6 +725,7 @@ size_t ZPartition::available_from_any_capacity(size_t capacity_limit) const {
 
 size_t ZPartition::available_from_increase_capacity(size_t capacity_limit) const {
   precond(capacity_limit >= _capacity);
+
   const size_t available = ZPartition::available_from_any_capacity(capacity_limit);
   const size_t cached = _cache.size();
 
@@ -799,7 +802,7 @@ void ZPartition::decrease_claimed(size_t size) {
 }
 
 static void pretouch_memory(zoffset start, size_t size) {
-  // At this point we know that we have a valid zoffset / zaddress.
+  // At this point we know that we have a valid zoffset / zaddress
   const zaddress zaddr = ZOffset::address(start);
   const uintptr_t addr = untype(zaddr);
   const size_t page_size = ZLargePages::is_explicit() ? ZGranuleSize : os::vm_page_size();
@@ -990,9 +993,9 @@ size_t ZPartition::increase_and_commit_capacity(size_t size, size_t capacity_lim
     }
 
     if (vmem.size() != 0) {
-      // Map memory. Since this function is called from the ZMemoryWorker,
-      // we heat memory synchronously instead of sending a heating request.
-      map_virtual(vmem, false /* heat */);
+      // Map memory. Since this function is called from the ZMemoryWorker, we
+      // perform heating here instead of requesting asynchronous heating.
+      map_virtual(vmem, false /* request_heating */);
 
       heat_memory(vmem);
 
@@ -1049,9 +1052,7 @@ size_t ZPartition::commit_physical(const ZVirtualMemory& vmem) {
   ZPhysicalMemoryManager& manager = physical_memory_manager();
 
   // Commit physical memory
-  const size_t committed =  manager.commit(vmem, _numa_id);
-
-  return committed;
+  return manager.commit(vmem, _numa_id);
 }
 
 size_t ZPartition::uncommit_physical(const ZVirtualMemory& vmem) {
@@ -1061,13 +1062,11 @@ size_t ZPartition::uncommit_physical(const ZVirtualMemory& vmem) {
   ZPhysicalMemoryManager& manager = physical_memory_manager();
 
   // Uncommit physical memory
-  const size_t uncommitted = manager.uncommit(vmem);
-
-  return uncommitted;
+  return manager.uncommit(vmem);
 }
 
-void ZPartition::map_virtual(const ZVirtualMemory& vmem, bool heat_memory) {
-  map_virtual_inner(vmem, false /* multi_partition */, false /* sort_segments */, heat_memory);
+void ZPartition::map_virtual(const ZVirtualMemory& vmem, bool request_heating) {
+  map_virtual_inner(vmem, false /* multi_partition */, false /* sort_segments */, request_heating);
 }
 
 void ZPartition::unmap_virtual(const ZVirtualMemory& vmem) {
@@ -1075,14 +1074,14 @@ void ZPartition::unmap_virtual(const ZVirtualMemory& vmem) {
 }
 
 void ZPartition::map_virtual_from_multi_partition(const ZVirtualMemory& vmem) {
-  map_virtual_inner(vmem, true /* multi_partition */, true /* sort_segments */, true /* register_heating */);
+  map_virtual_inner(vmem, true /* multi_partition */, true /* sort_segments */, true /* request_heating */);
 }
 
 void ZPartition::unmap_virtual_from_multi_partition(const ZVirtualMemory& vmem) {
   unmap_virtual_inner(vmem, true /* multi_partition */);
 }
 
-void ZPartition::map_virtual_inner(const ZVirtualMemory& vmem, bool multi_partition, bool sort_segments, bool register_heating) {
+void ZPartition::map_virtual_inner(const ZVirtualMemory& vmem, bool multi_partition, bool sort_segments, bool request_heating) {
   if (multi_partition) {
     verify_virtual_memory_multi_partition_association(vmem);
   } else {
@@ -1092,15 +1091,15 @@ void ZPartition::map_virtual_inner(const ZVirtualMemory& vmem, bool multi_partit
   ZPhysicalMemoryManager& manager = physical_memory_manager();
 
   if (sort_segments) {
-    // Sort physical segments before mapping multi-partition memory.
+    // Sort physical segments before mapping multi-partition memory
     manager.sort_segments_physical(vmem);
   }
 
-  // Map virtual memory to physical memory.
+  // Map virtual memory to physical memory
   manager.map(vmem, _numa_id);
 
-  if (register_heating && ZMemoryHeating) {
-    // Register a heating request for this mapping.
+  if (request_heating && ZMemoryHeating) {
+    // Register a heating request for this mapping
     _mem_worker.register_heating_request(vmem);
   }
 }
@@ -1113,13 +1112,13 @@ void ZPartition::unmap_virtual_inner(const ZVirtualMemory& vmem, bool multi_part
   }
 
   if (ZMemoryHeating) {
-    // Remove any heating request before unmapping.
+    // Remove any heating request before unmapping
     _mem_worker.remove_heating_request(vmem);
   }
 
   ZPhysicalMemoryManager& manager = physical_memory_manager();
 
-  // Unmap virtual memory from physical memory.
+  // Unmap virtual memory from physical memory
   manager.unmap(vmem);
 }
 
@@ -1219,12 +1218,13 @@ bool ZPartition::prime(ZWorkers* workers, size_t size, size_t capacity_limit) {
     const size_t committed = commit_physical(vmem);
 
     if (committed != vmem.size()) {
-      // This is a failure state. We do not cleanup the maybe partially committed memory.
+      // This is a failure state. We do not cleanup the maybe partially
+      // committed memory.
       return false;
     }
 
-    // The primed memory should be "heated" asynchronously if it shouldn't be
-    // pre-touched up front during startup.
+    // Asynchronously heat primed memory unless up-front pre-touching has been
+    // requested.
     const bool async_heat = !AlwaysPreTouch;
 
     map_virtual(vmem, async_heat);
@@ -1237,8 +1237,8 @@ bool ZPartition::prime(ZWorkers* workers, size_t size, size_t capacity_limit) {
       workers->run_all(&task, false /* account_vtime */);
     }
 
-    // We don't have to take a lock here as no other threads will access the cache
-    // until we're finished
+    // We don't have to take a lock here as no other threads will access the
+    // cache until we're finished.
     _cache.insert(vmem);
   }
 
@@ -1643,9 +1643,9 @@ size_t ZPageAllocator::current_max_capacity() const {
   physical_memory_size_type container_used_memory;
 
   if (!os::Container::used_memory(container_used_memory)) {
-    // If we can't measure memory usage in the container, we also can not compare
-    // it to any container limits. Effectively, the JVM is not appropriately
-    // containerized, so use machine max capacity.
+    // If we can't measure memory usage in the container, we also can not
+    // compare it to any container limits. Effectively, the JVM is not
+    // appropriately containerized, so use machine max capacity.
     return machine_max_capacity;
   }
 
@@ -1827,7 +1827,7 @@ void ZPageAllocator::heap_truncated(size_t selected_capacity, ZPageAllocator::Tr
   precond(ZAdaptiveHeapSizing);
 
   if (reason == TruncationReason::Uncommit) {
-    // Uncommit heap truncation is part of heap resizing.
+    // Uncommit heap truncation is part of heap resizing
     return;
   }
   assert(reason == TruncationReason::CommitFailure, "Unexpected: %d", (int)reason);
@@ -1857,10 +1857,10 @@ void ZPageAllocator::adjust_capacity(size_t used_soon) {
       // When memory usage is high, request uncommitting if possible
       mem_worker.request_shrink_capacity_granule();
     } else {
-      // When memory pressure is not high, stop targetless uncommit.
+      // When memory pressure is not high, stop targetless uncommit
       mem_worker.stop_shrink_capacity_granule();
 
-      // When memory pressure is not high, try to commit memory ahead of mutators.
+      // When memory pressure is not high, try to commit memory ahead of mutators
       const uint32_t numa_id = partition->numa_id();
       const size_t used_soon_share = ZNUMA::calculate_share(numa_id, used_soon);
       if (used_soon_share > partition_capacity) {
@@ -2116,7 +2116,7 @@ bool ZPageAllocator::claim_capacity(ZPageAllocation* allocation, ZPageAllocation
     }
   }
 
-  // Hard single-partition claiming - only try from the highest availible partition
+  // Hard single-partition claiming - only try from the highest available partition
   const size_t hard_partition_limit = _partitions.get(highest_available_id).static_max_capacity();
   const bool claim_result = is_fast_medium
       ? claim_capacity_single_partition_fast_medium(single_partition_allocation, highest_available_id, hard_partition_limit)

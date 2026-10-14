@@ -805,9 +805,10 @@ static uint soft_initial_young_nworkers(uint proposed_soft_young_workers) {
     return proposed_soft_young_workers;
   }
 
-  // If the proposed number of workers is obviously going to be above the GC CPU target,
-  // then throttle the thread count instead, and have concurrent heap expansion run while
-  // the GC intentionally misses the heuristic max heap size.
+  // If the proposed number of workers is obviously going to be above the GC CPU
+  // target, then throttle the thread count instead, and have concurrent heap
+  // expansion run while the GC intentionally misses the heuristic max heap
+  // size.
   return MIN2(ZAdaptiveHeap::initial_young_worker_cap(), proposed_soft_young_workers);
 }
 
@@ -954,14 +955,14 @@ static ZDirectorStats sample_stats() {
 
 static void adjust_capacity(const ZDirectorStats& stats, double sampling_interval) {
   if (!ZAdaptiveHeapSizing) {
-    // We do not asynchronously adjust the capacity without adaptive heap sizing.
+    // We do not asynchronously adjust the capacity without adaptive heap sizing
     return;
   }
 
   const size_t used = stats._heap._used;
   const size_t max_capacity = stats._heap._current_max_capacity;
 
-  const size_t used_next_byte_sample = MIN2(used + 2 * stats._mutator_alloc_rate._sampling_granule, max_capacity);
+  const size_t used_next_byte_sample = MIN2(used + 2 * stats._mutator_alloc_rate._sampling_threshold, max_capacity);
 
   const double avg_alloc_rate = stats._mutator_alloc_rate._avg;
   const size_t used_next_time_sample = MIN2(used + 2 * size_t(sampling_interval * avg_alloc_rate), max_capacity);

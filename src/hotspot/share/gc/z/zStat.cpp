@@ -954,7 +954,7 @@ void ZStatInc(const ZStatUnsampledCounter& counter, uint64_t increment) {
 //
 ZLock*          ZStatMutatorAllocRate::_stat_lock;
 jlong           ZStatMutatorAllocRate::_last_sample_time;
-volatile size_t ZStatMutatorAllocRate::_sampling_granule;
+volatile size_t ZStatMutatorAllocRate::_sampling_threshold;
 volatile size_t ZStatMutatorAllocRate::_allocated_since_sample;
 TruncatedSeq    ZStatMutatorAllocRate::_samples_time(100);
 TruncatedSeq    ZStatMutatorAllocRate::_samples_bytes(100);
@@ -963,19 +963,19 @@ TruncatedSeq    ZStatMutatorAllocRate::_rate(100);
 void ZStatMutatorAllocRate::initialize() {
   _last_sample_time = os::elapsed_counter();
   _stat_lock = new ZLock();
-  update_sampling_granule();
+  update_sampling_threshold();
 }
 
-void ZStatMutatorAllocRate::update_sampling_granule() {
-  const size_t sampling_heap_granules = 128;
+void ZStatMutatorAllocRate::update_sampling_threshold() {
+  const size_t target_samples = 128;
   const size_t heuristic_max_capacity = ZHeap::heap()->heuristic_max_capacity();
-  _sampling_granule = align_up(heuristic_max_capacity / sampling_heap_granules, ZGranuleSize);
+  _sampling_threshold = align_up(heuristic_max_capacity / target_samples, ZGranuleSize);
 }
 
 void ZStatMutatorAllocRate::sample_allocation(size_t allocation_bytes) {
   const size_t allocated = AtomicAccess::add(&_allocated_since_sample, allocation_bytes);
 
-  if (allocated < AtomicAccess::load(&_sampling_granule)) {
+  if (allocated < AtomicAccess::load(&_sampling_threshold)) {
     // No need for sampling yet
     return;
   }
@@ -987,7 +987,7 @@ void ZStatMutatorAllocRate::sample_allocation(size_t allocation_bytes) {
 
   const size_t allocated_sample = AtomicAccess::load(&_allocated_since_sample);
 
-  if (allocated_sample < _sampling_granule) {
+  if (allocated_sample < _sampling_threshold) {
     // Someone beat us to it
     _stat_lock->unlock();
     return;
@@ -1014,7 +1014,7 @@ void ZStatMutatorAllocRate::sample_allocation(size_t allocation_bytes) {
   const double bytes_per_second = double(last_sample_bytes) / elapsed_seconds;
   _rate.add(bytes_per_second);
 
-  update_sampling_granule();
+  update_sampling_threshold();
 
   _last_sample_time = now;
 
@@ -1031,7 +1031,7 @@ void ZStatMutatorAllocRate::sample_allocation(size_t allocation_bytes) {
 
 ZStatMutatorAllocRateStats ZStatMutatorAllocRate::stats() {
   ZLocker<ZLock> locker(_stat_lock);
-  return {_rate.avg(), _rate.predict_next(), _rate.sd(), _sampling_granule};
+  return {_rate.avg(), _rate.predict_next(), _rate.sd(), _sampling_threshold};
 }
 
 //
@@ -1046,23 +1046,23 @@ ZStatSystemMemoryUsage::ZSystemMemoryUsage ZStatSystemMemoryUsage::_container_us
 ZStatSystemMemoryUsage::ZSystemMemoryUsage ZStatSystemMemoryUsage::_machine_usage;
 
 void ZStatSystemMemoryUsage::ZSystemMemoryUsage::record_usage(double usage) {
-  double highest = _highest_usage.load_relaxed();
+  const double highest = _highest_usage.load_relaxed();
   if (highest < usage) {
     // No need to do anything if the CAS fails; then someone else filled in an update value
     _highest_usage.compare_exchange(highest, usage, memory_order_relaxed);
   }
 }
 
-double ZStatSystemMemoryUsage::ZSystemMemoryUsage::memory_stability() {
+double ZStatSystemMemoryUsage::ZSystemMemoryUsage::memory_stability() const {
   return _memory_stability.load_relaxed();
 }
 
 void ZStatSystemMemoryUsage::ZSystemMemoryUsage::sample_and_collect() {
-  double highest = _highest_usage.exchange(0.0, memory_order_relaxed);
+  const double highest = _highest_usage.exchange(0.0, memory_order_relaxed);
   if (highest != 0.0) {
     _highest_usages.add(highest);
   }
-  double sd = _highest_usages.dsd();
+  const double sd = _highest_usages.dsd();
   _memory_stability.store_relaxed(sd);
 }
 

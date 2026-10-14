@@ -31,12 +31,12 @@
 
 #include <sys/mman.h>
 
-// Define MADV_COLLAPSE here so we can build HotSpot on old systems.
+// Define MADV_COLLAPSE here so we can build HotSpot on old systems
 #define MADV_COLLAPSE_value 25
 #ifndef MADV_COLLAPSE
 #define MADV_COLLAPSE MADV_COLLAPSE_value
 #else
-  // Sanity-check our assumed default value if we build with a new enough libc.
+  // Sanity-check our assumed default value if we build with a new enough libc
   static_assert(MADV_COLLAPSE == MADV_COLLAPSE_value);
 #endif
 
@@ -59,6 +59,7 @@ bool ZLargePages::pd_collapse(void* addr, size_t bytes) {
     if (result == 0) {
       return true;
     }
+
     if (result == -1 && errno == EAGAIN) {
       continue;
     }
@@ -69,6 +70,7 @@ bool ZLargePages::pd_collapse(void* addr, size_t bytes) {
 
 static bool madv_collapse_available() {
   const size_t size = 2 * M;
+
   void* const res = mmap(nullptr, size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
 
   if (res == MAP_FAILED) {
@@ -76,7 +78,7 @@ static bool madv_collapse_available() {
   }
 
   assert(size >= os::vm_page_size(), "Unexpected page size");
-  os::pretouch_memory(res, (void*)(((char*)res) + os::vm_page_size()));
+  os::pretouch_memory(res, (char*)res + os::vm_page_size());
 
   const bool result = ZLargePages::pd_collapse(res, size);
 
@@ -89,8 +91,9 @@ void ZLargePages::pd_initialize() {
   // Evaluate if we should move madv collapse logic to os::Linux / HugePages so
   // that validate_thps_configured can log the warning correctly if shmem THP
   // is disabled.
-  // Maybe combined with a general GC callback. Let os::Linux / HugePages contain
-  // the OS logic, let the GC do the extra log warnings as part of the
+  //
+  // Maybe combined with a general GC callback. Let os::Linux / HugePages
+  // contain the OS logic, let the GC do the extra log warnings as part of the
   // validation callback.
   const auto can_collapse = []() {
     return ZMemoryHeating && madv_collapse_available();
@@ -101,6 +104,7 @@ void ZLargePages::pd_initialize() {
       _state = Collapse;
       return;
     }
+
     // Check if the OS config turned off transparent huge pages for shmem.
     _os_enforced_transparent_mode = HugePages::shmem_thp_info().is_disabled();
     _state = _os_enforced_transparent_mode ? Disabled : Transparent;

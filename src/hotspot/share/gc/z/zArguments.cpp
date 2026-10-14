@@ -55,7 +55,7 @@ void ZArguments::initialize_heap_flags_and_sizes() {
     // to a random number we just pulled out of thin air.
     FLAG_SET_ERGO_IF_DEFAULT(SoftMaxHeapSize, MaxHeapSize * 90 / 100);
   } else {
-    // This denotes there is no soft max heap size set.
+    // This denotes there is no soft max heap size set
     FLAG_SET_ERGO_IF_DEFAULT(SoftMaxHeapSize, 0);
   }
 }
@@ -179,13 +179,15 @@ void ZArguments::set_heap_size() {
   if (!FLAG_IS_DEFAULT(ErgoHeapSizeLimit)) {
     log_warning(gc, heap, init)("ZGC does not use ErgoHeapSizeLimit, the value is ignored");
   }
+
   if (!FLAG_IS_DEFAULT(HeapBaseMinAddress)) {
     log_warning(gc, heap, init)("ZGC does not use HeapBaseMinAddress, the value is ignored");
   }
 
-  // When the user has specified MaxRAMPercentage explicitly, we dispatch to either
-  // the container or machine's limit. If not explicitly specified, we use the machine's
-  // limit as we might need to scale up to most of the underlying memory.
+  // When the user has specified MaxRAMPercentage explicitly, we dispatch to
+  // either the container or machine's limit. If not explicitly specified, we
+  // use the machine's limit as we might need to scale up to most of the
+  // underlying memory.
   const double max_physical_memory = !FLAG_IS_DEFAULT(MaxRAMPercentage)
       ? checked_cast<double>(os::physical_memory())
       : checked_cast<double>(os::Machine::physical_memory());
@@ -205,7 +207,7 @@ void ZArguments::set_heap_size() {
   const size_t initial_size = (size_t)(initial_physical_memory * (InitialRAMPercentage / 100.));
   FLAG_SET_ERGO_IF_DEFAULT_OR_ZERO(InitialHeapSize, clamp(initial_size, MIN2(MinHeapSize, MaxHeapSize), MaxHeapSize));
 
-  // GCArguments::initialize_heap_flags_and_sizes will align up the heap sizes.
+  // GCArguments::initialize_heap_flags_and_sizes will align up the heap sizes
   if (align_up(MaxHeapSize, ZGranuleSize) == align_up(MinHeapSize, ZGranuleSize)) {
     if (!FLAG_IS_DEFAULT(ZAdaptiveHeapSizing)) {
       log_warning(gc)("Adaptive heap sizing was enabled, but heap size is fixed. Disabling adaptive heap sizing.");

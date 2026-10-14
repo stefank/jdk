@@ -357,7 +357,7 @@ struct ZStatMutatorAllocRateStats {
   double _avg;
   double _predict;
   double _sd;
-  size_t _sampling_granule;
+  size_t _sampling_threshold;
 };
 
 //
@@ -367,13 +367,13 @@ class ZStatMutatorAllocRate : public AllStatic {
 private:
   static ZLock*          _stat_lock;
   static jlong           _last_sample_time;
-  static volatile size_t _sampling_granule;
+  static volatile size_t _sampling_threshold;
   static volatile size_t _allocated_since_sample;
   static TruncatedSeq    _samples_time;
   static TruncatedSeq    _samples_bytes;
   static TruncatedSeq    _rate;
 
-  static void update_sampling_granule();
+  static void update_sampling_threshold();
 
 public:
   static const ZStatUnsampledCounter& counter();
@@ -388,7 +388,7 @@ class ZStatSystemMemoryUsage : public AllStatic {
 private:
   class ZSystemMemoryUsage {
   private:
-    NumberSeq _highest_usages;
+    NumberSeq      _highest_usages;
     Atomic<double> _highest_usage;
     Atomic<double> _memory_stability;
 
@@ -396,7 +396,7 @@ private:
     ZSystemMemoryUsage();
 
     void record_usage(double usage);
-    double memory_stability();
+    double memory_stability() const;
     void sample_and_collect();
   };
 
@@ -495,12 +495,11 @@ struct ZStatWorkersStats {
 //
 class ZStatWorkers {
 private:
-  ZLock    _stat_lock;
-  uint     _active_workers;
-  Ticks    _start_of_last;
-  Tickspan _accumulated_duration;
-  Tickspan _accumulated_time;
-
+  ZLock           _stat_lock;
+  uint            _active_workers;
+  Ticks           _start_of_last;
+  Tickspan        _accumulated_duration;
+  Tickspan        _accumulated_time;
   volatile double _accumulated_vtime;
 
   double accumulated_duration();
