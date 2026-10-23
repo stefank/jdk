@@ -40,7 +40,7 @@ private:
   static void objects(bool verify_weaks);
   static void threads_start_processing();
 
-  static void after_relocation_internal(ZForwarding* forwarding);
+  static void after_relocation_internal(ZForwarding* forwarding, bool after_relocation);
 
 public:
   static void before_zoperation();

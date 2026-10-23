@@ -638,12 +638,14 @@ private:
   ZForwarding* const _forwarding;
   zaddress_unsafe    _from_addr;
   zaddress           _to_addr;
+  const bool         _after_relocation;
 
 public:
-  ZVerifyRemsetAfterOopClosure(ZForwarding* forwarding)
+  ZVerifyRemsetAfterOopClosure(ZForwarding* forwarding, bool after_relocation)
     : _forwarding(forwarding),
       _from_addr(zaddress_unsafe::null),
-      _to_addr(zaddress::null) {}
+      _to_addr(zaddress::null),
+      _after_relocation(after_relocation) {}
 
   void set_from_addr(zaddress_unsafe addr) {
     _from_addr = addr;
@@ -709,7 +711,8 @@ public:
     }
 
     guarantee(ZGeneration::young()->is_phase_mark(), "Should be in the mark phase " BAD_REMSET_ARG(p, ptr, _to_addr));
-    guarantee(_forwarding->relocated_remembered_fields_published_contains(p), BAD_REMSET_ARG(p, ptr, _to_addr));
+    guarantee(_after_relocation, "The published array should only be needed to be verified after relocation");
+    guarantee(_forwarding->relocated_remembered_fields_published_contains(p, _after_relocation), BAD_REMSET_ARG(p, ptr, _to_addr));
   }
 
   virtual void do_oop(narrowOop* p) {
@@ -721,8 +724,13 @@ public:
   }
 };
 
-void ZVerify::after_relocation_internal(ZForwarding* forwarding) {
-  ZVerifyRemsetAfterOopClosure cl(forwarding);
+void ZVerify::after_relocation_internal(ZForwarding* forwarding, bool after_relocation) {
+  if (after_relocation) {
+    // Used to optimize otherwise linear probing
+    forwarding->relocated_remembered_fields_published_sort();
+  }
+
+  ZVerifyRemsetAfterOopClosure cl(forwarding, after_relocation);
 
   forwarding->address_unsafe_iterate_via_table([&](zaddress_unsafe from_addr) {
     // If no field in this object was in the store barrier buffer
@@ -757,7 +765,9 @@ void ZVerify::after_relocation(ZForwarding* forwarding) {
     return;
   }
 
-  after_relocation_internal(forwarding);
+
+
+  after_relocation_internal(forwarding, true /* after_relocation */);
 }
 
 void ZVerify::after_scan(ZForwarding* forwarding) {
@@ -778,5 +788,5 @@ void ZVerify::after_scan(ZForwarding* forwarding) {
     return;
   }
 
-  after_relocation_internal(forwarding);
+  after_relocation_internal(forwarding, false /* after_relocation */);
 }
