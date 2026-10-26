@@ -607,7 +607,7 @@ void ZVerify::on_color_flip() {
   }
 }
 
-void ZVerify::before_relocation(ZForwarding* forwarding) {
+void ZVerify::remset_before(ZForwarding* forwarding) {
   if (!ZVerifyRemembered) {
     return;
   }
@@ -631,6 +631,10 @@ void ZVerify::before_relocation(ZForwarding* forwarding) {
     cl.set_from_addr(addr);
     obj->oop_iterate(&cl);
   });
+}
+
+void ZVerify::before_relocation(ZForwarding* forwarding) {
+  remset_before(forwarding);
 }
 
 class ZVerifyRemsetAfterOopClosure : public BasicOopIterateClosure {
@@ -711,7 +715,7 @@ public:
     }
 
     guarantee(ZGeneration::young()->is_phase_mark(), "Should be in the mark phase " BAD_REMSET_ARG(p, ptr, _to_addr));
-    guarantee(_after_relocation, "The published array should only be needed to be verified after relocation");
+    guarantee(_after_relocation, "The published array should only be needed to be verified after relocation" BAD_REMSET_ARG(p, ptr, _to_addr));
     guarantee(_forwarding->relocated_remembered_fields_published_contains(p, _after_relocation), BAD_REMSET_ARG(p, ptr, _to_addr));
   }
 
@@ -724,9 +728,9 @@ public:
   }
 };
 
-void ZVerify::after_relocation_internal(ZForwarding* forwarding, bool after_relocation) {
+void ZVerify::remset_after_inner(ZForwarding* forwarding, bool after_relocation) {
   if (after_relocation) {
-    // Used to optimize otherwise linear probing
+    // Used to optimize otherwise linear scanning
     forwarding->relocated_remembered_fields_published_sort();
   }
 
@@ -746,7 +750,7 @@ void ZVerify::after_relocation_internal(ZForwarding* forwarding, bool after_relo
   });
 }
 
-void ZVerify::after_relocation(ZForwarding* forwarding) {
+void ZVerify::remset_after_relocation(ZForwarding* forwarding) {
   if (!ZVerifyRemembered) {
     return;
   }
@@ -765,12 +769,14 @@ void ZVerify::after_relocation(ZForwarding* forwarding) {
     return;
   }
 
-
-
-  after_relocation_internal(forwarding, true /* after_relocation */);
+  remset_after_inner(forwarding, true /* after_relocation */);
 }
 
-void ZVerify::after_scan(ZForwarding* forwarding) {
+void ZVerify::after_relocation(ZForwarding* forwarding) {
+  remset_after_relocation(forwarding);
+}
+
+void ZVerify::remset_after_scan(ZForwarding* forwarding) {
   if (!ZVerifyRemembered) {
     return;
   }
@@ -788,5 +794,9 @@ void ZVerify::after_scan(ZForwarding* forwarding) {
     return;
   }
 
-  after_relocation_internal(forwarding, false /* after_relocation */);
+  remset_after_inner(forwarding, false /* after_relocation */);
+}
+
+void ZVerify::after_scan(ZForwarding* forwarding) {
+  remset_after_scan(forwarding);
 }
