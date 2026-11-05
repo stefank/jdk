@@ -26,6 +26,7 @@
 #include "hugepages.hpp"
 #include "logging/log.hpp"
 #include "logging/logStream.hpp"
+#include "os_linux.hpp"
 #include "runtime/globals.hpp"
 #include "runtime/globals_extension.hpp"
 #include "runtime/os.hpp"
@@ -34,6 +35,18 @@
 #include "utilities/ostream.hpp"
 
 #include <dirent.h>
+#include <linux/prctl.h>
+#include <sys/prctl.h>
+
+// PR_SET_THP_DISABLE was added in Linux 5.4 and
+// PR_THP_DISABLE_EXCEPT_ADVISED in Linux 6.18. Keep builds with older Linux
+// headers compatible.
+#ifndef PR_SET_THP_DISABLE
+#define PR_SET_THP_DISABLE 41
+#endif
+#ifndef PR_THP_DISABLE_EXCEPT_ADVISED
+#define PR_THP_DISABLE_EXCEPT_ADVISED (1UL << 1)
+#endif
 
 ExplicitHugePageSupport::ExplicitHugePageSupport() :
   _initialized{false}, _os_supported{}, _pre_allocated{}, _default_hugepage_size{0}, _inconsistent{false} {}
@@ -253,8 +266,12 @@ ShmemTHPMode ShmemTHPSupport::mode() const {
   return _mode;
 }
 
+bool ShmemTHPSupport::is_forced(ShmemTHPMode mode) {
+  return mode == ShmemTHPMode::always || mode == ShmemTHPMode::force || mode == ShmemTHPMode::within_size;
+}
+
 bool ShmemTHPSupport::is_forced() const {
-  return _mode == ShmemTHPMode::always || _mode == ShmemTHPMode::force || _mode == ShmemTHPMode::within_size;
+  return is_forced(_mode);
 }
 
 bool ShmemTHPSupport::is_enabled() const {
@@ -331,7 +348,8 @@ bool HugePages::_is_requested_on{false};
 bool HugePages::_is_requested_off{false};
 bool HugePages::_is_thp_requested_on{false};
 bool HugePages::_is_thp_requested_off{false};
-
+THPMode HugePages::_process_thp_mode{};
+ShmemTHPMode HugePages::_process_shmem_thp_mode{};
 
 size_t HugePages::thp_pagesize_fallback() {
     // Older kernels won't publish the THP page size. Fall back to default explicit huge page size,
@@ -350,6 +368,119 @@ void HugePages::scan_os() {
   _explicit_hugepage_support.scan_os();
   _thp_support.scan_os();
   _shmem_thp_support.scan_os();
+
+  // The process inherits the os thp mode, but can be overriden later
+  _process_thp_mode = os_thp_mode();
+  _process_shmem_thp_mode = os_shmem_thp_mode();
+}
+
+static bool kernel_supports_prctl_thp_disable_except_advised() {
+  if (NewCodeParameter > 0) {
+    return false;
+  }
+
+  long major;
+  long minor;
+  long patch;
+
+  bool result = os::Linux::kernel_version(&major, &minor, &patch);
+  if (result) {
+    // Support for PR_THP_DISABLE_EXCEPT_ADVISED was added in 6.18
+    return os::Linux::kernel_version_compare(major, minor, patch, 6, 18, 0) >= 0;
+  }
+
+  // Can't determine kernel version
+  return false;
+}
+
+static bool kernel_supports_prctl_thp_disable() {
+  if (NewCodeParameter > 1) {
+    return false;
+  }
+  long major;
+  long minor;
+  long patch;
+
+  bool result = os::Linux::kernel_version(&major, &minor, &patch);
+  if (result) {
+    // Support for prctl to disable THP was added in 3.15
+    return os::Linux::kernel_version_compare(major, minor, patch, 3, 15, 0) >= 0;
+  }
+
+  // Can't determine kernel version
+  return false;
+}
+
+static bool prctl_thp_disable_except_advised() {
+  if (prctl(PR_SET_THP_DISABLE, 1, PR_THP_DISABLE_EXCEPT_ADVISED, 0, 0) != -1) {
+    return true;
+  }
+
+  log_warning(os)("Could not disable transparent huge pages except when explicitly advised: %s",
+                  os::strerror(errno));
+  return false;
+}
+
+static bool prctl_thp_disable() {
+  if (prctl(PR_SET_THP_DISABLE, 1, 0, 0, 0) != -1) {
+    return true;
+  }
+
+  log_warning(os)("Could not disable transparent huge pages: %s",
+                  os::strerror(errno));
+  return false;
+}
+
+static bool try_prctl_thp_disable_except_advised() {
+  if (kernel_supports_prctl_thp_disable_except_advised()) {
+    if (prctl_thp_disable_except_advised()) {
+      return true;
+    }
+  }
+  return false;
+}
+
+static bool try_prctl_thp_disable() {
+  if (kernel_supports_prctl_thp_disable()) {
+    if (prctl_thp_disable()) {
+      return true;
+    }
+  }
+  return false;
+}
+
+void HugePages::downgrade_thp_mode_to_never() {
+  if (!try_prctl_thp_disable()) {
+    return;
+  }
+
+  _process_thp_mode = THPMode::never;
+  _process_shmem_thp_mode = ShmemTHPMode::never;
+}
+
+bool HugePages::downgrade_thp_mode_to_madvise() {
+  if (!try_prctl_thp_disable_except_advised()) {
+    return false;
+  }
+
+  if (_process_thp_mode == THPMode::always) {
+    _process_thp_mode = THPMode::madvise;
+  }
+
+  if (ShmemTHPSupport::is_forced(_process_shmem_thp_mode)) {
+    _process_shmem_thp_mode = ShmemTHPMode::advise;
+  }
+
+  return true;
+}
+
+static bool is_shmem_thp_mode_downgraded_to_never() {
+  return HugePages::os_enables_shmem_thp() &&
+         HugePages::process_shmem_thp_mode() == ShmemTHPMode::never;
+}
+
+bool HugePages::is_shmem_thp_forced() {
+  return os_forces_shmem_thp() && !is_shmem_thp_mode_downgraded_to_never();
 }
 
 void HugePages::print_on(outputStream* os) {

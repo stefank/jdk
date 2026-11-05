@@ -115,6 +115,8 @@ public:
 
   ShmemTHPMode mode() const;
 
+ static bool is_forced(ShmemTHPMode mode);
+
   bool is_forced() const;
   bool is_enabled() const;
   bool is_disabled() const;
@@ -136,6 +138,10 @@ class HugePages : public AllStatic {
   static bool _is_thp_requested_on;
   static bool _is_thp_requested_off;
 
+  // Process support
+  static THPMode _process_thp_mode;
+  static ShmemTHPMode _process_shmem_thp_mode;
+
 public:
 
   static const ExplicitHugePageSupport& explicit_hugepage_info() { return _explicit_hugepage_support; }
@@ -145,14 +151,14 @@ public:
   static size_t default_explicit_hugepage_size() { return _explicit_hugepage_support.default_hugepage_size(); }
   static bool supports_explicit_hugepages()      { return default_explicit_hugepage_size() > 0 && !_explicit_hugepage_support.inconsistent(); }
 
-  static bool supports_thp()                    { return thp_mode() == THPMode::madvise || thp_mode() == THPMode::always; }
-  static THPMode thp_mode()                     { return _thp_support.mode(); }
+  static bool os_enables_thp()                  { return os_thp_mode() == THPMode::madvise || os_thp_mode() == THPMode::always; }
+  static THPMode os_thp_mode()                  { return _thp_support.mode(); }
   static size_t thp_pagesize()                  { return _thp_support.pagesize(); }
   static size_t thp_pagesize_fallback();
 
-  static bool supports_shmem_thp()              { return _shmem_thp_support.is_enabled(); }
-  static ShmemTHPMode shmem_thp_mode()          { return _shmem_thp_support.mode(); }
-  static bool forced_shmem_thp()                { return _shmem_thp_support.is_forced(); }
+  static bool os_enables_shmem_thp()            { return _shmem_thp_support.is_enabled(); }
+  static ShmemTHPMode os_shmem_thp_mode()       { return _shmem_thp_support.mode(); }
+  static bool os_forces_shmem_thp()             { return _shmem_thp_support.is_forced(); }
 
   static void scan_os();
 
@@ -163,6 +169,14 @@ public:
   static void set_thp_requested(bool requested) { (requested ? _is_thp_requested_on : _is_thp_requested_off) = true; }
   static bool is_thp_requested_on()             { return _is_thp_requested_on; }
   static bool is_thp_requested_off()            { return _is_thp_requested_off; }
+
+  static void downgrade_thp_mode_to_never();
+  static bool downgrade_thp_mode_to_madvise();
+
+  static THPMode process_thp_mode()             { return _process_thp_mode; }
+  static ShmemTHPMode process_shmem_thp_mode()  { return _process_shmem_thp_mode; }
+
+  static bool is_shmem_thp_forced();
 
   static void print_on(outputStream* os);
 };

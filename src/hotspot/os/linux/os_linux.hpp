@@ -89,7 +89,7 @@ class os::Linux {
   };
 
   static int active_processor_count();
-  static void kernel_version(long* major, long* minor, long* patch);
+  static bool kernel_version(long* major, long* minor, long* patch);
 
   // If kernel1 > kernel2 return  1
   // If kernel1 < kernel2 return -1
@@ -185,6 +185,8 @@ class os::Linux {
   // fields will contain -1.
   static bool query_accurate_process_memory_info(accurate_meminfo_t* info);
 
+  static bool large_page_init_explicit_huge_pages();
+  static bool large_page_init_transparent_huge_pages();
   static void large_page_init();
 
   static bool should_madvise_anonymous_thps();

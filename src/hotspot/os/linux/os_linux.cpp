@@ -434,7 +434,7 @@ static void next_line(FILE *f) {
   } while (c != '\n' && c != EOF);
 }
 
-void os::Linux::kernel_version(long* major, long* minor, long* patch) {
+bool os::Linux::kernel_version(long* major, long* minor, long* patch) {
   *major = 0;
   *minor = 0;
   *patch = 0;
@@ -443,12 +443,15 @@ void os::Linux::kernel_version(long* major, long* minor, long* patch) {
   int ret = uname(&buffer);
   if (ret != 0) {
     log_warning(os)("uname(2) failed to get kernel version: %s", os::errno_name(ret));
-    return;
+    return false;
   }
   int nr_matched = sscanf(buffer.release, "%ld.%ld.%ld", major, minor, patch);
   if (nr_matched != 3) {
     log_warning(os)("Parsing kernel version failed, expected 3 version numbers, only matched %d", nr_matched);
+    return false;
   }
+
+  return true;
 }
 
 int os::Linux::kernel_version_compare(long major1, long minor1, long patch1,
@@ -3154,7 +3157,7 @@ size_t os::pd_pretouch_memory(void* first, void* last, size_t page_size) {
   // Use madvise to pretouch on Linux when THP is used, and fallback to the
   // common method if unsupported. THP can form right after madvise rather than
   // being assembled later.
-  if (HugePages::thp_mode() == THPMode::always || UseTransparentHugePages) {
+  if (HugePages::process_thp_mode() == THPMode::always || UseTransparentHugePages) {
     int err = 0;
     if (UseMadvPopulateWrite &&
         ::madvise(first, len, MADV_POPULATE_WRITE) == -1) {
@@ -4042,7 +4045,7 @@ static size_t _large_page_size = 0;
 
 static void warn_no_large_pages_configured() {
   if (!FLAG_IS_DEFAULT(UseLargePages)) {
-    log_warning(pagesize)("UseLargePages disabled, no large pages configured and available on the system.");
+    log_warning(pagesize)("No explicit large pages configured and available on the system.");
   }
 }
 
@@ -4065,18 +4068,17 @@ struct LargePageInitializationLoggerMark {
   static bool uses_zgc_shmem_thp() {
     return UseZGC &&
         // If user requested THP
-        ((HugePages::is_thp_requested_on() && HugePages::supports_shmem_thp()) ||
+        ((HugePages::is_thp_requested_on() && HugePages::os_enables_shmem_thp()) ||
         // If OS forced THP
-         HugePages::forced_shmem_thp());
+         HugePages::is_shmem_thp_forced());
   }
 };
 
 static bool validate_thps_configured() {
   assert(UseTransparentHugePages, "Sanity");
-  assert(HugePages::is_thp_requested_on(), "Sanity");
 
   if (UseZGC) {
-    if (!HugePages::supports_shmem_thp()) {
+    if (!HugePages::os_enables_shmem_thp()) {
       log_warning(pagesize)("Shared memory transparent huge pages are not enabled in the OS. "
           "Set /sys/kernel/mm/transparent_hugepage/shmem_enabled to 'advise' to enable them.");
       // UseTransparentHugePages has historically been tightly coupled with
@@ -4086,7 +4088,7 @@ static bool validate_thps_configured() {
     }
   }
 
-  if (!HugePages::supports_thp()) {
+  if (!HugePages::os_enables_thp() && HugePages::is_thp_requested_on()) {
     log_warning(pagesize)("Anonymous transparent huge pages are not enabled in the OS. "
         "Set /sys/kernel/mm/transparent_hugepage/enabled to 'madvise' to enable them.");
     log_warning(pagesize)("UseTransparentHugePages disabled, transparent huge pages are not supported by the operating system.");
@@ -4098,6 +4100,111 @@ static bool validate_thps_configured() {
 
 void os::large_page_init() {
   Linux::large_page_init();
+
+  if (UseLargePages) {
+    set_coredump_filter(LARGEPAGES_BIT);
+  }
+
+  // If THPs are unconditionally enabled (THP mode "always"), khugepaged may attempt to
+  // coalesce small pages in thread stacks to huge pages. That costs a lot of memory and
+  // is usually unwanted for thread stacks. Therefore we attempt to prevent THP formation in
+  // thread stacks unless the user explicitly allowed THP formation by manually disabling
+  // -XX:-THPStackMitigation.
+  if (HugePages::process_thp_mode() == THPMode::always) {
+    if (THPStackMitigation) {
+      log_info(pagesize)("JVM will attempt to prevent THPs in thread stacks.");
+    } else {
+      log_info(pagesize)("JVM will *not* prevent THPs in thread stacks. This may cause high RSS.");
+    }
+  } else {
+    FLAG_SET_ERGO(THPStackMitigation, false); // Mitigation not needed
+  }
+}
+
+bool os::Linux::large_page_init_explicit_huge_pages() {
+  precond(UseLargePages);
+  precond(!UseTransparentHugePages);
+
+  // Check if the OS supports explicit hugepages.
+  if (!HugePages::supports_explicit_hugepages()) {
+    warn_no_large_pages_configured();
+    return false;
+  }
+
+  // In explicit hugepage mode:
+  // - os::large_page_size() is the default explicit hugepage size (/proc/meminfo "Hugepagesize")
+  // - os::pagesizes() contains all hugepage sizes the kernel supports, regardless whether there
+  //   are pages configured in the pool or not (from /sys/kernel/hugepages/hugepage-xxxx ...)
+  os::PageSizes all_large_pages = HugePages::explicit_hugepage_info().os_supported();
+  const size_t default_large_page_size = HugePages::default_explicit_hugepage_size();
+
+  // 3) Consistency check and post-processing
+
+  size_t large_page_size = 0;
+
+  // Check LargePageSizeInBytes matches an available page size and if so set _large_page_size
+  // using LargePageSizeInBytes as the maximum allowed large page size. If LargePageSizeInBytes
+  // doesn't match an available page size set _large_page_size to default_large_page_size
+  // and use it as the maximum.
+  if (FLAG_IS_DEFAULT(LargePageSizeInBytes) ||
+      LargePageSizeInBytes == 0 ||
+      LargePageSizeInBytes == default_large_page_size) {
+    large_page_size = default_large_page_size;
+    log_info(pagesize)("Using the default large page size: " EXACTFMT,
+                      EXACTFMTARGS(large_page_size));
+  } else {
+    if (all_large_pages.contains(LargePageSizeInBytes)) {
+      large_page_size = LargePageSizeInBytes;
+      log_info(pagesize)("Overriding default large page size (" EXACTFMT ") "
+                          "using LargePageSizeInBytes: " EXACTFMT,
+                          EXACTFMTARGS(default_large_page_size),
+                          EXACTFMTARGS(large_page_size));
+    } else {
+      large_page_size = default_large_page_size;
+      log_info(pagesize)("LargePageSizeInBytes is not a valid large page size (" EXACTFMT ") "
+                          "using the default large page size: " EXACTFMT,
+                          EXACTFMTARGS(LargePageSizeInBytes),
+                          EXACTFMTARGS(large_page_size));
+    }
+  }
+
+  // Do an additional sanity check to see if we can use the desired large page size
+  if (!hugetlbfs_sanity_check(large_page_size)) {
+    warn_no_large_pages_configured();
+    return false;
+  }
+
+  _large_page_size = large_page_size;
+
+  // Populate _page_sizes with _large_page_size (default large page size) even if not pre-allocated.
+  // Then, populate _page_sizes with all smaller large page sizes that have been pre-allocated.
+  os::PageSizes pre_allocated = HugePages::explicit_hugepage_info().pre_allocated();
+  for (size_t page_size = _large_page_size; page_size != 0; page_size = pre_allocated.next_smaller(page_size)) {
+    _page_sizes.add(page_size);
+  }
+
+  return true;
+}
+
+bool os::Linux::large_page_init_transparent_huge_pages() {
+  // Check if the process supports THP
+  if (!validate_thps_configured()) {
+    return false;
+  }
+
+  // In THP mode:
+  // - os::large_page_size() is the *THP page size*
+  // - os::pagesizes() has two members, the THP page size and the system page size
+  _large_page_size = HugePages::thp_pagesize();
+  if (_large_page_size == 0) {
+      log_info(pagesize) ("Cannot determine THP page size (kernel < 4.10 ?)");
+      _large_page_size = HugePages::thp_pagesize_fallback();
+      log_info(pagesize) ("Assuming THP page size to be: " EXACTFMT " (heuristics)", EXACTFMTARGS(_large_page_size));
+  }
+  _page_sizes.add(_large_page_size);
+  _page_sizes.add(os::vm_page_size());
+
+  return true;
 }
 
 void os::Linux::large_page_init() {
@@ -4117,127 +4224,58 @@ void os::Linux::large_page_init() {
     HugePages::set_thp_requested(UseTransparentHugePages && !HugePages::is_requested_off());
   }
 
-  // If THPs are unconditionally enabled (THP mode "always"), khugepaged may attempt to
-  // coalesce small pages in thread stacks to huge pages. That costs a lot of memory and
-  // is usually unwanted for thread stacks. Therefore we attempt to prevent THP formation in
-  // thread stacks unless the user explicitly allowed THP formation by manually disabling
-  // -XX:-THPStackMitigation.
-  if (HugePages::thp_mode() == THPMode::always) {
-    if (THPStackMitigation) {
-      log_info(pagesize)("JVM will attempt to prevent THPs in thread stacks.");
-    } else {
-      log_info(pagesize)("JVM will *not* prevent THPs in thread stacks. This may cause high RSS.");
+  // Let the process override the OS config if the user requests huge pages to be turned off
+  if (HugePages::is_thp_requested_off() || HugePages::is_requested_off()) {
+    HugePages::downgrade_thp_mode_to_never();
+  }
+
+  // First see if we should set up explicit huge pages
+  if (UseLargePages && !UseTransparentHugePages) {
+    if (large_page_init_explicit_huge_pages()) {
+      // We managed to set up explicit large pages
+      return;
     }
-  } else {
-    FLAG_SET_ERGO(THPStackMitigation, false); // Mitigation not needed
+
+    // There's still a chance that ergonomics will turn on THP
   }
 
-  // Handle the case where we do not want to use huge pages
-  if (!UseLargePages &&
-      !UseTransparentHugePages) {
-    // Not using large pages.
-    return;
-  }
+  // Handle THP
 
-  if (!FLAG_IS_DEFAULT(UseLargePages) && !UseLargePages) {
-    // The user explicitly turned off large pages.
+  if (HugePages::is_requested_off() && UseTransparentHugePages) {
+    // !UseLargePages override the meaning of UseTransparentHugePages
     UseTransparentHugePages = false;
     return;
   }
 
-  // Check if the OS supports THPs
-  if (UseTransparentHugePages && !validate_thps_configured()) {
-    UseLargePages = UseTransparentHugePages = false;
-    return;
-  }
-
-  // Check if the OS supports explicit hugepages.
-  if (!UseTransparentHugePages && !HugePages::supports_explicit_hugepages()) {
-    warn_no_large_pages_configured();
-    UseLargePages = false;
-    return;
+  // If the OS is configured with THP mode always, we often end up with memory bloating.
+  // If the JVM flags allow, we downgrade the process' settings to madvise and turn on
+  // UseTransparentHugePages.
+  if (!HugePages::is_thp_requested_off() && !HugePages::is_requested_off()) {
+    if (HugePages::downgrade_thp_mode_to_madvise()) {
+      // We managed to downgrade the process' THP mode and need to set
+      // the flag so that we also start to perform our madvise.
+      UseTransparentHugePages = true;
+    }
   }
 
   if (UseTransparentHugePages) {
-    // In THP mode:
-    // - os::large_page_size() is the *THP page size*
-    // - os::pagesizes() has two members, the THP page size and the system page size
-    _large_page_size = HugePages::thp_pagesize();
-    if (_large_page_size == 0) {
-        log_info(pagesize) ("Cannot determine THP page size (kernel < 4.10 ?)");
-        _large_page_size = HugePages::thp_pagesize_fallback();
-        log_info(pagesize) ("Assuming THP page size to be: " EXACTFMT " (heuristics)", EXACTFMTARGS(_large_page_size));
-    }
-    _page_sizes.add(_large_page_size);
-    _page_sizes.add(os::vm_page_size());
-    // +UseTransparentHugePages implies +UseLargePages
-    UseLargePages = true;
-
-  } else {
-
-    // In explicit hugepage mode:
-    // - os::large_page_size() is the default explicit hugepage size (/proc/meminfo "Hugepagesize")
-    // - os::pagesizes() contains all hugepage sizes the kernel supports, regardless whether there
-    //   are pages configured in the pool or not (from /sys/kernel/hugepages/hugepage-xxxx ...)
-    os::PageSizes all_large_pages = HugePages::explicit_hugepage_info().os_supported();
-    const size_t default_large_page_size = HugePages::default_explicit_hugepage_size();
-
-    // 3) Consistency check and post-processing
-
-    size_t large_page_size = 0;
-
-    // Check LargePageSizeInBytes matches an available page size and if so set _large_page_size
-    // using LargePageSizeInBytes as the maximum allowed large page size. If LargePageSizeInBytes
-    // doesn't match an available page size set _large_page_size to default_large_page_size
-    // and use it as the maximum.
-   if (FLAG_IS_DEFAULT(LargePageSizeInBytes) ||
-       LargePageSizeInBytes == 0 ||
-       LargePageSizeInBytes == default_large_page_size) {
-     large_page_size = default_large_page_size;
-     log_info(pagesize)("Using the default large page size: " EXACTFMT,
-                        EXACTFMTARGS(large_page_size));
-    } else {
-      if (all_large_pages.contains(LargePageSizeInBytes)) {
-        large_page_size = LargePageSizeInBytes;
-        log_info(pagesize)("Overriding default large page size (" EXACTFMT ") "
-                           "using LargePageSizeInBytes: " EXACTFMT,
-                           EXACTFMTARGS(default_large_page_size),
-                           EXACTFMTARGS(large_page_size));
-      } else {
-        large_page_size = default_large_page_size;
-        log_info(pagesize)("LargePageSizeInBytes is not a valid large page size (" EXACTFMT ") "
-                           "using the default large page size: " EXACTFMT,
-                           EXACTFMTARGS(LargePageSizeInBytes),
-                           EXACTFMTARGS(large_page_size));
-      }
-    }
-
-    // Do an additional sanity check to see if we can use the desired large page size
-    if (!hugetlbfs_sanity_check(large_page_size)) {
-      warn_no_large_pages_configured();
-      UseLargePages = false;
+    if (large_page_init_transparent_huge_pages()) {
+      // Succeeded - +UseTransparentHugePages implies +UseLargePages
+      UseLargePages = true;
       return;
-    }
-
-    _large_page_size = large_page_size;
-
-    // Populate _page_sizes with _large_page_size (default large page size) even if not pre-allocated.
-    // Then, populate _page_sizes with all smaller large page sizes that have been pre-allocated.
-    os::PageSizes pre_allocated = HugePages::explicit_hugepage_info().pre_allocated();
-    for (size_t page_size = _large_page_size; page_size != 0; page_size = pre_allocated.next_smaller(page_size)) {
-      _page_sizes.add(page_size);
     }
   }
 
-  set_coredump_filter(LARGEPAGES_BIT);
+  // Couldn't initialize huge pages
+  UseLargePages = UseTransparentHugePages = false;
 }
 
 bool os::Linux::should_madvise_anonymous_thps() {
-  return HugePages::is_thp_requested_on() && HugePages::thp_mode() == THPMode::madvise;
+  return UseTransparentHugePages && HugePages::process_thp_mode() == THPMode::madvise;
 }
 
 bool os::Linux::should_madvise_shmem_thps() {
-  return HugePages::is_thp_requested_on() && HugePages::shmem_thp_mode() == ShmemTHPMode::advise;
+  return !HugePages::is_thp_requested_off() && HugePages::process_shmem_thp_mode() == ShmemTHPMode::advise;
 }
 
 static void log_on_commit_special_failure(char* req_addr, size_t bytes,

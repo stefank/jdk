@@ -69,7 +69,7 @@ public class TestHugePageDecisionsAtVMStartup {
 
     // End user warnings, printing with Xlog:pagesize at warning level, should be unconditional
     static final String warningNoTHP = "\\[warning\\]\\[pagesize *\\] UseTransparentHugePages disabled, transparent huge pages are not supported by the operating system\\.";
-    static final String warningNoLP = "\\[warning\\]\\[pagesize *\\] UseLargePages disabled, no large pages configured and available on the system\\.";
+    static final String warningNoLP = "\\[warning\\]\\[pagesize *\\] No explicit large pages configured and available on the system\\.";
 
     static final String buildSizeString(long l) {
         String units[] = { "K", "M", "G" };
@@ -119,7 +119,11 @@ public class TestHugePageDecisionsAtVMStartup {
         }
 
         if (!useLP) {
-            out.shouldMatch("\\[info *\\]\\[pagesize *\\] Large page support disabled");
+            if (configuration.getThpMode() == HugePageConfiguration.THPMode.always) {
+                // Ergonomics could have turned it on
+            } else {
+                out.shouldMatch("\\[info *\\]\\[pagesize *\\] Large page support disabled");
+            }
         } else if (useLP && !useTHP &&
                  (!configuration.supportsExplicitHugePages() || !haveUsableExplicitHugePages)) {
             out.shouldMatch(warningNoLP);

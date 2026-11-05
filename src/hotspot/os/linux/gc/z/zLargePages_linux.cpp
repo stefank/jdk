@@ -98,9 +98,7 @@ void ZLargePages::pd_initialize() {
     return;
   }
 
-  assert(!UseTransparentHugePages, "Currently only set by user-request");
-
-  if (UseLargePages) {
+  if (UseLargePages && !UseTransparentHugePages) {
     if (!ZAdaptiveHeapSizing || ZAdaptiveHeap::explicit_max_capacity()) {
       _state = Explicit;
       return;
@@ -115,7 +113,7 @@ void ZLargePages::pd_initialize() {
     return;
   }
 
-  // Check if the OS config turned on transparent huge pages for shmem.
-  _os_enforced_transparent_mode = HugePages::shmem_thp_info().is_forced();
+  // Check if the THP mode is forced by the OS
+  _os_enforced_transparent_mode = HugePages::is_shmem_thp_forced();
   _state = _os_enforced_transparent_mode ? Transparent : Disabled;
 }
