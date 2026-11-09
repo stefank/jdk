@@ -459,6 +459,10 @@ void HugePages::downgrade_thp_mode_to_never() {
 }
 
 bool HugePages::downgrade_thp_mode_to_madvise() {
+  if (_process_thp_mode != THPMode::always) {
+    return false;
+  }
+
   if (!try_prctl_thp_disable_except_advised()) {
     return false;
   }
