@@ -4580,6 +4580,7 @@ void AOTCodeAddressTable::init_extrs() {
     GrowableArray<address> external_addresses;
     // publish static addresses referred to by C1 runtime
     Runtime1::init_AOTAddressTable(external_addresses);
+
     add_external_addresses(external_addresses);
   }
 #endif // COMPILER1

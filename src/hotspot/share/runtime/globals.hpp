@@ -1676,7 +1676,7 @@ const int ObjectAlignmentInBytes = 8;
   product(bool, UseCriticalCompilerThreadPriority, false, EXPERIMENTAL,     \
           "Compiler thread(s) run at critical scheduling priority")         \
                                                                             \
-  develop(intx, NewCodeParameter,      0,                                   \
+  product(intx, NewCodeParameter, 0, DIAGNOSTIC,                            \
           "Testing Only: Create a dedicated integer parameter before "      \
           "putback")                                                        \
                                                                             \

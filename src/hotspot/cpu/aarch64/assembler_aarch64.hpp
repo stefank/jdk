@@ -1242,6 +1242,9 @@ public:
 
   void load_store_exclusive(Register Rs, Register Rt1, Register Rt2,
     Register Rn, enum operand_size sz, int op, bool ordered) {
+    assert_different_registers(Rs, Rt1);
+    assert_different_registers(Rs, Rt2);
+    guarantee(Rs != Rt1 && Rs != Rt2, "unpredictable instruction");
     starti;
     f(sz, 31, 30), f(0b001000, 29, 24), f(op, 23, 21);
     rf(Rs, 16), f(ordered, 15), zrf(Rt2, 10), srf(Rn, 5), zrf(Rt1, 0);
@@ -1268,12 +1271,17 @@ public:
 
 #define INSN4(NAME, sz, op, o0) /* Four registers */                    \
   void NAME(Register Rs, Register Rt1, Register Rt2, Register Rn) {     \
+    assert_different_registers(Rs, Rn);                                 \
+    assert_different_registers(Rs, Rt1);                                \
+    assert_different_registers(Rs, Rt2);                                \
     guarantee(Rs != Rn && Rs != Rt1 && Rs != Rt2, "unpredictable instruction"); \
     load_store_exclusive(Rs, Rt1, Rt2, Rn, sz, op, o0);                 \
   }
 
 #define INSN3(NAME, sz, op, o0) /* Three registers */                   \
   void NAME(Register Rs, Register Rt, Register Rn) {                    \
+    assert_different_registers(Rs, Rn);                                 \
+    assert_different_registers(Rs, Rt);                                 \
     guarantee(Rs != Rn && Rs != Rt, "unpredictable instruction");       \
     load_store_exclusive(Rs, Rt, dummy_reg, Rn, sz, op, o0); \
   }
@@ -1286,6 +1294,7 @@ public:
 
 #define INSN_FOO(NAME, sz, op, o0) /* Three registers, encoded differently */ \
   void NAME(Register Rt1, Register Rt2, Register Rn) {                  \
+    assert_different_registers(Rt1, Rt2);                               \
     guarantee(Rt1 != Rt2, "unpredictable instruction");                 \
     load_store_exclusive(dummy_reg, Rt1, Rt2, Rn, sz, op, o0);          \
   }
@@ -1353,6 +1362,8 @@ public:
   // CAS
 #define INSN(NAME, a, r)                                                \
   void NAME(operand_size sz, Register Rs, Register Rt, Register Rn) {   \
+    assert_different_registers(Rs, Rn);                                 \
+    assert_different_registers(Rs, Rt);                                 \
     assert(Rs != Rn && Rs != Rt, "unpredictable instruction");          \
     lse_cas(Rs, Rt, Rn, sz, a, r, true);                                \
   }
@@ -1366,6 +1377,9 @@ public:
 #define INSN(NAME, a, r)                                                \
   void NAME(operand_size sz, Register Rs, Register Rs1,                 \
             Register Rt, Register Rt1, Register Rn) {                   \
+    assert_different_registers(Rs, Rn);                                 \
+    assert_different_registers(Rs1, Rn);                                \
+    assert_different_registers(Rs, Rt);                                 \
     assert((Rs->encoding() & 1) == 0 && (Rt->encoding() & 1) == 0 &&    \
            Rs->successor() == Rs1 && Rt->successor() == Rt1 &&          \
            Rs != Rn && Rs1 != Rn && Rs != Rt, "invalid registers");     \
