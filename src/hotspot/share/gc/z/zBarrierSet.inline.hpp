@@ -33,8 +33,10 @@
 #include "gc/z/zNMethod.hpp"
 #include "gc/z/zUtils.inline.hpp"
 #include "oops/accessBackend.hpp"
+#include "oops/accessDecorators.hpp"
 #include "oops/objArrayOop.hpp"
 #include "oops/valueKlass.inline.hpp"
+#include "oops/valuePayload.hpp"
 #include "utilities/copy.hpp"
 #include "utilities/debug.hpp"
 #include "utilities/globalDefinitions.hpp"
@@ -554,6 +556,57 @@ inline void ZBarrierSet::AccessBarrier<decorators, BarrierSetT>::value_store_nul
                                   payload_size,
                                   primitive_function,
                                   oop_function);
+}
+
+
+template <DecoratorSet decorators, typename BarrierSetT>
+inline void ZBarrierSet::AccessBarrier<decorators, BarrierSetT>::value_atomic_cmpxchg_in_heap(ValuePayload& dst, const ValuePayload& compare_value, const ValuePayload& new_value, ValuePayload& witness) {
+  precond(dst.klass()->contains_oops());
+  precond(dst.size_in_bytes() == sizeof(zpointer));
+
+  // TODO: Hack decorators for now
+  typedef ZBarrierSet::AccessBarrier<decorators | ON_STRONG_OOP_REF, BarrierSetT> OopBarrier;
+  typedef ZBarrierSet::AccessBarrier<decorators | ON_STRONG_OOP_REF | MO_SEQ_CST, BarrierSetT> OopSeqCstBarrier;
+
+  store_barrier_heap_with_healing((zpointer*)dst.addr());
+
+  oop new_value_oop = OopBarrier::oop_load_in_heap((zpointer*)new_value.addr());
+
+  const zpointer new_value_zpointer = store_good(new_value_oop);
+
+  for (;;) {
+    // Copy to witness
+    oop w = OopSeqCstBarrier::oop_load_in_heap((zpointer*)dst.addr());
+    OopBarrier::oop_store_in_heap((zpointer*)witness.addr(), w);
+
+    if (!witness.equals(compare_value)) {
+      // Cas will not succeed
+      // This is the reason why the MO_SEQ_CST is used for the witness load
+      return;
+    }
+
+    const zpointer witness_value = *(zpointer*)witness.addr();
+
+    if (AtomicAccess::cmpxchg<zpointer>((zpointer*)dst.addr(), witness_value, new_value_zpointer) == witness_value) {
+      // Succeeded
+      return;
+    }
+  }
+}
+
+template <DecoratorSet decorators, typename BarrierSetT>
+inline void ZBarrierSet::AccessBarrier<decorators, BarrierSetT>::value_atomic_xchg_in_heap(ValuePayload& dst, const ValuePayload& new_value, ValuePayload& witness) {
+  precond(dst.klass()->contains_oops());
+  precond(dst.size_in_bytes() == sizeof(zpointer));
+
+  // Hack decorators for now
+  typedef ZBarrierSet::AccessBarrier<decorators | ON_STRONG_OOP_REF, BarrierSetT> OopBarrier;
+
+  oop new_value_oop = OopBarrier::oop_load_in_heap((zpointer*)new_value.addr());
+
+  oop prev = OopBarrier::oop_atomic_xchg_in_heap((zpointer*)dst.addr(), new_value_oop);
+
+  OopBarrier::oop_store_in_heap((zpointer*)witness.addr(), prev);
 }
 
 //

@@ -48,6 +48,7 @@
 #include "oops/typeArrayOop.inline.hpp"
 #include "oops/valueKlass.inline.hpp"
 #include "oops/valuePayload.hpp"
+#include "oops/valuePayload.inline.hpp"
 #include "prims/jvmtiExport.hpp"
 #include "prims/unsafe.hpp"
 #include "runtime/fieldDescriptor.inline.hpp"
@@ -68,6 +69,7 @@
 #include "utilities/align.hpp"
 #include "utilities/copy.hpp"
 #include "utilities/dtrace.hpp"
+#include "utilities/exceptions.hpp"
 #include "utilities/macros.hpp"
 
 /**
@@ -415,6 +417,78 @@ UNSAFE_ENTRY(void, Unsafe_PutFlatValue(JNIEnv *env, jobject unsafe, jobject obj,
   FlatLayout fl = ofl.get();
   FlatValuePayload payload = FlatValuePayload::construct_from_parts(base, offset, vk, fl);
   payload.write(valueOop(JNIHandles::resolve(value)), CHECK);
+} UNSAFE_END
+
+static jobject cas_flat(jobject obj, jlong offset, jint layout, jclass vc, jobject expected, jobject x, TRAPS) {
+  OptionalFlatLayout ofl = FlatLayoutEncoding::decode(layout);
+  assert(ofl.is_flat(), "This method handles only flat layouts");
+
+  Handle base(THREAD, JNIHandles::resolve(obj));
+  if (base == nullptr) {
+    THROW_NULL(vmSymbols::java_lang_NullPointerException());
+  }
+
+  ValueKlass* vk = ValueKlass::cast(java_lang_Class::as_Klass(JNIHandles::resolve_non_null(vc)));
+  log_unsafe_value_access(base(), offset, vk);
+  FlatLayout fl = ofl.get();
+
+  // TODO: null support isn't implemented yet
+  assert(!fl.is_nullable(), "Unimplemented");
+
+  valueOop witness_oop = vk->allocate_instance(CHECK_NULL);
+
+  oop expected_oop = JNIHandles::resolve(expected);
+  oop x_oop = JNIHandles::resolve(x);
+
+  // TODO: Can't handle this right now
+  assert(expected_oop != nullptr, "Unimplemented");
+  assert(x_oop != nullptr, "Unimplemented");
+
+  auto make_buffered = [&](valueOop value) {
+    BufferedValuePayload buffered(value);
+    if (vk->supports_nullable_layouts()) {
+      vk->mark_payload_as_non_null(buffered.addr());
+    }
+    return buffered;
+  };
+
+  BufferedValuePayload witness_payload = make_buffered(witness_oop);
+
+  // TODO: Fixing null-markers in an externally controlled Value could be racy.
+  //       We might want to ensure this on another level.
+  BufferedValuePayload expected_payload = make_buffered(oop_cast<valueOop>(expected_oop));
+  BufferedValuePayload x_payload = make_buffered(oop_cast<valueOop>(x_oop));
+
+  FlatValuePayload payload = FlatValuePayload::construct_from_parts(base(), offset, vk, fl);
+
+  HeapAccess<>::value_atomic_cmpxchg(payload,
+                                     expected_payload,
+                                     x_payload,
+                                     witness_payload);
+
+  // TODO: null not handled yet
+  assert(!vk->supports_nullable_layouts() || !vk->is_payload_marked_as_null(witness_payload.addr()), "Unimplemented");
+
+  return JNIHandles::make_local(THREAD, witness_payload.container());
+}
+
+UNSAFE_ENTRY(bool, Unsafe_CompareAndSetFlatValue(JNIEnv *env, jobject unsafe, jobject obj, jlong offset, jint layout, jclass vc, jobject expected, jobject x)) {
+  jobject result = cas_flat(obj, offset, layout, vc, expected, x, CHECK_false);
+
+  oop result_oop = JNIHandles::resolve(result);
+  oop expected_oop = JNIHandles::resolve(expected);
+
+  assert(result_oop != nullptr, "Unimplemented");
+  assert(expected_oop != nullptr, "Unimplemented");
+
+  BufferedValuePayload result_payload(oop_cast<valueOop>(result_oop));
+  BufferedValuePayload expected_payload(oop_cast<valueOop>(expected_oop));
+
+  return result_payload.equals(expected_payload);
+} UNSAFE_END
+
+UNSAFE_ENTRY(jobject, Unsafe_CompareAndExchangeFlatValue(JNIEnv *env, jobject unsafe, jobject obj, jlong offset, jint layout, jclass vc, jobject expected, jobject x)) {
+  return cas_flat(obj, offset, layout, vc, expected, x, THREAD);
 } UNSAFE_END
 
 UNSAFE_ENTRY(jobject, Unsafe_GetReferenceVolatile(JNIEnv *env, jobject unsafe, jobject obj, jlong offset)) {
@@ -1112,6 +1186,8 @@ static JNINativeMethod jdk_internal_misc_Unsafe_methods[] = {
     {CC "newSpecialArray",      CC "(" CLS "II)[" OBJ,    FN_PTR(Unsafe_NewSpecialArray)},
     {CC "getFlatValue",         CC "(" OBJ "JI" CLS ")" OBJ, FN_PTR(Unsafe_GetFlatValue)},
     {CC "putFlatValue",         CC "(" OBJ "JI" CLS OBJ ")V", FN_PTR(Unsafe_PutFlatValue)},
+    {CC "compareAndSetFlatValue0",      CC "(" OBJ "JI" CLS OBJ OBJ")Z", FN_PTR(Unsafe_CompareAndSetFlatValue)},
+    {CC "compareAndExchangeFlatValue0", CC "(" OBJ "JI" CLS OBJ OBJ")" OBJ, FN_PTR(Unsafe_CompareAndExchangeFlatValue)},
     {CC "valueHeaderSize",       CC "(" CLS ")J",         FN_PTR(Unsafe_ValueHeaderSize)},
     {CC "getUncompressedObject", CC "(" ADR ")" OBJ,  FN_PTR(Unsafe_GetUncompressedObject)},
 

@@ -22,13 +22,17 @@
  *
  */
 
+#include "oops/accessBackend.hpp"
 #include "accessBackend.inline.hpp"
 #include "gc/shared/collectedHeap.hpp"
+#include "oops/accessDecorators.hpp"
 #include "oops/oop.inline.hpp"
+#include "oops/valuePayload.hpp"
 #include "runtime/javaThread.inline.hpp"
 #include "runtime/mutexLocker.hpp"
 #include "utilities/copy.hpp"
 #include "utilities/debug.hpp"
+#include "utilities/powerOfTwo.hpp"
 #include "utilities/vmError.hpp"
 
 #if defined(TARGET_COMPILER_gcc)
@@ -169,6 +173,95 @@ namespace AccessInternal {
 
   void value_store_null(void* dst, size_t length) {
     Copy::clear_value_content(dst, length);
+  }
+
+  template <typename T>
+  bool compare_exchange(void* addr, void* witness_addr, void* new_value_addr) {
+    T witness_value = *(T*)witness_addr;
+    T new_value = *(T*)new_value_addr;
+    T ret = AtomicAccess::cmpxchg<T>((T*)addr, witness_value, new_value);
+    return ret == witness_value;
+  }
+
+  bool compare_exchange(void* addr, void* witness_addr, void* new_value_addr, size_t size) {
+    switch (size) {
+      case 8: return compare_exchange<uint64_t>(addr, witness_addr, new_value_addr);
+      case 4: return compare_exchange<uint32_t>(addr, witness_addr, new_value_addr);
+      case 2: return compare_exchange<uint16_t>(addr, witness_addr, new_value_addr);
+      case 1: return compare_exchange<uint8_t> (addr, witness_addr, new_value_addr);
+      default: ShouldNotReachHere(); return false;
+    }
+  }
+
+  template <typename T>
+  void copy_raw(void* from, void* to) {
+    *(T*)to = *(T*)from;
+  }
+
+  void copy_raw(void* from, void* to, size_t size) {
+    switch (size) {
+      case 8: copy_raw<uint64_t>(from, to); break;
+      case 4: copy_raw<uint32_t>(from, to); break;
+      case 2: copy_raw<uint16_t>(from, to); break;
+      case 1: copy_raw<uint8_t> (from, to); break;
+      default: ShouldNotReachHere(); break;
+    }
+  }
+
+  template <typename T>
+  void copy_seq_cst(void* from, void* to) {
+    T value = RawAccess<MO_SEQ_CST>::load((volatile T*)from);
+    *(T*)to = value;
+  }
+
+  void copy_seq_cst(void* from, void* to, size_t size) {
+    switch (size) {
+      case 8: copy_seq_cst<uint64_t>(from, to); break;
+      case 4: copy_seq_cst<uint32_t>(from, to); break;
+      case 2: copy_seq_cst<uint16_t>(from, to); break;
+      case 1: copy_seq_cst<uint8_t> (from, to); break;
+      default: ShouldNotReachHere(); break;
+    }
+  }
+
+  void value_atomic_cmpxchg(ValuePayload& dst, const ValuePayload& compare_value, const ValuePayload& new_value, ValuePayload& witness) {
+    const size_t size = ValuePayload::copy_size_in_bytes(dst, witness);
+
+    assert(size <= 8 && is_power_of_2(size), "Unexpected size: %zu", size);
+
+    union {
+      uint64_t _v64;
+      uint32_t _v32;
+      uint16_t _v16;
+      uint8_t _v8;
+    } raw_bits;
+
+    do {
+      // Copy to raw_bits
+      copy_seq_cst(dst.addr(), &raw_bits, size);
+
+      // Set up the witness
+      copy_raw(&raw_bits, witness.addr(), size);
+
+      // Copy can have written padding over the buffered value, restore null-marker.
+      if (dst.klass()->supports_nullable_layouts()) {
+        dst.klass()->mark_payload_as_non_null(witness.addr());
+      }
+
+      if (!witness.equals(compare_value)) {
+        // Cas will not succeed - witness filled with previous value
+        return;
+      }
+
+      if (compare_exchange(dst.addr(), &raw_bits, new_value.addr(), size)) {
+        // Succeeded - witness filled with previous value
+        return;
+      }
+    } while (true);
+  }
+
+  void value_atomic_xchg(ValuePayload& dst, const ValuePayload& new_value, ValuePayload& witness) {
+    Unimplemented();
   }
 
 #ifdef ASSERT

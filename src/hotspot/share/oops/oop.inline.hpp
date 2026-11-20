@@ -226,6 +226,7 @@ bool oopDesc::is() const {
 }
 
 template<> inline bool oopDesc::is<instanceOop>()  const { return is_instance();  }
+template<> inline bool oopDesc::is<valueOop>()     const { return is_value();     }
 template<> inline bool oopDesc::is<arrayOop>()     const { return is_array();     }
 template<> inline bool oopDesc::is<objArrayOop>()  const { return is_objArray();  }
 template<> inline bool oopDesc::is<refArrayOop>()  const { return is_refArray();  }

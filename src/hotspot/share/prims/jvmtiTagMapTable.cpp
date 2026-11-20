@@ -78,7 +78,7 @@ static bool is_null_flat_field(oop obj, int offset, ValueKlass* klass) {
 // For heap-allocated objects offset is 0 and 'klass' is obj1->klass() (== obj2->klass()).
 // For flattened objects offset is the offset in the holder object, 'klass' is value object class.
 // The object must be prechecked for non-null values.
-static bool equal_value_objects(oop obj1, int offset1, oop obj2, int offset2, ValueKlass* klass) {
+bool equal_value_objects(oop obj1, int offset1, oop obj2, int offset2, ValueKlass* klass) {
   for (HierarchicalFieldStream<JavaFieldStream> fld(klass); !fld.done(); fld.next()) {
     // ignore static fields
     if (fld.access_flags().is_static()) {

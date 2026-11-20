@@ -126,7 +126,6 @@ public:
     template <typename T>
     static inline void oop_arraycopy_partial_barrier(BarrierSetT *bs, T* dst_raw, T* p);
   public:
-
     static void clone_in_heap(oop src, oop dst, size_t size);
 
     static void oop_store_in_heap_at(oop base, ptrdiff_t offset, oop value) {
@@ -141,8 +140,13 @@ public:
       return oop_atomic_cmpxchg_in_heap(AccessInternal::oop_field_addr<decorators>(base, offset), compare_value, new_value);
     }
 
+    static void value_pre_barrier(const ValuePayload& value_payload);
+    static void value_post_barrier(const ValuePayload& value_payload);
+
     static void value_copy_in_heap(const ValuePayload& src, const ValuePayload& dst);
     static void value_store_null_in_heap(const ValuePayload& dst);
+    static void value_atomic_cmpxchg_in_heap(ValuePayload& dst, const ValuePayload& compare_value, const ValuePayload& new_value, ValuePayload& witness);
+    static void value_atomic_xchg_in_heap(ValuePayload& dst, const ValuePayload& new_value, ValuePayload& witness);
   };
 };
 

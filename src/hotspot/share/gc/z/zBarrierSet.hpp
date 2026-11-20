@@ -156,6 +156,8 @@ public:
 
     static void value_copy_in_heap(const ValuePayload& src, const ValuePayload& dst);
     static void value_store_null_in_heap(const ValuePayload& dst);
+    static void value_atomic_cmpxchg_in_heap(ValuePayload& dst, const ValuePayload& compare_value, const ValuePayload& new_value, ValuePayload& witness);
+    static void value_atomic_xchg_in_heap(ValuePayload& addr, const ValuePayload& new_value, ValuePayload& witness);
 
     //
     // Not in heap

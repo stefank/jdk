@@ -29,6 +29,7 @@
 
 #include "gc/shared/barrierSet.hpp"
 #include "gc/shared/cardTable.hpp"
+#include "oops/accessDecorators.hpp"
 #include "oops/compressedOops.inline.hpp"
 #include "oops/layoutKind.hpp"
 #include "oops/objArrayOop.hpp"
@@ -170,42 +171,24 @@ clone_in_heap(oop src, oop dst, size_t size) {
 
 template <DecoratorSet decorators, typename BarrierSetT>
 inline void CardTableBarrierSet::AccessBarrier<decorators, BarrierSetT>::
-value_copy_in_heap(const ValuePayload& src, const ValuePayload& dst) {
-  precond(src.klass() == dst.klass());
+value_pre_barrier(const ValuePayload& value_payload) {
+  ValueKlass* vk = value_payload.klass();
 
-  const ValueKlass* md = src.klass();
-  if (!md->contains_oops()) {
-    // If we do not have oops in the flat array, we can just do a raw copy.
-    Raw::value_copy(src, dst);
-  } else {
-    BarrierSetT* bs = barrier_set_cast<BarrierSetT>(BarrierSet::barrier_set());
-    // addr() points at the payload start, the oop map offset are relative to
-    // the object header, adjust address to account for this discrepancy.
-    const address oop_map_adjusted_dst_addr = dst.addr() - md->payload_offset();
-    typedef typename ValueOopType<decorators>::type OopType;
+  BarrierSetT* bs = barrier_set_cast<BarrierSetT>(BarrierSet::barrier_set());
+  // addr() points at the payload start, the oop map offset are relative to
+  // the object header, adjust address to account for this discrepancy.
+  const address oop_map_adjusted_dst_addr = value_payload.addr() - vk->payload_offset();
+  typedef typename ValueOopType<decorators>::type OopType;
 
-    // Pre-barriers...
-    if (!HasDecorator<decorators, IS_DEST_UNINITIALIZED>::value) {
-      OopMapBlock* map = md->start_of_nonstatic_oop_maps();
-      OopMapBlock* const end = map + md->nonstatic_oop_map_count();
+  // Pre-barriers...
+  if (!HasDecorator<decorators, IS_DEST_UNINITIALIZED>::value) {
+    OopMapBlock* map = vk->start_of_nonstatic_oop_maps();
+    OopMapBlock* const end = map + vk->nonstatic_oop_map_count();
 
-      while (map != end) {
-        address doop_address = oop_map_adjusted_dst_addr + map->offset();
-
-        bs->write_ref_array_pre((OopType*) doop_address, map->count());
-        map++;
-      }
-    }
-
-    Raw::value_copy(src, dst);
-
-    // Post-barriers...
-    OopMapBlock* map = md->start_of_nonstatic_oop_maps();
-    OopMapBlock* const end = map + md->nonstatic_oop_map_count();
     while (map != end) {
       address doop_address = oop_map_adjusted_dst_addr + map->offset();
-      // The post-barrier needs to be called for initialized and uninitialized destinations.
-      bs->write_ref_array((HeapWord*) doop_address, map->count());
+
+      bs->write_ref_array_pre((OopType*) doop_address, map->count());
       map++;
     }
   }
@@ -213,33 +196,117 @@ value_copy_in_heap(const ValuePayload& src, const ValuePayload& dst) {
 
 template <DecoratorSet decorators, typename BarrierSetT>
 inline void CardTableBarrierSet::AccessBarrier<decorators, BarrierSetT>::
-value_store_null_in_heap(const ValuePayload& dst) {
-  const ValueKlass* md = dst.klass();
-  if (!md->contains_oops()) {
-    // If we do not have oops in the flat array, we can just do a raw clear.
-    Raw::value_store_null(dst);
-  } else {
-    BarrierSetT* bs = barrier_set_cast<BarrierSetT>(BarrierSet::barrier_set());
-    // addr() points at the payload start, the oop map offset are relative to
-    // the object header, adjust address to account for this discrepancy.
-    const address oop_map_adjusted_dst_addr = dst.addr() - md->payload_offset();
-    typedef typename ValueOopType<decorators>::type OopType;
+value_post_barrier(const ValuePayload& value_payload) {
+  ValueKlass* vk = value_payload.klass();
 
-    // Pre-barriers...
-    if (!HasDecorator<decorators, IS_DEST_UNINITIALIZED>::value) {
-      OopMapBlock* map = md->start_of_nonstatic_oop_maps();
-      OopMapBlock* const end = map + md->nonstatic_oop_map_count();
-      while (map != end) {
-        address doop_address = oop_map_adjusted_dst_addr + map->offset();
-        bs->write_ref_array_pre((OopType*) doop_address, map->count());
-        map++;
-      }
-    }
+  BarrierSetT* bs = barrier_set_cast<BarrierSetT>(BarrierSet::barrier_set());
+  // addr() points at the payload start, the oop map offset are relative to
+  // the object header, adjust address to account for this discrepancy.
+  const address oop_map_adjusted_dst_addr = value_payload.addr() - vk->payload_offset();
 
-    Raw::value_store_null(dst);
-
-    // Storing null does not require post-barriers
+  // Post-barriers...
+  OopMapBlock* map = vk->start_of_nonstatic_oop_maps();
+  OopMapBlock* const end = map + vk->nonstatic_oop_map_count();
+  while (map != end) {
+    address doop_address = oop_map_adjusted_dst_addr + map->offset();
+    // The post-barrier needs to be called for initialized and uninitialized destinations.
+    bs->write_ref_array((HeapWord*) doop_address, map->count());
+    map++;
   }
+}
+
+template <DecoratorSet decorators, typename BarrierSetT>
+inline void CardTableBarrierSet::AccessBarrier<decorators, BarrierSetT>::
+value_copy_in_heap(const ValuePayload& src, const ValuePayload& dst) {
+  precond(src.klass() == dst.klass());
+
+  const ValueKlass* vk = src.klass();
+
+  if (!vk->contains_oops()) {
+    // If we do not have oops in the payload, we can just do a raw copy.
+    Raw::value_copy(src, dst);
+    return;
+  }
+
+  // Pre-barriers...
+  value_pre_barrier(dst);
+
+  Raw::value_copy(src, dst);
+
+  // Post-barriers...
+  value_post_barrier(dst);
+}
+
+template <DecoratorSet decorators, typename BarrierSetT>
+inline void CardTableBarrierSet::AccessBarrier<decorators, BarrierSetT>::
+value_store_null_in_heap(const ValuePayload& dst) {
+  const ValueKlass* vk = dst.klass();
+  if (!vk->contains_oops()) {
+    // If we do not have oops in the payload, we can just do a raw clear.
+    Raw::value_store_null(dst);
+    return;
+  }
+
+  // Pre-barriers...
+  value_pre_barrier(dst);
+
+  Raw::value_store_null(dst);
+
+  // Storing null does not require post-barriers
+}
+
+template <DecoratorSet decorators, typename BarrierSetT>
+inline void CardTableBarrierSet::AccessBarrier<decorators, BarrierSetT>::
+value_atomic_cmpxchg_in_heap(ValuePayload& dst, const ValuePayload& compare_value, const ValuePayload& new_value, ValuePayload& witness) {
+  const ValueKlass* vk = dst.klass();
+
+  if (!vk->contains_oops()) {
+    assert(false, "Shouldn't really be calling this");
+    // If we do not have oops in the payload, we can just do a raw cmpxchg.
+    Raw::value_atomic_cmpxchg_in_heap(dst, compare_value, new_value, witness);
+    return;
+  }
+
+  // Witness pre-barriers...
+  AccessBarrier<decorators & ~IS_DEST_UNINITIALIZED, BarrierSetT>::value_pre_barrier(witness);
+
+  // Pre-barriers...
+  value_pre_barrier(dst);
+
+  Raw::value_atomic_cmpxchg_in_heap(dst, compare_value, new_value, witness);
+
+  // Post-barriers...
+  value_post_barrier(dst);
+
+  // Witness post-barriers...
+  value_post_barrier(witness);
+}
+
+template <DecoratorSet decorators, typename BarrierSetT>
+inline void CardTableBarrierSet::AccessBarrier<decorators, BarrierSetT>::
+value_atomic_xchg_in_heap(ValuePayload& dst, const ValuePayload& new_value, ValuePayload& witness) {
+  const ValueKlass* md = dst.klass();
+
+  if (!md->contains_oops()) {
+    assert(false, "Shouldn't really be calling this");
+    // If we do not have oops in the flat array, we can just do a raw xchg.
+    Raw::value_atomic_xchg_in_heap(dst, new_value, witness);
+    return;
+  }
+
+  // Witness pre-barriers...
+  AccessBarrier<decorators & ~IS_DEST_UNINITIALIZED, BarrierSetT>::value_pre_barrier(witness);
+
+  // Pre-barriers...
+  value_pre_barrier(dst);
+
+  Raw::value_atomic_xchg_in_heap(dst, new_value, witness);
+
+  // Post-barriers...
+  value_post_barrier(dst);
+
+  // Witness post-barriers...
+  value_post_barrier(witness);
 }
 
 #endif // SHARE_GC_SHARED_CARDTABLEBARRIERSET_INLINE_HPP

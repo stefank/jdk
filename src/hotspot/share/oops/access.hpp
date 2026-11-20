@@ -232,6 +232,16 @@ public:
     AccessInternal::value_store_null<decorators>(dst);
   }
 
+  static inline void value_atomic_cmpxchg(ValuePayload& dst, const ValuePayload& compare_value, const ValuePayload& new_value, ValuePayload& witness) {
+    verify_heap_value_decorators<IN_HEAP>();
+    AccessInternal::value_atomic_cmpxchg<decorators>(dst, compare_value, new_value, witness);
+  }
+
+  static inline void value_atomic_xchg(ValuePayload& dst, const ValuePayload& new_value, ValuePayload& witness) {
+    verify_heap_value_decorators<IN_HEAP>();
+    AccessInternal::value_atomic_xchg<decorators>(dst, new_value, witness);
+  }
+
   // Primitive accesses
   template <typename P>
   static inline P load(P* addr) {

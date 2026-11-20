@@ -57,7 +57,7 @@ final class VarHandles {
             if (!type.isPrimitive()) {
                 if (ValueClass.isConcreteValueClass(type)) {
                     int layout = f.getLayout();
-                    boolean isAtomic = isAtomicFlat(f);
+                    boolean isAtomic = isAtomicFlatByPolicy(f);
                     boolean isFlat = f.isFlat();
                     if (isFlat) {
                         if (isAtomic) {
@@ -177,7 +177,7 @@ final class VarHandles {
         if (!type.isPrimitive()) {
             assert !f.isFlat() : ("static field is flat in " + decl + "." + f.getName());
             if (ValueClass.isConcreteValueClass(type)) {
-                if (isAtomicFlat(f)) {
+                if (isAtomicFlatByPolicy(f)) {
                     return noWriting
                             ? new VarHandleReferences.FieldStaticReadOnly(decl, base, foffset, type, f.isNullRestricted())
                             : new VarHandleReferences.FieldStaticReadWrite(decl, base, foffset, type, f.isNullRestricted());
@@ -237,11 +237,10 @@ final class VarHandles {
         }
     }
 
-    static boolean isAtomicFlat(MemberName field) {
-        boolean hasAtomicAccess = (field.getModifiers() & Modifier.VOLATILE) != 0 ||
+    static boolean isAtomicFlatByPolicy(MemberName field) {
+        return (field.getModifiers() & Modifier.VOLATILE) != 0 ||
                 !(field.isNullRestricted()) ||
                 !field.getFieldType().isAnnotationPresent(LooselyConsistentValue.class);
-        return hasAtomicAccess && ValueClass.hasBinaryPayload(field.getFieldType());
     }
 
     static boolean isAtomicFlat(Object[] array) {

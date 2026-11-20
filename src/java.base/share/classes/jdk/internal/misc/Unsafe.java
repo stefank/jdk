@@ -1772,15 +1772,31 @@ public final class Unsafe {
         }
     }
 
+    private native <V> boolean compareAndSetFlatValue0(Object o,
+                                                       long offset,
+                                                       int layout,
+                                                       Class<?> valueType,
+                                                       V expected,
+                                                       V x);
+
     @ForceInline
     public final <V> boolean compareAndSetFlatValue(Object o, long offset,
                                                 int layout,
                                                 Class<?> valueType,
                                                 V expected,
                                                 V x) {
-        Object[] array = newSpecialArray(valueType, 2, layout);
-        int containerLayout = arrayLayout(array);
-        return compareAndSetFlatValueAsBytes(array, o, offset, containerLayout, valueType, expected, x);
+        if (ValueClass.hasBinaryPayload(valueType)) {
+            Object[] array = newSpecialArray(valueType, 2, layout);
+            int containerLayout = arrayLayout(array);
+            return compareAndSetFlatValueAsBytes(array, o, offset, containerLayout, valueType, expected, x);
+        } else {
+            return compareAndSetFlatValue0(o,
+                                           offset,
+                                           layout,
+                                           valueType,
+                                           expected,
+                                           x);
+        }
     }
 
     @IntrinsicCandidate
@@ -1808,16 +1824,34 @@ public final class Unsafe {
         }
     }
 
+    private native <V> Object compareAndExchangeFlatValue0(Object o,
+                                                           long offset,
+                                                           int layout,
+                                                           Class<?> valueType,
+                                                           V expected,
+                                                           V x);
+
     @ForceInline
-    public final <V> Object compareAndExchangeFlatValue(Object o, long offset,
-                                                    int layout,
-                                                    Class<?> valueType,
-                                                    V expected,
-                                                    V x) {
-        Object[] array = newSpecialArray(valueType, 2, layout);
-        int containerLayout = arrayLayout(array);
-        compareAndSetFlatValueAsBytes(array, o, offset, containerLayout, valueType, expected, x);
-        return array[0];
+    public final <V> Object compareAndExchangeFlatValue(Object o,
+                                                        long offset,
+                                                        int layout,
+                                                        Class<?> valueType,
+                                                        V expected,
+                                                        V x) {
+
+        if (ValueClass.hasBinaryPayload(valueType)) {
+            Object[] array = newSpecialArray(valueType, 2, layout);
+            int containerLayout = arrayLayout(array);
+            compareAndSetFlatValueAsBytes(array, o, offset, containerLayout, valueType, expected, x);
+            return array[0];
+        } else {
+            return compareAndExchangeFlatValue0(o,
+                                                offset,
+                                                layout,
+                                                valueType,
+                                                expected,
+                                                x);
+        }
     }
 
     @IntrinsicCandidate
@@ -2952,7 +2986,7 @@ public final class Unsafe {
     @ForceInline
     private boolean compareAndSetFlatValueAsBytes(Object[] array, Object o, long offset, int layout, Class<?> valueType, Object expected, Object x) {
         // We can convert between a value object and a binary value (of suitable size) using array elements.
-        // This only works if the payload contains no oops (see VarHandles::isAtomicFlat).
+        // This only works if the payload contains no oops (see ValueClass.hasBinaryPayload).
         // Thus, we can implement the CAS with a plain numeric CAS.
 
         // array[0]: witness (put as binary, get as object), at base

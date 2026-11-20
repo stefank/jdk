@@ -74,6 +74,8 @@ namespace AccessInternal {
     BARRIER_CLONE,
     BARRIER_VALUE_COPY,
     BARRIER_VALUE_STORE_NULL,
+    BARRIER_VALUE_ATOMIC_CMPXCHG,
+    BARRIER_VALUE_ATOMIC_XCHG
   };
 
   template <DecoratorSet decorators, typename T>
@@ -116,6 +118,8 @@ namespace AccessInternal {
     typedef void (*clone_func_t)(oop src, oop dst, size_t size);
     typedef void (*value_copy_func_t)(const ValuePayload& src, const ValuePayload& dst);
     typedef void (*value_store_null_func_t)(const ValuePayload& dst);
+    typedef void (*value_atomic_cmpxchg_func_t)(ValuePayload& addr, const ValuePayload& compare_value, const ValuePayload& new_value, ValuePayload& witness);
+    typedef void (*value_atomic_xchg_func_t)(ValuePayload& addr, const ValuePayload& new_value, ValuePayload& witness);
   };
 
   template <DecoratorSet decorators>
@@ -144,6 +148,8 @@ namespace AccessInternal {
   ACCESS_GENERATE_ACCESS_FUNCTION(BARRIER_CLONE, clone_func_t);
   ACCESS_GENERATE_ACCESS_FUNCTION(BARRIER_VALUE_COPY, value_copy_func_t);
   ACCESS_GENERATE_ACCESS_FUNCTION(BARRIER_VALUE_STORE_NULL, value_store_null_func_t);
+  ACCESS_GENERATE_ACCESS_FUNCTION(BARRIER_VALUE_ATOMIC_CMPXCHG, value_atomic_cmpxchg_func_t);
+  ACCESS_GENERATE_ACCESS_FUNCTION(BARRIER_VALUE_ATOMIC_XCHG, value_atomic_xchg_func_t);
 #undef ACCESS_GENERATE_ACCESS_FUNCTION
 
   template <DecoratorSet decorators, typename T, BarrierType barrier_type>
@@ -172,6 +178,8 @@ namespace AccessInternal {
 
   void value_copy_internal(void* src, void* dst, size_t length);
   void value_store_null(void* dst, size_t length);
+  void value_atomic_cmpxchg(ValuePayload& dst, const ValuePayload& compare_value, const ValuePayload& new_value, ValuePayload& witness);
+  void value_atomic_xchg(ValuePayload& dst, const ValuePayload& new_value, ValuePayload& witness);
 }
 
 // This mask specifies what decorators are relevant for raw accesses. When passing
@@ -363,6 +371,8 @@ public:
   static void clone(oop src, oop dst, size_t size);
   static void value_copy(const ValuePayload& src, const ValuePayload& dst);
   static void value_store_null(const ValuePayload& dst);
+  static void value_atomic_cmpxchg(ValuePayload& dst, const ValuePayload& compare_value, const ValuePayload& new_value, ValuePayload& witness);
+  static void value_atomic_xchg(ValuePayload& dst, const ValuePayload& new_value, ValuePayload& witness);
 };
 
 namespace AccessInternal {
@@ -583,6 +593,32 @@ namespace AccessInternal {
     }
   };
 
+  template <DecoratorSet decorators, typename T>
+  struct RuntimeDispatch<decorators, T, BARRIER_VALUE_ATOMIC_CMPXCHG>: AllStatic {
+    typedef typename AccessFunction<decorators, T, BARRIER_VALUE_ATOMIC_CMPXCHG>::type func_t;
+    static func_t _value_atomic_cmpxchg_func;
+
+    static void value_atomic_cmpxchg_init(ValuePayload& addr, const ValuePayload& compare_value, const ValuePayload& new_value, ValuePayload& witness);
+
+    static inline void value_atomic_cmpxchg(ValuePayload& addr, const ValuePayload& compare_value, const ValuePayload& new_value, ValuePayload& witness) {
+      assert_access_thread_state();
+      _value_atomic_cmpxchg_func(addr, compare_value, new_value, witness);
+    }
+  };
+
+  template <DecoratorSet decorators, typename T>
+  struct RuntimeDispatch<decorators, T, BARRIER_VALUE_ATOMIC_XCHG>: AllStatic {
+    typedef typename AccessFunction<decorators, T, BARRIER_VALUE_ATOMIC_XCHG>::type func_t;
+    static func_t _value_atomic_xchg_func;
+
+    static void value_atomic_xchg_init(ValuePayload& addr, const ValuePayload& new_value, ValuePayload& witness);
+
+    static inline void value_atomic_xchg(ValuePayload& addr, const ValuePayload& new_value, ValuePayload& witness) {
+      assert_access_thread_state();
+      _value_atomic_xchg_func(addr, new_value, witness);
+    }
+  };
+
   // Initialize the function pointers to point to the resolving function.
   template <DecoratorSet decorators, typename T>
   typename AccessFunction<decorators, T, BARRIER_STORE>::type
@@ -631,6 +667,14 @@ namespace AccessInternal {
   template <DecoratorSet decorators, typename T>
   typename AccessFunction<decorators, T, BARRIER_VALUE_STORE_NULL>::type
   RuntimeDispatch<decorators, T, BARRIER_VALUE_STORE_NULL>::_value_store_null_func = &value_store_null_init;
+
+  template <DecoratorSet decorators, typename T>
+  typename AccessFunction<decorators, T, BARRIER_VALUE_ATOMIC_CMPXCHG>::type
+  RuntimeDispatch<decorators, T, BARRIER_VALUE_ATOMIC_CMPXCHG>::_value_atomic_cmpxchg_func = &value_atomic_cmpxchg_init;
+
+  template <DecoratorSet decorators, typename T>
+  typename AccessFunction<decorators, T, BARRIER_VALUE_ATOMIC_XCHG>::type
+  RuntimeDispatch<decorators, T, BARRIER_VALUE_ATOMIC_XCHG>::_value_atomic_xchg_func = &value_atomic_xchg_init;
 
   // Step 3: Pre-runtime dispatching.
   // The PreRuntimeDispatch class is responsible for filtering the barrier strength
@@ -980,6 +1024,63 @@ namespace AccessInternal {
       const DecoratorSet expanded_decorators = decorators;
       RuntimeDispatch<expanded_decorators, void*, BARRIER_VALUE_STORE_NULL>::value_store_null(dst);
     }
+
+
+    template <DecoratorSet decorators>
+    inline static typename EnableIf<
+      HasDecorator<decorators, AS_RAW>::value && CanHardwireRaw<decorators>::value, void>::type
+    value_atomic_cmpxchg(ValuePayload& addr, const ValuePayload& compare_value, const ValuePayload& new_value, ValuePayload& witness) {
+      typedef RawAccessBarrier<decorators & RAW_DECORATOR_MASK> Raw;
+      Raw::value_atomic_cmpxchg(addr, compare_value, new_value, witness);
+    }
+
+    template <DecoratorSet decorators>
+    inline static typename EnableIf<
+      HasDecorator<decorators, AS_RAW>::value && !CanHardwireRaw<decorators>::value, void>::type
+    value_atomic_cmpxchg(ValuePayload& addr, const ValuePayload& compare_value, const ValuePayload& new_value, ValuePayload& witness) {
+      if (UseCompressedOops) {
+        const DecoratorSet expanded_decorators = decorators | convert_compressed_oops;
+        PreRuntimeDispatch::value_atomic_cmpxchg<expanded_decorators>(addr, compare_value, new_value, witness);
+      } else {
+        const DecoratorSet expanded_decorators = decorators & ~convert_compressed_oops;
+        PreRuntimeDispatch::value_atomic_cmpxchg<expanded_decorators>(addr, compare_value, new_value, witness);
+      }
+    }
+
+    template <DecoratorSet decorators>
+    inline static typename EnableIf<
+      !HasDecorator<decorators, AS_RAW>::value, void>::type
+    value_atomic_cmpxchg(ValuePayload& addr, const ValuePayload& compare_value, const ValuePayload& new_value, ValuePayload& witness) {
+      RuntimeDispatch<decorators, void*, BARRIER_VALUE_ATOMIC_CMPXCHG>::value_atomic_cmpxchg(addr, compare_value, new_value, witness);
+    }
+
+    template <DecoratorSet decorators>
+    inline static typename EnableIf<
+      HasDecorator<decorators, AS_RAW>::value && CanHardwireRaw<decorators>::value, void>::type
+    value_atomic_xchg(ValuePayload& addr, const ValuePayload& new_value, ValuePayload& witness) {
+      typedef RawAccessBarrier<decorators & RAW_DECORATOR_MASK> Raw;
+      Raw::value_atomic_xchg(addr, new_value, witness);
+    }
+
+    template <DecoratorSet decorators>
+    inline static typename EnableIf<
+      HasDecorator<decorators, AS_RAW>::value && !CanHardwireRaw<decorators>::value, void>::type
+    value_atomic_xchg(ValuePayload& addr, const ValuePayload& new_value, ValuePayload& witness) {
+      if (UseCompressedOops) {
+        const DecoratorSet expanded_decorators = decorators | convert_compressed_oops;
+        PreRuntimeDispatch::value_atomic_xchg<expanded_decorators>(addr, new_value, witness);
+      } else {
+        const DecoratorSet expanded_decorators = decorators & ~convert_compressed_oops;
+        PreRuntimeDispatch::value_atomic_xchg<expanded_decorators>(addr, new_value, witness);
+      }
+    }
+
+    template <DecoratorSet decorators>
+    inline static typename EnableIf<
+      !HasDecorator<decorators, AS_RAW>::value, void>::type
+    value_atomic_xchg(ValuePayload& addr, const ValuePayload& new_value, ValuePayload& witness) {
+      RuntimeDispatch<decorators, void*, BARRIER_VALUE_ATOMIC_XCHG>::value_atomic_xchg(addr, new_value, witness);
+    }
   };
 
   // Step 2: Reduce types.
@@ -1282,6 +1383,21 @@ namespace AccessInternal {
   static inline void value_store_null(const ValuePayload& dst) {
     const DecoratorSet expanded_decorators = DecoratorFixup<decorators>::value;
     PreRuntimeDispatch::value_store_null<expanded_decorators>(dst);
+  }
+
+  template <DecoratorSet decorators>
+  inline void value_atomic_cmpxchg(ValuePayload& addr, const ValuePayload& compare_value, const ValuePayload& new_value, ValuePayload& witness) {
+    const DecoratorSet expanded_decorators = DecoratorFixup<
+      (!HasDecorator<decorators, MO_DECORATOR_MASK>::value) ?
+      (MO_SEQ_CST | decorators) : decorators>::value;
+    PreRuntimeDispatch::value_atomic_cmpxchg<expanded_decorators>(addr, compare_value, new_value, witness);
+  }
+
+  template <DecoratorSet decorators>
+  inline void value_atomic_xchg(ValuePayload& addr, const ValuePayload& new_value, ValuePayload& witness) {
+    // atomic_xchg is only available in SEQ_CST flavour.
+    const DecoratorSet expanded_decorators = DecoratorFixup<decorators | MO_SEQ_CST>::value;
+    PreRuntimeDispatch::value_atomic_xchg<expanded_decorators>(addr, new_value, witness);
   }
 
   // Infer the type that should be returned from an Access::oop_load.
