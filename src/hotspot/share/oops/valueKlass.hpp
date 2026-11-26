@@ -411,8 +411,8 @@ class ValueKlass: public InstanceKlass {
     return byte_offset_of(Members, _fast_hashcode_shift);
   }
 
-  oop null_reset_value() const;
-  void set_null_reset_value(oop val);
+  valueOop null_reset_value() const;
+  void set_null_reset_value(valueOop val);
 
   void deallocate_contents(ClassLoaderData* loader_data);
   static void cleanup(ValueKlass* ik) ;

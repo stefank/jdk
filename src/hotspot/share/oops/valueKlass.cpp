@@ -104,14 +104,14 @@ address ValueKlass::calculate_members_address() const {
   return end_of_instance_klass();
 }
 
-oop ValueKlass::null_reset_value() const {
+valueOop ValueKlass::null_reset_value() const {
   assert(is_initialized() || is_being_initialized() || is_in_error_state(), "null reset value is set at the beginning of initialization");
-  oop val = java_mirror()->obj_field_acquire(null_reset_value_offset());
+  valueOop val = oop_cast<valueOop>(java_mirror()->obj_field_acquire(null_reset_value_offset()));
   assert(val != nullptr, "Sanity check");
   return val;
 }
 
-void ValueKlass::set_null_reset_value(oop val) {
+void ValueKlass::set_null_reset_value(valueOop val) {
   assert(val != nullptr, "Sanity check");
   assert(oopDesc::is_oop(val), "Sanity check");
   assert(val->is_value_type(), "Sanity check");

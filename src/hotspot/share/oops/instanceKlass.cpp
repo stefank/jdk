@@ -1540,7 +1540,7 @@ void InstanceKlass::initialize_impl(TRAPS) {
   if (is_value_klass()) {
       ValueKlass* vk = ValueKlass::cast(this);
       if (vk->supports_nullable_layouts()) {
-        oop val = vk->allocate_instance(THREAD);
+        valueOop val = vk->allocate_instance(THREAD);
         if (HAS_PENDING_EXCEPTION) {
             Handle e(THREAD, PENDING_EXCEPTION);
             CLEAR_PENDING_EXCEPTION;
