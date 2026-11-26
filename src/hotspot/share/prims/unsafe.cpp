@@ -421,6 +421,18 @@ UNSAFE_ENTRY(void, Unsafe_PutFlatValue(JNIEnv *env, jobject unsafe, jobject obj,
   payload.write(valueOop(JNIHandles::resolve(value)), CHECK);
 } UNSAFE_END
 
+static BufferedValuePayload make_buffered_non_null(ValueKlass* vk, oop value) {
+  precond(value != nullptr);
+
+  BufferedValuePayload buffered(oop_cast<valueOop>(value));
+  // TODO: Fixing null-markers in an externally controlled Value could be racy.
+  //       We might want to ensure this on another level.
+  if (vk->supports_nullable_layouts()) {
+    vk->mark_payload_as_non_null(buffered.addr());
+  }
+  return buffered;
+}
+
 static BufferedValuePayload make_buffered(ValueKlass* vk, oop value) {
   if (value == nullptr) {
     BufferedValuePayload buffered(vk->null_reset_value());
@@ -429,13 +441,7 @@ static BufferedValuePayload make_buffered(ValueKlass* vk, oop value) {
     }
     return buffered;
   } else {
-    BufferedValuePayload buffered(oop_cast<valueOop>(value));
-    // TODO: Fixing null-markers in an externally controlled Value could be racy.
-    //       We might want to ensure this on another level.
-    if (vk->supports_nullable_layouts()) {
-      vk->mark_payload_as_non_null(buffered.addr());
-    }
-    return buffered;
+    return make_buffered_non_null(vk, value);
   }
 }
 
@@ -459,7 +465,7 @@ static jobject cas_flat(jobject obj, jlong offset, jint layout, jclass vc, jobje
   // Perform the allocation before extracting out oops.
   valueOop witness_oop = vk->allocate_instance(CHECK_NULL);
 
-  BufferedValuePayload witness_payload = make_buffered(vk, witness_oop);
+  BufferedValuePayload witness_payload = make_buffered_non_null(vk, witness_oop);
   FlatValuePayload payload = FlatValuePayload::construct_from_parts(base(), offset, vk, fl);
 
   oop expected_oop = JNIHandles::resolve(expected);
@@ -513,8 +519,8 @@ UNSAFE_ENTRY(bool, Unsafe_CompareAndSetFlatValue(JNIEnv *env, jobject unsafe, jo
 
   ValueKlass* vk = ValueKlass::cast(java_lang_Class::as_Klass(JNIHandles::resolve_non_null(vc)));
 
-  BufferedValuePayload result_payload = make_buffered(vk, result_oop);
-  BufferedValuePayload expected_payload = make_buffered(vk, expected_oop);
+  BufferedValuePayload result_payload = make_buffered_non_null(vk, result_oop);
+  BufferedValuePayload expected_payload = make_buffered_non_null(vk, expected_oop);
 
   return result_payload.equals(expected_payload);
 } UNSAFE_END
