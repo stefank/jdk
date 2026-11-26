@@ -243,12 +243,11 @@ final class VarHandles {
                 !field.getFieldType().isAnnotationPresent(LooselyConsistentValue.class);
     }
 
-    static boolean isAtomicFlat(Object[] array) {
+    static boolean isAtomicFlatByPolicy(Object[] array) {
         Class<?> componentType = array.getClass().componentType();
-        boolean hasAtomicAccess = ValueClass.isAtomicArray(array) ||
+        return ValueClass.isAtomicArray(array) ||
                 !ValueClass.isNullRestrictedArray(array) ||
                 !componentType.isAnnotationPresent(LooselyConsistentValue.class);
-        return hasAtomicAccess && ValueClass.hasBinaryPayload(componentType);
     }
 
     // Required by instance field handles
@@ -286,7 +285,7 @@ final class VarHandles {
 
     // This is invoked by non-flat array var handle code when attempting to access a flat array
     public static void checkAtomicFlatArray(Object[] array) {
-        if (!isAtomicFlat(array)) {
+        if (!isAtomicFlatByPolicy(array)) {
             throw new IllegalArgumentException("Attempt to perform a non-plain access on a non-atomic array");
         }
     }
