@@ -187,8 +187,6 @@ namespace AccessInternal {
     switch (size) {
       case 8: return compare_exchange<uint64_t>(addr, witness_addr, new_value_addr);
       case 4: return compare_exchange<uint32_t>(addr, witness_addr, new_value_addr);
-      case 2: return compare_exchange<uint16_t>(addr, witness_addr, new_value_addr);
-      case 1: return compare_exchange<uint8_t> (addr, witness_addr, new_value_addr);
       default: ShouldNotReachHere(); return false;
     }
   }
@@ -202,8 +200,6 @@ namespace AccessInternal {
     switch (size) {
       case 8: copy_raw<uint64_t>(from, to); break;
       case 4: copy_raw<uint32_t>(from, to); break;
-      case 2: copy_raw<uint16_t>(from, to); break;
-      case 1: copy_raw<uint8_t> (from, to); break;
       default: ShouldNotReachHere(); break;
     }
   }
@@ -218,8 +214,6 @@ namespace AccessInternal {
     switch (size) {
       case 8: copy_seq_cst<uint64_t>(from, to); break;
       case 4: copy_seq_cst<uint32_t>(from, to); break;
-      case 2: copy_seq_cst<uint16_t>(from, to); break;
-      case 1: copy_seq_cst<uint8_t> (from, to); break;
       default: ShouldNotReachHere(); break;
     }
   }
@@ -227,13 +221,14 @@ namespace AccessInternal {
   void value_atomic_cmpxchg(ValuePayload& dst, const ValuePayload& compare_value, const ValuePayload& new_value, ValuePayload& witness) {
     const size_t size = ValuePayload::copy_size_in_bytes(dst, witness);
 
-    assert(size <= 8 && is_power_of_2(size), "Unexpected size: %zu", size);
+    // This function is used to implement cmpxchg for flattened values with oop.
+    // There's no generic 2-byte cmpxchg support in the HotSpot code, so limit
+    // the implementation to those sizes that we can encounter.
+    assert(size == 4 || size == 8, "Unexpected size: %zu", size);
 
     union {
       uint64_t _v64;
       uint32_t _v32;
-      uint16_t _v16;
-      uint8_t _v8;
     } raw_bits;
 
     do {

@@ -1025,7 +1025,6 @@ namespace AccessInternal {
       RuntimeDispatch<expanded_decorators, void*, BARRIER_VALUE_STORE_NULL>::value_store_null(dst);
     }
 
-
     template <DecoratorSet decorators>
     inline static typename EnableIf<
       HasDecorator<decorators, AS_RAW>::value && CanHardwireRaw<decorators>::value, void>::type

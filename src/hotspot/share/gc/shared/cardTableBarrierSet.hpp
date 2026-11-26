@@ -126,6 +126,7 @@ public:
     template <typename T>
     static inline void oop_arraycopy_partial_barrier(BarrierSetT *bs, T* dst_raw, T* p);
   public:
+
     static void clone_in_heap(oop src, oop dst, size_t size);
 
     static void oop_store_in_heap_at(oop base, ptrdiff_t offset, oop value) {
