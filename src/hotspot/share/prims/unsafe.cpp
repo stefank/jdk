@@ -37,6 +37,7 @@
 #include "memory/oopFactory.hpp"
 #include "memory/resourceArea.hpp"
 #include "oops/access.inline.hpp"
+#include "oops/accessDecorators.hpp"
 #include "oops/fieldStreams.inline.hpp"
 #include "oops/flatArrayKlass.hpp"
 #include "oops/flatArrayOop.inline.hpp"
@@ -56,6 +57,7 @@
 #include "runtime/handles.inline.hpp"
 #include "runtime/interfaceSupport.inline.hpp"
 #include "runtime/javaThread.inline.hpp"
+#include "runtime/jniHandles.hpp"
 #include "runtime/jniHandles.inline.hpp"
 #include "runtime/orderAccess.hpp"
 #include "runtime/reflection.hpp"
@@ -419,6 +421,24 @@ UNSAFE_ENTRY(void, Unsafe_PutFlatValue(JNIEnv *env, jobject unsafe, jobject obj,
   payload.write(valueOop(JNIHandles::resolve(value)), CHECK);
 } UNSAFE_END
 
+static BufferedValuePayload make_buffered(ValueKlass* vk, oop value) {
+  if (value == nullptr) {
+    BufferedValuePayload buffered(vk->null_reset_value());
+    if (vk->supports_nullable_layouts()) {
+      assert(vk->is_payload_marked_as_null(buffered.addr()), "Should be marked null");
+    }
+    return buffered;
+  } else {
+    BufferedValuePayload buffered(oop_cast<valueOop>(value));
+    // TODO: Fixing null-markers in an externally controlled Value could be racy.
+    //       We might want to ensure this on another level.
+    if (vk->supports_nullable_layouts()) {
+      vk->mark_payload_as_non_null(buffered.addr());
+    }
+    return buffered;
+  }
+}
+
 static jobject cas_flat(jobject obj, jlong offset, jint layout, jclass vc, jobject expected, jobject x, TRAPS) {
   OptionalFlatLayout ofl = FlatLayoutEncoding::decode(layout);
   assert(ofl.is_flat(), "This method handles only flat layouts");
@@ -432,44 +452,48 @@ static jobject cas_flat(jobject obj, jlong offset, jint layout, jclass vc, jobje
   log_unsafe_value_access(base(), offset, vk);
   FlatLayout fl = ofl.get();
 
-  // TODO: null support isn't implemented yet
-  assert(!fl.is_nullable(), "Unimplemented");
+  if (!fl.is_nullable() && x == nullptr) {
+    THROW_NULL(vmSymbols::java_lang_NullPointerException());
+  }
 
+  // Perform the allocation before extracting out oops.
   valueOop witness_oop = vk->allocate_instance(CHECK_NULL);
 
+  BufferedValuePayload witness_payload = make_buffered(vk, witness_oop);
+  FlatValuePayload payload = FlatValuePayload::construct_from_parts(base(), offset, vk, fl);
+
   oop expected_oop = JNIHandles::resolve(expected);
+
+  if (!fl.is_nullable() && expected_oop == nullptr) {
+    // expected is allowed to be null, and this should only result in a failed cas.
+    // We can't always create a BufferedValuePayload for null because the null-reset
+    // value is only available if the value klass supports nullable layouts.
+    //
+    // Just return the previous value, loaded with a Java volatile load.
+    OrderAccess::fence();
+    HeapAccess<>::value_copy(payload, witness_payload);
+    if (vk->supports_nullable_layouts()) {
+      vk->mark_payload_as_non_null(witness_payload.addr());
+    }
+    OrderAccess::fence();
+    return JNIHandles::make_local(THREAD, witness_payload.container());
+  }
+
   oop x_oop = JNIHandles::resolve(x);
 
-  // TODO: Can't handle this right now
-  assert(expected_oop != nullptr, "Unimplemented");
-  assert(x_oop != nullptr, "Unimplemented");
-
-  auto make_buffered = [&](valueOop value) {
-    BufferedValuePayload buffered(value);
-    if (vk->supports_nullable_layouts()) {
-      vk->mark_payload_as_non_null(buffered.addr());
-    }
-    return buffered;
-  };
-
-  BufferedValuePayload witness_payload = make_buffered(witness_oop);
-
-  // TODO: Fixing null-markers in an externally controlled Value could be racy.
-  //       We might want to ensure this on another level.
-  BufferedValuePayload expected_payload = make_buffered(oop_cast<valueOop>(expected_oop));
-  BufferedValuePayload x_payload = make_buffered(oop_cast<valueOop>(x_oop));
-
-  FlatValuePayload payload = FlatValuePayload::construct_from_parts(base(), offset, vk, fl);
+  BufferedValuePayload expected_payload = make_buffered(vk, expected_oop);
+  BufferedValuePayload x_payload = make_buffered(vk, x_oop);
 
   HeapAccess<>::value_atomic_cmpxchg(payload,
                                      expected_payload,
                                      x_payload,
                                      witness_payload);
 
-  // TODO: null not handled yet
-  assert(!vk->supports_nullable_layouts() || !vk->is_payload_marked_as_null(witness_payload.addr()), "Unimplemented");
-
-  return JNIHandles::make_local(THREAD, witness_payload.container());
+  if (vk->supports_nullable_layouts() && vk->is_payload_marked_as_null(witness_payload.addr())) {
+    return nullptr;
+  } else {
+    return JNIHandles::make_local(THREAD, witness_payload.container());
+  }
 }
 
 UNSAFE_ENTRY(bool, Unsafe_CompareAndSetFlatValue(JNIEnv *env, jobject unsafe, jobject obj, jlong offset, jint layout, jclass vc, jobject expected, jobject x)) {
@@ -478,11 +502,19 @@ UNSAFE_ENTRY(bool, Unsafe_CompareAndSetFlatValue(JNIEnv *env, jobject unsafe, jo
   oop result_oop = JNIHandles::resolve(result);
   oop expected_oop = JNIHandles::resolve(expected);
 
-  assert(result_oop != nullptr, "Unimplemented");
-  assert(expected_oop != nullptr, "Unimplemented");
+  // Deal with nulls before wrapping expected_oop in a buffered value payload.
+  if (result == nullptr) {
+    return expected_oop == nullptr;
+  } else {
+    if (expected_oop == nullptr) {
+      return false;
+    }
+  }
 
-  BufferedValuePayload result_payload(oop_cast<valueOop>(result_oop));
-  BufferedValuePayload expected_payload(oop_cast<valueOop>(expected_oop));
+  ValueKlass* vk = ValueKlass::cast(java_lang_Class::as_Klass(JNIHandles::resolve_non_null(vc)));
+
+  BufferedValuePayload result_payload = make_buffered(vk, result_oop);
+  BufferedValuePayload expected_payload = make_buffered(vk, expected_oop);
 
   return result_payload.equals(expected_payload);
 } UNSAFE_END

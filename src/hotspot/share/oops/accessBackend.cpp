@@ -243,8 +243,9 @@ namespace AccessInternal {
       // Set up the witness
       copy_raw(&raw_bits, witness.addr(), size);
 
-      // Copy can have written padding over the buffered value, restore null-marker.
-      if (dst.klass()->supports_nullable_layouts()) {
+      if (dst.klass()->supports_nullable_layouts() && !dst.is_nullable_flat()) {
+        // Null-marker is not present at the source, and garbage padding bits can
+        // have been written to the null-marker. Fix the null-marker.
         dst.klass()->mark_payload_as_non_null(witness.addr());
       }
 
