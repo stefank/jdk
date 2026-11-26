@@ -433,16 +433,23 @@ static BufferedValuePayload make_buffered_non_null(ValueKlass* vk, oop value) {
   return buffered;
 }
 
-static BufferedValuePayload make_buffered(ValueKlass* vk, oop value) {
-  if (value == nullptr) {
-    BufferedValuePayload buffered(vk->null_reset_value());
-    if (vk->supports_nullable_layouts()) {
-      assert(vk->is_payload_marked_as_null(buffered.addr()), "Should be marked null");
-    }
-    return buffered;
-  } else {
-    return make_buffered_non_null(vk, value);
+static valueOop maybe_create_null_value(ValueKlass* vk, bool needs_null_value, TRAPS) {
+  if (!needs_null_value) {
+    return nullptr;
   }
+
+  if (vk->is_initialized()) {
+    // This is just an optimization to skip allocation when we already
+    // have a null value available.
+    return vk->null_reset_value();
+  }
+
+  // Create a separate null value
+  valueOop value = vk->allocate_instance(CHECK_NULL);
+  if (vk->supports_nullable_layouts()) {
+    vk->mark_payload_as_null(vk->payload_addr(value));
+  }
+  return value;
 }
 
 static jobject cas_flat(jobject obj, jlong offset, jint layout, jclass vc, jobject expected, jobject x, TRAPS) {
@@ -462,15 +469,37 @@ static jobject cas_flat(jobject obj, jlong offset, jint layout, jclass vc, jobje
     THROW_NULL(vmSymbols::java_lang_NullPointerException());
   }
 
-  // Perform the allocation before extracting out oops.
-  valueOop witness_oop = vk->allocate_instance(CHECK_NULL);
+  // Even if the the field is null-restricted, we allow code to try to use
+  // expected == null, which will fail. See the explicit path for this.
+  const bool incompatible_expected_null = !fl.is_nullable() && expected == nullptr;
 
-  BufferedValuePayload witness_payload = make_buffered_non_null(vk, witness_oop);
+  // Prepare the witness object used for holding the previous value used for
+  // cmpxchg comparison, and return value.
+  Handle witness_handle = [&](TRAPS) -> Handle {
+    valueOop value = vk->allocate_instance(CHECK_NH);
+    return Handle(THREAD, value);
+  }(CHECK_NULL);
+
+  // Set up a null value if the code needs one.
+  const bool needs_null_value = fl.is_nullable() && (expected == nullptr || x == nullptr);
+  valueOop null_value = maybe_create_null_value(vk, needs_null_value, CHECK_NULL);
+
+  auto make_buffered_allow_null = [&](oop value) {
+    if (value == nullptr) {
+      // We need to create a payload even for null values.
+      // The null-reset value might not be set up yet.
+      return BufferedValuePayload(null_value);
+    } else {
+      return make_buffered_non_null(vk, value);
+    }
+  };
+
+  BufferedValuePayload witness_payload = make_buffered_non_null(vk, witness_handle());
   FlatValuePayload payload = FlatValuePayload::construct_from_parts(base(), offset, vk, fl);
 
   oop expected_oop = JNIHandles::resolve(expected);
 
-  if (!fl.is_nullable() && expected_oop == nullptr) {
+  if (incompatible_expected_null) {
     // expected is allowed to be null, and this should only result in a failed cas.
     // We can't always create a BufferedValuePayload for null because the null-reset
     // value is only available if the value klass supports nullable layouts.
@@ -487,8 +516,8 @@ static jobject cas_flat(jobject obj, jlong offset, jint layout, jclass vc, jobje
 
   oop x_oop = JNIHandles::resolve(x);
 
-  BufferedValuePayload expected_payload = make_buffered(vk, expected_oop);
-  BufferedValuePayload x_payload = make_buffered(vk, x_oop);
+  BufferedValuePayload expected_payload = make_buffered_allow_null(expected_oop);
+  BufferedValuePayload x_payload = make_buffered_allow_null(x_oop);
 
   HeapAccess<>::value_atomic_cmpxchg(payload,
                                      expected_payload,
