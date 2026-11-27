@@ -216,7 +216,7 @@ namespace AccessInternal {
 
   template <class GCBarrierType, DecoratorSet decorators>
   struct PostRuntimeDispatch<GCBarrierType, BARRIER_VALUE_ATOMIC_CMPXCHG, decorators>: public AllStatic {
-    static void access_barrier(ValuePayload& dst, const ValuePayload& compare_value, const ValuePayload& new_value, ValuePayload& witness) {
+    static void access_barrier(ValuePayload& dst, const ValuePayload* compare_value, const ValuePayload* new_value, ValuePayload& witness) {
       GCBarrierType::value_atomic_cmpxchg_in_heap(dst, compare_value, new_value, witness);
     }
   };
@@ -391,7 +391,7 @@ namespace AccessInternal {
   }
 
   template <DecoratorSet decorators, typename T>
-  void RuntimeDispatch<decorators, T, BARRIER_VALUE_ATOMIC_CMPXCHG>::value_atomic_cmpxchg_init(ValuePayload& addr, const ValuePayload& compare_value, const ValuePayload& new_value, ValuePayload& witness) {
+  void RuntimeDispatch<decorators, T, BARRIER_VALUE_ATOMIC_CMPXCHG>::value_atomic_cmpxchg_init(ValuePayload& addr, const ValuePayload* compare_value, const ValuePayload* new_value, ValuePayload& witness) {
     func_t function = BarrierResolver<decorators, func_t, BARRIER_VALUE_ATOMIC_CMPXCHG>::resolve_barrier();
     _value_atomic_cmpxchg_func = function;
     function(addr, compare_value, new_value, witness);

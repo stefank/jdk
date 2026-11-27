@@ -560,7 +560,7 @@ inline void ZBarrierSet::AccessBarrier<decorators, BarrierSetT>::value_store_nul
 
 
 template <DecoratorSet decorators, typename BarrierSetT>
-inline void ZBarrierSet::AccessBarrier<decorators, BarrierSetT>::value_atomic_cmpxchg_in_heap(ValuePayload& dst, const ValuePayload& compare_value, const ValuePayload& new_value, ValuePayload& witness) {
+inline void ZBarrierSet::AccessBarrier<decorators, BarrierSetT>::value_atomic_cmpxchg_in_heap(ValuePayload& dst, const ValuePayload* compare_value, const ValuePayload* new_value, ValuePayload& witness) {
   precond(dst.klass()->contains_oops());
   precond(dst.size_in_bytes() == sizeof(zpointer));
 
@@ -570,16 +570,30 @@ inline void ZBarrierSet::AccessBarrier<decorators, BarrierSetT>::value_atomic_cm
 
   store_barrier_heap_with_healing((zpointer*)dst.addr());
 
-  oop new_value_oop = OopBarrier::oop_load_in_heap((zpointer*)new_value.addr());
+  auto load_new_value_zpointer = [&]() {
+    if (new_value == nullptr) {
+      return store_good(nullptr);
+    }
 
-  const zpointer new_value_zpointer = store_good(new_value_oop);
+    oop new_value_oop = OopBarrier::oop_load_in_heap((zpointer*)new_value->addr());
+
+    return store_good(new_value_oop);
+  };
+
+  const zpointer new_value_zpointer = load_new_value_zpointer();
 
   for (;;) {
     // Copy to witness
     oop w = OopSeqCstBarrier::oop_load_in_heap((zpointer*)dst.addr());
     OopBarrier::oop_store_in_heap((zpointer*)witness.addr(), w);
 
-    if (!witness.equals(compare_value)) {
+    if (dst.klass()->supports_nullable_layouts() && !dst.is_nullable_flat()) {
+      // Null-marker is not present at the source, and garbage padding bits can
+      // have been written to the null-marker. Fix the null-marker.
+      dst.klass()->mark_payload_as_non_null(witness.addr());
+    }
+
+    if (!witness.equals_external_null(compare_value)) {
       // Cas will not succeed
       // This is the reason why the MO_SEQ_CST is used for the witness load
       return;

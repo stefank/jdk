@@ -232,7 +232,7 @@ public:
     AccessInternal::value_store_null<decorators>(dst);
   }
 
-  static inline void value_atomic_cmpxchg(ValuePayload& dst, const ValuePayload& compare_value, const ValuePayload& new_value, ValuePayload& witness) {
+  static inline void value_atomic_cmpxchg(ValuePayload& dst, const ValuePayload* compare_value, const ValuePayload* new_value, ValuePayload& witness) {
     verify_heap_value_decorators<IN_HEAP>();
     AccessInternal::value_atomic_cmpxchg<decorators>(dst, compare_value, new_value, witness);
   }

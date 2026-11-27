@@ -257,7 +257,7 @@ value_store_null_in_heap(const ValuePayload& dst) {
 
 template <DecoratorSet decorators, typename BarrierSetT>
 inline void CardTableBarrierSet::AccessBarrier<decorators, BarrierSetT>::
-value_atomic_cmpxchg_in_heap(ValuePayload& dst, const ValuePayload& compare_value, const ValuePayload& new_value, ValuePayload& witness) {
+value_atomic_cmpxchg_in_heap(ValuePayload& dst, const ValuePayload* compare_value, const ValuePayload* new_value, ValuePayload& witness) {
   const ValueKlass* vk = dst.klass();
 
   if (!vk->contains_oops()) {

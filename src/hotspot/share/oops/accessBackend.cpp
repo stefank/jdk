@@ -218,7 +218,7 @@ namespace AccessInternal {
     }
   }
 
-  void value_atomic_cmpxchg(ValuePayload& dst, const ValuePayload& compare_value, const ValuePayload& new_value, ValuePayload& witness) {
+  void value_atomic_cmpxchg(ValuePayload& dst, const ValuePayload* compare_value, const ValuePayload* new_value, ValuePayload& witness) {
     const size_t size = ValuePayload::copy_size_in_bytes(dst, witness);
 
     // This function is used to implement cmpxchg for flattened values with oop.
@@ -226,7 +226,7 @@ namespace AccessInternal {
     // the implementation to those sizes that we can encounter.
     assert(size == 4 || size == 8, "Unexpected size: %zu", size);
 
-    union {
+    union Bits {
       uint64_t _v64;
       uint32_t _v32;
     } raw_bits;
@@ -244,12 +244,22 @@ namespace AccessInternal {
         dst.klass()->mark_payload_as_non_null(witness.addr());
       }
 
-      if (!witness.equals(compare_value)) {
+      if (!witness.equals_external_null(compare_value)) {
         // Cas will not succeed - witness filled with previous value
         return;
       }
 
-      if (compare_exchange(dst.addr(), &raw_bits, new_value.addr(), size)) {
+      // Initializes first member (64 bits)
+      Bits new_value_bits{};
+
+      if (new_value != nullptr) {
+        copy_raw(new_value->addr(), &new_value_bits, size);
+        if (dst.is_nullable_flat()) {
+          dst.klass()->mark_payload_as_non_null((address)&new_value_bits);
+        }
+      }
+
+      if (compare_exchange(dst.addr(), &raw_bits, &new_value_bits, size)) {
         // Succeeded - witness filled with previous value
         return;
       }

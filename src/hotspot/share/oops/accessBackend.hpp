@@ -118,7 +118,7 @@ namespace AccessInternal {
     typedef void (*clone_func_t)(oop src, oop dst, size_t size);
     typedef void (*value_copy_func_t)(const ValuePayload& src, const ValuePayload& dst);
     typedef void (*value_store_null_func_t)(const ValuePayload& dst);
-    typedef void (*value_atomic_cmpxchg_func_t)(ValuePayload& addr, const ValuePayload& compare_value, const ValuePayload& new_value, ValuePayload& witness);
+    typedef void (*value_atomic_cmpxchg_func_t)(ValuePayload& addr, const ValuePayload* compare_value, const ValuePayload* new_value, ValuePayload& witness);
     typedef void (*value_atomic_xchg_func_t)(ValuePayload& addr, const ValuePayload& new_value, ValuePayload& witness);
   };
 
@@ -178,7 +178,7 @@ namespace AccessInternal {
 
   void value_copy_internal(void* src, void* dst, size_t length);
   void value_store_null(void* dst, size_t length);
-  void value_atomic_cmpxchg(ValuePayload& dst, const ValuePayload& compare_value, const ValuePayload& new_value, ValuePayload& witness);
+  void value_atomic_cmpxchg(ValuePayload& dst, const ValuePayload* compare_value, const ValuePayload* new_value, ValuePayload& witness);
   void value_atomic_xchg(ValuePayload& dst, const ValuePayload& new_value, ValuePayload& witness);
 }
 
@@ -371,7 +371,7 @@ public:
   static void clone(oop src, oop dst, size_t size);
   static void value_copy(const ValuePayload& src, const ValuePayload& dst);
   static void value_store_null(const ValuePayload& dst);
-  static void value_atomic_cmpxchg(ValuePayload& dst, const ValuePayload& compare_value, const ValuePayload& new_value, ValuePayload& witness);
+  static void value_atomic_cmpxchg(ValuePayload& dst, const ValuePayload* compare_value, const ValuePayload* new_value, ValuePayload& witness);
   static void value_atomic_xchg(ValuePayload& dst, const ValuePayload& new_value, ValuePayload& witness);
 };
 
@@ -598,9 +598,9 @@ namespace AccessInternal {
     typedef typename AccessFunction<decorators, T, BARRIER_VALUE_ATOMIC_CMPXCHG>::type func_t;
     static func_t _value_atomic_cmpxchg_func;
 
-    static void value_atomic_cmpxchg_init(ValuePayload& addr, const ValuePayload& compare_value, const ValuePayload& new_value, ValuePayload& witness);
+    static void value_atomic_cmpxchg_init(ValuePayload& addr, const ValuePayload* compare_value, const ValuePayload* new_value, ValuePayload& witness);
 
-    static inline void value_atomic_cmpxchg(ValuePayload& addr, const ValuePayload& compare_value, const ValuePayload& new_value, ValuePayload& witness) {
+    static inline void value_atomic_cmpxchg(ValuePayload& addr, const ValuePayload* compare_value, const ValuePayload* new_value, ValuePayload& witness) {
       assert_access_thread_state();
       _value_atomic_cmpxchg_func(addr, compare_value, new_value, witness);
     }
@@ -1028,7 +1028,7 @@ namespace AccessInternal {
     template <DecoratorSet decorators>
     inline static typename EnableIf<
       HasDecorator<decorators, AS_RAW>::value && CanHardwireRaw<decorators>::value, void>::type
-    value_atomic_cmpxchg(ValuePayload& addr, const ValuePayload& compare_value, const ValuePayload& new_value, ValuePayload& witness) {
+    value_atomic_cmpxchg(ValuePayload& addr, const ValuePayload* compare_value, const ValuePayload* new_value, ValuePayload& witness) {
       typedef RawAccessBarrier<decorators & RAW_DECORATOR_MASK> Raw;
       Raw::value_atomic_cmpxchg(addr, compare_value, new_value, witness);
     }
@@ -1036,7 +1036,7 @@ namespace AccessInternal {
     template <DecoratorSet decorators>
     inline static typename EnableIf<
       HasDecorator<decorators, AS_RAW>::value && !CanHardwireRaw<decorators>::value, void>::type
-    value_atomic_cmpxchg(ValuePayload& addr, const ValuePayload& compare_value, const ValuePayload& new_value, ValuePayload& witness) {
+    value_atomic_cmpxchg(ValuePayload& addr, const ValuePayload* compare_value, const ValuePayload* new_value, ValuePayload& witness) {
       if (UseCompressedOops) {
         const DecoratorSet expanded_decorators = decorators | convert_compressed_oops;
         PreRuntimeDispatch::value_atomic_cmpxchg<expanded_decorators>(addr, compare_value, new_value, witness);
@@ -1049,7 +1049,7 @@ namespace AccessInternal {
     template <DecoratorSet decorators>
     inline static typename EnableIf<
       !HasDecorator<decorators, AS_RAW>::value, void>::type
-    value_atomic_cmpxchg(ValuePayload& addr, const ValuePayload& compare_value, const ValuePayload& new_value, ValuePayload& witness) {
+    value_atomic_cmpxchg(ValuePayload& addr, const ValuePayload* compare_value, const ValuePayload* new_value, ValuePayload& witness) {
       RuntimeDispatch<decorators, void*, BARRIER_VALUE_ATOMIC_CMPXCHG>::value_atomic_cmpxchg(addr, compare_value, new_value, witness);
     }
 
@@ -1385,7 +1385,7 @@ namespace AccessInternal {
   }
 
   template <DecoratorSet decorators>
-  inline void value_atomic_cmpxchg(ValuePayload& addr, const ValuePayload& compare_value, const ValuePayload& new_value, ValuePayload& witness) {
+  inline void value_atomic_cmpxchg(ValuePayload& addr, const ValuePayload* compare_value, const ValuePayload* new_value, ValuePayload& witness) {
     const DecoratorSet expanded_decorators = DecoratorFixup<
       (!HasDecorator<decorators, MO_DECORATOR_MASK>::value) ?
       (MO_SEQ_CST | decorators) : decorators>::value;

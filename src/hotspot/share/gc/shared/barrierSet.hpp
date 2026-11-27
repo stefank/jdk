@@ -321,7 +321,7 @@ public:
       Raw::value_store_null(dst);
     }
 
-    static void value_atomic_cmpxchg_in_heap(ValuePayload& dst, const ValuePayload& compare_value, const ValuePayload& new_value, ValuePayload& witness) {
+    static void value_atomic_cmpxchg_in_heap(ValuePayload& dst, const ValuePayload* compare_value, const ValuePayload* new_value, ValuePayload& witness) {
       Raw::value_atomic_cmpxchg(dst, compare_value, new_value, witness);
     }
 

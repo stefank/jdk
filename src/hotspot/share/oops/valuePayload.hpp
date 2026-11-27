@@ -130,7 +130,8 @@ public:
   class OopHandle;
 
   static inline size_t copy_size_in_bytes(const ValuePayload& src, const ValuePayload& dst);
-  inline bool equals(const ValuePayload& other) const;
+  inline bool equals_non_null(const ValuePayload& other) const;
+  inline bool equals_external_null(const ValuePayload* other) const;
 };
 
 class BufferedValuePayload : public ValuePayload {

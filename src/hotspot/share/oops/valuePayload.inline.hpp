@@ -371,14 +371,18 @@ inline size_t ValuePayload::copy_size_in_bytes(const ValuePayload& src, const Va
 // FIXME: JVMTITagMapTable implementation - move this out of the JVMTI code
 extern bool equal_value_objects(oop obj1, int offset1, oop obj2, int offset2, ValueKlass* klass);
 
-inline bool ValuePayload::equals(const ValuePayload& other) const {
+inline bool ValuePayload::equals_non_null(const ValuePayload& other) const {
+  return equal_value_objects(container(), offset(), other.container(), other.offset(), klass());
+}
+
+inline bool ValuePayload::equals_external_null(const ValuePayload* other) const {
   if (is_payload_null()) {
-    return other.is_payload_null();
+    return other == nullptr;
   }
-  if (other.is_payload_null()) {
+  if (other == nullptr) {
     return false;
   }
-  return equal_value_objects(container(), offset(), other.container(), other.offset(), klass());
+  return equals_non_null(*other);
 }
 
 inline BufferedValuePayload::BufferedValuePayload(valueOop container,
@@ -484,7 +488,7 @@ inline void FlatValuePayload::write_without_nullability_check(valueOop obj) {
     BufferedValuePayload obj_payload(obj);
     if (UseNewCode) {
       // Just get the compiler to compile.
-      HeapAccess<>::value_atomic_cmpxchg(*this, obj_payload, obj_payload, obj_payload);
+      HeapAccess<>::value_atomic_cmpxchg(*this, &obj_payload, &obj_payload, obj_payload);
       HeapAccess<>::value_atomic_xchg(*this, obj_payload, obj_payload);
     }
     copy_from(obj_payload);

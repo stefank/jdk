@@ -346,7 +346,7 @@ inline void RawAccessBarrier<decorators>::value_store_null(const ValuePayload& d
 }
 
 template <DecoratorSet decorators>
-inline void RawAccessBarrier<decorators>::value_atomic_cmpxchg(ValuePayload& dst, const ValuePayload& compare_value, const ValuePayload& new_value, ValuePayload& witness) {
+inline void RawAccessBarrier<decorators>::value_atomic_cmpxchg(ValuePayload& dst, const ValuePayload* compare_value, const ValuePayload* new_value, ValuePayload& witness) {
   AccessInternal::value_atomic_cmpxchg(dst, compare_value, new_value, witness);
 }
 

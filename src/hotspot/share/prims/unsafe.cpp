@@ -421,37 +421,6 @@ UNSAFE_ENTRY(void, Unsafe_PutFlatValue(JNIEnv *env, jobject unsafe, jobject obj,
   payload.write(valueOop(JNIHandles::resolve(value)), CHECK);
 } UNSAFE_END
 
-static BufferedValuePayload make_buffered_non_null(ValueKlass* vk, oop value) {
-  precond(value != nullptr);
-
-  BufferedValuePayload buffered(oop_cast<valueOop>(value));
-  // TODO: Fixing null-markers in an externally controlled Value could be racy.
-  //       We might want to ensure this on another level.
-  if (vk->supports_nullable_layouts()) {
-    vk->mark_payload_as_non_null(buffered.addr());
-  }
-  return buffered;
-}
-
-static valueOop maybe_create_null_value(ValueKlass* vk, bool needs_null_value, TRAPS) {
-  if (!needs_null_value) {
-    return nullptr;
-  }
-
-  if (vk->is_initialized()) {
-    // This is just an optimization to skip allocation when we already
-    // have a null value available.
-    return vk->null_reset_value();
-  }
-
-  // Create a separate null value
-  valueOop value = vk->allocate_instance(CHECK_NULL);
-  if (vk->supports_nullable_layouts()) {
-    vk->mark_payload_as_null(vk->payload_addr(value));
-  }
-  return value;
-}
-
 static jobject cas_flat(jobject obj, jlong offset, jint layout, jclass vc, jobject expected, jobject x, TRAPS) {
   OptionalFlatLayout ofl = FlatLayoutEncoding::decode(layout);
   assert(ofl.is_flat(), "This method handles only flat layouts");
@@ -473,28 +442,11 @@ static jobject cas_flat(jobject obj, jlong offset, jint layout, jclass vc, jobje
   // expected == null, which will fail. See the explicit path for this.
   const bool incompatible_expected_null = !fl.is_nullable() && expected == nullptr;
 
-  // Prepare the witness object used for holding the previous value used for
-  // cmpxchg comparison, and return value.
-  Handle witness_handle = [&](TRAPS) -> Handle {
-    valueOop value = vk->allocate_instance(CHECK_NH);
-    return Handle(THREAD, value);
-  }(CHECK_NULL);
+  // Prepare the witness object used for holding the previous value for the
+  // cmpxchg comparison, and the return value.
+  oop witness_oop = vk->allocate_instance(CHECK_NULL);
 
-  // Set up a null value if the code needs one.
-  const bool needs_null_value = fl.is_nullable() && (expected == nullptr || x == nullptr);
-  valueOop null_value = maybe_create_null_value(vk, needs_null_value, CHECK_NULL);
-
-  auto make_buffered_allow_null = [&](oop value) {
-    if (value == nullptr) {
-      // We need to create a payload even for null values.
-      // The null-reset value might not be set up yet.
-      return BufferedValuePayload(null_value);
-    } else {
-      return make_buffered_non_null(vk, value);
-    }
-  };
-
-  BufferedValuePayload witness_payload = make_buffered_non_null(vk, witness_handle());
+  BufferedValuePayload witness_payload(oop_cast<valueOop>(witness_oop));
   FlatValuePayload payload = FlatValuePayload::construct_from_parts(base(), offset, vk, fl);
 
   oop expected_oop = JNIHandles::resolve(expected);
@@ -516,8 +468,16 @@ static jobject cas_flat(jobject obj, jlong offset, jint layout, jclass vc, jobje
 
   oop x_oop = JNIHandles::resolve(x);
 
-  BufferedValuePayload expected_payload = make_buffered_allow_null(expected_oop);
-  BufferedValuePayload x_payload = make_buffered_allow_null(x_oop);
+  alignas(BufferedValuePayload) char expected_payload_mem[sizeof(BufferedValuePayload)];
+  alignas(BufferedValuePayload) char x_payload_mem[sizeof(BufferedValuePayload)];
+
+  BufferedValuePayload* expected_payload = (expected_oop != nullptr)
+      ? ::new (expected_payload_mem) BufferedValuePayload(oop_cast<valueOop>(expected_oop))
+      : nullptr;
+
+  BufferedValuePayload* x_payload = (x_oop != nullptr)
+      ? ::new (x_payload_mem) BufferedValuePayload(oop_cast<valueOop>(x_oop))
+      : nullptr;
 
   HeapAccess<>::value_atomic_cmpxchg(payload,
                                      expected_payload,
@@ -546,12 +506,10 @@ UNSAFE_ENTRY(bool, Unsafe_CompareAndSetFlatValue(JNIEnv *env, jobject unsafe, jo
     }
   }
 
-  ValueKlass* vk = ValueKlass::cast(java_lang_Class::as_Klass(JNIHandles::resolve_non_null(vc)));
+  BufferedValuePayload result_payload(oop_cast<valueOop>(result_oop));
+  BufferedValuePayload expected_payload(oop_cast<valueOop>(expected_oop));
 
-  BufferedValuePayload result_payload = make_buffered_non_null(vk, result_oop);
-  BufferedValuePayload expected_payload = make_buffered_non_null(vk, expected_oop);
-
-  return result_payload.equals(expected_payload);
+  return result_payload.equals_non_null(expected_payload);
 } UNSAFE_END
 
 UNSAFE_ENTRY(jobject, Unsafe_CompareAndExchangeFlatValue(JNIEnv *env, jobject unsafe, jobject obj, jlong offset, jint layout, jclass vc, jobject expected, jobject x)) {
